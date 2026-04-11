@@ -4,11 +4,24 @@ CurrentModule = TensND
 
 # Documentation for [TensND](https://github.com/jfbarthelemy/TensND.jl)
 
-*Package allowing tensor calculations in arbitrary coordinate systems.*
+*Symbolic and numerical tensor calculations in arbitrary coordinate systems.*
 
 ## Introduction
 
-This Julia package provides tools to perform tensor calculations of any order and any dimension in arbitrary coordinate systems (cartesian, polar, cylindrical, spherical, spheroidal or any user defined coordinate systems...). In particular differential operators are available: gradient, symmetrized gradient, divergence, Laplace, Hessian. The implementation of this library is much inspired by the Maple library [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) developed by Jean Garrigues.
+TensND.jl is a Julia package for tensor calculations of any order and dimension in arbitrary
+coordinate systems. It supports both **symbolic computation** (via SymPy and Symbolics.jl) and
+**numerical evaluation** (via ForwardDiff automatic differentiation).
+
+### Key features
+
+- **Basis types**: canonical, rotated, orthogonal, and fully general non-orthogonal bases
+- **Tensor algebra**: products, contractions, change of basis, variance (covariant/contravariant) management
+- **Structured tensor types**: isotropic (`TensISO`), transversely isotropic (`TensWalpole`, `TensTI`), orthotropic (`TensOrtho`) with compact parametric storage and efficient algebra
+- **Symmetry projection**: find the closest ISO, TI, or ORTHO tensor via Frobenius distance minimization; rotation-optimized via NLopt
+- **Differential operators**: gradient, symmetric gradient, divergence, Laplacian, Hessian in curvilinear coordinate systems (symbolic and numerical)
+- **Generic type system**: works with `Float64`, symbolic types (`Sym`, `Num`), and `ForwardDiff.Dual` numbers for automatic differentiation
+
+The implementation is inspired by the Maple library [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) developed by Jean Garrigues.
 
 ## Installation
 
@@ -22,6 +35,12 @@ Or, equivalently, via the `Pkg` API:
 
 ```julia
 julia> import Pkg; Pkg.add("TensND")
+```
+
+For rotation-optimized tensor projections, also install the optional dependency:
+
+```julia
+pkg> add NLopt
 ```
 
 ## Manual outline
@@ -63,12 +82,16 @@ Depth = 1
 
 ## Related packages
 
-- [SymPy.jl](https://github.com/JuliaPy/SymPy.jl)
-- [Tensors.jl](https://github.com/Ferrite-FEM/Tensors.jl)
-- [OMEinsum.jl](https://github.com/under-Peter/OMEinsum.jl)
-- [Rotations.jl](https://github.com/JuliaGeometry/Rotations.jl)
+- [SymPy.jl](https://github.com/JuliaPy/SymPy.jl) — symbolic mathematics via Python/PyCall
+- [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl) — native Julia CAS (also supported)
+- [Tensors.jl](https://github.com/Ferrite-FEM/Tensors.jl) — low-level tensor storage
+- [OMEinsum.jl](https://github.com/under-Peter/OMEinsum.jl) — Einstein summation
+- [Rotations.jl](https://github.com/JuliaGeometry/Rotations.jl) — rotation matrices
+- [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) — automatic differentiation
+- [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl) — rotation-optimized projections (optional)
 
 ## References
 
-1. [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html)
-1. [Sébastien Brisard's blog](https://sbrisard.github.io/posts/20140226-decomposition_of_transverse_isotropic_fourth-rank_tensors.html)
+1. [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) — Maple tensor library by Jean Garrigues
+1. [Walpole basis decomposition](https://sbrisard.github.io/posts/20140226-decomposition_of_transverse_isotropic_fourth-rank_tensors.html) — blog post by S. Brisard
+1. Hoenig, A. (1978). *The behavior of a flat elliptical crack in an anisotropic elastic body*. International Journal of Solids and Structures, 14, 925-934.

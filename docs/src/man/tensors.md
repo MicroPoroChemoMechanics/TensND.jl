@@ -230,6 +230,107 @@ C = TensTI{2}(3.0, 7.0, n45) ;
 getarray(C)
 ```
 
+### TI convenience constructors and engineering parametrizations
+
+Three parametrizations are available for constructing TI 4th-order tensors (stiffness or
+compliance). They all return a `TensWalpole{T,5}` and have corresponding extraction
+functions.
+
+#### Direct component form: `tensTI` / `argTI`
+
+Construct from the 5 independent components ``C_{1111}, C_{1122}, C_{1133}, C_{3333}, C_{2323}``
+(axis ``\mathbf{n} = \mathbf{e}_3``). Works for both stiffness and compliance tensors:
+
+```@repl tensors_eng
+using TensND
+n = [0., 0., 1.] ;
+C = tensTI(10., 3., 2.5, 12., 2., n) ;
+argTI(C)
+```
+
+#### Engineering form: `tensTI_eng` / `argTI_eng`
+
+Construct the TI **compliance** tensor from 5 engineering constants commonly used in composite
+mechanics:
+
+- ``E_1``: transverse Young's modulus (isotropic plane)
+- ``E_3``: axial Young's modulus (symmetry axis)
+- ``\nu_{12}``: in-plane Poisson's ratio
+- ``\nu_{31}``: axial-transverse Poisson's ratio (``\nu_{31}/E_3 = \nu_{13}/E_1``)
+- ``G_{31}``: axial shear modulus
+
+To obtain the stiffness tensor, invert the result:
+
+```@repl tensors_eng
+𝕊 = tensTI_eng(72., 50., 0.3, 0.25, 15., n) ;
+argTI_eng(𝕊)
+ℂ = inv(𝕊) ;
+maximum(abs.(getarray(ℂ ⊡ 𝕊) - getarray(tensId4(Val(3), Val(Float64)))))
+```
+
+#### Hoenig form: `tensTI_Hoenig` / `argTI_Hoenig`
+
+An alternative parametrization (Hoenig, 1978) expressed as dimensionless ratios relative
+to the transverse Young's modulus ``E``:
+
+- ``E``: transverse Young's modulus (``= 1/S_{1111}``)
+- ``\nu_1``: in-plane Poisson's ratio (``= -E\,S_{1122}``)
+- ``\nu_2``: axial-transverse Poisson's ratio (``= -E\,S_{1133}``)
+- ``H``: axial-to-transverse modulus ratio (``= 1/(E\,S_{3333})``)
+- ``\Gamma``: shear anisotropy parameter (``= (1+\nu_1)/(2\,E\,S_{2323})``)
+
+The Hoenig parametrization is useful when discussing anisotropy ratios independently of the
+overall stiffness scale:
+
+```@repl tensors_eng
+𝕊h = tensTI_Hoenig(72., 0.3, 0.25, 0.7, 0.9, n) ;
+argTI_Hoenig(𝕊h)
+```
+
+All three parametrizations are interconvertible through the `TensWalpole` representation;
+going from one to another simply requires calling the appropriate `arg*` extractor on a
+tensor built via the corresponding constructor.
+
+### Accessing Walpole coefficients
+
+For any `TensWalpole`, the function `get_ℓ` returns the 6 Walpole coefficients as a tuple
+(for N=5, ``\ell_3 = \ell_4`` is repeated):
+
+```@repl tensors_walpole
+using TensND
+n = 𝐞(3) ;
+L = TensWalpole(2., 1., 0.5, 0.3, 0.8, n) ;
+get_ℓ(L)
+getaxis(L)
+```
+
+For `TensOrtho`, the material frame is accessible via `getframe`:
+
+```@repl tensors_ortho
+using TensND, Tensors
+ℬ = CanonicalBasis{3,Float64}() ;
+t = TensOrtho(10., 8., 9., 3., 2., 4., 2.5, 3., 1.5, ℬ) ;
+getframe(t)
+getdata(t)
+```
+
+### Kelvin-Mandel representation
+
+The Kelvin-Mandel (KM) representation maps a symmetric tensor to a vector (order 2) or
+a matrix (order 4) using the index ordering
+``11 \to 1,\; 22 \to 2,\; 33 \to 3,\; 23 \to 4,\; 13 \to 5,\; 12 \to 6``.
+Off-diagonal components are scaled by ``\sqrt{2}`` so that the Frobenius norm is preserved:
+``\lVert\mathbf{A}\rVert^2 = A_{KM}^T A_{KM}``.  This differs from Voigt notation which
+uses engineering shear (factor 2 instead of ``\sqrt{2}``).
+
+- `KM(t)`: KM matrix/vector in the **canonical** frame
+- `KM_material(t::TensOrtho)`: KM matrix in the **material** frame (block-diagonal for orthotropic)
+- `invKM(km)`: reconstruct a symmetric tensor from its KM representation
+
+```@repl tensors_ortho
+KM_material(t)
+```
+
 ### Symmetry class predicates
 
 The three predicates `isISO`, `isTI`, `isOrtho` form a consistent hierarchy across all specialized
