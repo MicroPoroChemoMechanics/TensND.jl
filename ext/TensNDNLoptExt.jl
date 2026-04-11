@@ -1,4 +1,3 @@
-
 ##############################################################################
 # TensNDNLoptExt — rotation-optimized tensor projections using NLopt         #
 #                                                                            #
@@ -23,10 +22,10 @@ using ForwardDiff
 using StaticArrays
 
 import TensND: proj_tens, _rot3_raw, _KM_rotation, _KM_of_array,
-               _project_TI_KM, _build_TI_KM,
-               _project_ORTHO_KM, _build_ORTHO_KM,
-               _frobenius, _n_from_angles, _angles_from_n,
-               _extract_vec
+    _project_TI_KM, _build_TI_KM,
+    _project_ORTHO_KM, _build_ORTHO_KM,
+    _frobenius, _n_from_angles, _angles_from_n,
+    _extract_vec
 
 # ── Objective function: TI, order 4 ─────────────────────────────────────────
 
@@ -67,14 +66,14 @@ function _obj_TI2(x, A, sqnorm_A)
     θ, ϕ = x[1], x[2]
     R = _rot3_raw(θ, ϕ, zero(eltype(x)))
     M_rot = R' * A * R
-    a = (M_rot[1,1] + M_rot[2,2]) / 2
-    b = M_rot[3,3]
+    a = (M_rot[1, 1] + M_rot[2, 2]) / 2
+    b = M_rot[3, 3]
     # Build projected matrix in canonical frame
-    n = (sin(θ)*cos(ϕ), sin(θ)*sin(ϕ), cos(θ))
+    n = (sin(θ) * cos(ϕ), sin(θ) * sin(ϕ), cos(θ))
     B_sqnorm = zero(eltype(x))
     for i in 1:3, j in 1:3
         δij = i == j ? one(eltype(x)) : zero(eltype(x))
-        Bij = a * (δij - n[i]*n[j]) + b * n[i]*n[j]
+        Bij = a * (δij - n[i] * n[j]) + b * n[i] * n[j]
         B_sqnorm += Bij^2
     end
     return one(eltype(x)) - B_sqnorm / sqnorm_A
@@ -91,7 +90,7 @@ function _obj_ORTHO2(x, A, sqnorm_A)
     for i in 1:3, j in 1:3
         Bij = zero(eltype(x))
         for k in 1:3
-            Bij += R[i,k] * M_rot[k,k] * R[j,k]
+            Bij += R[i, k] * M_rot[k, k] * R[j, k]
         end
         B_sqnorm += Bij^2
     end
@@ -111,7 +110,7 @@ Bounds: θ ∈ [0, π/2], ϕ ∈ [0, 2π] (TI) or [0, π] (ORTHO), ψ ∈ [0, π
 """
 function _optimize_angles(obj, n_angles::Int, x0::Vector{Float64})
     lb = zeros(n_angles)
-    ub = fill(π/2, n_angles)
+    ub = fill(π / 2, n_angles)
     if n_angles >= 2
         ub[2] = n_angles > 2 ? π : 2π   # ϕ bound: 2π for TI (2 angles), π for ORTHO (3 angles)
     end
@@ -131,17 +130,17 @@ function _optimize_angles(obj, n_angles::Int, x0::Vector{Float64})
         opt1 = NLopt.Opt(:GD_MLSL, n_angles)
         NLopt.lower_bounds!(opt1, lb)
         NLopt.upper_bounds!(opt1, ub)
-        NLopt.xtol_rel!(opt1, 1e-2)
-        NLopt.xtol_abs!(opt1, 1e-2)
-        NLopt.ftol_rel!(opt1, 1e-3)
+        NLopt.xtol_rel!(opt1, 1.0e-2)
+        NLopt.xtol_abs!(opt1, 1.0e-2)
+        NLopt.ftol_rel!(opt1, 1.0e-3)
         NLopt.maxeval!(opt1, 1000)
 
         local_opt = NLopt.Opt(:LD_TNEWTON, n_angles)
         NLopt.lower_bounds!(local_opt, lb)
         NLopt.upper_bounds!(local_opt, ub)
-        NLopt.xtol_rel!(local_opt, 1e-3)
-        NLopt.xtol_abs!(local_opt, 1e-3)
-        NLopt.ftol_rel!(local_opt, 1e-3)
+        NLopt.xtol_rel!(local_opt, 1.0e-3)
+        NLopt.xtol_abs!(local_opt, 1.0e-3)
+        NLopt.ftol_rel!(local_opt, 1.0e-3)
         NLopt.maxeval!(local_opt, 1000)
         NLopt.local_optimizer!(opt1, local_opt)
 
@@ -150,7 +149,7 @@ function _optimize_angles(obj, n_angles::Int, x0::Vector{Float64})
         (minf, minx, ret) = NLopt.optimize(opt1, x)
         x = minx
     catch e
-        @debug "NLopt global optimizer failed; proceeding to local refinement" exception=(e, catch_backtrace())
+        @debug "NLopt global optimizer failed; proceeding to local refinement" exception = (e, catch_backtrace())
     end
 
     # ── Pass 2: Local refinement ──
@@ -158,9 +157,9 @@ function _optimize_angles(obj, n_angles::Int, x0::Vector{Float64})
         opt2 = NLopt.Opt(:LD_TNEWTON, n_angles)
         NLopt.lower_bounds!(opt2, lb)
         NLopt.upper_bounds!(opt2, ub)
-        NLopt.xtol_rel!(opt2, 1e-6)
-        NLopt.xtol_abs!(opt2, 1e-6)
-        NLopt.ftol_rel!(opt2, 1e-6)
+        NLopt.xtol_rel!(opt2, 1.0e-6)
+        NLopt.xtol_abs!(opt2, 1.0e-6)
+        NLopt.ftol_rel!(opt2, 1.0e-6)
         NLopt.maxeval!(opt2, 100)
 
         NLopt.min_objective!(opt2, nlopt_obj)
@@ -168,7 +167,7 @@ function _optimize_angles(obj, n_angles::Int, x0::Vector{Float64})
         (minf, minx, ret) = NLopt.optimize(opt2, x)
         x = minx
     catch e
-        @debug "NLopt local optimizer failed; returning best x found so far" exception=(e, catch_backtrace())
+        @debug "NLopt local optimizer failed; returning best x found so far" exception = (e, catch_backtrace())
     end
 
     return x
@@ -198,7 +197,7 @@ julia> drel < 1e-6
 true
 ```
 """
-function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
+function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
     C_KM = _KM_of_array(A)
     sqnorm_C = sum(x -> x^2, C_KM)
     if sqnorm_C ≈ zero(T)
@@ -208,7 +207,7 @@ function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T,4}) where {T<:AbstractF
     end
 
     obj = x -> _obj_TI4(x, C_KM, sqnorm_C)
-    x0 = [T(π/4), T(π/4)]
+    x0 = [T(π / 4), T(π / 4)]
     x_opt = _optimize_angles(obj, 2, Float64.(x0))
 
     n = _n_from_angles(x_opt[1], x_opt[2])
@@ -239,7 +238,7 @@ julia> drel < 1e-6
 true
 ```
 """
-function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
+function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
     sqnorm_A = sum(x -> x^2, A)
     if sqnorm_A ≈ zero(T)
         z = zero(T)
@@ -248,7 +247,7 @@ function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T,2}) where {T<:AbstractF
     end
 
     obj = x -> _obj_TI2(x, A, sqnorm_A)
-    x0 = [T(π/4), T(π/4)]
+    x0 = [T(π / 4), T(π / 4)]
     x_opt = _optimize_angles(obj, 2, Float64.(x0))
 
     n = _n_from_angles(x_opt[1], x_opt[2])
@@ -279,17 +278,17 @@ julia> drel < 1e-4
 true
 ```
 """
-function TensND.proj_tens(::Val{:ORTHO}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
+function TensND.proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
     C_KM = _KM_of_array(A)
     sqnorm_C = sum(x -> x^2, C_KM)
     if sqnorm_C ≈ zero(T)
         z = zero(T)
-        frame = CanonicalBasis{3,T}()
+        frame = CanonicalBasis{3, T}()
         return TensOrtho(z, z, z, z, z, z, z, z, z, frame), z, z
     end
 
     obj = x -> _obj_ORTHO4(x, C_KM, sqnorm_C)
-    x0 = [T(π/4), T(π/4), T(π/4)]
+    x0 = [T(π / 4), T(π / 4), T(π / 4)]
     x_opt = _optimize_angles(obj, 3, Float64.(x0))
 
     frame = RotatedBasis(x_opt[1], x_opt[2], x_opt[3])
@@ -318,7 +317,7 @@ julia> d ≥ 0
 true
 ```
 """
-function TensND.proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
+function TensND.proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
     sqnorm_A = sum(x -> x^2, A)
     if sqnorm_A ≈ zero(T)
         z = zero(T)
@@ -326,7 +325,7 @@ function TensND.proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}) where {T<:Abstra
     end
 
     obj = x -> _obj_ORTHO2(x, A, sqnorm_A)
-    x0 = [T(π/4), T(π/4), T(π/4)]
+    x0 = [T(π / 4), T(π / 4), T(π / 4)]
     x_opt = _optimize_angles(obj, 3, Float64.(x0))
 
     frame = RotatedBasis(x_opt[1], x_opt[2], x_opt[3])

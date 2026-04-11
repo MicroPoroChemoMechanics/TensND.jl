@@ -1,30 +1,29 @@
-# TensND
+# TensND.jl
 
-*Package allowing tensor calculations in arbitrary coordinate systems.*
+*Symbolic and numerical tensor calculations in arbitrary coordinate systems.*
 
-<!-- [![Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jfbarthelemy.github.io/TensND.jl/stable) -->
-<!-- [![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://jfbarthelemy.github.io/TensND.jl/dev) -->
-<!-- [![Build Status](https://github.com/jfbarthelemy/TensND.jl/workflows/CI/badge.svg)](https://github.com/jfbarthelemy/TensND.jl/actions) -->
+[![Docs - Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jfbarthelemy.github.io/TensND.jl/stable/)
+[![Docs - Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://jfbarthelemy.github.io/TensND.jl/dev)
+[![Build Status](https://github.com/jfbarthelemy/TensND.jl/workflows/CI/badge.svg?branch=main)](https://github.com/jfbarthelemy/TensND.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-| **Documentation**                       | **Build Status**                  |
-|:---------------------------------------:|:---------------------------------:|
-| [![Dev][docs-dev-img]][docs-dev-url]    | [![Build Status][ci-img]][ci-url] |
-
-[docs-dev-img]: https://img.shields.io/badge/docs-dev-blue.svg
-[docs-dev-url]: https://jfbarthelemy.github.io/TensND.jl/dev
-
-[ci-img]: https://github.com/jfbarthelemy/TensND.jl/workflows/CI/badge.svg?branch=main
-[ci-url]: https://github.com/jfbarthelemy/TensND.jl/actions/workflows/CI.yml?query=branch%3Amain
-
-[issues-url]: https://github.com/jfbarthelemy/TensND.jl/issues
-
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/jfbarthelemy/TensND.jl/blob/main/LICENSE)
+[![code style: runic](https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black)](https://github.com/fredrikekre/Runic.jl)
 [![DOI](https://zenodo.org/badge/394914455.svg)](https://doi.org/10.5281/zenodo.17985768)
 
 ## Introduction
 
-This Julia package provides tools to perform tensor calculations of any order and any dimension in arbitrary coordinate systems (cartesian, polar, cylindrical, spherical, spheroidal or any user defined coordinate systems...). In particular differential operators are available: gradient, symmetrized gradient, divergence, Laplace, Hessian. The implementation of this library is much inspired by the Maple library [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) developed by Jean Garrigues.
+TensND.jl is a Julia package for tensor calculations of any order and dimension in arbitrary coordinate systems (cartesian, polar, cylindrical, spherical, spheroidal, or user-defined). It supports both **symbolic computation** (via [SymPy.jl](https://github.com/JuliaPy/SymPy.jl) and [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl)) and **numerical evaluation** (via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) automatic differentiation).
 
-This package and its manual are still under construction. The API may vary before official release.
+### Key features
+
+- **Basis types**: canonical, rotated, orthogonal, and fully general (non-orthogonal, symbolic)
+- **Tensor algebra**: products (`⊗`, `⊗ˢ`, `⊠`, `⊠ˢ`, `⋅`, `⊡`, `⊙`), change of basis, variance management
+- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensWalpole`, `TensTI`), orthotropic (`TensOrtho`) with compact storage and efficient algebra
+- **Symmetry projection**: find the closest ISO, TI, or ORTHO tensor; rotation-optimized via [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl)
+- **Differential operators**: gradient, symmetric gradient, divergence, Laplacian, Hessian in curvilinear coordinates (symbolic and numerical)
+- **Generic type system**: works with `Float64`, symbolic types (`Sym`, `Num`), and `ForwardDiff.Dual` for automatic differentiation
+
+The implementation is inspired by the Maple library [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) developed by Jean Garrigues.
 
 The following example is provided to illustrate the purpose of the library
 
@@ -83,8 +82,8 @@ julia> import Pkg; Pkg.add("TensND")
 
 ## Documentation
 
-<!-- - [**STABLE**][docs-stable-url] &mdash; **most recently tagged version of the documentation.** -->
-- [**DEV**][docs-dev-url] &mdash; **development version of the documentation.**
+- [**STABLE**](https://jfbarthelemy.github.io/TensND.jl/stable/) &mdash; **most recently tagged version of the documentation.**
+- [**DEV**](https://jfbarthelemy.github.io/TensND.jl/dev) &mdash; **development version of the documentation.**
 
 ## Citation
 

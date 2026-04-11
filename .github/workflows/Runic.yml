@@ -1,0 +1,31 @@
+name: Runic
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+permissions:
+  contents: write
+
+jobs:
+  runic:
+    name: Runic formatting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: julia-actions/setup-julia@v2
+        with:
+          version: '1'
+      - name: Install and run Runic
+        run: |
+          julia -e 'using Pkg; Pkg.add("Runic")'
+          julia -e 'using Runic; exit(Runic.main(["--inplace", "src/", "test/", "ext/"]))'
+      - name: Commit formatted code
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git diff --quiet && exit 0
+          git add -A
+          git commit -m "Style: auto-format with Runic.jl"
+          git push

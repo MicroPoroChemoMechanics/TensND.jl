@@ -120,4 +120,4 @@ lap_f([2.0, π/4])           # evaluate at (r=2, theta=pi/4) => 4.0
 - `Lame(CS, x0)` / `Lame(CS, x0, i)`: Lame coefficients at point `x0`
 
 For a detailed tutorial with validation examples (polar, spherical, cylindrical, Lame
-problem on a hollow sphere), see [Numerical coordinate systems](@ref).
+problem on a hollow sphere), see [Numerical differential operators](@ref).

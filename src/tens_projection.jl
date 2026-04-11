@@ -1,4 +1,3 @@
-
 ##############################################################################
 # Tensor projection onto symmetry subspaces (TI, ORTHO)                     #
 #                                                                            #
@@ -19,7 +18,7 @@ using StaticArrays
 # Off-diagonal components are scaled by √2 so that the Frobenius norm is
 # preserved (‖A‖² = Aₖₘ Aₖₘ).  This differs from Voigt notation which
 # uses engineering shear (factor 2 instead of √2).
-const _KM_COUPLES = ((1,1), (2,2), (3,3), (2,3), (1,3), (1,2))
+const _KM_COUPLES = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
 
 # ── ForwardDiff-compatible rotation helpers ──────────────────────────────────
 
@@ -43,10 +42,11 @@ function _rot3_raw(θ, ϕ, ψ)
     cϕ, sϕ = cos(ϕ), sin(ϕ)
     cψ, sψ = cos(ψ), sin(ψ)
     T = promote_type(typeof(cθ), typeof(cϕ), typeof(cψ))
-    SMatrix{3,3,T}(
-        cθ*cψ*cϕ - sψ*sϕ,   cθ*cψ*sϕ + cϕ*sψ,  -cψ*sθ,
-       -cθ*cϕ*sψ - cψ*sϕ,  -cθ*sψ*sϕ + cψ*cϕ,   sθ*sψ,
-        cϕ*sθ,               sθ*sϕ,                cθ)
+    return SMatrix{3, 3, T}(
+        cθ * cψ * cϕ - sψ * sϕ, cθ * cψ * sϕ + cϕ * sψ, -cψ * sθ,
+        -cθ * cϕ * sψ - cψ * sϕ, -cθ * sψ * sϕ + cψ * cϕ, sθ * sψ,
+        cϕ * sθ, sθ * sϕ, cθ
+    )
 end
 
 """
@@ -71,7 +71,7 @@ function _KM_rotation(θ, ϕ, ψ)
     R = _rot3_raw(θ, ϕ, ψ)
     T = eltype(R)
     sq2 = sqrt(T(2))
-    Q = MMatrix{6,6,T}(undef)
+    Q = MMatrix{6, 6, T}(undef)
 
     # (I,J) both in 1:3 — diagonal block: Q[I,J] = R[I,J]²
     for I in 1:3, J in 1:3
@@ -99,11 +99,11 @@ function _KM_rotation(θ, ϕ, ψ)
         i, j = _KM_COUPLES[I]
         for J in 4:6
             k, l = _KM_COUPLES[J]
-            Q[I, J] = R[i, k]*R[j, l] + R[i, l]*R[j, k]
+            Q[I, J] = R[i, k] * R[j, l] + R[i, l] * R[j, k]
         end
     end
 
-    return SMatrix{6,6,T}(Q)
+    return SMatrix{6, 6, T}(Q)
 end
 
 """
@@ -111,8 +111,8 @@ end
 
 Compute the 6×6 Kelvin-Mandel matrix of a 3×3×3×3 array.
 """
-function _KM_of_array(A::AbstractArray{T,4}) where {T}
-    tomandel(tensor_or_array(A))
+function _KM_of_array(A::AbstractArray{T, 4}) where {T}
+    return tomandel(tensor_or_array(A))
 end
 
 """
@@ -120,8 +120,8 @@ end
 
 Compute the 6-vector (or just return the 3×3 matrix) Kelvin-Mandel for a 2nd-order tensor.
 """
-function _KM_of_array(A::AbstractArray{T,2}) where {T}
-    A
+function _KM_of_array(A::AbstractArray{T, 2}) where {T}
+    return A
 end
 
 # ── TI projection helpers ────────────────────────────────────────────────────
@@ -153,13 +153,13 @@ julia> _project_TI_KM(C)
 function _project_TI_KM(C)
     T = eltype(C)
     sq2 = sqrt(T(2))
-    c = (C[1,1] + C[2,2]) / 2
-    d = (C[1,2] + C[2,1]) / 2
-    ℓ₁ = C[3,3]
+    c = (C[1, 1] + C[2, 2]) / 2
+    d = (C[1, 2] + C[2, 1]) / 2
+    ℓ₁ = C[3, 3]
     ℓ₂ = c + d
-    ℓ₃ = (C[1,3] + C[2,3] + C[3,1] + C[3,2]) / (2 * sq2)
-    ℓ₅ = (c - d + C[6,6]) / 2
-    ℓ₆ = (C[4,4] + C[5,5]) / 2
+    ℓ₃ = (C[1, 3] + C[2, 3] + C[3, 1] + C[3, 2]) / (2 * sq2)
+    ℓ₅ = (c - d + C[6, 6]) / 2
+    ℓ₆ = (C[4, 4] + C[5, 5]) / 2
     return (ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)
 end
 
@@ -187,13 +187,14 @@ function _build_TI_KM(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)
     C2323 = ℓ₆ / 2
     C1212 = ℓ₅ / 2
     z = zero(T)
-    SMatrix{6,6,T}(
-        C1111, C1122, C1133,      z,      z,      z,
-        C1122, C1111, C1133,      z,      z,      z,
-        C1133, C1133, C3333,      z,      z,      z,
-            z,     z,     z, 2C2323,      z,      z,
-            z,     z,     z,      z, 2C2323,      z,
-            z,     z,     z,      z,      z, 2C1212)
+    return SMatrix{6, 6, T}(
+        C1111, C1122, C1133, z, z, z,
+        C1122, C1111, C1133, z, z, z,
+        C1133, C1133, C3333, z, z, z,
+        z, z, z, 2C2323, z, z,
+        z, z, z, z, 2C2323, z,
+        z, z, z, z, z, 2C1212
+    )
 end
 
 # ── ORTHO projection helpers ─────────────────────────────────────────────────
@@ -217,15 +218,15 @@ julia> _project_ORTHO_KM(C)
 ```
 """
 function _project_ORTHO_KM(C)
-    C₁₁ = C[1,1]
-    C₂₂ = C[2,2]
-    C₃₃ = C[3,3]
-    C₁₂ = (C[1,2] + C[2,1]) / 2
-    C₁₃ = (C[1,3] + C[3,1]) / 2
-    C₂₃ = (C[2,3] + C[3,2]) / 2
-    C₄₄ = C[4,4] / 2
-    C₅₅ = C[5,5] / 2
-    C₆₆ = C[6,6] / 2
+    C₁₁ = C[1, 1]
+    C₂₂ = C[2, 2]
+    C₃₃ = C[3, 3]
+    C₁₂ = (C[1, 2] + C[2, 1]) / 2
+    C₁₃ = (C[1, 3] + C[3, 1]) / 2
+    C₂₃ = (C[2, 3] + C[3, 2]) / 2
+    C₄₄ = C[4, 4] / 2
+    C₅₅ = C[5, 5] / 2
+    C₆₆ = C[6, 6] / 2
     return (C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆)
 end
 
@@ -243,16 +244,19 @@ julia> B[4,4]  # = 2*C₄₄ = 4
 ```
 """
 function _build_ORTHO_KM(C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆)
-    T = promote_type(typeof(C₁₁), typeof(C₂₂), typeof(C₃₃), typeof(C₁₂),
-                     typeof(C₁₃), typeof(C₂₃), typeof(C₄₄), typeof(C₅₅), typeof(C₆₆))
+    T = promote_type(
+        typeof(C₁₁), typeof(C₂₂), typeof(C₃₃), typeof(C₁₂),
+        typeof(C₁₃), typeof(C₂₃), typeof(C₄₄), typeof(C₅₅), typeof(C₆₆)
+    )
     z = zero(T)
-    SMatrix{6,6,T}(
-        C₁₁, C₁₂, C₁₃,       z,       z,       z,
-        C₁₂, C₂₂, C₂₃,       z,       z,       z,
-        C₁₃, C₂₃, C₃₃,       z,       z,       z,
-          z,    z,    z, 2*C₄₄,       z,       z,
-          z,    z,    z,       z, 2*C₅₅,       z,
-          z,    z,    z,       z,       z, 2*C₆₆)
+    return SMatrix{6, 6, T}(
+        C₁₁, C₁₂, C₁₃, z, z, z,
+        C₁₂, C₂₂, C₂₃, z, z, z,
+        C₁₃, C₂₃, C₃₃, z, z, z,
+        z, z, z, 2 * C₄₄, z, z,
+        z, z, z, z, 2 * C₅₅, z,
+        z, z, z, z, z, 2 * C₆₆
+    )
 end
 
 # ── Norm helpers ─────────────────────────────────────────────────────────────
@@ -332,7 +336,7 @@ julia> argTI(B) == argTI(C)
 true
 ```
 """
-function proj_tens(::Val{:TI}, A::AbstractArray{T,4}, n) where {T}
+function proj_tens(::Val{:TI}, A::AbstractArray{T, 4}, n) where {T}
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
@@ -380,7 +384,7 @@ julia> B.data
 (5.0, 8.0)
 ```
 """
-function proj_tens(::Val{:TI}, A::AbstractArray{T,2}, n) where {T}
+function proj_tens(::Val{:TI}, A::AbstractArray{T, 2}, n) where {T}
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
@@ -393,8 +397,8 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T,2}, n) where {T}
     M_rot = R' * A * R
 
     # TI projection: average transverse, keep axial
-    a = (M_rot[1,1] + M_rot[2,2]) / 2
-    b = M_rot[3,3]
+    a = (M_rot[1, 1] + M_rot[2, 2]) / 2
+    b = M_rot[3, 3]
 
     B = TensTI{2}(a, b, n)
 
@@ -422,7 +426,7 @@ julia> d < 1e-12
 true
 ```
 """
-function proj_tens(::Val{:ORTHO}, A::AbstractArray{T,4}, frame::OrthonormalBasis{3}) where {T}
+function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}, frame::OrthonormalBasis{3}) where {T}
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
@@ -465,7 +469,7 @@ julia> B ≈ diagm([5., 8., 12.])
 true
 ```
 """
-function proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}, frame::OrthonormalBasis{3}) where {T}
+function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}, frame::OrthonormalBasis{3}) where {T}
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
@@ -481,7 +485,7 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}, frame::OrthonormalBasis
     # ORTHO projection: keep diagonal only
     B_rot = zeros(T, 3, 3)
     for i in 1:3
-        B_rot[i,i] = M_rot[i,i]
+        B_rot[i, i] = M_rot[i, i]
     end
 
     # Rotate back to canonical frame
@@ -510,10 +514,12 @@ symmetry axes. Requires the NLopt package: `using NLopt`.
 
 See also [`proj_tens(::Val{:TI}, A, n)`](@ref) for fixed-axis projection.
 """
-function proj_tens(::Val{:TI}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
-    error("NLopt.jl is required for rotation-optimized TI projection. " *
-          "Run `using NLopt` or add NLopt to your project. " *
-          "For fixed-axis projection, use proj_tens(:TI, A, n).")
+function proj_tens(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+    error(
+        "NLopt.jl is required for rotation-optimized TI projection. " *
+            "Run `using NLopt` or add NLopt to your project. " *
+            "For fixed-axis projection, use proj_tens(:TI, A, n)."
+    )
 end
 
 """
@@ -522,10 +528,12 @@ end
 Find the best TI approximation of a 2nd-order tensor `A` by optimizing
 the symmetry axis. Requires the NLopt package: `using NLopt`.
 """
-function proj_tens(::Val{:TI}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
-    error("NLopt.jl is required for rotation-optimized TI projection. " *
-          "Run `using NLopt` or add NLopt to your project. " *
-          "For fixed-axis projection, use proj_tens(:TI, A, n).")
+function proj_tens(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
+    error(
+        "NLopt.jl is required for rotation-optimized TI projection. " *
+            "Run `using NLopt` or add NLopt to your project. " *
+            "For fixed-axis projection, use proj_tens(:TI, A, n)."
+    )
 end
 
 """
@@ -534,10 +542,12 @@ end
 Find the best orthotropic approximation of `A` by optimizing over all
 possible material frames. Requires the NLopt package: `using NLopt`.
 """
-function proj_tens(::Val{:ORTHO}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
-    error("NLopt.jl is required for rotation-optimized ORTHO projection. " *
-          "Run `using NLopt` or add NLopt to your project. " *
-          "For fixed-frame projection, use proj_tens(:ORTHO, A, frame).")
+function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+    error(
+        "NLopt.jl is required for rotation-optimized ORTHO projection. " *
+            "Run `using NLopt` or add NLopt to your project. " *
+            "For fixed-frame projection, use proj_tens(:ORTHO, A, frame)."
+    )
 end
 
 """
@@ -546,10 +556,12 @@ end
 Find the best orthotropic approximation of a 2nd-order tensor `A` by
 optimizing the material frame. Requires the NLopt package: `using NLopt`.
 """
-function proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
-    error("NLopt.jl is required for rotation-optimized ORTHO projection. " *
-          "Run `using NLopt` or add NLopt to your project. " *
-          "For fixed-frame projection, use proj_tens(:ORTHO, A, frame).")
+function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
+    error(
+        "NLopt.jl is required for rotation-optimized ORTHO projection. " *
+            "Run `using NLopt` or add NLopt to your project. " *
+            "For fixed-frame projection, use proj_tens(:ORTHO, A, frame)."
+    )
 end
 
 # ── Exports ──────────────────────────────────────────────────────────────────

@@ -1,5 +1,5 @@
 @testsection "Bases" begin
-    for T ∈ (Sym, Float64)
+    for T in (Sym, Float64)
         @testsection "type $T" begin
             sq2 = √T(2)
             v = T[1 0 0; 0 1 0; 0 1 1]
@@ -25,7 +25,7 @@
 
             nb = normalize(bv)
             @test opequal(vecbasis(nb), vecbasis(nb, :cov))
-            @test opequal(vecbasis(nb), T[1 0 0; 0 sq2/2 0; 0 sq2/2 1])
+            @test opequal(vecbasis(nb), T[1 0 0; 0 sq2 / 2 0; 0 sq2 / 2 1])
             θ, ϕ, ψ = T == Sym ? symbols("θ, ϕ, ψ", real = true) : rand(T, 3)
             br = Basis(θ, ϕ, ψ)
             @test br isa RotatedBasis

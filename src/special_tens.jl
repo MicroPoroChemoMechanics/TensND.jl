@@ -23,7 +23,7 @@ julia> ε = LeviCivita(Sym)
   0  0  0
 ``` 
 """
-LeviCivita(T::Type{<:Number} = Sym) = [T(T((i - j) * (j - k) * (k - i)) / T(2)) for i = 1:3, j = 1:3, k = 1:3]
+LeviCivita(T::Type{<:Number} = Sym) = [T(T((i - j) * (j - k) * (k - i)) / T(2)) for i in 1:3, j in 1:3, k in 1:3]
 
 """
     𝐞(i::Integer, dim::Int = 3, T::Type{<:Number} = Sym)
@@ -45,7 +45,7 @@ Tens{1, 3, Sym, Sym, Vec{3, Sym}, CanonicalBasis{3, Sym}}
  0  0  1
 ``` 
 """
-𝐞(::Val{i}, ::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {i, dim, T<:Number} =
+𝐞(::Val{i}, ::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {i, dim, T <: Number} =
     Tens(Vec{dim}(j -> j == i ? one(T) : zero(T)))
 
 """
@@ -59,8 +59,8 @@ julia> coords, vectors, ℬ = init_cartesian() ; x, y, z = coords ; 𝐞₁, �
 ``` 
 """
 init_cartesian(coords = symbols("x y z", real = true)) = Tuple(coords),
-ntuple(i -> 𝐞(Val(i), Val(length(coords)), Val(eltype(coords))), length(coords)),
-CanonicalBasis{length(coords),eltype(coords)}()
+    ntuple(i -> 𝐞(Val(i), Val(length(coords)), Val(eltype(coords))), length(coords)),
+    CanonicalBasis{length(coords), eltype(coords)}()
 
 init_cartesian(::Val{3}) = init_cartesian(symbols("x y z", real = true))
 init_cartesian(::Val{2}) = init_cartesian(symbols("x y", real = true))
@@ -87,10 +87,10 @@ Tens{1, 2, Sym, Sym, Vec{2, Sym}, RotatedBasis{2, Sym}}
  sin(θ)   cos(θ)
 ``` 
 """
-𝐞ᵖ(::Val{1}, θ::T = zero(Sym); canonical = false) where {T<:Number} =
+𝐞ᵖ(::Val{1}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{2}([cos(θ), sin(θ)])) :
     Tens(Vec{2}([one(T), zero(T)]), Basis(θ))
-𝐞ᵖ(::Val{2}, θ::T = zero(Sym); canonical = false) where {T<:Number} =
+𝐞ᵖ(::Val{2}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{2}([-sin(θ), cos(θ)])) :
     Tens(Vec{2}([zero(T), one(T)]), Basis(θ))
 
@@ -108,8 +108,8 @@ init_polar(
     coords = (symbols("r θ", real = true));
     canonical = false,
 ) = Tuple(coords),
-ntuple(i -> 𝐞ᵖ(Val(i), coords[2]; canonical = canonical), 2),
-Basis(coords[2])
+    ntuple(i -> 𝐞ᵖ(Val(i), coords[2]; canonical = canonical), 2),
+    Basis(coords[2])
 
 """
     𝐞ᶜ(i::Integer, θ::T = zero(Sym); canonical = false)
@@ -133,13 +133,13 @@ Tens{1, 3, Sym, Sym, Vec{3, Sym}, RotatedBasis{3, Sym}}
       0        0  1
 ``` 
 """
-𝐞ᶜ(::Val{1}, θ::T = zero(Sym); canonical = false) where {T<:Number} =
+𝐞ᶜ(::Val{1}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([cos(θ), sin(θ), zero(T)])) :
     Tens(Vec{3}([one(T), zero(T), zero(T)]), CylindricalBasis(θ))
-𝐞ᶜ(::Val{2}, θ::T = zero(Sym); canonical = false) where {T<:Number} =
+𝐞ᶜ(::Val{2}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([-sin(θ), cos(θ), zero(T)])) :
     Tens(Vec{3}([zero(T), one(T), zero(T)]), CylindricalBasis(θ))
-𝐞ᶜ(::Val{3}, θ::T = zero(Sym); canonical = false) where {T<:Number} =
+𝐞ᶜ(::Val{3}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([zero(T), zero(T), one(T)])) :
     Tens(Vec{3}([zero(T), zero(T), one(T)]), CylindricalBasis(θ))
 
@@ -160,8 +160,8 @@ init_cylindrical(
     );
     canonical = false,
 ) = Tuple(coords),
-ntuple(i -> 𝐞ᶜ(Val(i), coords[2]; canonical = canonical), 3),
-CylindricalBasis(coords[2])
+    ntuple(i -> 𝐞ᶜ(Val(i), coords[2]; canonical = canonical), 3),
+    CylindricalBasis(coords[2])
 
 """
     𝐞ˢ(i::Integer, θ::T = zero(Sym), ϕ::T = zero(Sym), ψ::T = zero(Sym); canonical = false)
@@ -185,19 +185,21 @@ Tens{1, 3, Sym, Sym, Vec{3, Sym}, RotatedBasis{3, Sym}}
 ``` 
 """
 function 𝐞ˢ(
-    ::Val{1},
-    θ::T1 = 0,
-    ϕ::T2 = 0,
-    ψ::T3 = 0;
-    canonical = false,
-) where {T1<:Number,T2<:Number,T3<:Number}
+        ::Val{1},
+        θ::T1 = 0,
+        ϕ::T2 = 0,
+        ψ::T3 = 0;
+        canonical = false,
+    ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
         return Tens(
-            Vec{3}([
-                -sin(ψ) * sin(ϕ) + cos(θ) * cos(ψ) * cos(ϕ),
-                sin(ψ) * cos(ϕ) + sin(ϕ) * cos(θ) * cos(ψ),
-                -sin(θ) * cos(ψ),
-            ]),
+            Vec{3}(
+                [
+                    -sin(ψ) * sin(ϕ) + cos(θ) * cos(ψ) * cos(ϕ),
+                    sin(ψ) * cos(ϕ) + sin(ϕ) * cos(θ) * cos(ψ),
+                    -sin(θ) * cos(ψ),
+                ]
+            ),
         )
     else
         T = promote_type(T1, T2, T3)
@@ -205,19 +207,21 @@ function 𝐞ˢ(
     end
 end
 function 𝐞ˢ(
-    ::Val{2},
-    θ::T1 = 0,
-    ϕ::T2 = 0,
-    ψ::T3 = 0;
-    canonical = false,
-) where {T1<:Number,T2<:Number,T3<:Number}
+        ::Val{2},
+        θ::T1 = 0,
+        ϕ::T2 = 0,
+        ψ::T3 = 0;
+        canonical = false,
+    ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
         return Tens(
-            Vec{3}([
-                -sin(ψ) * cos(θ) * cos(ϕ) - sin(ϕ) * cos(ψ),
-                -sin(ψ) * sin(ϕ) * cos(θ) + cos(ψ) * cos(ϕ),
-                sin(θ) * sin(ψ),
-            ]),
+            Vec{3}(
+                [
+                    -sin(ψ) * cos(θ) * cos(ϕ) - sin(ϕ) * cos(ψ),
+                    -sin(ψ) * sin(ϕ) * cos(θ) + cos(ψ) * cos(ϕ),
+                    sin(θ) * sin(ψ),
+                ]
+            ),
         )
     else
         T = promote_type(T1, T2, T3)
@@ -225,12 +229,12 @@ function 𝐞ˢ(
     end
 end
 function 𝐞ˢ(
-    ::Val{3},
-    θ::T1 = 0,
-    ϕ::T2 = 0,
-    ψ::T3 = 0;
-    canonical = false,
-) where {T1<:Number,T2<:Number,T3<:Number}
+        ::Val{3},
+        θ::T1 = 0,
+        ϕ::T2 = 0,
+        ψ::T3 = 0;
+        canonical = false,
+    ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
         return Tens(Vec{3}([sin(θ) * cos(ϕ), sin(θ) * sin(ϕ), cos(θ)]))
     else
@@ -263,8 +267,8 @@ init_spherical(
     );
     canonical = false,
 ) = Tuple(coords),
-ntuple(i -> 𝐞ˢ(Val(i), coords[1:2]...; canonical = canonical), 3),
-SphericalBasis(coords[1:2]...)
+    ntuple(i -> 𝐞ˢ(Val(i), coords[1:2]...; canonical = canonical), 3),
+    SphericalBasis(coords[1:2]...)
 
 """
     init_rotated(coords = symbols("θ ϕ ψ", real = true); canonical = false)
@@ -278,8 +282,8 @@ julia> angles, vectors, ℬʳ = init_rotated() ; θ, ϕ, ψ = angles ; 𝐞ᶿ, 
 ```
 """
 init_rotated(angles = symbols("θ ϕ ψ", real = true); canonical = false) = Tuple(angles),
-ntuple(i -> 𝐞ˢ(Val(i), angles...; canonical = canonical), 3),
-Basis(angles...)
+    ntuple(i -> 𝐞ˢ(Val(i), angles...; canonical = canonical), 3),
+    Basis(angles...)
 
 """
     rot3(θ, ϕ = 0, ψ = 0)
@@ -314,7 +318,7 @@ julia> rot2(θ)
  sin(θ)   cos(θ)
 ```
 """
-rot2(θ) = Tensor{2,2}((cos(θ), sin(θ), -sin(θ), cos(θ)))
+rot2(θ) = Tensor{2, 2}((cos(θ), sin(θ), -sin(θ), cos(θ)))
 
 
 """

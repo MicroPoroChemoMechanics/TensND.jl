@@ -10,7 +10,7 @@
 # identical loops previously duplicated in each file.
 
 for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig)
-    @eval $OP(A::Union{TensISO,TensWalpole,TensTI,TensOrtho}, args...; kwargs...) =
+    @eval $OP(A::Union{TensISO, TensWalpole, TensTI, TensOrtho}, args...; kwargs...) =
         _rebuild(A, $OP(getdata(A), args...; kwargs...))
 end
 
@@ -20,11 +20,11 @@ end
 # sits at a different position in each type, so we enumerate them explicitly.
 
 for OP in (:tsimplify, :tsubs, :tdiff)
-    @eval $OP(A::TensISO{order,dim,Num}, args...; kwargs...) where {order,dim} =
+    @eval $OP(A::TensISO{order, dim, Num}, args...; kwargs...) where {order, dim} =
         _rebuild(A, $OP(getdata(A), args...; kwargs...))
-    @eval $OP(A::TensWalpole{Num,N}, args...; kwargs...) where {N} =
+    @eval $OP(A::TensWalpole{Num, N}, args...; kwargs...) where {N} =
         _rebuild(A, $OP(getdata(A), args...; kwargs...))
-    @eval $OP(A::TensTI{order,Num,N}, args...; kwargs...) where {order,N} =
+    @eval $OP(A::TensTI{order, Num, N}, args...; kwargs...) where {order, N} =
         _rebuild(A, $OP(getdata(A), args...; kwargs...))
     @eval $OP(A::TensOrtho{Num}, args...; kwargs...) =
         _rebuild(A, $OP(getdata(A), args...; kwargs...))

@@ -26,10 +26,10 @@ Unlike `CoorSystemSym`, the normalized basis, natural basis vectors, Lamé coeff
 and Christoffel symbols all depend on the evaluation point `x₀` and are accessed via
 point-wise accessors `normalized_basis(CS, x₀)`, `natural_basis(CS, x₀)`, etc.
 """
-struct CoorSystemNum{dim,T<:Real} <: AbstractCoorSystem{dim,T}
-    χ_func :: Function   # x -> Vector of Lamé coefficients
-    R_func :: Function   # x -> Matrix  (columns = unit vectors eᵢ in Cartesian frame)
-    Γ_func :: Function   # x -> Array{T,3}  Γ[i,j,k] = Γᵏᵢⱼ
+struct CoorSystemNum{dim, T <: Real} <: AbstractCoorSystem{dim, T}
+    χ_func::Function   # x -> Vector of Lamé coefficients
+    R_func::Function   # x -> Matrix  (columns = unit vectors eᵢ in Cartesian frame)
+    Γ_func::Function   # x -> Array{T,3}  Γ[i,j,k] = Γᵏᵢⱼ
 end
 
 @pure getdim(::CoorSystemNum{dim}) where {dim} = dim
@@ -51,14 +51,14 @@ function _christoffel_orthogonal(χ::AbstractVector, ∂χ::AbstractMatrix)
     Γ = zeros(T, dim, dim, dim)
     for i in 1:dim, j in 1:dim, k in 1:dim
         if i == j == k
-            Γ[i,j,k] = ∂χ[k,i] / χ[k]
+            Γ[i, j, k] = ∂χ[k, i] / χ[k]
         elseif i == j && i != k
-            Γ[i,j,k] = -(χ[i] / χ[k]^2) * ∂χ[i,k]
+            Γ[i, j, k] = -(χ[i] / χ[k]^2) * ∂χ[i, k]
         elseif i != j && k == j
-            Γ[i,j,k] = ∂χ[j,i] / χ[j]
+            Γ[i, j, k] = ∂χ[j, i] / χ[j]
         elseif i != j && k == i
-            Γ[i,j,k] = ∂χ[i,j] / χ[i]
-        # else 0
+            Γ[i, j, k] = ∂χ[i, j] / χ[i]
+            # else 0
         end
     end
     return Γ
@@ -73,13 +73,15 @@ function _christoffel_from_OM(OM_func::Function, x::AbstractVector{T}) where {T}
     # Jacobian J[α,i] = ∂OM[α]/∂x[i]
     J = ForwardDiff.jacobian(OM_func, x)
     # Metric function g(y) = J(y)'J(y)
-    g_func(y) = let Jy = ForwardDiff.jacobian(OM_func, y); Jy' * Jy end
+    g_func(y) = let Jy = ForwardDiff.jacobian(OM_func, y)
+        Jy' * Jy
+    end
     # Reshape flat Jacobian of metric into 3-array:
     #   dg[a,b,c] = ∂g[a,b]/∂x[c]
     # (column-major: vec(g)[(b-1)*dim+a] = g[a,b], so dg_flat[(b-1)*dim+a, c] = ∂g[a,b]/∂x[c])
     dg = reshape(ForwardDiff.jacobian(y -> vec(g_func(y)), x), dim, dim, dim)
     # Metric and its inverse at x
-    g    = J' * J
+    g = J' * J
     ginv = inv(g)
     Γ = zeros(T, dim, dim, dim)
     for i in 1:dim, j in 1:dim, k in 1:dim
@@ -87,9 +89,9 @@ function _christoffel_from_OM(OM_func::Function, x::AbstractVector{T}) where {T}
         #       = ½ gᵏˡ (dg[l,j,i] + dg[l,i,j] - dg[j,i,l])
         val = zero(T)
         for l in 1:dim
-            val += ginv[k,l] * (dg[l,j,i] + dg[l,i,j] - dg[j,i,l])
+            val += ginv[k, l] * (dg[l, j, i] + dg[l, i, j] - dg[j, i, l])
         end
-        Γ[i,j,k] = val / 2
+        Γ[i, j, k] = val / 2
     end
     return Γ
 end
@@ -112,7 +114,7 @@ function _apply_christoffel(t_arr::AbstractArray, Γᵢ::AbstractMatrix)
             j = idx[o]
             for k in 1:dim
                 new_idx = CartesianIndex(ntuple(s -> s == o ? k : idx[s], order))
-                result[idx] += Γᵢ[k,j] * t_arr[new_idx]
+                result[idx] += Γᵢ[k, j] * t_arr[new_idx]
             end
         end
     end
@@ -155,9 +157,11 @@ Returns a plain scalar or plain `Array` (suitable for further `ForwardDiff` diff
 See also `GRAD`, `DIV`, `LAPLACE`, `HESS`, `SYMGRAD` for high-level operators that wrap
 results in `AbstractTens`.
 """
-function ∂(f::Function, i::Integer, CS::CoorSystemNum{dim,T}, x₀::AbstractVector) where {dim,T}
+function ∂(f::Function, i::Integer, CS::CoorSystemNum{dim, T}, x₀::AbstractVector) where {dim, T}
     # Ensure f_arr returns a plain array (handle AbstractTens-returning functions)
-    f_arr = x -> begin v = f(x); v isa AbstractTens ? Array(v) : v end
+    f_arr = x -> begin
+        v = f(x); v isa AbstractTens ? Array(v) : v
+    end
     val = f_arr(x₀)
 
     if val isa Number
@@ -190,7 +194,7 @@ end
 Return the normalized (orthonormal) basis at point `x₀` as a `RotatedBasis` or
 `CanonicalBasis` (when the system is Cartesian at that point).
 """
-function normalized_basis(CS::CoorSystemNum{dim,T}, x₀::AbstractVector) where {dim,T}
+function normalized_basis(CS::CoorSystemNum{dim, T}, x₀::AbstractVector) where {dim, T}
     R = CS.R_func(x₀)
     ET = eltype(R)
     return RotatedBasis(Matrix{ET}(R))
@@ -202,7 +206,7 @@ end
 Return the natural (non-normalized) basis at point `x₀` as an `OrthogonalBasis`
 (i.e. a `RotatedBasis` scaled by the Lamé coefficients).
 """
-function natural_basis(CS::CoorSystemNum{dim,T}, x₀::AbstractVector) where {dim,T}
+function natural_basis(CS::CoorSystemNum{dim, T}, x₀::AbstractVector) where {dim, T}
     ℬnorm = normalized_basis(CS, x₀)
     χ = CS.χ_func(x₀)
     ET = eltype(χ)
@@ -215,7 +219,7 @@ end
 Return the `i`-th natural basis vector at point `x₀`, either covariant (`var=:cov`,
 proportional to `χᵢ`) or contravariant (`var=:cont`, proportional to `1/χᵢ`).
 """
-function natvec(CS::CoorSystemNum{dim,T}, x₀::AbstractVector, i::Integer, var::Symbol=:cov) where {dim,T}
+function natvec(CS::CoorSystemNum{dim, T}, x₀::AbstractVector, i::Integer, var::Symbol = :cov) where {dim, T}
     ℬnorm = normalized_basis(CS, x₀)
     χ = CS.χ_func(x₀)
     ET = eltype(χ)
@@ -228,9 +232,9 @@ function natvec(CS::CoorSystemNum{dim,T}, x₀::AbstractVector, i::Integer, var:
     end
 end
 
-natvec(CS::CoorSystemNum{dim,T}, x₀::AbstractVector, i::Integer, var::Val{:cov}) where {dim,T} =
+natvec(CS::CoorSystemNum{dim, T}, x₀::AbstractVector, i::Integer, var::Val{:cov}) where {dim, T} =
     natvec(CS, x₀, i, :cov)
-natvec(CS::CoorSystemNum{dim,T}, x₀::AbstractVector, i::Integer, var::Val{:cont}) where {dim,T} =
+natvec(CS::CoorSystemNum{dim, T}, x₀::AbstractVector, i::Integer, var::Val{:cont}) where {dim, T} =
     natvec(CS, x₀, i, :cont)
 
 """
@@ -238,7 +242,7 @@ natvec(CS::CoorSystemNum{dim,T}, x₀::AbstractVector, i::Integer, var::Val{:con
 
 Return the `i`-th unit vector of the normalized basis at point `x₀`.
 """
-function unitvec(CS::CoorSystemNum{dim,T}, x₀::AbstractVector, i::Integer) where {dim,T}
+function unitvec(CS::CoorSystemNum{dim, T}, x₀::AbstractVector, i::Integer) where {dim, T}
     ℬnorm = normalized_basis(CS, x₀)
     ET = eltype(CS.χ_func(x₀))
     data = Vec{dim}(j -> j == i ? one(ET) : zero(ET))
@@ -258,14 +262,16 @@ Christoffel(CS::CoorSystemNum, x::AbstractVector) = CS.Γ_func(x)
 # ─────────────────────────────────────────────────────────────────
 
 function _grad_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    return function(x₀::AbstractVector)
-        f_arr = x -> begin v = f(x); v isa AbstractTens ? Array(v) : v end
+    return function (x₀::AbstractVector)
+        f_arr = x -> begin
+            v = f(x); v isa AbstractTens ? Array(v) : v
+        end
         val = f_arr(x₀)
         χ = CS.χ_func(x₀)
         ET = eltype(χ)
         if val isa Number
             Jac = ForwardDiff.jacobian(x -> [f_arr(x)], collect(x₀))
-            return [Jac[1,i] / χ[i] for i in 1:dim]
+            return [Jac[1, i] / χ[i] for i in 1:dim]
         else
             order = ndims(val)
             result = zeros(ET, size(val)..., dim)
@@ -278,12 +284,14 @@ function _grad_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
 end
 
 function _div_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    return function(x₀::AbstractVector)
-        f_arr = x -> begin v = f(x); v isa AbstractTens ? Array(v) : v end
+    return function (x₀::AbstractVector)
+        f_arr = x -> begin
+            v = f(x); v isa AbstractTens ? Array(v) : v
+        end
         val = f_arr(x₀)
         χ = CS.χ_func(x₀)
         order = ndims(val)
-        result_size = size(val)[1:end-1]
+        result_size = size(val)[1:(end - 1)]
         result = zeros(eltype(χ), result_size...)
         for i in 1:dim
             cov_∂ = ∂(f_arr, i, CS, x₀)
@@ -306,8 +314,10 @@ Return a function `x₀ -> gradient` as an `AbstractTens` in the normalized basi
 - If `f` returns a rank-`n` `AbstractTens` or array, the gradient is a rank-`n+1` `AbstractTens`.
 """
 function GRAD(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    return function(x₀::AbstractVector)
-        f_arr = x -> begin v = f(x); v isa AbstractTens ? Array(v) : v end
+    return function (x₀::AbstractVector)
+        f_arr = x -> begin
+            v = f(x); v isa AbstractTens ? Array(v) : v
+        end
         val = f_arr(x₀)
         G = _grad_raw(f_arr, CS)(x₀)
         ℬnorm = normalized_basis(CS, x₀)
@@ -327,10 +337,12 @@ Return a function `x₀ -> symmetric gradient` as an `AbstractTens{2}` in the no
 basis at `x₀`. Applies to vector-valued functions `f`.
 """
 function SYMGRAD(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    return function(x₀::AbstractVector)
-        f_arr = x -> begin v = f(x); v isa AbstractTens ? Array(v) : v end
+    return function (x₀::AbstractVector)
+        f_arr = x -> begin
+            v = f(x); v isa AbstractTens ? Array(v) : v
+        end
         G = _grad_raw(f_arr, CS)(x₀)   # dim×dim plain matrix
-        S = (G + permutedims(G, (2,1))) / 2
+        S = (G + permutedims(G, (2, 1))) / 2
         ℬnorm = normalized_basis(CS, x₀)
         return Tens(S, ℬnorm, (:cont, :cont))
     end
@@ -345,7 +357,7 @@ Return a function `x₀ -> divergence` as a scalar (if `f` is a vector field) or
 `f` may return a plain `Array` or an `AbstractTens` (components are extracted via `Array`).
 """
 function DIV(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    return function(x₀::AbstractVector)
+    return function (x₀::AbstractVector)
         d = _div_raw(f, CS)(x₀)
         if d isa Number
             return d
@@ -363,7 +375,9 @@ Return a function `x₀ -> Laplacian` (scalar). Uses the raw (plain-array) gradi
 divergence internally, so it is fully compatible with `ForwardDiff` differentiation.
 """
 function LAPLACE(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    f_arr = x -> begin v = f(x); v isa AbstractTens ? Array(v) : v end
+    f_arr = x -> begin
+        v = f(x); v isa AbstractTens ? Array(v) : v
+    end
     return x₀ -> _div_raw(_grad_raw(f_arr, CS), CS)(x₀)
 end
 
@@ -374,8 +388,10 @@ Return a function `x₀ -> Hessian` as an `AbstractTens{2}` in the normalized ba
 Uses the raw (plain-array) double gradient internally.
 """
 function HESS(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    f_arr = x -> begin v = f(x); v isa AbstractTens ? Array(v) : v end
-    return function(x₀::AbstractVector)
+    f_arr = x -> begin
+        v = f(x); v isa AbstractTens ? Array(v) : v
+    end
+    return function (x₀::AbstractVector)
         H = _grad_raw(_grad_raw(f_arr, CS), CS)(x₀)
         ℬnorm = normalized_basis(CS, x₀)
         return Tens(H, ℬnorm, (:cont, :cont))
@@ -391,12 +407,12 @@ end
 
 Numerical Cartesian coordinate system in 3D. Coordinates: (x, y, z).
 """
-function coorsys_cartesian_num(::Type{T}=Float64) where {T<:Real}
+function coorsys_cartesian_num(::Type{T} = Float64) where {T <: Real}
     dim = 3
     χ_func = x -> fill(one(x[1]), dim)
-    R_func = x -> [i==j ? one(x[1]) : zero(x[1]) for i in 1:dim, j in 1:dim]
+    R_func = x -> [i == j ? one(x[1]) : zero(x[1]) for i in 1:dim, j in 1:dim]
     Γ_func = x -> zeros(typeof(x[1]), dim, dim, dim)
-    return CoorSystemNum{dim,T}(χ_func, R_func, Γ_func)
+    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
 end
 
 """
@@ -404,7 +420,7 @@ end
 
 Numerical polar coordinate system. Coordinates: (r, θ). Lamé coefficients: (1, r).
 """
-function coorsys_polar_num(::Type{T}=Float64) where {T<:Real}
+function coorsys_polar_num(::Type{T} = Float64) where {T <: Real}
     dim = 2
     χ_func = (x::AbstractVector{<:Number}) -> [one(x[1]), x[1]]          # (1, r)
     R_func = (x::AbstractVector{<:Number}) -> begin
@@ -416,7 +432,7 @@ function coorsys_polar_num(::Type{T}=Float64) where {T<:Real}
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return CoorSystemNum{dim,T}(χ_func, R_func, Γ_func)
+    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
 end
 
 """
@@ -424,7 +440,7 @@ end
 
 Numerical cylindrical coordinate system. Coordinates: (r, θ, z). Lamé coefficients: (1, r, 1).
 """
-function coorsys_cylindrical_num(::Type{T}=Float64) where {T<:Real}
+function coorsys_cylindrical_num(::Type{T} = Float64) where {T <: Real}
     dim = 3
     χ_func = (x::AbstractVector{<:Number}) -> [one(x[1]), x[1], one(x[1])]  # (1, r, 1)
     R_func = (x::AbstractVector{<:Number}) -> begin
@@ -437,7 +453,7 @@ function coorsys_cylindrical_num(::Type{T}=Float64) where {T<:Real}
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return CoorSystemNum{dim,T}(χ_func, R_func, Γ_func)
+    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
 end
 
 """
@@ -446,24 +462,26 @@ end
 Numerical spherical coordinate system. Coordinates: (θ, ϕ, r) — same convention as
 `coorsys_spherical()`. Lamé coefficients: (r, r·sin(θ), 1).
 """
-function coorsys_spherical_num(::Type{T}=Float64) where {T<:Real}
+function coorsys_spherical_num(::Type{T} = Float64) where {T <: Real}
     dim = 3
     # coords = (θ, ϕ, r)
-    χ_func = (x::AbstractVector{<:Number}) -> [x[3], x[3]*sin(x[1]), one(x[1])]
+    χ_func = (x::AbstractVector{<:Number}) -> [x[3], x[3] * sin(x[1]), one(x[1])]
     R_func = (x::AbstractVector{<:Number}) -> begin
         θ, ϕ = x[1], x[2]
         z = θ * 0
         # Columns = 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ expressed in Cartesian
-        [cos(θ)*cos(ϕ)  -sin(ϕ)  sin(θ)*cos(ϕ);
-         sin(θ)*cos(ϕ)   cos(ϕ)  sin(θ)*sin(ϕ);
-        -sin(θ)          z        cos(θ)]
+        [
+            cos(θ) * cos(ϕ)  -sin(ϕ)  sin(θ) * cos(ϕ);
+            sin(θ) * cos(ϕ)   cos(ϕ)  sin(θ) * sin(ϕ);
+            -sin(θ)          z        cos(θ)
+        ]
     end
     Γ_func = (x::AbstractVector{<:Number}) -> begin
         χ = χ_func(x)
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return CoorSystemNum{dim,T}(χ_func, R_func, Γ_func)
+    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
 end
 
 """
@@ -474,20 +492,20 @@ Generic constructor: build a `CoorSystemNum` from a position-vector function.
 of length `dim`. Christoffel symbols are computed by nested automatic differentiation
 of the metric tensor `g = J'J` where `J = ∂OM/∂x`.
 """
-function CoorSystemNum(OM_func::Function, dim::Integer, ::Type{T}=Float64) where {T<:Real}
+function CoorSystemNum(OM_func::Function, dim::Integer, ::Type{T} = Float64) where {T <: Real}
     χ_func = x -> begin
         J = ForwardDiff.jacobian(OM_func, collect(x))
         g = J' * J
-        [sqrt(g[i,i]) for i in 1:dim]
+        [sqrt(g[i, i]) for i in 1:dim]
     end
     R_func = x -> begin
         J = ForwardDiff.jacobian(OM_func, collect(x))
         g = J' * J
         # Normalized columns: eᵢ = aᵢ/χᵢ  where aᵢ = J[:,i]
-        hcat([J[:,i] / sqrt(g[i,i]) for i in 1:dim]...)
+        hcat([J[:, i] / sqrt(g[i, i]) for i in 1:dim]...)
     end
     Γ_func = x -> _christoffel_from_OM(OM_func, collect(x))
-    return CoorSystemNum{dim,T}(χ_func, R_func, Γ_func)
+    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
 end
 
 export CoorSystemNum

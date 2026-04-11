@@ -20,9 +20,9 @@
         𝐗 = getcoords(Cartesian)
         𝐄 = unitvec(Cartesian)
         ℬ = normalized_basis(Cartesian)
-        𝛔 = Tens(SymmetricTensor{2,3}((i, j) -> SymFunction("σ$i$j", real = true)(𝐗...)))
+        𝛔 = Tens(SymmetricTensor{2, 3}((i, j) -> SymFunction("σ$i$j", real = true)(𝐗...)))
         @test DIV(𝛔, Cartesian) ==
-              sum([sum([∂(𝛔[i, j], 𝐗[j]) for j ∈ 1:3]) * 𝐄[i] for i ∈ 1:3])
+            sum([sum([∂(𝛔[i, j], 𝐗[j]) for j in 1:3]) * 𝐄[i] for i in 1:3])
 
         # Polar
         Polar = coorsys_polar()
@@ -31,7 +31,7 @@
         ℬᵖ = normalized_basis(Polar)
         f = SymFunction("f", real = true)(r, θ)
         @test tsimplify(LAPLACE(f, Polar)) ==
-              tsimplify(∂(r * ∂(f, r), r) / r + ∂(f, θ, θ) / r^2)
+            tsimplify(∂(r * ∂(f, r), r) / r + ∂(f, θ, θ) / r^2)
 
         # Cylindrical
         Cylindrical = coorsys_cylindrical()
@@ -42,14 +42,14 @@
         𝐯 = Tens(Vec{3}(i -> SymFunction("v$(rθz[i])", real = true)(rθz...)), ℬᶜ)
         vʳ, vᶿ, vᶻ = getarray(𝐯)
         @test tsimplify(DIV(𝐯, Cylindrical)) ==
-              tsimplify(∂(vʳ, r) + vʳ / r + ∂(vᶿ, θ) / r + ∂(vᶻ, z))
+            tsimplify(∂(vʳ, r) + vʳ / r + ∂(vᶿ, θ) / r + ∂(vᶻ, z))
 
         # Spherical
         Spherical = coorsys_spherical()
         θ, ϕ, r = getcoords(Spherical)
         𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
         ℬˢ = normalized_basis(Spherical)
-        for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ")
+        for σⁱʲ in ("σʳʳ", "σᶿᶿ", "σᵠᵠ")
             @eval $(Symbol(σⁱʲ)) = SymFunction($σⁱʲ, real = true)($r)
         end
         𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ
@@ -71,7 +71,7 @@
         𝛔 = tsimplify(ℂ ⊡ 𝛆)
         # 𝛔 = tsimplify(λ * tr(𝛆) * 𝟏 + 2μ * 𝛆)
         @test dsolve(tfactor(tsimplify(DIV(𝛔, Spherical) ⋅ 𝐞ʳ)), u) ==
-              Eq(u, symbols("C1") / r^2 + symbols("C2") * r)
+            Eq(u, symbols("C1") / r^2 + symbols("C2") * r)
 
         # Spheroidal
         Spheroidal = coorsys_spheroidal()

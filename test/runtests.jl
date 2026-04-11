@@ -15,7 +15,7 @@ end
 
 reset_timer!()
 
-opequal(x,y) = x == y || x ≈ y
+opequal(x, y) = x == y || x ≈ y
 
 
 include("test_bases.jl")
@@ -29,4 +29,3 @@ include("test_coorsystems_num.jl")
 
 print_timer()
 println()
-

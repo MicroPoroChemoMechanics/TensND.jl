@@ -28,7 +28,7 @@
         @test contains(s2, "𝟏")
     end
 
-    for T ∈ (Sym, Float64), dim ∈ (2, 3)
+    for T in (Sym, Float64), dim in (2, 3)
         @testsection "type $T, dim $dim" begin
             𝟏 = tensId2(Val(dim), Val(T))
             @test opequal(𝟏, 1I)
@@ -76,12 +76,12 @@
                 @test ℂ == tsimplify(TensISO{dim}(3k, 2μ))
                 𝕊 = tsimplify(inv(ℂ))
                 @test tsimplify.(KM(𝕊)) == [
-                    1/E -ν/E -ν/E 0 0 0
-                    -ν/E 1/E -ν/E 0 0 0
-                    -ν/E -ν/E 1/E 0 0 0
-                    0 0 0 (1+ν)/E 0 0
-                    0 0 0 0 (1+ν)/E 0
-                    0 0 0 0 0 (1+ν)/E
+                    1 / E -ν / E -ν / E 0 0 0
+                    -ν / E 1 / E -ν / E 0 0 0
+                    -ν / E -ν / E 1 / E 0 0 0
+                    0 0 0 (1 + ν) / E 0 0
+                    0 0 0 0 (1 + ν) / E 0
+                    0 0 0 0 0 (1 + ν) / E
                 ]
                 @test tsimplify(ℂ ⊡ 𝕊) == 𝕀
 
@@ -90,10 +90,10 @@
                 Kref = tsimplify.([μ 0 0; 0 μ 0; 0 0 Eᵒᵉᵈᵒ])
                 @test tfactor(n ⋅ ℂ ⋅ n) == tfactor(dotdot(n, ℂ, n)) == Kref
                 # Hooke law
-                for i ∈ 1:3, j ∈ 1:3
+                for i in 1:3, j in 1:3
                     @eval $(Symbol("ε$i$j")) = symbols($"ε$i$j", real = true)
                 end
-                𝛆 = Tens(SymmetricTensor{2,3}((i, j) -> eval(Symbol("ε$i$j"))))
+                𝛆 = Tens(SymmetricTensor{2, 3}((i, j) -> eval(Symbol("ε$i$j"))))
                 𝛔 = ℂ ⊡ 𝛆
                 @test tfactor(𝛔) == tfactor(λ * tr(𝛆) * 𝟏 + 2μ * 𝛆)
                 @test tfactor(tsimplify(𝛔 ⊡ 𝛆)) == tfactor(tsimplify(λ * tr(𝛆)^2 + 2μ * 𝛆 ⊡ 𝛆))
