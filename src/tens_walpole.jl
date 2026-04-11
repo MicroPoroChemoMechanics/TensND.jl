@@ -237,24 +237,16 @@ Kelvin-Mandel (6×6) matrix of the Walpole tensor.
 KM(t::TensWalpole) = tomandel(tensor_or_array(getarray(t)))
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
+# Scalar ops (-, α*A, A*α, A/α) and _check_same_reference defined in
+# structured_tens_ops.jl
 
-@inline Base.:-(A::TensWalpole{T,N}) where {T,N} =
-    TensWalpole{T,N}(.-(getdata(A)), getaxis(A))
-
-@inline Base.:*(α::Number, A::TensWalpole{T,N}) where {T,N} =
-    TensWalpole{T,N}(α .* getdata(A), getaxis(A))
-@inline Base.:*(A::TensWalpole{T,N}, α::Number) where {T,N} =
-    TensWalpole{T,N}(getdata(A) .* α, getaxis(A))
-@inline Base.:/(A::TensWalpole{T,N}, α::Number) where {T,N} =
-    TensWalpole{T,N}(getdata(A) ./ α, getaxis(A))
-
-@inline function Base.:+(A::TensWalpole{T1,N}, B::TensWalpole{T2,N}) where {T1,T2,N}
-    @assert A.n == B.n "TensWalpole addition requires the same axis"
-    TensWalpole{promote_type(T1,T2),N}(getdata(A) .+ getdata(B), A.n)
+@inline function Base.:+(A::TensWalpole{<:Any,N}, B::TensWalpole{<:Any,N}) where {N}
+    _check_same_reference(A, B)
+    _rebuild(A, getdata(A) .+ getdata(B))
 end
-@inline function Base.:-(A::TensWalpole{T1,N}, B::TensWalpole{T2,N}) where {T1,T2,N}
-    @assert A.n == B.n "TensWalpole subtraction requires the same axis"
-    TensWalpole{promote_type(T1,T2),N}(getdata(A) .- getdata(B), A.n)
+@inline function Base.:-(A::TensWalpole{<:Any,N}, B::TensWalpole{<:Any,N}) where {N}
+    _check_same_reference(A, B)
+    _rebuild(A, getdata(A) .- getdata(B))
 end
 
 # ── Double contraction (Walpole product rule) ─────────────────────────────────
@@ -343,6 +335,154 @@ function Tensors.dcontract(A::TensISO{4,3}, B::TensWalpole)
     Tensors.dcontract(fromISO(A, B.n), B)
 end
 
+# ── TI convenience constructors ──────────────────────────────────────────────
+
+"""
+    tensTI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n) → TensWalpole{T,5}
+
+Construct a major-symmetric TI 4th-order tensor from its 5 independent
+components and symmetry axis `n`.  Works for both stiffness and compliance
+tensors (the formula is the same).
+
+Walpole coefficients:
+- `ℓ₁ = C₃₃₃₃`
+- `ℓ₂ = C₁₁₁₁ + C₁₁₂₂`
+- `ℓ₃ = √2 C₁₁₃₃`
+- `ℓ₅ = C₁₁₁₁ − C₁₁₂₂`
+- `ℓ₆ = 2 C₂₃₂₃`
+
+See also [`argTI`](@ref), [`tensTI_eng`](@ref).
+"""
+function tensTI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
+    T = promote_type(typeof(C₁₁₁₁), typeof(C₁₁₂₂), typeof(C₁₁₃₃),
+                     typeof(C₃₃₃₃), typeof(C₂₃₂₃))
+    sq2 = sqrt(T(2))
+    ℓ₁ = C₃₃₃₃
+    ℓ₂ = C₁₁₁₁ + C₁₁₂₂
+    ℓ₃ = sq2 * C₁₁₃₃
+    ℓ₅ = C₁₁₁₁ - C₁₁₂₂
+    ℓ₆ = 2 * C₂₃₂₃
+    TensWalpole(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆, n)
+end
+
+"""
+    argTI(t::TensWalpole) → (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
+
+Extract the 5 independent TI components from a Walpole tensor,
+directly from the stored coefficients (no array materialisation).
+
+Inverse of [`tensTI`](@ref):
+- `C₃₃₃₃ = ℓ₁`
+- `C₁₁₁₁ = (ℓ₂ + ℓ₅)/2`
+- `C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`
+- `C₁₁₃₃ = ℓ₃/√2`
+- `C₂₃₂₃ = ℓ₆/2`
+
+See also [`argTI_eng`](@ref).
+"""
+function argTI(t::TensWalpole)
+    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(t)
+    T = eltype(t)
+    sq2 = sqrt(T(2))
+    C₃₃₃₃ = ℓ₁
+    C₁₁₁₁ = (ℓ₂ + ℓ₅) / 2
+    C₁₁₂₂ = (ℓ₂ - ℓ₅) / 2
+    C₁₁₃₃ = ℓ₃ / sq2
+    C₂₃₂₃ = ℓ₆ / 2
+    return (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
+end
+
+"""
+    tensTI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n) → TensWalpole{T,5}
+
+Construct the TI **compliance** tensor from 5 engineering constants
+and symmetry axis `n`.
+
+- `E₁` : transverse Young's modulus (isotropic plane)
+- `E₃` : axial Young's modulus (symmetry axis)
+- `ν₁₂`: in-plane Poisson's ratio
+- `ν₃₁`: axial-transverse Poisson's ratio  (`ν₃₁/E₃ = ν₁₃/E₁`)
+- `G₃₁`: axial shear modulus
+
+To obtain the stiffness tensor, invert the result: `inv(tensTI_eng(…))`.
+
+See also [`argTI_eng`](@ref), [`tensTI`](@ref).
+"""
+function tensTI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n)
+    S₁₁₁₁ = inv(E₁)
+    S₃₃₃₃ = inv(E₃)
+    S₁₁₂₂ = -ν₁₂ / E₁
+    S₁₁₃₃ = -ν₃₁ / E₃
+    S₂₃₂₃ = inv(4 * G₃₁)
+    tensTI(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃, n)
+end
+
+"""
+    argTI_eng(𝕊::TensWalpole) → (E₁, E₃, ν₁₂, ν₃₁, G₃₁)
+
+Extract engineering constants from a TI **compliance** tensor.
+
+See also [`tensTI_eng`](@ref), [`argTI`](@ref).
+"""
+function argTI_eng(𝕊::TensWalpole)
+    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = argTI(𝕊)
+    E₁  = inv(S₁₁₁₁)
+    E₃  = inv(S₃₃₃₃)
+    ν₁₂ = -E₁ * S₁₁₂₂
+    ν₃₁ = -E₃ * S₁₁₃₃
+    G₃₁ = inv(4 * S₂₃₂₃)
+    return (E₁, E₃, ν₁₂, ν₃₁, G₃₁)
+end
+
+"""
+    tensTI_Hoenig(E, ν₁, ν₂, H, Γ, n) → TensWalpole{T,5}
+
+Construct the TI **compliance** tensor from 5 Hoenig parameters
+(Hoenig, 1978) and symmetry axis `n`.
+
+- `E`  : transverse Young's modulus (`= 1/S₁₁₁₁`)
+- `ν₁` : in-plane Poisson's ratio (`= −E S₁₁₂₂`)
+- `ν₂` : axial-transverse Poisson's ratio (`= −E S₁₁₃₃`)
+- `H`  : axial-to-transverse modulus ratio (`= 1/(E S₃₃₃₃)`)
+- `Γ`  : shear anisotropy parameter (`= (1+ν₁)/(2 E S₂₃₂₃)`)
+
+Compliance components:
+- `S₁₁₁₁ = 1/E`
+- `S₁₁₂₂ = −ν₁/E`
+- `S₁₁₃₃ = −ν₂/E`
+- `S₃₃₃₃ = 1/(E H)`
+- `S₂₃₂₃ = (1+ν₁)/(2 E Γ)`
+
+To obtain the stiffness tensor, invert the result: `inv(tensTI_Hoenig(…))`.
+
+See also [`argTI_Hoenig`](@ref), [`tensTI_eng`](@ref), [`tensTI`](@ref).
+"""
+function tensTI_Hoenig(E, ν₁, ν₂, H, Γ, n)
+    S₁₁₁₁ = inv(E)
+    S₃₃₃₃ = inv(E * H)
+    S₁₁₂₂ = -ν₁ / E
+    S₁₁₃₃ = -ν₂ / E
+    S₂₃₂₃ = (1 + ν₁) / (2 * E * Γ)
+    tensTI(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃, n)
+end
+
+"""
+    argTI_Hoenig(𝕊::TensWalpole) → (E, ν₁, ν₂, H, Γ)
+
+Extract the 5 Hoenig parameters from a TI **compliance** tensor.
+
+See also [`tensTI_Hoenig`](@ref), [`argTI_eng`](@ref).
+"""
+function argTI_Hoenig(𝕊::TensWalpole)
+    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = argTI(𝕊)
+    E  = inv(S₁₁₁₁)
+    ν₁ = -E * S₁₁₂₂
+    ν₂ = -E * S₁₁₃₃
+    H  = inv(S₃₃₃₃ * E)
+    Γ  = (1 + ν₁) / (2 * E * S₂₃₂₃)
+    return (E, ν₁, ν₂, H, Γ)
+end
+
 # ── isISO / isTI ─────────────────────────────────────────────────────────────
 
 """
@@ -355,17 +495,7 @@ isTI(::Any)             = false
 isISO(::TensWalpole)    = false
 isOrtho(::TensWalpole)  = false
 
-# ── Symbolic helpers ──────────────────────────────────────────────────────────
-
-for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig)
-    @eval $OP(A::TensWalpole, args...; kwargs...) =
-        _rebuild(A, $OP(getdata(A), args...; kwargs...))
-end
-# Explicit Num dispatch to avoid ambiguity with Symbolics.jl
-for OP in (:tsimplify, :tsubs, :tdiff)
-    @eval $OP(A::TensWalpole{Num,N}, args...; kwargs...) where {N} =
-        _rebuild(A, $OP(getdata(A), args...; kwargs...))
-end
+# Symbolic helpers (tsimplify, tsubs, …) defined in structured_tens_ops.jl
 
 # ── Display ───────────────────────────────────────────────────────────────────
 
@@ -404,6 +534,294 @@ for OP in (:show, :print, :display)
         $OP(KM(A))
     end
 end
+
+##############################################################################
+# TensTI — transversely isotropic tensor (parametric on order)              #
+##############################################################################
+#
+# Follows the same parametric-order pattern as TensISO{order,dim,T,N}:
+#
+# TensTI{order,T,N} <: AbstractTens{order,3,T}
+#
+# Order 2 (N=2):  𝐀 = a·nT + b·nₙ  where nₙ=n⊗n, nT=𝟏−nₙ
+#   data = (a, b), a = transverse coeff, b = axial coeff
+#   When a = b, isotropic: 𝐀 = a·𝟏 (equiv. TensISO{2,3,T}(a))
+#
+# Order 4 is handled by TensWalpole{T,N} (Walpole basis, N=5 or 6).
+# Future unification TensWalpole → TensTI{4,T,N} is possible.
+# ─────────────────────────────────────────────────────────────────────────────
+
+"""
+    TensTI{order,T,N} <: AbstractTens{order,3,T}
+
+Transversely isotropic tensor of order `order` (always dim=3) with symmetry
+axis `n`, parametrised like `TensISO{order,dim,T,N}`.
+
+**Order 2** (`N=2`): `data = (a, b)` → `𝐀 = a·nT + b·nₙ`
+where `nₙ = n⊗n`, `nT = 𝟏 − nₙ`.
+- `a`: transverse coefficient (plane ⊥ n)
+- `b`: axial coefficient (along n)
+- When `a = b`: isotropic, equivalent to `TensISO{2,3,T}(a)`
+
+**Order 4** is handled separately by [`TensWalpole{T,N}`](@ref) (Walpole basis
+with 5 or 6 coefficients).
+
+# Constructor
+
+    TensTI{2}(a, b, n) → TensTI{2,T,2}
+
+Construct a TI 2nd-order tensor `a·nT + b·nₙ` with symmetry axis `n`.
+The axis `n` can be a `Vector`, `NTuple{3}`, or any `AbstractTens` of order 1.
+
+# Examples
+```julia
+julia> n = [0., 0., 1.];
+
+julia> A = TensTI{2}(5.0, 8.0, n);
+
+julia> getarray(A)
+3×3 Matrix{Float64}:
+ 5.0  0.0  0.0
+ 0.0  5.0  0.0
+ 0.0  0.0  8.0
+
+julia> tr(A)
+18.0
+
+julia> isISO(A)
+false
+
+julia> inv(A).data
+(0.2, 0.125)
+
+julia> B = TensTI{2}(5.0, 5.0, n); isISO(B)
+true
+```
+"""
+struct TensTI{order,T,N} <: AbstractTens{order,3,T}
+    data::NTuple{N,T}
+    n::NTuple{3,T}       # symmetry axis (assumed unit vector)
+    TensTI{order,T,N}(data::NTuple{N,T}, n::NTuple{3,T}) where {order,T,N} =
+        new{order,T,N}(data, n)
+end
+
+# ── Traits ────────────────────────────────────────────────────────────────────
+
+@pure Base.eltype(::Type{TensTI{order,T,N}}) where {order,T,N} = T
+@pure Base.length(::TensTI{order}) where {order} = 3^order
+@pure Base.size(::TensTI{order}) where {order} = ntuple(_ -> 3, Val(order))
+
+getbasis(::TensTI{order,T}) where {order,T} = CanonicalBasis{3,T}()
+getvar(::TensTI{order}) where {order}       = ntuple(_ -> :cont, Val(order))
+getvar(::TensTI, ::Integer)                 = :cont
+getdata(t::TensTI) = t.data
+getaxis(t::TensTI) = t.n
+
+# ── Rebuild helper (used by symbolic ops) ─────────────────────────────────────
+_rebuild(t::TensTI{order}, new_data) where {order} =
+    TensTI{order,eltype(new_data),length(new_data)}(new_data, getaxis(t))
+
+# ── Convenience constructors ─────────────────────────────────────────────────
+
+# TensTI{2}(a, b, n) → TensTI{2,T,2}
+#
+# Construct a TI 2nd-order tensor `a·nT + b·nₙ` with symmetry axis `n`.
+#
+# Examples:
+#   n = [0., 0., 1.]
+#   A = TensTI{2}(5.0, 8.0, n)
+#   getarray(A) → [5 0 0; 0 5 0; 0 0 8]
+function TensTI{2}(a, b, n)
+    T = promote_type(typeof(a), typeof(b), eltype(n))
+    nv = _extract_vec(n)
+    TensTI{2,T,2}((T(a), T(b)), (T(nv[1]), T(nv[2]), T(nv[3])))
+end
+
+# ── getarray (order 2) ──────────────────────────────────────────────────────
+
+"""
+    getarray(t::TensTI{2,T,2}) → Array{T,2}
+
+Compute the 3×3 component array: `a*(δᵢⱼ − nᵢnⱼ) + b*nᵢnⱼ`.
+
+# Examples
+```julia
+julia> A = TensTI{2}(5.0, 8.0, [0., 0., 1.]);
+
+julia> getarray(A)
+3×3 Matrix{Float64}:
+ 5.0  0.0  0.0
+ 0.0  5.0  0.0
+ 0.0  0.0  8.0
+```
+"""
+function getarray(t::TensTI{2,T,2}) where {T}
+    a, b = t.data
+    n = t.n
+    δ(i, j) = i == j ? one(T) : zero(T)
+    result = Array{T,2}(undef, 3, 3)
+    for i in 1:3, j in 1:3
+        result[i,j] = a * (δ(i,j) - n[i]*n[j]) + b * n[i]*n[j]
+    end
+    return result
+end
+
+Base.getindex(t::TensTI{2}, i::Integer, j::Integer) =
+    getarray(t)[i, j]
+
+# ── KM ───────────────────────────────────────────────────────────────────────
+
+KM(t::TensTI{2}) = tomandel(tensor_or_array(getarray(t)))
+
+# ── Arithmetic ───────────────────────────────────────────────────────────────
+# Scalar ops (-, α*A, A*α, A/α) and _check_same_reference defined in
+# structured_tens_ops.jl
+
+@inline function Base.:+(A::TensTI{order,<:Any,N}, B::TensTI{order,<:Any,N}) where {order,N}
+    _check_same_reference(A, B)
+    _rebuild(A, getdata(A) .+ getdata(B))
+end
+@inline function Base.:-(A::TensTI{order,<:Any,N}, B::TensTI{order,<:Any,N}) where {order,N}
+    _check_same_reference(A, B)
+    _rebuild(A, getdata(A) .- getdata(B))
+end
+
+# ── Inverse (order 2) ───────────────────────────────────────────────────────
+
+"""
+    inv(t::TensTI{2,T,2}) → TensTI{2,T,2}
+
+Inverse: `(a·nT + b·nₙ)⁻¹ = (1/a)·nT + (1/b)·nₙ`.
+
+# Examples
+```julia
+julia> A = TensTI{2}(5.0, 8.0, [0., 0., 1.]);
+
+julia> inv(A).data
+(0.2, 0.125)
+```
+"""
+@inline Base.inv(t::TensTI{2,T,2}) where {T} =
+    TensTI{2,T,2}((one(T) / t.data[1], one(T) / t.data[2]), t.n)
+@inline Base.literal_pow(::typeof(^), A::TensTI{2}, ::Val{-1}) = inv(A)
+
+# ── Trace (order 2) ─────────────────────────────────────────────────────────
+
+"""
+    tr(t::TensTI{2}) → scalar
+
+Trace: `tr(a·nT + b·nₙ) = 2a + b`.
+"""
+LinearAlgebra.tr(t::TensTI{2}) = 2 * t.data[1] + t.data[2]
+
+# ── Symmetry ─────────────────────────────────────────────────────────────────
+
+LinearAlgebra.issymmetric(::TensTI{2}) = true
+isISO(t::TensTI{2})    = t.data[1] == t.data[2]
+isTI(::TensTI)         = true
+isOrtho(::TensTI)      = false
+
+# Symbolic helpers (tsimplify, tsubs, …) defined in structured_tens_ops.jl
+
+# ── Display ──────────────────────────────────────────────────────────────────
+
+function Base.show(io::IO, A::TensTI{2})
+    a, b = getdata(A)
+    print(io, "(", a, ") nT + (", b, ") nₙ")
+    print(io, "\n  axis n = ", A.n)
+end
+
+function intrinsic(A::TensTI{2})
+    a, b = getdata(A)
+    println("(", a, ") nT + (", b, ") nₙ")
+    println("  axis n = ", A.n)
+end
+
+for OP in (:show, :print, :display)
+    @eval function Base.$OP(A::TensTI{2})
+        $OP(typeof(A))
+        print("→ decomposition: ")
+        intrinsic(A)
+    end
+end
+
+# ── change_tens / components for TensTI ──────────────────────────────────────
+
+change_tens(t::TensTI{2,T}, ℬ::OrthonormalBasis{3,T}) where {T} =
+    Tens(tensor_or_array(getarray(t)), ℬ)
+components(t::TensTI{2,T}, ::OrthonormalBasis{3,T}, ::NTuple{2,Symbol}) where {T} =
+    getarray(t)
+components(t::TensTI{2}) = getarray(t)
+components(t::TensTI{2}, ::NTuple{2,Symbol}) = getarray(t)
+
+# ── otimes specializations (TensTI{2} → TensWalpole) ───────────────────────
+
+"""
+    otimes(A::TensTI{2}) → TensWalpole{T,5}
+
+Self tensor product of a TI 2nd-order tensor.  The result is always
+major-symmetric (ℓ₃ = ℓ₄) and lives in the Walpole basis with N=5.
+
+    (a·nT + b·nₙ) ⊗ (a·nT + b·nₙ)
+    = b²W₁ + 2a²W₂ + √2·ab·(W₃+W₄)
+"""
+function Tensors.otimes(A::TensTI{2,T,2}) where {T}
+    a, b = A.data
+    sq2 = sqrt(T(2))
+    TensWalpole{T,5}((b * b, T(2) * a * a, sq2 * a * b, zero(T), zero(T)), A.n)
+end
+
+"""
+    otimes(A::TensTI{2}, B::TensTI{2}) → TensWalpole{T,6}
+
+Tensor product of two TI 2nd-order tensors with the same axis.
+Falls back to generic `otimes` if axes differ.
+
+    (a₁·nT + b₁·nₙ) ⊗ (a₂·nT + b₂·nₙ)
+    = b₁b₂·W₁ + 2a₁a₂·W₂ + √2·b₁a₂·W₃ + √2·a₁b₂·W₄
+"""
+function Tensors.otimes(A::TensTI{2,T1,2}, B::TensTI{2,T2,2}) where {T1,T2}
+    if A.n != B.n
+        return invoke(Tensors.otimes, Tuple{AbstractTens{2,3},AbstractTens{2,3}}, A, B)
+    end
+    T = promote_type(T1, T2)
+    a₁, b₁ = A.data
+    a₂, b₂ = B.data
+    sq2 = sqrt(T(2))
+    TensWalpole{T,6}((T(b₁*b₂), T(2)*a₁*a₂, sq2*T(b₁*a₂), sq2*T(a₁*b₂),
+                      zero(T), zero(T)), A.n)
+end
+
+"""
+    otimes(A::TensISO{2,3}, B::TensTI{2}) → TensWalpole{T,6}
+
+Tensor product of a 3D isotropic 2nd-order tensor with a TI 2nd-order tensor.
+The isotropic tensor `λ·𝟏` is treated as `TensTI{2}(λ,λ,n)` with the axis of B.
+"""
+function Tensors.otimes(A::TensISO{2,3}, B::TensTI{2,T2,2}) where {T2}
+    T = promote_type(eltype(A), T2)
+    λ = A.data[1]
+    a₂, b₂ = B.data
+    sq2 = sqrt(T(2))
+    TensWalpole{T,6}((T(λ*b₂), T(2)*λ*a₂, sq2*T(λ*a₂), sq2*T(λ*b₂),
+                      zero(T), zero(T)), B.n)
+end
+
+"""
+    otimes(A::TensTI{2}, B::TensISO{2,3}) → TensWalpole{T,6}
+
+Tensor product of a TI 2nd-order tensor with a 3D isotropic 2nd-order tensor.
+The isotropic tensor `λ·𝟏` is treated as `TensTI{2}(λ,λ,n)` with the axis of A.
+"""
+function Tensors.otimes(A::TensTI{2,T1,2}, B::TensISO{2,3}) where {T1}
+    T = promote_type(T1, eltype(B))
+    a₁, b₁ = A.data
+    λ = B.data[1]
+    sq2 = sqrt(T(2))
+    TensWalpole{T,6}((T(b₁*λ), T(2)*a₁*λ, sq2*T(b₁*λ), sq2*T(a₁*λ),
+                      zero(T), zero(T)), A.n)
+end
+
 
 ##############################################################################
 # TensOrtho — orthotropic 4th-order tensor
@@ -572,25 +990,16 @@ function KM_material(t::TensOrtho{T}) where {T}
 end
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
+# Scalar ops (-, α*A, A*α, A/α) and _check_same_reference defined in
+# structured_tens_ops.jl
 
-@inline Base.:-(A::TensOrtho{T}) where {T} =
-    TensOrtho{T}(.-(getdata(A)), getframe(A))
-@inline Base.:*(α::Number, A::TensOrtho{T}) where {T} =
-    TensOrtho{T}(α .* getdata(A), getframe(A))
-@inline Base.:*(A::TensOrtho{T}, α::Number) where {T} =
-    TensOrtho{T}(getdata(A) .* α, getframe(A))
-@inline Base.:/(A::TensOrtho{T}, α::Number) where {T} =
-    TensOrtho{T}(getdata(A) ./ α, getframe(A))
-
-@inline function Base.:+(A::TensOrtho{T1}, B::TensOrtho{T2}) where {T1,T2}
-    @assert A.frame == B.frame "TensOrtho addition requires the same material frame"
-    T = promote_type(T1,T2)
-    TensOrtho{T}(getdata(A) .+ getdata(B), A.frame)
+@inline function Base.:+(A::TensOrtho, B::TensOrtho)
+    _check_same_reference(A, B)
+    _rebuild(A, getdata(A) .+ getdata(B))
 end
-@inline function Base.:-(A::TensOrtho{T1}, B::TensOrtho{T2}) where {T1,T2}
-    @assert A.frame == B.frame "TensOrtho subtraction requires the same material frame"
-    T = promote_type(T1,T2)
-    TensOrtho{T}(getdata(A) .- getdata(B), A.frame)
+@inline function Base.:-(A::TensOrtho, B::TensOrtho)
+    _check_same_reference(A, B)
+    _rebuild(A, getdata(A) .- getdata(B))
 end
 
 # ── Inverse ───────────────────────────────────────────────────────────────────
@@ -621,17 +1030,7 @@ isTI(::TensOrtho)    = false
 isOrtho(::TensOrtho) = true
 isOrtho(::Any)       = false   # universal fallback
 
-# ── Symbolic helpers ──────────────────────────────────────────────────────────
-
-for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig)
-    @eval $OP(A::TensOrtho, args...; kwargs...) =
-        _rebuild(A, $OP(getdata(A), args...; kwargs...))
-end
-# Explicit Num dispatch to avoid ambiguity with Symbolics.jl
-for OP in (:tsimplify, :tsubs, :tdiff)
-    @eval $OP(A::TensOrtho{Num}, args...; kwargs...) =
-        _rebuild(A, $OP(getdata(A), args...; kwargs...))
-end
+# Symbolic helpers (tsimplify, tsubs, …) defined in structured_tens_ops.jl
 
 # ── Display ───────────────────────────────────────────────────────────────────
 
@@ -683,8 +1082,9 @@ end
 # Exports
 ##############################################################################
 
-export TensWalpole, TensOrtho
+export TensWalpole, TensTI, TensOrtho
 export tensW1, tensW2, tensW3, tensW4, tensW5, tensW6, Walpole
 export get_ℓ, getaxis, getframe
 export fromISO, isTI, isOrtho
+export tensTI, argTI, tensTI_eng, argTI_eng, tensTI_Hoenig, argTI_Hoenig
 export KM_material

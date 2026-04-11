@@ -63,22 +63,90 @@ end
 
 proj_tens(sym::Symbol, A::AbstractArray) = proj_tens(Val(sym), A)
 
-for order ∈ (2, 4)
-    @eval function best_sym_tens(
-        t::AbstractTens{$order,dim,T},
-        args...;
-        proj = (:ISO,),
-        ε = 1.e-6,
-    ) where {dim,T}
-        basis = relevant_OrthonormalBasis(getbasis(t))
-        newt = change_tens(t, basis)
-        for sym ∈ proj
-            (projt, d, drel) = proj_tens(sym, newt)
-            if iszero(d) || drel < ε
-                return projt, d, drel, sym
-            end
+# Internal helper: loop over symmetry projections and return the first match.
+# `proj_fn(sym)` must return `(projected, d, drel)`.
+function _best_sym_loop(newt::AbstractTens{order,dim,T}, proj, ε, proj_fn) where {order,dim,T}
+    for sym ∈ proj
+        (projt, d, drel) = proj_fn(sym)
+        if iszero(d) || drel < ε
+            return projt, d, drel, sym
         end
-        return newt, zero(T), zero(T), :ANISO
+    end
+    return newt, zero(T), zero(T), :ANISO
+end
+
+for order ∈ (2, 4)
+    @eval begin
+        """
+            best_sym_tens(t; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
+
+        Find the best (most restrictive) symmetry of tensor `t` by trying each
+        symmetry in `proj` (from most symmetric to least) and accepting the first
+        whose relative projection error is below `ε`.
+
+        Requires NLopt for rotation-optimized TI and ORTHO projections (i.e. when
+        no axis/frame is provided). For fixed-basis usage, see the variant with
+        `n_or_frame`.
+
+        Returns `(projected, d, drel, sym)` where `sym ∈ {:ISO, :TI, :ORTHO, :ANISO}`.
+
+        # Examples
+        ```julia
+        julia> C = tensTI(10., 3., 2.5, 12., 2., [0., 0., 1.]);
+
+        julia> _, _, _, sym = best_sym_tens(C);
+
+        julia> sym
+        :ISO  # or :TI depending on the tensor
+        ```
+        """
+        function best_sym_tens(
+            t::AbstractTens{$order,dim,T},
+            args...;
+            proj = (:ISO, :TI, :ORTHO),
+            ε = 1.e-6,
+        ) where {dim,T}
+            basis = relevant_OrthonormalBasis(getbasis(t))
+            newt = change_tens(t, basis)
+            _best_sym_loop(newt, proj, ε, sym -> proj_tens(sym, newt))
+        end
+
+        """
+            best_sym_tens(t, n_or_frame; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
+
+        Find the best symmetry of tensor `t` with a **fixed** symmetry axis `n`
+        (for TI) or material frame `frame` (for ORTHO). No rotation optimization
+        is performed.
+
+        - `n_or_frame`: a vector (axis for TI) or `OrthonormalBasis{3}` (frame for
+          ORTHO). For ISO projection the extra argument is ignored.
+
+        Returns `(projected, d, drel, sym)`.
+
+        # Examples
+        ```julia
+        julia> n = [0., 0., 1.];
+
+        julia> C = tensTI(10., 3., 2.5, 12., 2., n);
+
+        julia> _, _, drel, sym = best_sym_tens(C, n);
+
+        julia> sym == :TI && drel < 1e-12
+        true
+        ```
+        """
+        function best_sym_tens(
+            t::AbstractTens{$order,dim,T},
+            n_or_frame;
+            proj = (:ISO, :TI, :ORTHO),
+            ε = 1.e-6,
+        ) where {dim,T}
+            basis = relevant_OrthonormalBasis(getbasis(t))
+            newt = change_tens(t, basis)
+            A = Array(getarray(newt))
+            _best_sym_loop(newt, proj, ε,
+                sym -> sym == :ISO ? proj_tens(sym, A) : proj_tens(sym, A, n_or_frame))
+        end
     end
 end
 
@@ -151,6 +219,9 @@ end
 @inline Base.zero(t::AbstractTens) = Tens(zero.(getarray(t)), getbasis(t), getvar(t))
 
 # This function aims at storing the table of components in the `Tensor` type whenever possible
+# Convert a raw array into the best matching Tensors.jl type (Vec, Tensor, or
+# SymmetricTensor).  Falls through to the input unchanged for types that are
+# already Tensors.AllTensors or for orders not in {1,2,4}.
 tensor_or_array(tab::AbstractArray{T,1}) where {T} = Vec{size(tab, 1)}(tab)
 for order ∈ (2, 4)
     @eval function tensor_or_array(tab::AbstractArray{T,$order}) where {T}

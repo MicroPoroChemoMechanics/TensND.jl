@@ -13,13 +13,11 @@ include("bases.jl")
 include("tens.jl")
 include("tens_isotropic.jl")
 include("tens_walpole.jl")
+include("structured_tens_ops.jl")
+include("tens_projection.jl")
 include("special_tens.jl")
 include("coorsystems.jl")
 include("coorsystems_num.jl")
 include("submanifold.jl")
-
-
-# function __init__()
-# end
 
 end # module

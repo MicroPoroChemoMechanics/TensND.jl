@@ -36,6 +36,24 @@ julia> OM = Tens(c * [p̄ * q̄ * cos(ϕ), p̄ * q̄ * sin(ϕ), p * q]) ;
 julia> Spheroidal = CoorSystemSym(OM, coords, tmp_coords, params; tmp_var = Dict(1-p^2 => p̄^2, q^2-1 => q̄^2), to_coords = Dict(p̄ => √(1-p^2), q̄ => √(q^2-1))) ;
 ```
 """
+# Build the canonical basis vectors (eᵢ), natural covariant (aᵢ) and
+# contravariant (aⁱ) vectors from the normalized basis and Lamé coefficients.
+function _build_basis_vectors(normalized_basis::AbstractBasis{dim,T}, χᵢ::NTuple{dim}) where {dim,T}
+    eᵢ = ntuple(
+        i -> Tens(Vec{dim}(j -> j == i ? one(T) : zero(T)), normalized_basis, (:cov,)),
+        dim,
+    )
+    aᵢ = ntuple(
+        i -> Tens(Vec{dim}(j -> j == i ? χᵢ[i] : zero(T)), normalized_basis, (:cov,)),
+        dim,
+    )
+    aⁱ = ntuple(
+        i -> Tens(Vec{dim}(j -> j == i ? inv(χᵢ[i]) : zero(T)), normalized_basis, (:cont,)),
+        dim,
+    )
+    return eᵢ, aᵢ, aⁱ
+end
+
 struct CoorSystemSym{dim,T<:Number,VEC,BNORM,BNAT} <: AbstractCoorSystem{dim,T}
     OM::VEC
     coords::NTuple{dim,T}
@@ -63,26 +81,7 @@ struct CoorSystemSym{dim,T<:Number,VEC,BNORM,BNAT} <: AbstractCoorSystem{dim,T}
         to_coords::Dict=Dict()
     ) where {dim,T,VEC}
         simp(t) = length(rules) > 0 ? tsimplify(tsubs(tsimplify(t), rules...)) : tsimplify(t)
-        eᵢ = ntuple(
-            i -> Tens(
-                Vec{dim}(j -> j == i ? one(T) : zero(T)),
-                normalized_basis,
-                (:cov,),
-            ),
-            dim,
-        )
-        aᵢ = ntuple(
-            i -> Tens(Vec{dim}(j -> j == i ? χᵢ[i] : zero(T)), normalized_basis, (:cov,)),
-            dim,
-        )
-        aⁱ = ntuple(
-            i -> Tens(
-                Vec{dim}(j -> j == i ? inv(χᵢ[i]) : zero(T)),
-                normalized_basis,
-                (:cont,),
-            ),
-            dim,
-        )
+        eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
         Γ = simp(compute_Christoffel(
             coords,
             χᵢ,
@@ -125,26 +124,7 @@ struct CoorSystemSym{dim,T<:Number,VEC,BNORM,BNAT} <: AbstractCoorSystem{dim,T}
         χᵢ = ntuple(i -> simp(chvar(χᵢ[i], to_coords)), dim)
         eᵢ = ntuple(i -> simp(chvar(eᵢ[i], to_coords)), dim)
         normalized_basis = Basis(tsimplify(hcat(components_canon.(eᵢ)...)))
-        eᵢ = ntuple(
-            i -> Tens(
-                Vec{dim}(j -> j == i ? one(T) : zero(T)),
-                normalized_basis,
-                (:cov,),
-            ),
-            dim,
-        )
-        aᵢ = ntuple(
-            i -> Tens(Vec{dim}(j -> j == i ? χᵢ[i] : zero(T)), normalized_basis, (:cov,)),
-            dim,
-        )
-        aⁱ = ntuple(
-            i -> Tens(
-                Vec{dim}(j -> j == i ? inv(χᵢ[i]) : zero(T)),
-                normalized_basis,
-                (:cont,),
-            ),
-            dim,
-        )
+        eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
         Γ = compute_Christoffel(
             coords,
             χᵢ,

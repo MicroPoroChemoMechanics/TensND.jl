@@ -14,8 +14,15 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
+[weakdeps]
+NLopt = "76087f3c-5b15-5685-a1ce-a83b5072bfeb"
+
+[extensions]
+TensNDNLoptExt = "NLopt"
+
 [compat]
 ForwardDiff = "0.10"
+NLopt = "1"
 OMEinsum = "0.9"
 Rotations = "1"
 StaticArrays = "1"

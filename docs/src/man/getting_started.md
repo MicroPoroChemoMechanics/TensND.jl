@@ -15,8 +15,10 @@ The package relies on the definition of
 
   - a tensor is determined by a set of data (array or synthetic parameters) corresponding to its `order`, a basis and a tuple of variances
   - depending on the type of basis, the type of tensor can be `TensCanonical{order,dim,T,A}`, `TensRotated{order,dim,T,A}`, `TensOrthogonal{order,dim,T,A}` or `Tens{order,dim,T,A}` if the data are stored under the form of an array or a `Tensor` object (see [Tensors.jl](https://github.com/Ferrite-FEM/Tensors.jl)), or the type can be `TensISO{order,dim,T,N}` if the tensor is isotropic and data are stored under the form of a set of parameters (one for order 2 and two for order 4).
-  - `TensWalpole{T,N}` if the tensor is transversely isotropic (Walpole basis, N=5 for major-symmetric or N=6 for general case).
+  - `TensWalpole{T,N}` if the tensor is transversely isotropic of order 4 (Walpole basis, N=5 for major-symmetric or N=6 for general case).
+  - `TensTI{order,T,N}` if the tensor is transversely isotropic of order 2 (N=2, data = (a, b) with symmetry axis n).
   - `TensOrtho{T}` if the tensor is orthotropic (9 elastic constants in a material frame).
+  - Projection functions `proj_tens` and `best_sym_tens` allow finding the closest tensor of a given symmetry class (ISO, TI, ORTHO) with or without rotation optimization (the latter requires `NLopt`).
 
 - **coordinate systems**
 

@@ -5,33 +5,25 @@ Base.getindex(ℬ::AbstractBasis, i::Integer, j::Integer) = getindex(vecbasis(�
 @pure Base.eltype(::Type{AbstractBasis{dim,T}}) where {dim,T} = T
 @pure getdim(::AbstractBasis{dim}) where {dim} = dim
 
-function subscriptnumber(i::Integer)
-    if i < 0
-        c = [Char(0x208B)]
-    else
-        c = []
-    end
+# Build a Unicode sub/superscript string from an integer.
+# `minus_char` is the sign character; `digit_map` converts a digit 0–9 to its
+# Unicode sub/superscript codepoint.
+function _scriptnumber(i::Integer, minus_char::Char, digit_map)
+    c = i < 0 ? Char[minus_char] : Char[]
     for d in reverse(digits(abs(i)))
-        push!(c, Char(0x2080+d))
+        push!(c, digit_map(d))
     end
     return join(c)
 end
 
-function superscriptnumber(i::Integer)
-    if i < 0
-        c = [Char(0x207B)]
-    else
-        c = []
-    end
-    for d in reverse(digits(abs(i)))
-        if d == 0 push!(c, Char(0x2070)) end
-        if d == 1 push!(c, Char(0x00B9)) end
-        if d == 2 push!(c, Char(0x00B2)) end
-        if d == 3 push!(c, Char(0x00B3)) end
-        if d > 3 push!(c, Char(0x2070+d)) end
-    end
-    return join(c)
-end
+subscriptnumber(i::Integer) =
+    _scriptnumber(i, Char(0x208B), d -> Char(0x2080 + d))
+
+# Superscript digits 0–3 use non-contiguous codepoints; 4–9 are contiguous.
+const _SUPERSCRIPT_DIGITS = (Char(0x2070), Char(0x00B9), Char(0x00B2), Char(0x00B3),
+    Char(0x2074), Char(0x2075), Char(0x2076), Char(0x2077), Char(0x2078), Char(0x2079))
+superscriptnumber(i::Integer) =
+    _scriptnumber(i, Char(0x207B), d -> _SUPERSCRIPT_DIGITS[d + 1])
 
 diago(M::AbstractMatrix) = [M[i,i] for i in 1:min(size(M)...)]
 
@@ -444,7 +436,7 @@ const dsuperscriptchar = Dict(
     "γ" => "ᵞ",
     "ε" => "ᵋ",
     "θ" => "ᶿ",
-    "ι" => "ᶥ ",
+    "ι" => "ᶥ",
     "ϕ" => "ᵠ",
     "χ" => "ᵡ",
 )

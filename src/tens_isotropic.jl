@@ -53,7 +53,7 @@ julia> 𝟏.data
  1  0  0
  0  1  0
  0  0  1
-```  
+```
 """
 tensId2(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number} = TensISO{2,dim,T}()
 
@@ -72,7 +72,7 @@ julia> 𝕀 = t𝕀() ; KM(𝕀)
  0  0  0  1  0  0
  0  0  0  0  1  0
  0  0  0  0  0  1
-``` 
+```
 """
 tensId4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number} = TensISO{4,dim,T}()
 
@@ -91,7 +91,7 @@ julia> 𝕁 = t𝕁() ; KM(𝕁)
    0    0    0  0  0  0
    0    0    0  0  0  0
    0    0    0  0  0  0
-``` 
+```
 """
 tensJ4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number} =
     TensISO{dim}(one(T), zero(T))
@@ -111,7 +111,7 @@ julia> 𝕂 = t𝕂() ; KM(𝕂)
     0     0     0  1  0  0
     0     0     0  0  1  0
     0     0     0  0  0  1
-``` 
+```
 """
 tensK4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number} =
     TensISO{dim}(zero(T), one(T))
@@ -125,7 +125,7 @@ Return the three fourth-order isotropic tensors `𝕀, 𝕁, 𝕂`
 # Examples
 ```julia
 julia> 𝕀, 𝕁, 𝕂 = ISO() ;
-``` 
+```
 """
 ISO(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number} =
     tensId4(Val(dim), Val(T)), tensJ4(Val(dim), Val(T)), tensK4(Val(dim), Val(T))
@@ -156,13 +156,7 @@ change_tens(
     ::NTuple{order,Symbol},
 ) where {order,dim,T} = Tens(getarray(t), ℬ)
 
-@inline Base.:-(A::TensISO{order,dim}) where {order,dim} = TensISO{dim}(.-(getdata(A)))
-@inline Base.:*(α::Number, A::TensISO{order,dim}) where {order,dim} =
-    TensISO{dim}(α .* getdata(A))
-@inline Base.:*(A::TensISO{order,dim}, α::Number) where {order,dim} =
-    TensISO{dim}(getdata(A) .* α)
-@inline Base.:/(A::TensISO{order,dim}, α::Number) where {order,dim} =
-    TensISO{dim}(getdata(A) ./ α)
+# Scalar arithmetic (-, α*A, A*α, A/α) defined in structured_tens_ops.jl
 for OP in (:+, :-, :*)
     @eval @inline Base.$OP(
         A1::TensISO{order,dim},
@@ -255,17 +249,7 @@ intrinsic(A::TensISO{2}) = println("(", getdata(A)[1], ") 𝟏")
 
 _rebuild(::TensISO{order,dim}, new_data) where {order,dim} = TensISO{dim}(new_data)
 
-# ── Symbolic helpers ──────────────────────────────────────────────────────────
-
-for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig)
-    @eval $OP(A::TensISO{order,dim}, args...; kwargs...) where {order,dim} =
-        _rebuild(A, $OP(getdata(A), args...; kwargs...))
-end
-# Explicit Num dispatch to avoid ambiguity with Symbolics.jl
-for OP in (:tsimplify, :tsubs, :tdiff)
-    @eval $OP(A::TensISO{order,dim,Num}, args...; kwargs...) where {order,dim} =
-        _rebuild(A, $OP(getdata(A), args...; kwargs...))
-end
+# Symbolic helpers (tsimplify, tsubs, …) defined in structured_tens_ops.jl
 
 
 
@@ -409,6 +393,7 @@ isotropify(A::AbstractArray{T,2}) where {T} = TensISO{size(A)[1]}(tr(A) / size(A
 function isotropify(A::AbstractArray{T,4}) where {T}
     dim = size(A)[1]
     α = tensJ4(dim, T) ⊙ A
+    # 5 = dim(deviatoric space) = dim(𝕂) for 3D; generalises to dim*(dim+1)/2 - 1
     β = (tensK4(dim, T) ⊙ A) / 5
     return TensISO{dim}(α, β)
 end
@@ -416,7 +401,7 @@ end
 TensISO(A::AbstractArray) = isotropify(Tens(A))
 
 function proj_tens(::Val{:ISO}, A::AbstractArray)
-    norm = x -> simplify(√(sum(x .^ 2)))
+    norm = x -> tsimplify(√(sum(x .^ 2)))
     nA = norm(A)
     if nA == zero(eltype(A))
         return zero(A), nA, nA

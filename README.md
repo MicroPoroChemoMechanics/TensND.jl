@@ -63,7 +63,7 @@ julia> for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ") @eval $(Symbol(σⁱʲ
 julia> 𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ ; intrinsic(𝛔)
 (σᶿᶿ(r))𝐞ᶿ⊗𝐞ᶿ + (σᵠᵠ(r))𝐞ᵠ⊗𝐞ᵠ + (σʳʳ(r))𝐞ʳ⊗𝐞ʳ
 
-julia> div𝛔 = simplify(DIV(𝛔)) ; intrinsic(div𝛔)
+julia> div𝛔 = tsimplify(DIV(𝛔)) ; intrinsic(div𝛔)
 ((-σᵠᵠ(r) + σᶿᶿ(r))/(r*tan(θ)))𝐞ᶿ + ((r*Derivative(σʳʳ(r), r) + 2*σʳʳ(r) - σᵠᵠ(r) - σᶿᶿ(r))/r)𝐞ʳ
 ```
 
@@ -91,15 +91,3 @@ julia> import Pkg; Pkg.add("TensND")
 [![DOI](https://zenodo.org/badge/394914455.svg)](https://doi.org/10.5281/zenodo.17985768)
 
 See [CITATION.cff](CITATION.cff) for citation details.
-
-## Related packages
-
-- [SymPy.jl](https://github.com/JuliaPy/SymPy.jl)
-- [Tensors.jl](https://github.com/Ferrite-FEM/Tensors.jl)
-- [OMEinsum.jl](https://github.com/under-Peter/OMEinsum.jl)
-- [Rotations.jl](https://github.com/JuliaGeometry/Rotations.jl)
-
-## References
-
-1. [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html)
-1. [Sébastien Brisard's blog](https://sbrisard.github.io/posts/20140226-decomposition_of_transverse_isotropic_fourth-rank_tensors.html)

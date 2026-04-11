@@ -111,6 +111,7 @@ makedocs(
             "tuto/nlayersphere.md",
             "tuto/coorsystems_num.md",
             "tuto/green_function.md",
+            "tuto/projection.md",
         ],
         "API" => "api.md",
     ],

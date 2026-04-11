@@ -41,6 +41,9 @@ Depth = 1
 ```@contents
 Pages = [
     "tuto/nlayersphere.md",
+    "tuto/coorsystems_num.md",
+    "tuto/green_function.md",
+    "tuto/projection.md",
 ]
 Depth = 1
 ```

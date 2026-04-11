@@ -392,4 +392,194 @@
         @test opequal(getarray(res_w), Array(res_direct))
     end
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "tensTI & argTI — numeric round-trip" begin
+        C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃ = 10.0, 3.0, 2.5, 12.0, 2.0
+        ℂ = tensTI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n3)
+        @test ℂ isa TensWalpole{Float64,5}
+
+        c₁₁₁₁, c₁₁₂₂, c₁₁₃₃, c₃₃₃₃, c₂₃₂₃ = argTI(ℂ)
+        @test c₁₁₁₁ ≈ C₁₁₁₁  atol=atol_num
+        @test c₁₁₂₂ ≈ C₁₁₂₂  atol=atol_num
+        @test c₁₁₃₃ ≈ C₁₁₃₃  atol=atol_num
+        @test c₃₃₃₃ ≈ C₃₃₃₃  atol=atol_num
+        @test c₂₃₂₃ ≈ C₂₃₂₃  atol=atol_num
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "tensTI — consistency with TensOrtho" begin
+        frame3 = CanonicalBasis{3,Float64}()
+        C₁₁₁₁ = 10.0; C₃₃₃₃ = 12.0; C₁₁₂₂ = 3.0; C₁₁₃₃ = 2.5; C₂₃₂₃ = 2.0
+        C₆₆ = (C₁₁₁₁ - C₁₁₂₂) / 2
+        to = TensOrtho(C₁₁₁₁, C₁₁₁₁, C₃₃₃₃, C₁₁₂₂, C₁₁₃₃, C₁₁₃₃,
+                       C₂₃₂₃, C₂₃₂₃, C₆₆, frame3)
+        tw = tensTI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n3)
+        @test opequal(getarray(to), getarray(tw))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "tensTI_eng & argTI_eng — numeric round-trip" begin
+        E₁, E₃, ν₁₂, ν₃₁, G₃₁ = 100.0, 200.0, 0.25, 0.15, 40.0
+        𝕊 = tensTI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n3)
+        @test 𝕊 isa TensWalpole{Float64,5}
+
+        e₁, e₃, n₁₂, n₃₁, g₃₁ = argTI_eng(𝕊)
+        @test e₁ ≈ E₁   atol=atol_num
+        @test e₃ ≈ E₃   atol=atol_num
+        @test n₁₂ ≈ ν₁₂  atol=atol_num
+        @test n₃₁ ≈ ν₃₁  atol=atol_num
+        @test g₃₁ ≈ G₃₁  atol=atol_num
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "tensTI_eng — compliance components check" begin
+        E₁, E₃, ν₁₂, ν₃₁, G₃₁ = 100.0, 200.0, 0.25, 0.15, 40.0
+        𝕊 = tensTI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n3)
+
+        S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = argTI(𝕊)
+        @test S₁₁₁₁ ≈ 1/E₁          atol=atol_num
+        @test S₃₃₃₃ ≈ 1/E₃          atol=atol_num
+        @test S₁₁₂₂ ≈ -ν₁₂/E₁      atol=atol_num
+        @test S₁₁₃₃ ≈ -ν₃₁/E₃      atol=atol_num
+        @test S₂₃₂₃ ≈ 1/(4*G₃₁)    atol=atol_num
+
+        # inv(𝕊) ⊡ 𝕊 = 𝕀
+        ℂ = inv(𝕊)
+        𝕀 = tensId4(Val(3), Val(Float64))
+        prod = ℂ ⊡ 𝕊
+        @test opequal(getarray(prod), getarray(𝕀))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "tensTI & argTI — symbolic round-trip" begin
+        C₁, C₂, C₃, C₄, C₅ = symbols("C₁₁₁₁ C₁₁₂₂ C₁₁₃₃ C₃₃₃₃ C₂₃₂₃", real = true)
+        ℂ = tensTI(C₁, C₂, C₃, C₄, C₅, n3s)
+        @test ℂ isa TensWalpole{<:Any,5}
+        c₁, c₂, c₃, c₄, c₅ = argTI(ℂ)
+        @test simplify(c₁ - C₁) == 0
+        @test simplify(c₂ - C₂) == 0
+        @test simplify(c₃ - C₃) == 0
+        @test simplify(c₄ - C₄) == 0
+        @test simplify(c₅ - C₅) == 0
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "tensTI_Hoenig & argTI_Hoenig — numeric round-trip" begin
+        E, ν₁, ν₂, H, Γ = 100.0, 0.25, 0.15, 2.0, 3.0
+        𝕊 = tensTI_Hoenig(E, ν₁, ν₂, H, Γ, n3)
+        @test 𝕊 isa TensWalpole{Float64,5}
+
+        e, n1, n2, h, g = argTI_Hoenig(𝕊)
+        @test e  ≈ E   atol=atol_num
+        @test n1 ≈ ν₁  atol=atol_num
+        @test n2 ≈ ν₂  atol=atol_num
+        @test h  ≈ H   atol=atol_num
+        @test g  ≈ Γ   atol=atol_num
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "tensTI_Hoenig — consistency with tensTI_eng" begin
+        E, ν₁, ν₂, H, Γ = 100.0, 0.25, 0.15, 2.0, 3.0
+        𝕊h = tensTI_Hoenig(E, ν₁, ν₂, H, Γ, n3)
+
+        # Convert Hoenig → standard engineering constants
+        E₁  = E
+        E₃  = E * H
+        ν₁₂ = ν₁
+        ν₃₁ = H * ν₂
+        G₃₁ = E * Γ / (2 * (1 + ν₁))
+        𝕊e = tensTI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n3)
+
+        @test opequal(getarray(𝕊h), getarray(𝕊e))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "tensTI_Hoenig — isotropic limit" begin
+        # Setting ν₁=ν₂=ν, H=Γ=1 should give the isotropic compliance tensor
+        E, ν = 100.0, 0.3
+        𝕊 = tensTI_Hoenig(E, ν, ν, 1.0, 1.0, n3)
+        k = E / (3 * (1 - 2ν))
+        μ = E / (2 * (1 + ν))
+        𝕁, 𝕂 = tensJ4(Val(3), Val(Float64)), tensK4(Val(3), Val(Float64))
+        𝕊iso = (1 / (3k)) * 𝕁 + (1 / (2μ)) * 𝕂
+        @test opequal(getarray(𝕊), getarray(𝕊iso))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "otimes — TensTI{2} self-product" begin
+        n = [0., 0., 1.]
+        A = TensTI{2}(5.0, 8.0, n)
+        R = otimes(A)
+        @test R isa TensWalpole{Float64,5}
+        sq2 = sqrt(2.0)
+        @test getdata(R) == (64.0, 50.0, sq2*40.0, 0.0, 0.0)
+        @test opequal(getarray(R), otimes(getarray(A), getarray(A)))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "otimes — TensTI{2} × TensTI{2} (same axis)" begin
+        n = [0., 0., 1.]
+        A = TensTI{2}(5.0, 8.0, n)
+        B = TensTI{2}(3.0, 2.0, n)
+        R = A ⊗ B
+        @test R isa TensWalpole{Float64,6}
+        sq2 = sqrt(2.0)
+        # ℓ₁=b₁b₂, ℓ₂=2a₁a₂, ℓ₃=√2·b₁a₂, ℓ₄=√2·a₁b₂
+        @test R.data[1] ≈ 16.0     atol=atol_num   # 8*2
+        @test R.data[2] ≈ 30.0     atol=atol_num   # 2*5*3
+        @test R.data[3] ≈ sq2*24.0 atol=atol_num   # √2*8*3
+        @test R.data[4] ≈ sq2*10.0 atol=atol_num   # √2*5*2
+        @test R.data[5] ≈ 0.0      atol=atol_num
+        @test R.data[6] ≈ 0.0      atol=atol_num
+        @test opequal(getarray(R), otimes(getarray(A), getarray(B)))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "otimes — TensISO{2,3} × TensTI{2} and reverse" begin
+        n = [0., 0., 1.]
+        I2 = tensId2(Val(3), Val(Float64))   # TensISO{2,3}(1.0)
+        B = TensTI{2}(5.0, 8.0, n)
+        R1 = I2 ⊗ B
+        @test R1 isa TensWalpole{Float64,6}
+        @test opequal(getarray(R1), otimes(getarray(I2), getarray(B)))
+        R2 = B ⊗ I2
+        @test R2 isa TensWalpole{Float64,6}
+        @test opequal(getarray(R2), otimes(getarray(B), getarray(I2)))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "otimes — TensTI{2} isotropic limit" begin
+        n = [0., 0., 1.]
+        λ = 3.0
+        A = TensTI{2}(λ, λ, n)        # isotropic: a == b
+        Rw = otimes(A)                  # → TensWalpole{T,5}
+        Riso = otimes(TensISO{3}(λ))   # → TensISO{4,3}
+        @test opequal(getarray(Rw), getarray(Riso))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "otimes — TensTI{2} non-canonical axis" begin
+        n = [1.0, 1.0, 1.0] / sqrt(3.0)
+        A = TensTI{2}(4.0, 7.0, n)
+        B = TensTI{2}(2.0, 5.0, n)
+        R = A ⊗ B
+        @test R isa TensWalpole{Float64,6}
+        @test opequal(getarray(R), otimes(getarray(A), getarray(B)))
+        Rs = otimes(A)
+        @test Rs isa TensWalpole{Float64,5}
+        @test opequal(getarray(Rs), otimes(getarray(A), getarray(A)))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "otimes — TensTI{2} different axes (fallback)" begin
+        n1 = [0., 0., 1.]
+        n2 = [1., 0., 0.]
+        A = TensTI{2}(5.0, 8.0, n1)
+        B = TensTI{2}(3.0, 2.0, n2)
+        R = A ⊗ B
+        # Different axes → generic fallback → Tens (not TensWalpole)
+        @test !(R isa TensWalpole)
+        @test opequal(getarray(R), otimes(getarray(A), getarray(B)))
+    end
+
 end  # "Walpole & Ortho tensors"

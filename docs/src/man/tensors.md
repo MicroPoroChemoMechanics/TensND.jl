@@ -185,6 +185,51 @@ isTI(t)
 isISO(t)
 ```
 
+### TensTI (2nd-order transversely isotropic)
+
+A 2nd-order transversely isotropic tensor with symmetry axis ``\mathbf{n}`` is decomposed as:
+
+```math
+\mathbf{A} = a\,\mathbf{n}_T + b\,\mathbf{n}_n
+```
+
+where ``\mathbf{n}_n = \mathbf{n}\otimes\mathbf{n}`` and ``\mathbf{n}_T = \mathbf{1} - \mathbf{n}_n``.
+The scalar ``a`` is the transverse coefficient (in the plane ``\perp\mathbf{n}``) and ``b`` is the
+axial coefficient (along ``\mathbf{n}``).
+
+The type `TensTI{order,T,N}` mirrors the parametric design of `TensISO{order,dim,T,N}`.
+For order 2, `N=2` and `data = (a, b)`.  When `a = b`, the tensor is isotropic.
+
+```@repl tensors_ti
+using TensND, LinearAlgebra
+n = [0., 0., 1.] ;
+A = TensTI{2}(5.0, 8.0, n)
+getarray(A)
+tr(A)
+isISO(A)
+isTI(A)
+inv(A).data
+```
+
+`TensTI{2}` supports all standard operations: addition, subtraction, scalar multiplication,
+inversion.  Two TI tensors with the **same axis** can be combined:
+
+```@repl tensors_ti
+B = TensTI{2}(3.0, 2.0, n) ;
+(A + B).data
+(A - B).data
+(2.0 * A).data
+```
+
+When the axis is not aligned with ``\mathbf{e}_3``, the full 3×3 matrix correctly reflects the
+off-diagonal structure:
+
+```@repl tensors_ti
+n45 = [1/√2, 0., 1/√2] ;
+C = TensTI{2}(3.0, 7.0, n45) ;
+getarray(C)
+```
+
 ### Symmetry class predicates
 
 The three predicates `isISO`, `isTI`, `isOrtho` form a consistent hierarchy across all specialized
@@ -195,9 +240,99 @@ using TensND, Tensors
 𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64)) ;
 n = 𝐞(3) ;
 L = TensWalpole(2., 1., 0.5, 3., 4., n) ;
+A2 = TensTI{2}(5.0, 8.0, n) ;
 ℬ = CanonicalBasis{3,Float64}() ;
 t = TensOrtho(10., 8., 9., 3., 2., 4., 2.5, 3., 1.5, ℬ) ;
 (isISO(𝕀), isTI(𝕀),  isOrtho(𝕀))
 (isISO(L),  isTI(L),  isOrtho(L))
+(isISO(A2), isTI(A2), isOrtho(A2))
 (isISO(t),  isTI(t),  isOrtho(t))
 ```
+
+## Projection onto symmetry subspaces
+
+Given an arbitrary tensor (2nd or 4th order), one can project it onto the closest tensor
+with a prescribed symmetry class (ISO, TI, ORTHO).  The projection minimises the Frobenius
+distance ``\lVert B - A \rVert`` over all tensors ``B`` of the target symmetry.
+
+The function `proj_tens` provides this projection.  It returns a 3-tuple `(B, d, drel)`:
+
+- `B`: the projected tensor
+- `d`: absolute Frobenius distance ``\lVert B - A \rVert``
+- `drel`: relative distance ``d / \lVert A \rVert``
+
+### Fixed-axis TI projection (order 4)
+
+Project a 4th-order tensor onto the TI subspace with a given axis ``\mathbf{n}``.
+The result is a `TensWalpole{T,5}`:
+
+```@repl tensors_proj
+using TensND, LinearAlgebra
+n = [0., 0., 1.] ;
+C = tensTI(10., 3., 2.5, 12., 2., n) ;
+B, d, drel = proj_tens(:TI, getarray(C), n) ;
+drel < 1e-12
+B isa TensWalpole
+```
+
+### Fixed-axis TI projection (order 2)
+
+For a 2nd-order tensor, the projection returns a `TensTI{2}`:
+
+```@repl tensors_proj
+A = Float64[5 1 0; 1 5 0; 0 0 8] ;
+B2, d2, drel2 = proj_tens(:TI, A, n) ;
+B2
+B2.data
+```
+
+### Fixed-frame ORTHO projection (order 4)
+
+Project onto the orthotropic subspace with a given material frame:
+
+```@repl tensors_proj
+frame = CanonicalBasis{3,Float64}() ;
+t = TensOrtho(10., 8., 12., 3., 2.5, 1.5, 2., 3., 3.5, frame) ;
+Bo, do_, drelo = proj_tens(:ORTHO, getarray(t), frame) ;
+drelo < 1e-12
+Bo isa TensOrtho
+```
+
+### Fixed-frame ORTHO projection (order 2)
+
+```@repl tensors_proj
+M = Float64[5 1 2; 1 8 3; 2 3 12] ;
+Bm, dm, drelm = proj_tens(:ORTHO, M, frame) ;
+Bm
+dm > 0
+```
+
+### Best symmetry detection
+
+The function `best_sym_tens` tries symmetries from the most restrictive to the least
+(ISO → TI → ORTHO) and returns the first whose relative projection error falls below
+a threshold ``\varepsilon`` (default `1e-6`).  Pass an axis or frame for fixed-basis detection:
+
+```@repl tensors_proj
+C_ti = tensTI(10., 3., 2.5, 12., 2., n) ;
+_, _, _, sym = best_sym_tens(C_ti, n; proj = (:TI, :ORTHO)) ;
+sym
+```
+
+### Rotation-optimized projection (requires NLopt)
+
+When no axis or frame is provided, `proj_tens` optimises the rotation angles to find the
+best approximation.  This requires the `NLopt` package (declared as a weak dependency):
+
+```julia
+using NLopt   # triggers the TensNDNLoptExt extension
+
+# Optimise the TI axis automatically
+B_opt, d_opt, drel_opt = proj_tens(:TI, getarray(C))
+
+# Optimise the ORTHO frame automatically
+B_ort, d_ort, drel_ort = proj_tens(:ORTHO, getarray(C))
+```
+
+The optimiser uses a two-pass strategy (global + local refinement) inspired by the
+ECHOES library, with gradients computed via ForwardDiff.
