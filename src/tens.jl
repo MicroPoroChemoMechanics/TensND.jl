@@ -79,23 +79,23 @@ for order in (2, 4)
     @eval begin
         """
             best_sym_tens(t; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
-        
+
         Find the best (most restrictive) symmetry of tensor `t` by trying each
         symmetry in `proj` (from most symmetric to least) and accepting the first
         whose relative projection error is below `ε`.
-        
+
         Requires NLopt for rotation-optimized TI and ORTHO projections (i.e. when
         no axis/frame is provided). For fixed-basis usage, see the variant with
         `n_or_frame`.
-        
+
         Returns `(projected, d, drel, sym)` where `sym ∈ {:ISO, :TI, :ORTHO, :ANISO}`.
-        
+
         # Examples
         ```julia
         julia> C = tensTI(10., 3., 2.5, 12., 2., [0., 0., 1.]);
-        
+
         julia> _, _, _, sym = best_sym_tens(C);
-        
+
         julia> sym
         :ISO  # or :TI depending on the tensor
         ```
@@ -113,24 +113,24 @@ for order in (2, 4)
 
         """
             best_sym_tens(t, n_or_frame; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
-        
+
         Find the best symmetry of tensor `t` with a **fixed** symmetry axis `n`
         (for TI) or material frame `frame` (for ORTHO). No rotation optimization
         is performed.
-        
+
         - `n_or_frame`: a vector (axis for TI) or `OrthonormalBasis{3}` (frame for
           ORTHO). For ISO projection the extra argument is ignored.
-        
+
         Returns `(projected, d, drel, sym)`.
-        
+
         # Examples
         ```julia
         julia> n = [0., 0., 1.];
-        
+
         julia> C = tensTI(10., 3., 2.5, 12., 2., n);
-        
+
         julia> _, _, drel, sym = best_sym_tens(C, n);
-        
+
         julia> sym == :TI && drel < 1e-12
         true
         ```
