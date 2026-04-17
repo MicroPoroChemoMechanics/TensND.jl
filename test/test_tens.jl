@@ -33,8 +33,8 @@
         @eval $(Symbol("a$i")) = symbols($"a$i", real = true)
         @eval $(Symbol("b$i")) = symbols($"b$i", real = true)
     end
-    a = Tens(Vec{3}((i,) -> eval(Symbol("a$i"))))
-    b = Tens(Vec{3}((i,) -> eval(Symbol("b$i"))))
+    a = Tens(Vec{3}((i) -> eval(Symbol("a$i"))))
+    b = Tens(Vec{3}((i) -> eval(Symbol("b$i"))))
     @test a ⊗ b == Sym[a1 * b1 a1 * b2 a1 * b3; a2 * b1 a2 * b2 a2 * b3; a3 * b1 a3 * b2 a3 * b3]
     @test a ⊗ˢ b == Sym[
         a1 * b1 a1 * b2 / 2 + a2 * b1 / 2 a1 * b3 / 2 + a3 * b1 / 2
