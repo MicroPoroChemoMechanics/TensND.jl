@@ -14,6 +14,6 @@ keywords:
   - "numeric"
 version: "0.1.7"
 doi: "10.5281/zenodo.17985768"
-url: "https://github.com/jfbarthelemy/TensND.jl"
-repository-code: "https://github.com/jfbarthelemy/TensND.jl"
+url: "https://github.com/MicMacTools/TensND.jl"
+repository-code: "https://github.com/MicMacTools/TensND.jl"
 license: "MIT"

@@ -2,11 +2,11 @@
 
 *Symbolic and numerical tensor calculations in arbitrary coordinate systems.*
 
-[![Docs - Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://jfbarthelemy.github.io/TensND.jl/stable/)
-[![Docs - Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://jfbarthelemy.github.io/TensND.jl/dev)
-[![Build Status](https://github.com/jfbarthelemy/TensND.jl/workflows/CI/badge.svg?branch=main)](https://github.com/jfbarthelemy/TensND.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Docs - Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MicMacTools.github.io/TensND.jl/stable/)
+[![Docs - Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://MicMacTools.github.io/TensND.jl/dev)
+[![Build Status](https://github.com/MicMacTools/TensND.jl/workflows/CI/badge.svg?branch=main)](https://github.com/MicMacTools/TensND.jl/actions/workflows/CI.yml?query=branch%3Amain)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/jfbarthelemy/TensND.jl/blob/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/MicMacTools/TensND.jl/blob/main/LICENSE)
 [![code style: runic](https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black)](https://github.com/fredrikekre/Runic.jl)
 [![DOI](https://zenodo.org/badge/394914455.svg)](https://doi.org/10.5281/zenodo.17985768)
 
@@ -82,8 +82,8 @@ julia> import Pkg; Pkg.add("TensND")
 
 ## Documentation
 
-- [**STABLE**](https://jfbarthelemy.github.io/TensND.jl/stable/) &mdash; **most recently tagged version of the documentation.**
-- [**DEV**](https://jfbarthelemy.github.io/TensND.jl/dev) &mdash; **development version of the documentation.**
+- [**STABLE**](https://MicMacTools.github.io/TensND.jl/stable/) &mdash; **most recently tagged version of the documentation.**
+- [**DEV**](https://MicMacTools.github.io/TensND.jl/dev) &mdash; **development version of the documentation.**
 
 ## Citation
 
