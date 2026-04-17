@@ -1,7 +1,7 @@
 name = "TensND"
 uuid = "474b5345-2588-4284-8a58-2430a1a40cb0"
 authors = ["Jean-François Barthélémy"]
-version = "0.1.8"
+version = "0.1.7"
 
 [deps]
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
