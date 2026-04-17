@@ -21,7 +21,7 @@ NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
 TensNDNLoptExt = "NLopt"
 
 [compat]
-ForwardDiff = "0.10"
+ForwardDiff = "0.10, 1"
 NLopt = "1"
 OMEinsum = "0.9"
 Rotations = "1"
