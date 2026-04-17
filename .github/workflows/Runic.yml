@@ -1,31 +1,44 @@
 name: Runic
+
 on:
   push:
     branches:
       - main
   pull_request:
 
-permissions:
-  contents: write
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  runic:
+  format:
     name: Runic formatting
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - uses: julia-actions/setup-julia@v2
         with:
           version: '1'
-      - name: Install and run Runic
+      - uses: julia-actions/cache@v3
+      - name: Install Runic
+        run: julia -e 'using Pkg; Pkg.activate("runic", shared=true); Pkg.add("Runic")'
+      - name: Check formatting (PR)
+        if: github.event_name == 'pull_request'
         run: |
-          julia -e 'using Pkg; Pkg.add("Runic")'
-          julia -e 'using Runic; exit(Runic.main(["--inplace", "src/", "test/", "ext/"]))'
-      - name: Commit formatted code
+          julia --project=@runic -e 'using Runic; exit(Runic.main(["--check", "src/", "test/", "ext/"]))'
+      - name: Auto-format (push to main)
+        if: github.event_name == 'push'
         run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "github-actions[bot]@users.noreply.github.com"
-          git diff --quiet && exit 0
-          git add -A
-          git commit -m "Style: auto-format with Runic.jl"
-          git push
+          julia --project=@runic -e 'using Runic; Runic.main(["--inplace", "src/", "test/", "ext/"])'
+          if [ -n "$(git diff --name-only)" ]; then
+            git config --local user.name "github-actions[bot]"
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Style: auto-format with Runic"
+            git push
+          fi
