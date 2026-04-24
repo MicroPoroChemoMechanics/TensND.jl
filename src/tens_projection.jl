@@ -305,6 +305,135 @@ function _n_from_angles(θ, ϕ)
     return (sθ * cos(ϕ), sθ * sin(ϕ), cos(θ))
 end
 
+# ── Candidate axis / frame from eigenstructure (cheap, O(1)) ─────────────────
+#
+# For a 4th-order elasticity tensor `C`, the 2nd-order trace
+#   dᵢⱼ = Cᵢₖⱼₖ = ∑ₖ C[i,k,j,k]
+# captures the principal-direction structure (Cowin-Mehrabadi 1990).  Its
+# eigenvectors are candidate principal axes for TI / ORTHO detection without
+# running any optimisation.
+
+"""
+    _trace_tensor(C::AbstractArray{T,4}) → SMatrix{3,3,T,9}
+
+Return the 2nd-order "trace" tensor `dᵢⱼ = ∑ₖ C[i,k,j,k]` — its eigenstructure
+exposes the principal directions of `C` cheaply (no optimisation required).
+
+Used to propose candidate TI axes and candidate orthotropic frames when the
+user asks for symmetry detection without angle optimisation.
+"""
+function _trace_tensor(C::AbstractArray{T, 4}) where {T}
+    d = MMatrix{3, 3, T}(undef)
+    for i in 1:3, j in 1:3
+        s = zero(T)
+        for k in 1:3
+            s += C[i, k, j, k]
+        end
+        d[i, j] = s
+    end
+    return SMatrix{3, 3, T}((d + d') / 2)  # symmetrise to guard numerical noise
+end
+
+"""
+    _candidate_TI_axis(C::AbstractArray{T,4}; rtol=1e-8) → NTuple{3,T}
+
+Propose a candidate TI symmetry axis for a 4th-order tensor `C` by looking
+at the eigenvalues of its trace tensor `dᵢⱼ = Cᵢₖⱼₖ`.  If two eigenvalues
+coincide (relative tolerance `rtol`), the third one's eigenvector is the
+candidate axis — this is exact for a genuinely TI tensor.  Otherwise falls
+back to `e₃ = (0, 0, 1)`.
+
+Only meaningful for numeric element types: for symbolic `T`, the eigendecomposition is skipped and `e₃` is returned.
+"""
+function _candidate_TI_axis(C::AbstractArray{T, 4}; rtol = 1.0e-8) where {T <: AbstractFloat}
+    d = _trace_tensor(C)
+    eig = eigen(Symmetric(Matrix(d)))
+    λ = eig.values
+    V = eig.vectors
+    span = max(abs(λ[3] - λ[1]), one(T))
+    close12 = abs(λ[1] - λ[2]) < rtol * span
+    close23 = abs(λ[2] - λ[3]) < rtol * span
+    # Identify which eigenvalue is isolated (the TI axis direction):
+    if close12 && !close23
+        v = V[:, 3]        # λ₁ ≈ λ₂ → axis along v₃
+    elseif !close12 && close23
+        v = V[:, 1]        # λ₂ ≈ λ₃ → axis along v₁
+    else
+        return (zero(T), zero(T), one(T))   # ambiguous — fallback to e₃
+    end
+    return (T(v[1]), T(v[2]), T(v[3]))
+end
+
+# Non-floating-point fallback (symbolic, Int, etc.): return canonical e₃.
+_candidate_TI_axis(::AbstractArray{T, 4}; kwargs...) where {T} = (zero(T), zero(T), one(T))
+
+"""
+    _candidate_TI_axis(M::AbstractMatrix{T}; rtol=1e-8) → NTuple{3,T}
+
+For a 2nd-order tensor `M`, propose its unique/isolated eigenvector as the
+candidate TI axis.  Falls back to `e₃` when the three eigenvalues are
+indistinguishable.
+"""
+function _candidate_TI_axis(M::AbstractArray{T, 2}; rtol = 1.0e-8) where {T <: AbstractFloat}
+    eig = eigen(Symmetric((M + M') / 2))
+    λ = eig.values
+    V = eig.vectors
+    span = max(abs(λ[3] - λ[1]), one(T))
+    close12 = abs(λ[1] - λ[2]) < rtol * span
+    close23 = abs(λ[2] - λ[3]) < rtol * span
+    if close12 && !close23
+        v = V[:, 3]
+    elseif !close12 && close23
+        v = V[:, 1]
+    else
+        return (zero(T), zero(T), one(T))
+    end
+    return (T(v[1]), T(v[2]), T(v[3]))
+end
+
+_candidate_TI_axis(::AbstractArray{T, 2}; kwargs...) where {T} = (zero(T), zero(T), one(T))
+
+"""
+    _candidate_ORTHO_frame(C::AbstractArray{T,4}) → OrthonormalBasis{3,T}
+
+Propose a candidate orthotropic material frame for `C` by taking the three
+eigenvectors of its trace tensor `dᵢⱼ = Cᵢₖⱼₖ`.  Returns a
+`RotatedBasis{3,T}` (or `CanonicalBasis{3,T}` if the eigenvectors coincide
+with the canonical frame).
+
+Only meaningful for numeric element types: for symbolic `T`, the canonical
+frame is returned.
+"""
+function _candidate_ORTHO_frame(C::AbstractArray{T, 4}) where {T <: AbstractFloat}
+    d = _trace_tensor(C)
+    eig = eigen(Symmetric(Matrix(d)))
+    R = Matrix{T}(eig.vectors)
+    # Ensure a right-handed basis (det = +1, not −1)
+    if det(R) < 0
+        R[:, 1] = -R[:, 1]
+    end
+    return RotatedBasis(R)
+end
+
+_candidate_ORTHO_frame(::AbstractArray{T, 4}) where {T} = CanonicalBasis{3, T}()
+
+"""
+    _candidate_ORTHO_frame(M::AbstractMatrix{T}) → OrthonormalBasis{3,T}
+
+For a 2nd-order tensor, the ORTHO frame candidate is directly built from its
+eigenvectors.
+"""
+function _candidate_ORTHO_frame(M::AbstractArray{T, 2}) where {T <: AbstractFloat}
+    eig = eigen(Symmetric((M + M') / 2))
+    R = Matrix{T}(eig.vectors)
+    if det(R) < 0
+        R[:, 1] = -R[:, 1]
+    end
+    return RotatedBasis(R)
+end
+
+_candidate_ORTHO_frame(::AbstractArray{T, 2}) where {T} = CanonicalBasis{3, T}()
+
 # ── proj_tens : TI, order 4, fixed axis ──────────────────────────────────────
 
 """
@@ -562,6 +691,117 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFl
             "Run `using NLopt` or add NLopt to your project. " *
             "For fixed-frame projection, use proj_tens(:ORTHO, A, frame)."
     )
+end
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Value-level symmetry predicates on raw arrays
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# These predicates complement the type-level predicates defined in
+# `tens_isotropic.jl` and `tens_walpole.jl`: they answer "do the numerical
+# components satisfy this symmetry to tolerance ε?" rather than "does this
+# container impose this symmetry?".  The default cheap path uses the
+# Kelvin-Mandel eigenstructure to propose a candidate axis/frame without any
+# optimisation (O(1)); the expensive path with `optimize_angles=true` routes
+# to the NLopt-backed `proj_tens(Val(:TI|:ORTHO), A)` fallbacks.
+
+"""
+    isISO(A::AbstractArray; ε=1e-6) → Bool
+
+Return `true` when the components of `A` satisfy material isotropy up to
+relative tolerance `ε` (closed-form projection: no optimisation).
+
+The value-level predicate complements the type-level `isISO(::TensISO) = true`
+defined in `tens_isotropic.jl`: the type version asks whether the
+container *imposes* isotropy, this version asks whether the numerical
+components *satisfy* it.
+
+# Examples
+```julia
+julia> C = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0];
+
+julia> isISO(C)
+true
+
+julia> isISO([1.0 2.0 0.0; 2.0 3.0 0.0; 0.0 0.0 1.0])
+false
+```
+"""
+function isISO(A::AbstractArray; ε = 1.0e-6)
+    _, _, drel = proj_tens(Val(:ISO), A)
+    return drel < ε
+end
+
+"""
+    isTI(A::AbstractArray, n; ε=1e-6) → Bool
+
+Return `true` when `A` is transversely isotropic about the given axis `n`
+up to relative tolerance `ε` (closed-form projection on the fixed axis).
+
+# Examples
+```julia
+julia> n = [0.0, 0.0, 1.0];
+
+julia> C = tensTI(10., 3., 2.5, 12., 2., n);
+
+julia> isTI(getarray(C), n)
+true
+
+julia> isTI(getarray(C), [1.0, 0.0, 0.0])
+false
+```
+"""
+function isTI(A::AbstractArray, n; ε = 1.0e-6)
+    _, _, drel = proj_tens(Val(:TI), A, n)
+    return drel < ε
+end
+
+"""
+    isTI(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
+
+Cheap default: propose a candidate TI axis from the Kelvin-Mandel
+eigendecomposition of `A` and check the residual.  With
+`optimize_angles=true`, runs the NLopt-backed axis search — requires
+`using NLopt`.
+
+See also [`isTI(A, n)`](@ref), [`_candidate_TI_axis`](@ref).
+"""
+function isTI(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
+    if optimize_angles
+        _, _, drel = proj_tens(Val(:TI), A)
+    else
+        n = _candidate_TI_axis(A)
+        _, _, drel = proj_tens(Val(:TI), A, n)
+    end
+    return drel < ε
+end
+
+"""
+    isOrtho(A::AbstractArray, frame::OrthonormalBasis{3}; ε=1e-6) → Bool
+
+Return `true` when `A` is orthotropic in the given material frame up to
+relative tolerance `ε` (closed-form projection on the fixed frame).
+"""
+function isOrtho(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+    _, _, drel = proj_tens(Val(:ORTHO), A, frame)
+    return drel < ε
+end
+
+"""
+    isOrtho(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
+
+Cheap default: propose a candidate orthotropic frame from the Kelvin-Mandel
+eigendecomposition and check the residual.  With `optimize_angles=true`,
+runs the NLopt-backed frame search — requires `using NLopt`.
+"""
+function isOrtho(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
+    if optimize_angles
+        _, _, drel = proj_tens(Val(:ORTHO), A)
+    else
+        frame = _candidate_ORTHO_frame(A)
+        _, _, drel = proj_tens(Val(:ORTHO), A, frame)
+    end
+    return drel < ε
 end
 
 # ── Exports ──────────────────────────────────────────────────────────────────

@@ -190,18 +190,62 @@ _, _, drel_ort, sym_ort = best_sym_tens(t_ort, frame; proj = (:TI, :ORTHO))
 println("ORTHO tensor → detected symmetry: ", sym_ort, " (drel = ", round(drel_ort, sigdigits=4), ")")
 ```
 
-## Part 5 — Rotation-optimized projection (NLopt extension)
+## Part 5 — Cheap vs. angle-optimised detection
 
-When the optimal axis (TI) or frame (ORTHO) is **unknown**, calling `proj_tens`
-without providing it triggers a global optimization over the rotation angles.
+`best_sym_tens(t)` (no extra argument) detects the tightest symmetry that fits
+the tensor.  Two routes are available via the `optimize_angles` keyword:
+
+- **Cheap route** (default, `optimize_angles = false`): closed-form ISO
+  projection plus fixed-axis TI and fixed-frame ORTHO projections.  The axis /
+  frame are either taken from the structured container when `t` is already a
+  `TensWalpole`, `TensTI` or `TensOrtho`, or derived from the Kelvin-Mandel
+  eigendecomposition of the trace tensor ``d_{ij} = C_{ikjk}``.  **No
+  optimisation runs; NLopt is not required.**
+- **Angle-optimised route** (`optimize_angles = true`): a two-pass global +
+  local search over the Euler angles finds the best axis / frame.  **Requires
+  `using NLopt`** — otherwise an explicit error is raised.
+
+### Cheap detection of a tilted TI tensor
+
+The KM eigendecomposition recovers the TI axis in ``O(1)`` even when the
+tensor is expressed in a non-canonical basis:
+
+```@example proj
+n_tilt = [1/√3, 1/√3, 1/√3]
+C_tilt = tensTI(10., 3., 2.5, 12., 2., n_tilt)
+
+_, _, drel_cheap, sym_cheap = best_sym_tens(Tens(getarray(C_tilt)))
+println("Cheap detection: sym = ", sym_cheap, ", drel = ", drel_cheap)
+```
+
+### Boolean predicates
+
+Value-level predicates mirror the same cheap/expensive split:
+
+```@example proj
+@assert isISO(getarray(C_iso))
+@assert isTI(getarray(C_tilt), n_tilt)          # fixed axis
+@assert isOrtho(getarray(t_ort), frame)         # fixed frame
+@assert !isISO([10.0 3.0 0.0; 3.0 8.0 0.0; 0.0 0.0 12.0])
+```
+
+The single-argument forms `isTI(A)` and `isOrtho(A)` use the same KM
+eigendecomposition to propose a candidate axis / frame cheaply; passing
+`optimize_angles = true` switches to the NLopt-backed search.
+
+!!! note "Behaviour change (2026)"
+    Before this refactor, `best_sym_tens(t)` always required `NLopt` and
+    threw when the package was absent.  The default is now the cheap route;
+    pass `optimize_angles = true` to restore the previous behaviour.
+
+## Part 6 — Rotation-optimized projection (NLopt extension)
+
+When `optimize_angles = true`, `proj_tens` without axis/frame and
+`best_sym_tens` run a global optimisation over the rotation angles.
 This requires loading the `NLopt` package:
 
 ```julia
 using NLopt   # activates the TensNDNLoptExt extension
-
-# Build a TI tensor with a non-trivial axis
-n_tilt = [1/√3, 1/√3, 1/√3]
-C_tilt = tensTI(10., 3., 2.5, 12., 2., n_tilt)
 
 # Optimise the axis — should recover n_tilt
 B_opt, d_opt, drel_opt = proj_tens(:TI, getarray(C_tilt))
@@ -225,11 +269,40 @@ Gradients are computed automatically via `ForwardDiff.jl`.
 
 | Function | Description |
 | -------- | ----------- |
+| `proj_tens(:ISO, A)` | ISO projection (closed form) |
 | `proj_tens(:TI, A, n)` | TI projection with fixed axis `n` |
 | `proj_tens(:TI, A)` | TI projection, axis optimized (requires NLopt) |
 | `proj_tens(:ORTHO, A, frame)` | ORTHO projection with fixed frame |
-| `proj_tens(:ORTHO, A, frame)` | ORTHO projection, frame optimized (requires NLopt) |
+| `proj_tens(:ORTHO, A)` | ORTHO projection, frame optimized (requires NLopt) |
 | `best_sym_tens(t, n_or_frame)` | Best symmetry with fixed axis/frame |
-| `best_sym_tens(t)` | Best symmetry, optimized (requires NLopt) |
+| `best_sym_tens(t)` | Best symmetry, cheap (KM eigendecomposition) |
+| `best_sym_tens(t; optimize_angles = true)` | Best symmetry, angle-optimised (requires NLopt) |
+| `isISO(A; ε)`, `isTI(A, n; ε)`, `isOrtho(A, frame; ε)` | Value-level boolean predicates |
 
 All projection functions return `(B, d, drel)` (or `(B, d, drel, sym)` for `best_sym_tens`).
+
+## Part 7 — Cross-type dispatch (structured arithmetic)
+
+TensND recognises several inclusion relationships between the structured
+tensor types and preserves the highest available symmetry in binary
+operations:
+
+| Operation | Condition | Output type |
+| --------- | --------- | ----------- |
+| `TensISO{4} + TensOrtho` | — | `TensOrtho` (via `iso_to_ortho`) |
+| `TensWalpole{N=5} + TensOrtho` | axis aligned with a frame axis | `TensOrtho` (via `walpole_to_ortho`) |
+| `TensWalpole{N=5} + TensWalpole{N=6}` | same axis | `TensWalpole{N=6}` (lift ℓ₄ := ℓ₃) |
+| `TensISO{2,3} + TensTI{2}` | — | `TensTI{2}` |
+| `TensISO{4} ⊡ TensTI{2}` | — | `TensTI{2}` (closed form) |
+| `TensWalpole ⊡ TensTI{2}` | same axis | `TensTI{2}` |
+| `TensTI{2} · TensTI{2}` | same axis | `TensTI{2}` |
+| `TensTI{2} · TensISO{2,3}` | — | `TensTI{2}` |
+
+Incompatible references (e.g. axis not aligned with frame) fall back to the
+generic `Tens` representation via the component arrays.
+
+Two products that one might expect to stay structured do **not**: the double
+contraction of two major-symmetric orthotropic tensors is not in general
+major-symmetric, so `TensOrtho ⊡ TensOrtho` routes through the generic
+path (outputs a `Tens`).  The same applies to `TensISO ⊡ TensOrtho` and
+`TensWalpole ⊡ TensOrtho`.

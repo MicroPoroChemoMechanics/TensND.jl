@@ -75,62 +75,103 @@ function _best_sym_loop(newt::AbstractTens{order, dim, T}, proj, ε, proj_fn) wh
     return newt, zero(T), zero(T), :ANISO
 end
 
+# ── Structured-tensor reference extraction for the cheap path ────────────────
+# If `t` is a structured container that already knows its axis/frame, reuse it
+# directly; otherwise derive a candidate from the Kelvin-Mandel eigenstructure
+# (or fall back to `e₃` / the canonical frame for non-numeric element types).
+
+_default_TI_axis(t) = _candidate_TI_axis(Array(getarray(t)))
+_default_ORTHO_frame(t) = _candidate_ORTHO_frame(Array(getarray(t)))
+
 for order in (2, 4)
     @eval begin
         """
-            best_sym_tens(t; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
-
+            best_sym_tens(t; proj=(:ISO, :TI, :ORTHO), ε=1e-6, optimize_angles=false)
+        
         Find the best (most restrictive) symmetry of tensor `t` by trying each
-        symmetry in `proj` (from most symmetric to least) and accepting the first
-        whose relative projection error is below `ε`.
-
-        Requires NLopt for rotation-optimized TI and ORTHO projections (i.e. when
-        no axis/frame is provided). For fixed-basis usage, see the variant with
-        `n_or_frame`.
-
+        symmetry class in `proj` (from most to least symmetric) and accepting the
+        first whose relative projection error is below `ε`.
+        
+        - `optimize_angles=false` (**default**, cheap path, no optimisation): the
+          `:ISO` projection is closed-form; for `:TI` the symmetry axis is taken
+          from `t` itself (if it is a structured TI container) or derived from the
+          Kelvin-Mandel eigenstructure (otherwise); for `:ORTHO` the material frame
+          is taken from `t` or derived likewise.  No external optimiser needed.
+        - `optimize_angles=true`: the `:TI` axis and `:ORTHO` frame are found by
+          nonlinear optimisation (multistart L-BFGS) — requires `using NLopt`.
+        
         Returns `(projected, d, drel, sym)` where `sym ∈ {:ISO, :TI, :ORTHO, :ANISO}`.
-
+        
+        **Behaviour change (vs. pre-2026 versions):** the default no-argument call
+        no longer throws when NLopt is absent; set `optimize_angles=true` to restore
+        the previous angle-optimised behaviour.
+        
         # Examples
         ```julia
-        julia> C = tensTI(10., 3., 2.5, 12., 2., [0., 0., 1.]);
-
+        julia> n = [0., 0., 1.];
+        
+        julia> C = tensTI(10., 3., 2.5, 12., 2., n);
+        
         julia> _, _, _, sym = best_sym_tens(C);
-
-        julia> sym
-        :ISO  # or :TI depending on the tensor
+        
+        julia> sym === :TI
+        true
         ```
+        
+        See also [`best_sym_tens(t, n_or_frame)`](@ref) for fixed-axis/frame use,
+        [`proj_tens`](@ref).
         """
         function best_sym_tens(
-                t::AbstractTens{$order, dim, T},
-                args...;
+                t::AbstractTens{$order, dim, T};
                 proj = (:ISO, :TI, :ORTHO),
                 ε = 1.0e-6,
+                optimize_angles::Bool = false,
             ) where {dim, T}
             basis = relevant_OrthonormalBasis(getbasis(t))
             newt = change_tens(t, basis)
-            return _best_sym_loop(newt, proj, ε, sym -> proj_tens(sym, newt))
+            A = Array(getarray(newt))
+            if optimize_angles
+                return _best_sym_loop(newt, proj, ε, sym -> proj_tens(sym, A))
+            else
+                # Cheap path: reuse structured references when available, otherwise
+                # derive candidates from the Kelvin-Mandel eigendecomposition.
+                n_default = hasmethod(getaxis, Tuple{typeof(t)}) ? getaxis(t) : _default_TI_axis(newt)
+                frame_default = hasmethod(getframe, Tuple{typeof(t)}) ? getframe(t) : _default_ORTHO_frame(newt)
+                return _best_sym_loop(
+                    newt, proj, ε,
+                    function (sym)
+                        if sym === :ISO
+                            return proj_tens(sym, A)
+                        elseif sym === :TI
+                            return proj_tens(sym, A, n_default)
+                        else    # :ORTHO
+                            return proj_tens(sym, A, frame_default)
+                        end
+                    end,
+                )
+            end
         end
 
         """
             best_sym_tens(t, n_or_frame; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
-
+        
         Find the best symmetry of tensor `t` with a **fixed** symmetry axis `n`
-        (for TI) or material frame `frame` (for ORTHO). No rotation optimization
+        (for TI) or material frame `frame` (for ORTHO).  No rotation optimisation
         is performed.
-
+        
         - `n_or_frame`: a vector (axis for TI) or `OrthonormalBasis{3}` (frame for
           ORTHO). For ISO projection the extra argument is ignored.
-
+        
         Returns `(projected, d, drel, sym)`.
-
+        
         # Examples
         ```julia
         julia> n = [0., 0., 1.];
-
+        
         julia> C = tensTI(10., 3., 2.5, 12., 2., n);
-
+        
         julia> _, _, drel, sym = best_sym_tens(C, n);
-
+        
         julia> sym == :TI && drel < 1e-12
         true
         ```

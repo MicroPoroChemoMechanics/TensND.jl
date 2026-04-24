@@ -254,4 +254,98 @@
         @test collect(params2) ≈ collect(params)  atol = atol_num
     end
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "Value-level predicates — isISO / isTI / isOrtho" begin
+        # ── isISO on arrays
+        I4 = TensISO{3}(2.0, 3.0)
+        @test isISO(getarray(I4))
+        @test !isISO(Float64[10 3 2.5; 3 8 1.5; 2.5 1.5 12])
+
+        # ── isTI (fixed axis)
+        C = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        @test isTI(getarray(C), n_e3)
+        @test !isTI(getarray(C), n_e1)
+
+        # ── isOrtho (fixed frame)
+        O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame_canon)
+        @test isOrtho(getarray(O), frame_canon)
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "best_sym_tens — cheap path (no NLopt)" begin
+        # ── ISO detection is always cheap, always succeeds
+        Iso = TensISO{3}(2.0, 3.0)
+        _, _, _, sym = best_sym_tens(Iso)
+        @test sym === :ISO
+
+        # ── TI axis = e₃: candidate axis matches, cheap path succeeds
+        C = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        _, _, drel, sym = best_sym_tens(C)
+        @test sym === :TI
+        @test drel < 1.0e-10
+
+        # ── TI axis = (1,1,1)/√3: KM eigendecomposition recovers the axis
+        n_tilt = [1.0, 1.0, 1.0] ./ sqrt(3.0)
+        Ct = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
+        _, _, drel_t, sym_t = best_sym_tens(Ct)
+        @test sym_t === :TI
+        @test drel_t < 1.0e-8
+
+        # ── ORTHO in a non-canonical frame: KM eigendecomposition recovers frame
+        ϕ = π / 6
+        R = [cos(ϕ) -sin(ϕ) 0.0; sin(ϕ) cos(ϕ) 0.0; 0.0 0.0 1.0]
+        rotframe = RotatedBasis(R)
+        Orot = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, rotframe)
+        _, _, drel_o, sym_o = best_sym_tens(Orot)
+        @test sym_o ∈ (:TI, :ORTHO)
+        @test drel_o < 1.0e-8
+
+        # ── Truly anisotropic: no erroneous match
+        aniso_KM = Float64[
+            10 3 2 1 0 0
+            3 8 1 0 1 0
+            2 1 12 0 0 1
+            1 0 0 4 0 0
+            0 1 0 0 5 0
+            0 0 1 0 0 6
+        ]
+        aniso_arr = frommandel(SymmetricTensor{4, 3}, aniso_KM)
+        _, _, _, sym_a = best_sym_tens(Tens(Array(aniso_arr)))
+        @test sym_a === :ANISO
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "best_sym_tens — fixed-axis/frame path" begin
+        # Given axis, TI projection must be exact for a TI tensor
+        C = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        _, _, drel, sym = best_sym_tens(C, n_e3; proj = (:ISO, :TI))
+        @test sym === :TI
+        @test drel < 1.0e-12
+
+        # Given frame, ORTHO round-trip on an Ortho tensor
+        O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame_canon)
+        _, _, drel_o, sym_o = best_sym_tens(O, frame_canon; proj = (:ISO, :ORTHO))
+        @test sym_o === :ORTHO
+        @test drel_o < 1.0e-12
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "best_sym_tens — no NLopt needed by default" begin
+        # Regression: the default no-argument form must not throw when NLopt
+        # is absent from the session.  (NLopt is not loaded in the base test env.)
+        aniso_KM = Float64[
+            10 3 2 1 0 0
+            3 8 1 0 1 0
+            2 1 12 0 0 1
+            1 0 0 4 0 0
+            0 1 0 0 5 0
+            0 0 1 0 0 6
+        ]
+        aniso = Tens(Array(frommandel(SymmetricTensor{4, 3}, aniso_KM)))
+        # Must succeed — returns :ANISO without raising.
+        res = best_sym_tens(aniso)
+        @test res isa Tuple
+        @test res[end] === :ANISO
+    end
+
 end

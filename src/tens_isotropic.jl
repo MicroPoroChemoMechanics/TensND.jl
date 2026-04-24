@@ -411,7 +411,8 @@ function proj_tens(::Val{:ISO}, A::AbstractArray)
 end
 
 isISO(::TensISO) = true
-isISO(A::AbstractArray) = isotropify(A) == A
+# isISO(A::AbstractArray; ε = 1.0e-6) is defined in tens_projection.jl using
+# the closed-form projection (O(1)) and a relative-residual tolerance.
 isTI(::TensISO) = false
 isOrtho(::TensISO) = false
 

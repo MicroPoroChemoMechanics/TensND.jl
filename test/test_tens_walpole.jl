@@ -588,4 +588,144 @@
         @test opequal(getarray(R), otimes(getarray(A), getarray(B)))
     end
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "Cross-type dispatch — promotion output types" begin
+        frame = CanonicalBasis{3, Float64}()
+        n = (0.0, 0.0, 1.0)
+
+        I4 = TensISO{3}(2.0, 3.0)   # α=2, β=3
+        W = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n)                 # TensWalpole{T,5}
+        O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame)
+
+        # ── + / − between ISO and Ortho ────────────────────────────────────
+        @test I4 + O isa TensOrtho{Float64}
+        @test O + I4 isa TensOrtho{Float64}
+        @test I4 - O isa TensOrtho{Float64}
+        @test O - I4 isa TensOrtho{Float64}
+
+        # Numerical agreement with generic array arithmetic
+        @test opequal(getarray(I4 + O), getarray(I4) + getarray(O))
+        @test opequal(getarray(O - I4), getarray(O) - getarray(I4))
+
+        # ── + / − between Walpole(N=5) and Ortho (aligned axis) ─────────────
+        @test W + O isa TensOrtho{Float64}
+        @test O - W isa TensOrtho{Float64}
+        @test opequal(getarray(W + O), getarray(W) + getarray(O))
+        @test opequal(getarray(O - W), getarray(O) - getarray(W))
+
+        # Reference mismatch → assertion
+        n_mis = (1.0, 1.0, 1.0) ./ sqrt(3.0)
+        Wmis = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n_mis)
+        @test_throws AssertionError Wmis + O
+
+        # ── TensWalpole N=5 + N=6 (same axis) → N=6 ─────────────────────────
+        W5 = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n)          # N=5
+        W6 = TensWalpole(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, n)  # N=6
+        @test (W5 + W6) isa TensWalpole{Float64, 6}
+        @test (W6 - W5) isa TensWalpole{Float64, 6}
+        @test opequal(getarray(W5 + W6), getarray(W5) + getarray(W6))
+
+        # ── TensISO{2,3} ± TensTI{2} ────────────────────────────────────────
+        I2 = TensISO{3}(5.0)
+        T2 = TensTI{2}(3.0, 7.0, n)
+        @test (I2 + T2) isa TensTI{2, Float64, 2}
+        @test (T2 - I2) isa TensTI{2, Float64, 2}
+        @test opequal(getarray(I2 + T2), getarray(I2) + getarray(T2))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "Cross-type dispatch — cross-order double contraction" begin
+        n = (0.0, 0.0, 1.0)
+        I4 = TensISO{3}(2.0, 3.0)
+        W = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n)
+        T2 = TensTI{2}(4.0, 7.0, n)
+
+        # ── TensISO{4} ⊡ TensTI{2} / reverse ─────────────────────────────────
+        R1 = I4 ⊡ T2
+        @test R1 isa TensTI{2, Float64, 2}
+        @test opequal(getarray(R1), dcontract(getarray(I4), getarray(T2)))
+
+        R2 = T2 ⊡ I4
+        @test R2 isa TensTI{2, Float64, 2}
+        @test opequal(getarray(R2), dcontract(getarray(T2), getarray(I4)))
+
+        # ── TensWalpole ⊡ TensTI{2} (same axis) ──────────────────────────────
+        R3 = W ⊡ T2
+        @test R3 isa TensTI{2, Float64, 2}
+        @test opequal(getarray(R3), dcontract(getarray(W), getarray(T2)))
+
+        R4 = T2 ⊡ W
+        @test R4 isa TensTI{2, Float64, 2}
+        @test opequal(getarray(R4), dcontract(getarray(T2), getarray(W)))
+
+        # Axis mismatch → assertion
+        n2 = (1.0, 0.0, 0.0)
+        Wm = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n2)
+        T2m = TensTI{2}(4.0, 7.0, n)
+        @test_throws AssertionError Wm ⊡ T2m
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "Cross-type dispatch — single contraction (·)" begin
+        n = (0.0, 0.0, 1.0)
+        A = TensTI{2}(4.0, 7.0, n)
+        B = TensTI{2}(2.0, 5.0, n)
+
+        # TensTI{2} · TensTI{2} (same axis)
+        R = A ⋅ B
+        @test R isa TensTI{2, Float64, 2}
+        @test opequal(getarray(R), getarray(A) * getarray(B))
+
+        # TensTI{2} · TensISO{2,3}
+        I2 = TensISO{3}(3.0)
+        @test (A ⋅ I2) isa TensTI{2, Float64, 2}
+        @test (I2 ⋅ A) isa TensTI{2, Float64, 2}
+        @test opequal(getarray(A ⋅ I2), getarray(A) * getarray(I2))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "Cross-type dispatch — inverse consistency" begin
+        n = (0.0, 0.0, 1.0)
+        frame = CanonicalBasis{3, Float64}()
+        Id4 = tensId4(Val(3), Val(Float64))
+
+        # TensWalpole
+        W = tensTI(100.0, 30.0, 25.0, 120.0, 20.0, n)
+        @test opequal(getarray(inv(W) ⊡ W), getarray(Id4))
+
+        # TensOrtho
+        O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame)
+        @test opequal(getarray(inv(O)) ⊡ getarray(O), getarray(Id4))
+
+        # TensISO{4}
+        I4 = TensISO{3}(2.0, 3.0)
+        @test opequal(getarray(inv(I4) ⊡ I4), getarray(Id4))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "Promotion helpers — iso_to_ortho / walpole_to_ortho" begin
+        frame = CanonicalBasis{3, Float64}()
+
+        # ── iso_to_ortho: ISO tensor rebuilt as TensOrtho yields identical array
+        I4 = TensISO{3}(2.5, 4.0)
+        O_from_iso = iso_to_ortho(I4, frame)
+        @test O_from_iso isa TensOrtho{Float64}
+        @test opequal(getarray(I4), getarray(O_from_iso))
+
+        # ── walpole_to_ortho (aligned axis)
+        n = (0.0, 0.0, 1.0)
+        W = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n)
+        k = TensND._axis_on_frame_index(n, frame)
+        @test k == 3
+        O_from_w = walpole_to_ortho(W, frame, k)
+        @test O_from_w isa TensOrtho{Float64}
+        @test opequal(getarray(W), getarray(O_from_w))
+
+        # Axis along e₁
+        n1 = (1.0, 0.0, 0.0)
+        W1 = tensTI(10.0, 3.0, 2.5, 12.0, 2.0, n1)
+        O_from_w1 = walpole_to_ortho(W1, frame, 1)
+        @test opequal(getarray(W1), getarray(O_from_w1))
+    end
+
 end  # "Walpole & Ortho tensors"

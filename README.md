@@ -90,3 +90,8 @@ julia> import Pkg; Pkg.add("TensND")
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17985768-blue)](https://doi.org/10.5281/zenodo.17985768)
 
 See [CITATION.cff](CITATION.cff) for citation details.
+
+## Acknowledgements
+
+Parts of this codebase were developed with the assistance of Anthropic's
+*Claude Code*, under the author's review and numerical validation.
