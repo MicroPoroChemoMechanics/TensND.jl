@@ -181,7 +181,7 @@ end
 Find the best TI approximation of a 4th-order tensor `A` by optimizing the
 symmetry axis over all directions. Uses NLopt (GD_MLSL + LD_TNEWTON).
 
-Returns `(B::TensWalpole{T,5}, d, drel)`.
+Returns `(B::TensTI{4, T, 5}, d, drel)`.
 
 # Examples
 ```julia
@@ -189,9 +189,9 @@ julia> using NLopt
 
 julia> n = [1/√3, 1/√3, 1/√3];
 
-julia> C = tensTI(10., 3., 2.5, 12., 2., n);
+julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
 
-julia> B, d, drel = proj_tens(:TI, getarray(C));
+julia> B, d, drel = proj_tens(:TI, get_array(C));
 
 julia> drel < 1e-6
 true
@@ -203,7 +203,7 @@ function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: Abstra
     if sqnorm_C ≈ zero(T)
         z = zero(T)
         n = (z, z, one(T))
-        return TensWalpole(z, z, z, z, z, n), z, z
+        return TensTI{4}(z, z, z, z, z, n), z, z
     end
 
     obj = x -> _obj_TI4(x, C_KM, sqnorm_C)
@@ -230,7 +230,7 @@ julia> using NLopt
 
 julia> n = [1/√2, 1/√2, 0.];
 
-julia> A = TensTI{2}(5.0, 8.0, n); Amat = getarray(A);
+julia> A = TensTI{2}(5.0, 8.0, n); Amat = get_array(A);
 
 julia> B, d, drel = proj_tens(:TI, Amat);
 
@@ -272,7 +272,7 @@ julia> frame = RotatedBasis(0.3, 0.5, 0.7);
 
 julia> t = TensOrtho(10., 8., 12., 3., 2.5, 1.5, 2., 3., 3.5, frame);
 
-julia> B, d, drel = proj_tens(:ORTHO, getarray(t));
+julia> B, d, drel = proj_tens(:ORTHO, get_array(t));
 
 julia> drel < 1e-4
 true

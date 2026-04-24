@@ -437,16 +437,16 @@ _candidate_ORTHO_frame(::AbstractArray{T, 2}) where {T} = CanonicalBasis{3, T}()
 # ── proj_tens : TI, order 4, fixed axis ──────────────────────────────────────
 
 """
-    proj_tens(::Val{:TI}, A::AbstractArray{T,4}, n) → (TensWalpole{T,5}, d, drel)
+    proj_tens(::Val{:TI}, A::AbstractArray{T,4}, n) → (TensTI{4, T, 5}, d, drel)
 
 Project a 4th-order tensor `A` (3×3×3×3) onto the transversely isotropic subspace
-with fixed symmetry axis `n`. Returns a major-symmetric `TensWalpole{T,5}`.
+with fixed symmetry axis `n`. Returns a major-symmetric `TensTI{4, T, 5}`.
 
 The projection minimises the Frobenius distance `‖B − A‖` over all TI tensors `B`
 with axis `n`.
 
 Returns a 3-tuple `(B, d, drel)`:
-- `B`: the projected `TensWalpole{T,5}`
+- `B`: the projected `TensTI{4, T, 5}`
 - `d`: absolute Frobenius distance `‖B − A‖`
 - `drel`: relative distance `d / ‖A‖`
 
@@ -454,14 +454,14 @@ Returns a 3-tuple `(B, d, drel)`:
 ```julia
 julia> n = [0., 0., 1.];
 
-julia> C = tensTI(10., 3., 2.5, 12., 2., n);
+julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
 
-julia> B, d, drel = proj_tens(:TI, getarray(C), n);
+julia> B, d, drel = proj_tens(:TI, get_array(C), n);
 
 julia> d < 1e-12
 true
 
-julia> argTI(B) == argTI(C)
+julia> arg_TI(B) == arg_TI(C)
 true
 ```
 """
@@ -469,7 +469,7 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T, 4}, n) where {T}
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
-        return TensWalpole(z, z, z, z, z, n), z, z
+        return TensTI{4}(z, z, z, z, z, n), z, z
     end
 
     # Compute KM of A and rotate to frame where e₃ = n
@@ -482,10 +482,10 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T, 4}, n) where {T}
     ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆ = _project_TI_KM(C_rot)
 
     # Build projected tensor
-    B = TensWalpole(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆, n)
+    B = TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆, n)
 
     # Compute distances
-    d = _frobenius(getarray(B) - A)
+    d = _frobenius(get_array(B) - A)
     return B, d, d / nA
 end
 
@@ -531,7 +531,7 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T, 2}, n) where {T}
 
     B = TensTI{2}(a, b, n)
 
-    d = _frobenius(getarray(B) - A)
+    d = _frobenius(get_array(B) - A)
     return B, d, d / nA
 end
 
@@ -549,7 +549,7 @@ julia> frame = CanonicalBasis{3,Float64}();
 
 julia> t = TensOrtho(10., 8., 12., 3., 2.5, 1.5, 2., 3., 3.5, frame);
 
-julia> B, d, drel = proj_tens(:ORTHO, getarray(t), frame);
+julia> B, d, drel = proj_tens(:ORTHO, get_array(t), frame);
 
 julia> d < 1e-12
 true
@@ -573,7 +573,7 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}, frame::OrthonormalBasi
     C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆ = _project_ORTHO_KM(C_rot)
     B = TensOrtho(C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆, frame)
 
-    d = _frobenius(getarray(B) - A)
+    d = _frobenius(get_array(B) - A)
     return B, d, d / nA
 end
 
@@ -706,12 +706,12 @@ end
 # to the NLopt-backed `proj_tens(Val(:TI|:ORTHO), A)` fallbacks.
 
 """
-    isISO(A::AbstractArray; ε=1e-6) → Bool
+    is_ISO(A::AbstractArray; ε=1e-6) → Bool
 
 Return `true` when the components of `A` satisfy material isotropy up to
 relative tolerance `ε` (closed-form projection: no optimisation).
 
-The value-level predicate complements the type-level `isISO(::TensISO) = true`
+The value-level predicate complements the type-level `is_ISO(::TensISO) = true`
 defined in `tens_isotropic.jl`: the type version asks whether the
 container *imposes* isotropy, this version asks whether the numerical
 components *satisfy* it.
@@ -720,20 +720,20 @@ components *satisfy* it.
 ```julia
 julia> C = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0];
 
-julia> isISO(C)
+julia> is_ISO(C)
 true
 
-julia> isISO([1.0 2.0 0.0; 2.0 3.0 0.0; 0.0 0.0 1.0])
+julia> is_ISO([1.0 2.0 0.0; 2.0 3.0 0.0; 0.0 0.0 1.0])
 false
 ```
 """
-function isISO(A::AbstractArray; ε = 1.0e-6)
+function is_ISO(A::AbstractArray; ε = 1.0e-6)
     _, _, drel = proj_tens(Val(:ISO), A)
     return drel < ε
 end
 
 """
-    isTI(A::AbstractArray, n; ε=1e-6) → Bool
+    is_TI(A::AbstractArray, n; ε=1e-6) → Bool
 
 Return `true` when `A` is transversely isotropic about the given axis `n`
 up to relative tolerance `ε` (closed-form projection on the fixed axis).
@@ -742,31 +742,31 @@ up to relative tolerance `ε` (closed-form projection on the fixed axis).
 ```julia
 julia> n = [0.0, 0.0, 1.0];
 
-julia> C = tensTI(10., 3., 2.5, 12., 2., n);
+julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
 
-julia> isTI(getarray(C), n)
+julia> is_TI(get_array(C), n)
 true
 
-julia> isTI(getarray(C), [1.0, 0.0, 0.0])
+julia> is_TI(get_array(C), [1.0, 0.0, 0.0])
 false
 ```
 """
-function isTI(A::AbstractArray, n; ε = 1.0e-6)
+function is_TI(A::AbstractArray, n; ε = 1.0e-6)
     _, _, drel = proj_tens(Val(:TI), A, n)
     return drel < ε
 end
 
 """
-    isTI(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
+    is_TI(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
 
 Cheap default: propose a candidate TI axis from the Kelvin-Mandel
 eigendecomposition of `A` and check the residual.  With
 `optimize_angles=true`, runs the NLopt-backed axis search — requires
 `using NLopt`.
 
-See also [`isTI(A, n)`](@ref), [`_candidate_TI_axis`](@ref).
+See also [`is_TI(A, n)`](@ref), [`_candidate_TI_axis`](@ref).
 """
-function isTI(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
+function is_TI(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
     if optimize_angles
         _, _, drel = proj_tens(Val(:TI), A)
     else
@@ -777,24 +777,24 @@ function isTI(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
 end
 
 """
-    isOrtho(A::AbstractArray, frame::OrthonormalBasis{3}; ε=1e-6) → Bool
+    is_ORTHO(A::AbstractArray, frame::OrthonormalBasis{3}; ε=1e-6) → Bool
 
 Return `true` when `A` is orthotropic in the given material frame up to
 relative tolerance `ε` (closed-form projection on the fixed frame).
 """
-function isOrtho(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+function is_ORTHO(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
     _, _, drel = proj_tens(Val(:ORTHO), A, frame)
     return drel < ε
 end
 
 """
-    isOrtho(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
+    is_ORTHO(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
 
 Cheap default: propose a candidate orthotropic frame from the Kelvin-Mandel
 eigendecomposition and check the residual.  With `optimize_angles=true`,
 runs the NLopt-backed frame search — requires `using NLopt`.
 """
-function isOrtho(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
+function is_ORTHO(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
     if optimize_angles
         _, _, drel = proj_tens(Val(:ORTHO), A)
     else

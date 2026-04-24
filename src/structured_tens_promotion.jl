@@ -1,15 +1,15 @@
 ##############################################################################
-# Cross-type promotion & dispatch between TensISO, TensWalpole, TensTI,     #
+# Cross-type promotion & dispatch between TensISO, TensTI{4}, TensTI,     #
 # TensOrtho.                                                                 #
 #                                                                            #
 # Rule: a binary operation on two structured tensors returns the             #
 # highest-symmetry type compatible with both operands' references            #
 # (axis / material frame).  When references are incompatible the operation   #
-# falls back to the generic `Tens` route via `getarray`.                     #
+# falls back to the generic `Tens` route via `get_array`.                     #
 #                                                                            #
 # Symmetry lattice at 4th order (major-symmetric):                           #
 #                                                                            #
-#   TensISO{4}  ⊂  TensWalpole{N=5}  ⊂  TensOrtho    (with aligned axis)     #
+#   TensISO{4}  ⊂  TensTI{4,N=5}  ⊂  TensOrtho    (with aligned axis)     #
 #                                                                            #
 # At 2nd order:                                                              #
 #                                                                            #
@@ -48,14 +48,14 @@ julia> O = iso_to_ortho(I4, CanonicalBasis{3,Float64}());
 julia> typeof(O) === TensOrtho{Float64}
 true
 
-julia> getdata(O)[1], getdata(O)[4], getdata(O)[7]
+julia> get_data(O)[1], get_data(O)[4], get_data(O)[7]
 (2.6666666666666665, -0.3333333333333333, 1.5)
 ```
 
 See also [`walpole_to_ortho`](@ref), [`fromISO`](@ref).
 """
 function iso_to_ortho(A::TensISO{4, 3, T}, frame::OrthonormalBasis{3}) where {T}
-    α, β = getdata(A)
+    α, β = get_data(A)
     C_diag = (α + 2β) / 3          # C₁₁ = C₂₂ = C₃₃
     C_off = (α - β) / 3            # C₁₂ = C₁₃ = C₂₃
     C_sh = β / 2                   # C₄₄ = C₅₅ = C₆₆
@@ -73,7 +73,7 @@ end
 Return the index `k ∈ {1,2,3}` such that `n` is parallel to the `k`-th axis
 of `frame` (i.e. `|n ⋅ eₖ| ≈ 1`), or `0` if `n` is not aligned with any axis.
 
-Used to decide whether a `TensWalpole` (TI with axis `n`) and a `TensOrtho`
+Used to decide whether a `TensTI{4}` (TI with axis `n`) and a `TensOrtho`
 (with a material frame) are compatible for symmetry-preserving arithmetic.
 
 # Examples
@@ -101,9 +101,9 @@ function _axis_on_frame_index(n, frame::OrthonormalBasis{3}; atol = 1.0e-10)
 end
 
 """
-    walpole_to_ortho(A::TensWalpole{T,5}, frame::OrthonormalBasis{3}, axis_idx::Int) → TensOrtho{T}
+    walpole_to_ortho(A::TensTI{4, T, 5}, frame::OrthonormalBasis{3}, axis_idx::Int) → TensOrtho{T}
 
-Convert a major-symmetric `TensWalpole{T,5}` into a `TensOrtho` stored in the
+Convert a major-symmetric `TensTI{4, T, 5}` into a `TensOrtho` stored in the
 given material frame, assuming the Walpole axis `A.n` is aligned with axis
 `axis_idx ∈ {1,2,3}` of the frame. A TI tensor is a special case of an
 orthotropic tensor (with the 1–2 equivalence about the TI axis).
@@ -125,7 +125,7 @@ Restricted to `N=5` (major-symmetric Walpole): a non-major-symmetric TI
 
 See also [`iso_to_ortho`](@ref), [`_axis_on_frame_index`](@ref).
 """
-function walpole_to_ortho(A::TensWalpole{T, 5}, frame::OrthonormalBasis{3}, axis_idx::Int) where {T}
+function walpole_to_ortho(A::TensTI{4, T, 5}, frame::OrthonormalBasis{3}, axis_idx::Int) where {T}
     ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(A)
     sq2 = sqrt(T(2))
     Ctrtr = (ℓ₂ + ℓ₅) / 2
@@ -164,14 +164,14 @@ function walpole_to_ortho(A::TensWalpole{T, 5}, frame::OrthonormalBasis{3}, axis
 end
 
 """
-    _lift_walpole_N6(A::TensWalpole{T,5}) → TensWalpole{T,6}
+    _lift_walpole_N6(A::TensTI{4, T, 5}) → TensTI{4, T, 6}
 
 Lift a major-symmetric `N=5` Walpole tensor to the general `N=6` form by
 duplicating the shared coefficient `ℓ₃ = ℓ₄`.
 """
-function _lift_walpole_N6(A::TensWalpole{T, 5}) where {T}
+function _lift_walpole_N6(A::TensTI{4, T, 5}) where {T}
     ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(A)
-    return TensWalpole{T, 6}((ℓ₁, ℓ₂, ℓ₃, ℓ₃, ℓ₅, ℓ₆), getaxis(A))
+    return TensTI{4, T, 6}((ℓ₁, ℓ₂, ℓ₃, ℓ₃, ℓ₅, ℓ₆), axis(A))
 end
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -187,45 +187,45 @@ end
 
 for OP in (:+, :-)
     @eval @inline function Base.$OP(A::TensISO{4, 3}, B::TensOrtho)
-        return $OP(iso_to_ortho(A, getframe(B)), B)
+        return $OP(iso_to_ortho(A, frame(B)), B)
     end
     @eval @inline function Base.$OP(A::TensOrtho, B::TensISO{4, 3})
-        return $OP(A, iso_to_ortho(B, getframe(A)))
+        return $OP(A, iso_to_ortho(B, frame(A)))
     end
 end
 
-# ── TensWalpole{N=5} ± TensOrtho (aligned axis) ─────────────────────────────
+# ── TensTI{4,N=5} ± TensOrtho (aligned axis) ─────────────────────────────
 
 for OP in (:+, :-)
-    @eval function Base.$OP(A::TensWalpole{<:Any, 5}, B::TensOrtho)
-        k = _axis_on_frame_index(getaxis(A), getframe(B))
+    @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensOrtho)
+        k = _axis_on_frame_index(axis(A), frame(B))
         k == 0 && throw(
             AssertionError(
-                "TensWalpole{N=5} $($(string(OP))) TensOrtho requires the Walpole axis " *
+                "TensTI{4,N=5} $($(string(OP))) TensOrtho requires the Walpole axis " *
                     "to be aligned with one of the frame axes",
             ),
         )
-        return $OP(walpole_to_ortho(A, getframe(B), k), B)
+        return $OP(walpole_to_ortho(A, frame(B), k), B)
     end
-    @eval function Base.$OP(A::TensOrtho, B::TensWalpole{<:Any, 5})
-        k = _axis_on_frame_index(getaxis(B), getframe(A))
+    @eval function Base.$OP(A::TensOrtho, B::TensTI{4, <:Any, 5})
+        k = _axis_on_frame_index(axis(B), frame(A))
         k == 0 && throw(
             AssertionError(
-                "TensOrtho $($(string(OP))) TensWalpole{N=5} requires the Walpole axis " *
+                "TensOrtho $($(string(OP))) TensTI{4,N=5} requires the Walpole axis " *
                     "to be aligned with one of the frame axes",
             ),
         )
-        return $OP(A, walpole_to_ortho(B, getframe(A), k))
+        return $OP(A, walpole_to_ortho(B, frame(A), k))
     end
 end
 
-# ── TensWalpole{N=5} ± TensWalpole{N=6} (same axis) ─────────────────────────
+# ── TensTI{4,N=5} ± TensTI{4,N=6} (same axis) ─────────────────────────
 
 for OP in (:+, :-)
-    @eval function Base.$OP(A::TensWalpole{<:Any, 5}, B::TensWalpole{<:Any, 6})
+    @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensTI{4, <:Any, 6})
         return $OP(_lift_walpole_N6(A), B)
     end
-    @eval function Base.$OP(A::TensWalpole{<:Any, 6}, B::TensWalpole{<:Any, 5})
+    @eval function Base.$OP(A::TensTI{4, <:Any, 6}, B::TensTI{4, <:Any, 5})
         return $OP(A, _lift_walpole_N6(B))
     end
 end
@@ -235,14 +235,14 @@ end
 
 for OP in (:+, :-)
     @eval function Base.$OP(A::TensISO{2, 3}, B::TensTI{2, <:Any, 2})
-        λ = getdata(A)[1]
-        a, b = getdata(B)
-        return TensTI{2}($OP(λ, a), $OP(λ, b), getaxis(B))
+        λ = get_data(A)[1]
+        a, b = get_data(B)
+        return TensTI{2}($OP(λ, a), $OP(λ, b), axis(B))
     end
     @eval function Base.$OP(A::TensTI{2, <:Any, 2}, B::TensISO{2, 3})
-        a, b = getdata(A)
-        λ = getdata(B)[1]
-        return TensTI{2}($OP(a, λ), $OP(b, λ), getaxis(A))
+        a, b = get_data(A)
+        λ = get_data(B)[1]
+        return TensTI{2}($OP(a, λ), $OP(b, λ), axis(A))
     end
 end
 
@@ -269,10 +269,10 @@ end
 #   new_b = (α − β)·(2a + b)/3 + β·b
 
 function Tensors.dcontract(A::TensISO{4, 3}, B::TensTI{2, <:Any, 2})
-    α, β = getdata(A)
-    a, b = getdata(B)
+    α, β = get_data(A)
+    a, b = get_data(B)
     sph = (α - β) * (2a + b) / 3
-    return TensTI{2}(sph + β * a, sph + β * b, getaxis(B))
+    return TensTI{2}(sph + β * a, sph + β * b, axis(B))
 end
 
 function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensISO{4, 3})
@@ -280,30 +280,30 @@ function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensISO{4, 3})
     return Tensors.dcontract(B, A)
 end
 
-# ── TensWalpole ⊡ TensTI{2} / TensTI{2} ⊡ TensWalpole (same axis) ──────────
+# ── TensTI{4} ⊡ TensTI{2} / TensTI{2} ⊡ TensTI{4} (same axis) ──────────
 
-function Tensors.dcontract(A::TensWalpole, B::TensTI{2, <:Any, 2})
-    @assert getaxis(A) == getaxis(B) "dcontract(TensWalpole, TensTI{2}) requires the same axis"
+function Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 2})
+    @assert axis(A) == axis(B) "dcontract(TensTI{4}, TensTI{2}) requires the same axis"
     T = promote_type(eltype(A), eltype(B))
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(A)
-    a, b = getdata(B)
+    a, b = get_data(B)
     sq2 = sqrt(T(2))
     new_a = ℓ₂ * a + ℓ₄ * b / sq2
     new_b = ℓ₁ * b + sq2 * ℓ₃ * a
-    return TensTI{2}(new_a, new_b, getaxis(A))
+    return TensTI{2}(new_a, new_b, axis(A))
 end
 
-function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensWalpole)
-    @assert getaxis(A) == getaxis(B) "dcontract(TensTI{2}, TensWalpole) requires the same axis"
+function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensTI{4})
+    @assert axis(A) == axis(B) "dcontract(TensTI{2}, TensTI{4}) requires the same axis"
     T = promote_type(eltype(A), eltype(B))
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(B)
-    a, b = getdata(A)
+    a, b = get_data(A)
     sq2 = sqrt(T(2))
     # For `t ⊡ W`, the contraction is on the FIRST pair of W, swapping the
     # roles of ℓ₃ (W₃) and ℓ₄ (W₄) in the axial/transverse mix.
     new_a = ℓ₂ * a + ℓ₃ * b / sq2
     new_b = ℓ₁ * b + sq2 * ℓ₄ * a
-    return TensTI{2}(new_a, new_b, getaxis(A))
+    return TensTI{2}(new_a, new_b, axis(A))
 end
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -318,25 +318,25 @@ end
 #   = a₁a₂·nT + b₁b₂·nₙ
 
 function LinearAlgebra.dot(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 2})
-    @assert getaxis(A) == getaxis(B) "dot(TensTI{2}, TensTI{2}) requires the same axis"
-    a₁, b₁ = getdata(A)
-    a₂, b₂ = getdata(B)
-    return TensTI{2}(a₁ * a₂, b₁ * b₂, getaxis(A))
+    @assert axis(A) == axis(B) "dot(TensTI{2}, TensTI{2}) requires the same axis"
+    a₁, b₁ = get_data(A)
+    a₂, b₂ = get_data(B)
+    return TensTI{2}(a₁ * a₂, b₁ * b₂, axis(A))
 end
 
 # ── TensTI{2} · TensISO{2,3} ────────────────────────────────────────────────
 # TensISO{2,3}(λ) ≡ λ·𝟏, so A·B = λ·A (TI output preserved).
 
 function LinearAlgebra.dot(A::TensTI{2, <:Any, 2}, B::TensISO{2, 3})
-    a, b = getdata(A)
-    λ = getdata(B)[1]
-    return TensTI{2}(a * λ, b * λ, getaxis(A))
+    a, b = get_data(A)
+    λ = get_data(B)[1]
+    return TensTI{2}(a * λ, b * λ, axis(A))
 end
 
 function LinearAlgebra.dot(A::TensISO{2, 3}, B::TensTI{2, <:Any, 2})
-    λ = getdata(A)[1]
-    a, b = getdata(B)
-    return TensTI{2}(λ * a, λ * b, getaxis(B))
+    λ = get_data(A)[1]
+    a, b = get_data(B)
+    return TensTI{2}(λ * a, λ * b, axis(B))
 end
 
 # ──────────────────────────────────────────────────────────────────────────────

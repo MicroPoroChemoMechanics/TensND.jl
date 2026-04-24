@@ -40,7 +40,7 @@
         ℬᶜ = normalized_basis(Cylindrical)
         r, θ, z = rθz
         𝐯 = Tens(Vec{3}(i -> SymFunction("v$(rθz[i])", real = true)(rθz...)), ℬᶜ)
-        vʳ, vᶿ, vᶻ = getarray(𝐯)
+        vʳ, vᶿ, vᶻ = get_array(𝐯)
         @test tsimplify(DIV(𝐯, Cylindrical)) ==
             tsimplify(∂(vʳ, r) + vʳ / r + ∂(vᶿ, θ) / r + ∂(vᶻ, z))
 
@@ -61,7 +61,7 @@
         𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
         ℬˢ = normalized_basis(Spherical)
         𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Sym))
-        𝟏 = tensId2(Val(3), Val(Sym))
+        𝟏 = tens_Id2(Val(3), Val(Sym))
         k, μ = symbols("k μ", positive = true)
         λ = k - 2μ / 3
         ℂ = 3k * 𝕁 + 2μ * 𝕂

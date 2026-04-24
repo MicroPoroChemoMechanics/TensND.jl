@@ -47,7 +47,7 @@ r, θ = getcoords(Polar)
 @set_coorsys Polar
 ℬˢ = normalized_basis(Polar)
 𝕀, 𝕁, 𝕂 = ISO(Val(2), Val(Sym))
-𝟏 = tensId2(Val(2), Val(Sym))
+𝟏 = tens_Id2(Val(2), Val(Sym))
 
 E, k, μ = symbols("E k μ", positive = true)
 ν, κ = symbols("ν κ", real = true)
@@ -73,7 +73,7 @@ The Green operator $\boldsymbol{\Gamma}$ is obtained from the Hessian of $\mathb
 
 ```@example gf2d
 HG = -tsimplify(HESS(𝐆))
-aHG = getarray(HG)
+aHG = get_array(HG)
 𝕄 = SymmetricTensor{4,2}((i,j,k,l) -> (aHG[i,k,j,l] + aHG[j,k,i,l] + aHG[i,l,j,k] + aHG[j,l,i,k]) / 4)
 ℾ = tsimplify(Tens(𝕄, ℬˢ))
 ```
@@ -154,7 +154,7 @@ Spherical = coorsys_spherical()
 ℬˢ = normalized_basis(Spherical)
 @set_coorsys Spherical
 𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Sym))
-𝟏 = tensId2(Val(3), Val(Sym))
+𝟏 = tens_Id2(Val(3), Val(Sym))
 
 E, k, μ = symbols("E k μ", positive = true)
 ν = symbols("ν", real = true)
@@ -180,7 +180,7 @@ The Green operator is computed from the Hessian of $\mathbf{G}$:
 
 ```@example gf3d
 HG = -tsimplify(HESS(𝐆))
-aHG = getarray(HG)
+aHG = get_array(HG)
 𝕄 = SymmetricTensor{4,3}((i,j,k,l) -> (aHG[i,k,j,l] + aHG[j,k,i,l] + aHG[i,l,j,k] + aHG[j,l,i,k]) / 4)
 ℾ = tsimplify(Tens(𝕄, ℬˢ))
 ```

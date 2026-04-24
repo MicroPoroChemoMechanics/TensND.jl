@@ -45,13 +45,13 @@ n = [0., 0., 1.]   # symmetry axis = e₃
 A = TensTI{2}(5.0, 8.0, n)
 println("data = ", A.data)
 println("trace = ", tr(A))
-println("isISO = ", isISO(A), "  isTI = ", isTI(A))
+println("is_ISO = ", is_ISO(A), "  is_TI = ", is_TI(A))
 ```
 
 The 3×3 matrix is ``\mathrm{diag}(a, a, b)`` when ``\mathbf{n} = \mathbf{e}_3``:
 
 ```@example proj
-getarray(A)
+get_array(A)
 ```
 
 ### Projecting onto the TI subspace
@@ -68,7 +68,7 @@ println("Distance: d = ", round(d, sigdigits=4), ", drel = ", round(drel, sigdig
 The projected tensor is exactly TI by construction:
 
 ```@example proj
-getarray(B)
+get_array(B)
 ```
 
 ### TI projection with a tilted axis
@@ -78,7 +78,7 @@ The axis does not have to be aligned with a canonical direction:
 ```@example proj
 n45 = [1/√2, 0., 1/√2]
 A45 = TensTI{2}(3.0, 7.0, n45)
-M45 = getarray(A45)
+M45 = get_array(A45)
 println("Original matrix:")
 display(round.(M45, digits=4))
 ```
@@ -96,12 +96,12 @@ println("Distance = ", d45)
 ### Round-trip: TI tensor → array → projection
 
 ```@example proj
-C_ti = tensTI(10., 3., 2.5, 12., 2., n)
-A4 = getarray(C_ti)
+C_ti = tens_TI(10., 3., 2.5, 12., 2., n)
+A4 = get_array(C_ti)
 
 B4, d4, drel4 = proj_tens(:TI, A4, n)
 println("Relative distance = ", drel4)
-println("Walpole coefficients: ", collect(argTI(B4)))
+println("Walpole coefficients: ", collect(arg_TI(B4)))
 ```
 
 ### Projection of an isotropic tensor onto TI
@@ -112,7 +112,7 @@ An isotropic tensor is a special case of TI — the projection should give zero 
 𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
 k, μ = 10.0, 5.0
 C_iso = 3k * 𝕁 + 2μ * 𝕂
-B_iso, d_iso, drel_iso = proj_tens(:TI, getarray(C_iso), n)
+B_iso, d_iso, drel_iso = proj_tens(:TI, get_array(C_iso), n)
 println("Relative distance (ISO → TI) = ", drel_iso)
 ```
 
@@ -138,7 +138,7 @@ println("Relative error = ", round(drel_pert, sigdigits=4))
 frame = CanonicalBasis{3,Float64}()
 t_ort = TensOrtho(10., 8., 12., 3., 2.5, 1.5, 2., 3., 3.5, frame)
 
-Bo, do_, drelo = proj_tens(:ORTHO, getarray(t_ort), frame)
+Bo, do_, drelo = proj_tens(:ORTHO, get_array(t_ort), frame)
 println("ORTHO round-trip relative distance = ", drelo)
 ```
 
@@ -158,7 +158,7 @@ using Rotations
 frame_rot = RotatedBasis(0.3, 0.5, 0.7)
 t_rot = TensOrtho(10., 8., 12., 3., 2.5, 1.5, 2., 3., 3.5, frame_rot)
 
-Br, dr, drelr = proj_tens(:ORTHO, getarray(t_rot), frame_rot)
+Br, dr, drelr = proj_tens(:ORTHO, get_array(t_rot), frame_rot)
 println("Rotated frame round-trip: drel = ", drelr)
 ```
 
@@ -198,7 +198,7 @@ the tensor.  Two routes are available via the `optimize_angles` keyword:
 - **Cheap route** (default, `optimize_angles = false`): closed-form ISO
   projection plus fixed-axis TI and fixed-frame ORTHO projections.  The axis /
   frame are either taken from the structured container when `t` is already a
-  `TensWalpole`, `TensTI` or `TensOrtho`, or derived from the Kelvin-Mandel
+  `TensTI{4}`, `TensTI` or `TensOrtho`, or derived from the Kelvin-Mandel
   eigendecomposition of the trace tensor ``d_{ij} = C_{ikjk}``.  **No
   optimisation runs; NLopt is not required.**
 - **Angle-optimised route** (`optimize_angles = true`): a two-pass global +
@@ -212,9 +212,9 @@ tensor is expressed in a non-canonical basis:
 
 ```@example proj
 n_tilt = [1/√3, 1/√3, 1/√3]
-C_tilt = tensTI(10., 3., 2.5, 12., 2., n_tilt)
+C_tilt = tens_TI(10., 3., 2.5, 12., 2., n_tilt)
 
-_, _, drel_cheap, sym_cheap = best_sym_tens(Tens(getarray(C_tilt)))
+_, _, drel_cheap, sym_cheap = best_sym_tens(Tens(get_array(C_tilt)))
 println("Cheap detection: sym = ", sym_cheap, ", drel = ", drel_cheap)
 ```
 
@@ -223,13 +223,13 @@ println("Cheap detection: sym = ", sym_cheap, ", drel = ", drel_cheap)
 Value-level predicates mirror the same cheap/expensive split:
 
 ```@example proj
-@assert isISO(getarray(C_iso))
-@assert isTI(getarray(C_tilt), n_tilt)          # fixed axis
-@assert isOrtho(getarray(t_ort), frame)         # fixed frame
-@assert !isISO([10.0 3.0 0.0; 3.0 8.0 0.0; 0.0 0.0 12.0])
+@assert is_ISO(get_array(C_iso))
+@assert is_TI(get_array(C_tilt), n_tilt)          # fixed axis
+@assert is_ORTHO(get_array(t_ort), frame)         # fixed frame
+@assert !is_ISO([10.0 3.0 0.0; 3.0 8.0 0.0; 0.0 0.0 12.0])
 ```
 
-The single-argument forms `isTI(A)` and `isOrtho(A)` use the same KM
+The single-argument forms `is_TI(A)` and `is_ORTHO(A)` use the same KM
 eigendecomposition to propose a candidate axis / frame cheaply; passing
 `optimize_angles = true` switches to the NLopt-backed search.
 
@@ -248,11 +248,11 @@ This requires loading the `NLopt` package:
 using NLopt   # activates the TensNDNLoptExt extension
 
 # Optimise the axis — should recover n_tilt
-B_opt, d_opt, drel_opt = proj_tens(:TI, getarray(C_tilt))
+B_opt, d_opt, drel_opt = proj_tens(:TI, get_array(C_tilt))
 println("Optimized relative distance = ", drel_opt)
 
 # Optimise the ORTHO frame
-B_ort_opt, d_ort_opt, drel_ort_opt = proj_tens(:ORTHO, getarray(C_tilt))
+B_ort_opt, d_ort_opt, drel_ort_opt = proj_tens(:ORTHO, get_array(C_tilt))
 println("ORTHO optimized relative distance = ", drel_ort_opt)
 ```
 
@@ -277,7 +277,7 @@ Gradients are computed automatically via `ForwardDiff.jl`.
 | `best_sym_tens(t, n_or_frame)` | Best symmetry with fixed axis/frame |
 | `best_sym_tens(t)` | Best symmetry, cheap (KM eigendecomposition) |
 | `best_sym_tens(t; optimize_angles = true)` | Best symmetry, angle-optimised (requires NLopt) |
-| `isISO(A; ε)`, `isTI(A, n; ε)`, `isOrtho(A, frame; ε)` | Value-level boolean predicates |
+| `is_ISO(A; ε)`, `is_TI(A, n; ε)`, `is_ORTHO(A, frame; ε)` | Value-level boolean predicates |
 
 All projection functions return `(B, d, drel)` (or `(B, d, drel, sym)` for `best_sym_tens`).
 
@@ -290,11 +290,11 @@ operations:
 | Operation | Condition | Output type |
 | --------- | --------- | ----------- |
 | `TensISO{4} + TensOrtho` | — | `TensOrtho` (via `iso_to_ortho`) |
-| `TensWalpole{N=5} + TensOrtho` | axis aligned with a frame axis | `TensOrtho` (via `walpole_to_ortho`) |
-| `TensWalpole{N=5} + TensWalpole{N=6}` | same axis | `TensWalpole{N=6}` (lift ℓ₄ := ℓ₃) |
+| `TensTI{4,N=5} + TensOrtho` | axis aligned with a frame axis | `TensOrtho` (via `walpole_to_ortho`) |
+| `TensTI{4,N=5} + TensTI{4,N=6}` | same axis | `TensTI{4,N=6}` (lift ℓ₄ := ℓ₃) |
 | `TensISO{2,3} + TensTI{2}` | — | `TensTI{2}` |
 | `TensISO{4} ⊡ TensTI{2}` | — | `TensTI{2}` (closed form) |
-| `TensWalpole ⊡ TensTI{2}` | same axis | `TensTI{2}` |
+| `TensTI{4} ⊡ TensTI{2}` | same axis | `TensTI{2}` |
 | `TensTI{2} · TensTI{2}` | same axis | `TensTI{2}` |
 | `TensTI{2} · TensISO{2,3}` | — | `TensTI{2}` |
 
@@ -305,4 +305,4 @@ Two products that one might expect to stay structured do **not**: the double
 contraction of two major-symmetric orthotropic tensors is not in general
 major-symmetric, so `TensOrtho ⊡ TensOrtho` routes through the generic
 path (outputs a `Tens`).  The same applies to `TensISO ⊡ TensOrtho` and
-`TensWalpole ⊡ TensOrtho`.
+`TensTI{4} ⊡ TensOrtho`.

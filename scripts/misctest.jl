@@ -1,3 +1,20 @@
+# ============================================================================
+#  Miscellaneous developer sandbox — sub-manifold geometry & prolate
+#  spheroidal coordinates
+#
+#  Covers:
+#   1. `CoorSystemSym` with explicit rewrite rules for simplification of
+#      prolate spheroidal metrics.
+#   2. Associated Legendre harmonics and their Laplacian (should vanish).
+#   3. `SubManifoldSym` on a sphere/paraboloid/ellipsoid — gradient of 𝐞ʳ
+#      equals −curvature tensor.
+#
+#  Loaded with Revise to iterate on package edits.
+# ============================================================================
+
+import Pkg
+Pkg.activate(joinpath(@__DIR__, ".."); io = devnull)
+
 using Revise, TensND, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations, Test
 
 

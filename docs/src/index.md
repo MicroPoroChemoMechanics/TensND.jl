@@ -16,7 +16,7 @@ coordinate systems. It supports both **symbolic computation** (via SymPy and Sym
 
 - **Basis types**: canonical, rotated, orthogonal, and fully general non-orthogonal bases
 - **Tensor algebra**: products, contractions, change of basis, variance (covariant/contravariant) management
-- **Structured tensor types**: isotropic (`TensISO`), transversely isotropic (`TensWalpole`, `TensTI`), orthotropic (`TensOrtho`) with compact parametric storage and efficient algebra
+- **Structured tensor types**: isotropic (`TensISO`), transversely isotropic (`TensTI{4}`, `TensTI`), orthotropic (`TensOrtho`) with compact parametric storage and efficient algebra
 - **Symmetry projection**: find the closest ISO, TI, or ORTHO tensor via Frobenius distance minimization; rotation-optimized via NLopt
 - **Differential operators**: gradient, symmetric gradient, divergence, Laplacian, Hessian in curvilinear coordinate systems (symbolic and numerical)
 - **Generic type system**: works with `Float64`, symbolic types (`Sym`, `Num`), and `ForwardDiff.Dual` numbers for automatic differentiation

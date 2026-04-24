@@ -159,7 +159,7 @@ only_coords(CS::CoorSystemSym, t) = length(CS.to_coords) > 0 ? tsubs(t, CS.to_co
 getcoords(CS::CoorSystemSym) = CS.coords
 getcoords(CS::CoorSystemSym, i::Integer) = getcoords(CS)[i]
 
-@pure getdim(::AbstractCoorSystem{dim}) where {dim} = dim
+@pure get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
 
 getOM(CS::AbstractCoorSystem) = CS.OM
 
@@ -216,7 +216,7 @@ Tens.TensRotated{2, 3, Sym, SymmetricTensor{2, 3, Sym, 6}}
 ```
 """
 ∂(t::AbstractTens{order, dim, T}, xᵢ...) where {order, dim, T <: SymType} =
-    change_tens(Tens(tdiff(components_canon(t), xᵢ...)), getbasis(t), getvar(t))
+    change_tens(Tens(tdiff(components_canon(t), xᵢ...)), get_basis(t), get_var(t))
 
 ∂(t::SymType, xᵢ...) = tdiff(t, xᵢ...)
 
@@ -315,7 +315,7 @@ Return the cartesian coordinate system
 
 # Examples
 ```julia
-julia> Cartesian = coorsys_cartesian() ; 𝐗 = getcoords(Cartesian) ; 𝐄 = unitvec(Cartesian) ; ℬ = getbasis(Cartesian)
+julia> Cartesian = coorsys_cartesian() ; 𝐗 = getcoords(Cartesian) ; 𝐄 = unitvec(Cartesian) ; ℬ = get_basis(Cartesian)
 
 julia> 𝛔 = Tens(SymmetricTensor{2,3}((i, j) -> SymFunction("σ\$i\$j", real = true)(𝐗...))) ;
 
@@ -349,7 +349,7 @@ Return the polar coordinate system
 
 # Examples
 ```julia
-julia> Polar = coorsys_polar() ; r, θ = getcoords(Polar) ; 𝐞ʳ, 𝐞ᶿ = unitvec(Polar) ; ℬᵖ = getbasis(Polar)
+julia> Polar = coorsys_polar() ; r, θ = getcoords(Polar) ; 𝐞ʳ, 𝐞ᶿ = unitvec(Polar) ; ℬᵖ = get_basis(Polar)
 
 julia> f = SymFunction("f", real = true)(r, θ) ;
 
@@ -390,7 +390,7 @@ Return the cylindrical coordinate system
 
 # Examples
 ```julia
-julia> Cylindrical = coorsys_cylindrical() ; rθz = getcoords(Cylindrical) ; 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; ℬᶜ = getbasis(Cylindrical)
+julia> Cylindrical = coorsys_cylindrical() ; rθz = getcoords(Cylindrical) ; 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; ℬᶜ = get_basis(Cylindrical)
 
 julia> 𝐯 = Tens(Vec{3}(i -> SymFunction("v\$(rθz[i])", real = true)(rθz...)), ℬᶜ) ;
 
@@ -431,7 +431,7 @@ Return the spherical coordinate system
 
 # Examples
 ```julia
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; ℬˢ = getbasis(Spherical)
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; ℬˢ = get_basis(Spherical)
 
 julia> for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ") @eval \$(Symbol(σⁱʲ)) = SymFunction(\$σⁱʲ, real = true)(\$r) end ;
 
@@ -597,7 +597,7 @@ macro set_coorsys(CS = coorsys_cartesian(), vec = '𝐞', coords = nothing)
         if $(esc(coords)) === nothing
             coords = string.(getcoords($(esc(CS))))
         end
-        dim = getdim($(esc(CS)))
+        dim = get_dim($(esc(CS)))
         if length(coords) == dim - 1
             coords = (coords..., dim)
         end

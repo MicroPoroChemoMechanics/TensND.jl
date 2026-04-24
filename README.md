@@ -18,7 +18,7 @@ TensND.jl is a Julia package for tensor calculations of any order and dimension 
 
 - **Basis types**: canonical, rotated, orthogonal, and fully general (non-orthogonal, symbolic)
 - **Tensor algebra**: products (`⊗`, `⊗ˢ`, `⊠`, `⊠ˢ`, `⋅`, `⊡`, `⊙`), change of basis, variance management
-- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensWalpole`, `TensTI`), orthotropic (`TensOrtho`) with compact storage and efficient algebra
+- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI{4}`, `TensTI`), orthotropic (`TensOrtho`) with compact storage and efficient algebra
 - **Symmetry projection**: find the closest ISO, TI, or ORTHO tensor; rotation-optimized via [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl)
 - **Differential operators**: gradient, symmetric gradient, divergence, Laplacian, Hessian in curvilinear coordinates (symbolic and numerical)
 - **Generic type system**: works with `Float64`, symbolic types (`Sym`, `Num`), and `ForwardDiff.Dual` for automatic differentiation

@@ -23,10 +23,10 @@ factor(simplify(components(T, ℬ, (:cont, :cov))))
 
 Special tensors are available
 
-- `tensId2(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: second-order identity (`𝟏ᵢⱼ = δᵢⱼ = 1 if i=j otherwise 0`)
-- `tensId4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: fourth-order identity with minor symmetries (`𝕀 = 𝟏 ⊠ˢ 𝟏` i.e. `(𝕀)ᵢⱼₖₗ = (δᵢₖδⱼₗ+δᵢₗδⱼₖ)/2`)
-- `tensJ4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: fourth-order spherical projector (`𝕁 = (𝟏 ⊗ 𝟏) / dim` i.e. `(𝕁)ᵢⱼₖₗ = δᵢⱼδₖₗ/dim`)
-- `tensK4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: fourth-order deviatoric projector (`𝕂 = 𝕀 - 𝕁` i.e. `(𝕂)ᵢⱼₖₗ = (δᵢₖδⱼₗ+δᵢₗδⱼₖ)/2 - δᵢⱼδₖₗ/dim`)
+- `tens_Id2(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: second-order identity (`𝟏ᵢⱼ = δᵢⱼ = 1 if i=j otherwise 0`)
+- `tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: fourth-order identity with minor symmetries (`𝕀 = 𝟏 ⊠ˢ 𝟏` i.e. `(𝕀)ᵢⱼₖₗ = (δᵢₖδⱼₗ+δᵢₗδⱼₖ)/2`)
+- `tens_J4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: fourth-order spherical projector (`𝕁 = (𝟏 ⊗ 𝟏) / dim` i.e. `(𝕁)ᵢⱼₖₗ = δᵢⱼδₖₗ/dim`)
+- `tens_K4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: fourth-order deviatoric projector (`𝕂 = 𝕀 - 𝕁` i.e. `(𝕂)ᵢⱼₖₗ = (δᵢₖδⱼₗ+δᵢₗδⱼₖ)/2 - δᵢⱼδₖₗ/dim`)
 - `ISO(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim,T<:Number}`: returns `𝕀, 𝕁, 𝕂`
 
 The useful tensor products are the following:
@@ -40,7 +40,7 @@ The useful tensor products are the following:
 - `⊙` quadruple contracted product
 
 ```@repl tensors
-𝟏 = tensId2(3, Sym)
+𝟏 = tens_Id2(3, Sym)
 𝕀, 𝕁, 𝕂 = ISO(3, Sym) ;
 𝕀 == 𝟏 ⊠ˢ 𝟏
 𝕁 == (𝟏 ⊗ 𝟏)/3
@@ -83,15 +83,15 @@ parametrized by one scalar, while a fourth-order isotropic tensor ``\alpha\mathb
 is parametrized by two scalars.  All arithmetic operations (``+``, ``-``, ``\times``, ``\mathbb{A}:\mathbb{B}``,
 ``\mathbb{A}^{-1}``) exploit this compact form and remain in the `TensISO` type whenever possible.
 
-The type predicates `isISO`, `isTI`, `isOrtho` allow querying the symmetry class of any tensor:
+The type predicates `is_ISO`, `is_TI`, `is_ORTHO` allow querying the symmetry class of any tensor:
 
 ```@repl tensors_iso
 using TensND, Tensors
-𝟏 = tensId2(Val(3), Val(Float64))
+𝟏 = tens_Id2(Val(3), Val(Float64))
 𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64)) ;
-isISO(𝕀)
-isTI(𝕀)
-isOrtho(𝕀)
+is_ISO(𝕀)
+is_TI(𝕀)
+is_ORTHO(𝕀)
 ```
 
 The compact display reflects the algebraic form directly:
@@ -103,7 +103,7 @@ show(stdout, 2.0 * 𝟏)  # prints "(2.0) 𝟏"
 
 ## Transverse isotropy and orthotropy
 
-### TensWalpole
+### TensTI{4}
 
 A transversely isotropic 4th-order tensor with symmetry axis ``\mathbf{n}`` is decomposed in the Walpole basis:
 
@@ -136,25 +136,25 @@ The `show` method displays the tensor in its compact Walpole form, including the
 using TensND, Tensors
 n = 𝐞(3) ;
 W1, W2, W3, W4, W5, W6 = Walpole(n) ;
-L = TensWalpole(2., 1., 0.5, 0.3, 0.8, n)
+L = TensTI{4}(2., 1., 0.5, 0.3, 0.8, n)
 show(stdout, L)
-maximum(abs.(getarray(L ⊡ inv(L)) - getarray(tensId4(Val(3), Val(Float64)))))
+maximum(abs.(get_array(L ⊡ inv(L)) - get_array(tens_Id4(Val(3), Val(Float64)))))
 𝕀, 𝕁, 𝕂 = ISO() ; L2 = fromISO(3𝕁 + 2𝕂, n)
-isTI(L)
-isISO(L)
-isOrtho(L)
+is_TI(L)
+is_ISO(L)
+is_ORTHO(L)
 ```
 
-An isotropic tensor converted to `TensWalpole` via `fromISO` retains the `isTI` predicate, and
-symbolic manipulations via `tsimplify`, `tsubs`, `tdiff`, etc. preserve the `TensWalpole` type:
+An isotropic tensor converted to `TensTI{4}` via `fromISO` retains the `is_TI` predicate, and
+symbolic manipulations via `tsimplify`, `tsubs`, `tdiff`, etc. preserve the `TensTI{4}` type:
 
 ```@repl tensors_walpole
 using SymPy
 ℓ₁, ℓ₂, ℓ₃ = symbols("ℓ₁ ℓ₂ ℓ₃", real = true) ;
 ns = 𝐞(Val(3), Val(3), Val(Sym)) ;
-Ls = TensWalpole(ℓ₁, ℓ₂, ℓ₃, ℓ₁ + ℓ₂, ℓ₂ + ℓ₃, ns) ;
+Ls = TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₁ + ℓ₂, ℓ₂ + ℓ₃, ns) ;
 Ls_simp = tsimplify(Ls) ;
-Ls_simp isa TensWalpole
+Ls_simp isa TensTI{4}
 ```
 
 ### TensOrtho
@@ -171,7 +171,7 @@ with ``P_m = \mathbf{e}_m\otimes\mathbf{e}_m`` has 9 independent elastic constan
 The Kelvin-Mandel matrix in the material frame (ordering ``11,22,33,23,13,12``) is block-diagonal.
 Use `KM_material(t)` to retrieve it; `KM(t)` gives the matrix in the canonical frame.
 
-The `show` method displays all 9 constants and the material frame, and `isOrtho` identifies the type:
+The `show` method displays all 9 constants and the material frame, and `is_ORTHO` identifies the type:
 
 ```@repl tensors_ortho
 using TensND, Tensors
@@ -179,10 +179,10 @@ using TensND, Tensors
 t = TensOrtho(10., 8., 9., 3., 2., 4., 2.5, 3., 1.5, ℬ) ;
 show(stdout, t)
 KM_material(t)
-maximum(abs.(getarray(t) ⊡ getarray(inv(t)) - getarray(tensId4(Val(3), Val(Float64)))))
-isOrtho(t)
-isTI(t)
-isISO(t)
+maximum(abs.(get_array(t) ⊡ get_array(inv(t)) - get_array(tens_Id4(Val(3), Val(Float64)))))
+is_ORTHO(t)
+is_TI(t)
+is_ISO(t)
 ```
 
 ### TensTI (2nd-order transversely isotropic)
@@ -204,10 +204,10 @@ For order 2, `N=2` and `data = (a, b)`.  When `a = b`, the tensor is isotropic.
 using TensND, LinearAlgebra
 n = [0., 0., 1.] ;
 A = TensTI{2}(5.0, 8.0, n)
-getarray(A)
+get_array(A)
 tr(A)
-isISO(A)
-isTI(A)
+is_ISO(A)
+is_TI(A)
 inv(A).data
 ```
 
@@ -227,16 +227,16 @@ off-diagonal structure:
 ```@repl tensors_ti
 n45 = [1/√2, 0., 1/√2] ;
 C = TensTI{2}(3.0, 7.0, n45) ;
-getarray(C)
+get_array(C)
 ```
 
 ### TI convenience constructors and engineering parametrizations
 
 Three parametrizations are available for constructing TI 4th-order tensors (stiffness or
-compliance). They all return a `TensWalpole{T,5}` and have corresponding extraction
+compliance). They all return a `TensTI{4, T, 5}` and have corresponding extraction
 functions.
 
-#### Direct component form: `tensTI` / `argTI`
+#### Direct component form: `tens_TI` / `arg_TI`
 
 Construct from the 5 independent components ``C_{1111}, C_{1122}, C_{1133}, C_{3333}, C_{2323}``
 (axis ``\mathbf{n} = \mathbf{e}_3``). Works for both stiffness and compliance tensors:
@@ -244,11 +244,11 @@ Construct from the 5 independent components ``C_{1111}, C_{1122}, C_{1133}, C_{3
 ```@repl tensors_eng
 using TensND
 n = [0., 0., 1.] ;
-C = tensTI(10., 3., 2.5, 12., 2., n) ;
-argTI(C)
+C = tens_TI(10., 3., 2.5, 12., 2., n) ;
+arg_TI(C)
 ```
 
-#### Engineering form: `tensTI_eng` / `argTI_eng`
+#### Engineering form: `tens_TI_eng` / `arg_TI_eng`
 
 Construct the TI **compliance** tensor from 5 engineering constants commonly used in composite
 mechanics:
@@ -262,13 +262,13 @@ mechanics:
 To obtain the stiffness tensor, invert the result:
 
 ```@repl tensors_eng
-𝕊 = tensTI_eng(72., 50., 0.3, 0.25, 15., n) ;
-argTI_eng(𝕊)
+𝕊 = tens_TI_eng(72., 50., 0.3, 0.25, 15., n) ;
+arg_TI_eng(𝕊)
 ℂ = inv(𝕊) ;
-maximum(abs.(getarray(ℂ ⊡ 𝕊) - getarray(tensId4(Val(3), Val(Float64)))))
+maximum(abs.(get_array(ℂ ⊡ 𝕊) - get_array(tens_Id4(Val(3), Val(Float64)))))
 ```
 
-#### Hoenig form: `tensTI_Hoenig` / `argTI_Hoenig`
+#### Hoenig form: `tens_TI_Hoenig` / `arg_TI_Hoenig`
 
 An alternative parametrization (Hoenig, 1978) expressed as dimensionless ratios relative
 to the transverse Young's modulus ``E``:
@@ -283,35 +283,35 @@ The Hoenig parametrization is useful when discussing anisotropy ratios independe
 overall stiffness scale:
 
 ```@repl tensors_eng
-𝕊h = tensTI_Hoenig(72., 0.3, 0.25, 0.7, 0.9, n) ;
-argTI_Hoenig(𝕊h)
+𝕊h = tens_TI_Hoenig(72., 0.3, 0.25, 0.7, 0.9, n) ;
+arg_TI_Hoenig(𝕊h)
 ```
 
-All three parametrizations are interconvertible through the `TensWalpole` representation;
+All three parametrizations are interconvertible through the `TensTI{4}` representation;
 going from one to another simply requires calling the appropriate `arg*` extractor on a
 tensor built via the corresponding constructor.
 
 ### Accessing Walpole coefficients
 
-For any `TensWalpole`, the function `get_ℓ` returns the 6 Walpole coefficients as a tuple
+For any `TensTI{4}`, the function `get_ℓ` returns the 6 Walpole coefficients as a tuple
 (for N=5, ``\ell_3 = \ell_4`` is repeated):
 
 ```@repl tensors_walpole
 using TensND
 n = 𝐞(3) ;
-L = TensWalpole(2., 1., 0.5, 0.3, 0.8, n) ;
+L = TensTI{4}(2., 1., 0.5, 0.3, 0.8, n) ;
 get_ℓ(L)
-getaxis(L)
+axis(L)
 ```
 
-For `TensOrtho`, the material frame is accessible via `getframe`:
+For `TensOrtho`, the material frame is accessible via `frame`:
 
 ```@repl tensors_ortho
 using TensND, Tensors
 ℬ = CanonicalBasis{3,Float64}() ;
 t = TensOrtho(10., 8., 9., 3., 2., 4., 2.5, 3., 1.5, ℬ) ;
-getframe(t)
-getdata(t)
+frame(t)
+get_data(t)
 ```
 
 ### Kelvin-Mandel representation
@@ -325,7 +325,7 @@ uses engineering shear (factor 2 instead of ``\sqrt{2}``).
 
 - `KM(t)`: KM matrix/vector in the **canonical** frame
 - `KM_material(t::TensOrtho)`: KM matrix in the **material** frame (block-diagonal for orthotropic)
-- `invKM(km)`: reconstruct a symmetric tensor from its KM representation
+- `inv_KM(km)`: reconstruct a symmetric tensor from its KM representation
 
 ```@repl tensors_ortho
 KM_material(t)
@@ -333,21 +333,21 @@ KM_material(t)
 
 ### Symmetry class predicates
 
-The three predicates `isISO`, `isTI`, `isOrtho` form a consistent hierarchy across all specialized
+The three predicates `is_ISO`, `is_TI`, `is_ORTHO` form a consistent hierarchy across all specialized
 tensor types.  Any value that is not a recognized tensor type returns `false` for all three:
 
 ```@repl tensors_preds
 using TensND, Tensors
 𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64)) ;
 n = 𝐞(3) ;
-L = TensWalpole(2., 1., 0.5, 3., 4., n) ;
+L = TensTI{4}(2., 1., 0.5, 3., 4., n) ;
 A2 = TensTI{2}(5.0, 8.0, n) ;
 ℬ = CanonicalBasis{3,Float64}() ;
 t = TensOrtho(10., 8., 9., 3., 2., 4., 2.5, 3., 1.5, ℬ) ;
-(isISO(𝕀), isTI(𝕀),  isOrtho(𝕀))
-(isISO(L),  isTI(L),  isOrtho(L))
-(isISO(A2), isTI(A2), isOrtho(A2))
-(isISO(t),  isTI(t),  isOrtho(t))
+(is_ISO(𝕀), is_TI(𝕀),  is_ORTHO(𝕀))
+(is_ISO(L),  is_TI(L),  is_ORTHO(L))
+(is_ISO(A2), is_TI(A2), is_ORTHO(A2))
+(is_ISO(t),  is_TI(t),  is_ORTHO(t))
 ```
 
 ## Projection onto symmetry subspaces
@@ -365,15 +365,15 @@ The function `proj_tens` provides this projection.  It returns a 3-tuple `(B, d,
 ### Fixed-axis TI projection (order 4)
 
 Project a 4th-order tensor onto the TI subspace with a given axis ``\mathbf{n}``.
-The result is a `TensWalpole{T,5}`:
+The result is a `TensTI{4, T, 5}`:
 
 ```@repl tensors_proj
 using TensND, LinearAlgebra
 n = [0., 0., 1.] ;
-C = tensTI(10., 3., 2.5, 12., 2., n) ;
-B, d, drel = proj_tens(:TI, getarray(C), n) ;
+C = tens_TI(10., 3., 2.5, 12., 2., n) ;
+B, d, drel = proj_tens(:TI, get_array(C), n) ;
 drel < 1e-12
-B isa TensWalpole
+B isa TensTI{4}
 ```
 
 ### Fixed-axis TI projection (order 2)
@@ -394,7 +394,7 @@ Project onto the orthotropic subspace with a given material frame:
 ```@repl tensors_proj
 frame = CanonicalBasis{3,Float64}() ;
 t = TensOrtho(10., 8., 12., 3., 2.5, 1.5, 2., 3., 3.5, frame) ;
-Bo, do_, drelo = proj_tens(:ORTHO, getarray(t), frame) ;
+Bo, do_, drelo = proj_tens(:ORTHO, get_array(t), frame) ;
 drelo < 1e-12
 Bo isa TensOrtho
 ```
@@ -415,7 +415,7 @@ The function `best_sym_tens` tries symmetries from the most restrictive to the l
 a threshold ``\varepsilon`` (default `1e-6`).  Pass an axis or frame for fixed-basis detection:
 
 ```@repl tensors_proj
-C_ti = tensTI(10., 3., 2.5, 12., 2., n) ;
+C_ti = tens_TI(10., 3., 2.5, 12., 2., n) ;
 _, _, _, sym = best_sym_tens(C_ti, n; proj = (:TI, :ORTHO)) ;
 sym
 ```
@@ -429,10 +429,10 @@ best approximation.  This requires the `NLopt` package (declared as a weak depen
 using NLopt   # triggers the TensNDNLoptExt extension
 
 # Optimise the TI axis automatically
-B_opt, d_opt, drel_opt = proj_tens(:TI, getarray(C))
+B_opt, d_opt, drel_opt = proj_tens(:TI, get_array(C))
 
 # Optimise the ORTHO frame automatically
-B_ort, d_ort, drel_ort = proj_tens(:ORTHO, getarray(C))
+B_ort, d_ort, drel_ort = proj_tens(:ORTHO, get_array(C))
 ```
 
 The optimiser uses a two-pass strategy (global + local refinement) inspired by the

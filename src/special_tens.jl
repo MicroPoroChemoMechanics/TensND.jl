@@ -359,7 +359,7 @@ Tens.TensCanonical{4, 3, Sym, SymmetricTensor{4, 3, Sym, 36}}
  0  1  0
  0  0  1
 
-julia> R6 = invKM(subs.(KM(rot6(θ, ϕ, ψ)),d...))
+julia> R6 = inv_KM(subs.(KM(rot6(θ, ϕ, ψ)),d...))
 Tens.TensCanonical{4, 3, Sym, SymmetricTensor{4, 3, Sym, 36}}
 # data: 6×6 Matrix{Sym}:
                           (cθ*cψ*cϕ - sψ*sϕ)^2                            (-cθ*cϕ*sψ - cψ*sϕ)^2           cϕ^2*sθ^2                      √2⋅cϕ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)                     √2⋅cϕ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)

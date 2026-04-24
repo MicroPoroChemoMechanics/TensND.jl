@@ -1,8 +1,22 @@
-using TensND, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations, Latexify
-sympy.init_printing(use_unicode=true)
+# ============================================================================
+#  Stress intensity factors — transversely-isotropic matrix
+#
+#  Legacy research sandbox that predates the in-library Walpole support.
+#  Re-defines the Walpole basis locally (`Walpole_Basis`, `Walpole_Basis_sym`)
+#  and the TI 4th-order constructor (`defTI`, `defcompTI`) to experiment
+#  with SIF integrals for a TI medium.  The in-library equivalents are
+#  `walpole_basis` / `walpole_basis_sym` in TensND and `tens_TI` /
+#  `tens_TI_eng` / `tens_TI_Hoenig` — prefer those in new code.
+# ============================================================================
 
-𝕀, 𝕁, 𝕂 = ISO(Val(3),Val(Sym))
-𝟏 = tensId2(Val(3),Val(Sym))
+import Pkg
+Pkg.activate(joinpath(@__DIR__, ".."); io = devnull)
+
+using TensND, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations, Latexify
+sympy.init_printing(use_unicode = true)
+
+𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
+𝟏 = tens_Id2(Val(3), Val(Sym))
 
 E, k, μ = symbols("E k μ", positive = true)
 ν = symbols("ν", real = true)
@@ -11,14 +25,14 @@ k = E / (3(1-2ν)) ; μ = E / (2(1+ν))
 
 function Walpole_Basis(𝐧)
     T = eltype(𝐧)
-    𝟏 = tensId2(3, T)
+    𝟏 = tens_Id2(3, T)
     𝐩 = 𝐧⊗𝐧 ; 𝐪=𝟏-𝐩
     return 𝐩⊗𝐩, 𝐪⊗𝐪/2, 𝐩⊗𝐪/√(T(2)), 𝐪⊗𝐩/√(T(2)), 𝐪⊠ˢ𝐪-𝐪⊗𝐪/2, 𝐪⊠ˢ𝐩+𝐩⊠ˢ𝐪
 end
 
 function Walpole_Basis_sym(𝐧)
     T = eltype(𝐧)
-    𝟏 = tensId2(3, T)
+    𝟏 = tens_Id2(3, T)
     𝐩 = 𝐧⊗𝐧 ; 𝐪=𝟏-𝐩
     return 𝐩⊗𝐩, 𝐪⊗𝐪/2, 𝐩⊗𝐪/√(T(2))+𝐪⊗𝐩/√(T(2)), 𝐪⊠ˢ𝐪-𝐪⊗𝐪/2, 𝐪⊠ˢ𝐩+𝐩⊠ˢ𝐪
 end
@@ -37,14 +51,14 @@ end
 
 w = Walpole(𝕂,𝐄ˢ)
 
-function defTI(T₁₁₁₁, T₁₁₂₂, T₁₁₃₃, T₃₃₃₃, T₂₃₂₃, ṉ = tensbasis(CanonicalBasis{3,typeof(T₁₁₁₁)}(), 3))
+function defTI(T₁₁₁₁, T₁₁₂₂, T₁₁₃₃, T₃₃₃₃, T₂₃₂₃, ṉ = tens_basis(CanonicalBasis{3,typeof(T₁₁₁₁)}(), 3))
     T = eltype(ṉ)
     𝕎 = Walpole_Basis_sym(ṉ)
     𝕋 = T₃₃₃₃ * 𝕎[1] + (T₁₁₁₁ + T₁₁₂₂) * 𝕎[2] + √(T(2)) * T₁₁₃₃ * 𝕎[3] + (T₁₁₁₁ - T₁₁₂₂) * 𝕎[4] + 2 * T₂₃₂₃ * 𝕎[5]
     return 𝕋
 end
 
-function defcompTI(E₁, E₃, ν₁₂, ν₃₁, G₃₁, ṉ = tensbasis(CanonicalBasis{3,typeof(E₁)}(), 3))
+function defcompTI(E₁, E₃, ν₁₂, ν₃₁, G₃₁, ṉ = tens_basis(CanonicalBasis{3,typeof(E₁)}(), 3))
     T = eltype(ṉ)
     𝕎 = Walpole_Basis_sym(ṉ)
     T₁₁₁₁ = inv(E₁)
@@ -56,13 +70,13 @@ function defcompTI(E₁, E₃, ν₁₂, ν₃₁, G₃₁, ṉ = tensbasis(Cano
     return 𝕋
 end
 
-function argTI(ℂ, ṉ = tensbasis(getbasis(ℂ), 3))
-    C = tensbasis(getbasis(ℂ), 3) == ṉ ? ℂ : change_tens(ℂ, Basis(angles(components_canon(ṉ))...))
+function arg_TI(ℂ, ṉ = tens_basis(get_basis(ℂ), 3))
+    C = tens_basis(get_basis(ℂ), 3) == ṉ ? ℂ : change_tens(ℂ, Basis(angles(components_canon(ṉ))...))
     return C[1, 1, 1, 1], C[1, 1, 2, 2], C[1, 1, 3, 3], C[3, 3, 3, 3], C[2, 3, 2, 3]
 end
 
-function argcompTI(𝕊, ṉ = tensbasis(getbasis(𝕊), 3))
-    S = tensbasis(getbasis(𝕊), 3) == ṉ ? 𝕊 : change_tens(𝕊, Basis(angles(components_canon(ṉ))...))
+function argcompTI(𝕊, ṉ = tens_basis(get_basis(𝕊), 3))
+    S = tens_basis(get_basis(𝕊), 3) == ṉ ? 𝕊 : change_tens(𝕊, Basis(angles(components_canon(ṉ))...))
     E₁ = inv(S[1, 1, 1, 1])
     E₃ = inv(S[3, 3, 3, 3])
     ν₁₂ = -E₁ * S[1, 1, 2, 2]
@@ -93,7 +107,7 @@ function B_TI(η::Sym, ℬ, C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃
     Bₗₗ = 1 / (3η) / (C₂₃₂₃^2 * ((I₀ - I₂) * R₂₃₂₃ + I₂ * R₃₁₃₁))
     Bₘₘ = 1 / (3η) / (C₂₃₂₃^2 * ((I₀ - I₂) * R₃₁₃₁ + I₂ * R₂₃₂₃))
     𝐁 = Tens(Diagonal([Bₗₗ, Bₘₘ, Bₙₙ]), ℬ)
-    ṉ = tensbasis(ℬ, 3)
+    ṉ = tens_basis(ℬ, 3)
     ℍ = 3 / 4 * ṉ ⊗ˢ 𝐁 ⊗ˢ ṉ
     return 𝐁, ℍ
 end

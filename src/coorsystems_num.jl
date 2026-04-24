@@ -32,7 +32,7 @@ struct CoorSystemNum{dim, T <: Real} <: AbstractCoorSystem{dim, T}
     Γ_func::Function   # x -> Array{T,3}  Γ[i,j,k] = Γᵏᵢⱼ
 end
 
-@pure getdim(::CoorSystemNum{dim}) where {dim} = dim
+@pure get_dim(::CoorSystemNum{dim}) where {dim} = dim
 
 # ─────────────────────────────────────────────────────────────────
 # Christoffel symbol helpers

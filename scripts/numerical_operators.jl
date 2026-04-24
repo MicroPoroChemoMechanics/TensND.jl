@@ -1,4 +1,4 @@
-# ============================================================
+# ============================================================================
 #  Numerical differential operators with CoorSystemNum
 #  (automatic differentiation via ForwardDiff)
 #
@@ -8,7 +8,11 @@
 #      - numerical strain via SYMGRAD
 #      - numerical stress divergence via DIV (rank-2)
 #      - parametric study over radius
-# ============================================================
+#   3. Custom coordinate system from an OM(x) function (elliptic coords)
+# ============================================================================
+
+import Pkg
+Pkg.activate(joinpath(@__DIR__, ".."); io = devnull)
 
 using TensND, LinearAlgebra, Printf
 

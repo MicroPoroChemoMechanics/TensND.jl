@@ -2,19 +2,19 @@
 
     # ── Type predicates ────────────────────────────────────────────────────────
     @testsection "TensISO — type predicates" begin
-        𝟏 = tensId2(Val(3), Val(Float64))
+        𝟏 = tens_Id2(Val(3), Val(Float64))
         𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
-        @test  isISO(𝕀)
-        @test  isISO(𝟏)
-        @test !isTI(𝕀)
-        @test !isTI(𝟏)
-        @test !isOrtho(𝕀)
-        @test !isOrtho(𝟏)
+        @test  is_ISO(𝕀)
+        @test  is_ISO(𝟏)
+        @test !is_TI(𝕀)
+        @test !is_TI(𝟏)
+        @test !is_ORTHO(𝕀)
+        @test !is_ORTHO(𝟏)
     end
 
     # ── Display (show) ─────────────────────────────────────────────────────────
     @testsection "TensISO — show" begin
-        𝟏 = tensId2(Val(3), Val(Float64))
+        𝟏 = tens_Id2(Val(3), Val(Float64))
         𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
         # show should write to the provided IO, not to stdout
         buf4 = IOBuffer()
@@ -30,7 +30,7 @@
 
     for T in (Sym, Float64), dim in (2, 3)
         @testsection "type $T, dim $dim" begin
-            𝟏 = tensId2(Val(dim), Val(T))
+            𝟏 = tens_Id2(Val(dim), Val(T))
             @test opequal(𝟏, 1I)
             @test opequal(tr(𝟏), dim)
 
@@ -47,7 +47,7 @@
             @test opequal(t, 𝟏)
             @test t isa TensISO{2}
             @test opequal(inv(α * 𝟏), inv(α) * 𝟏)
-            @test isISO(t)
+            @test is_ISO(t)
 
             𝕀, 𝕁, 𝕂 = ISO(Val(dim), Val(T))
             @test opequal(𝕁 + 𝕂, 𝕀)
@@ -65,7 +65,7 @@
             𝕋 = α * 𝕁 + β * 𝕂
             @test 𝕋 isa TensISO{4}
             @test opequal(inv(𝕋), inv(α) * 𝕁 + inv(β) * 𝕂)
-            @test isISO(𝕋)
+            @test is_ISO(𝕋)
 
             if T == Sym && dim == 3
                 E, ν = symbols("E ν", real = true)

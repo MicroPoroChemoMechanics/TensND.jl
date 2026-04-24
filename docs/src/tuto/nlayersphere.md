@@ -30,7 +30,7 @@ Spherical = coorsys_spherical()
 𝐱 = getOM(Spherical)
 𝐞₁, 𝐞₂, 𝐞₃ = unitvec(coorsys_cartesian())
 𝕀, 𝕁, 𝕂 = ISO(Val(3),Val(Sym))
-𝟏 = tensId2(Val(3),Val(Sym))
+𝟏 = tens_Id2(Val(3),Val(Sym))
 k, μ = symbols("k μ", positive = true)
 λ = k - 2μ/3
 nothing  # hide

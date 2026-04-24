@@ -3,7 +3,7 @@ abstract type AbstractBasis{dim, T <: Number} <: AbstractMatrix{T} end
 @pure Base.size(::AbstractBasis{dim}) where {dim} = (dim, dim)
 Base.getindex(ℬ::AbstractBasis, i::Integer, j::Integer) = getindex(vecbasis(ℬ, :cov), i, j)
 @pure Base.eltype(::Type{AbstractBasis{dim, T}}) where {dim, T} = T
-@pure getdim(::AbstractBasis{dim}) where {dim} = dim
+@pure get_dim(::AbstractBasis{dim}) where {dim} = dim
 
 # Build a Unicode sub/superscript string from an integer.
 # `minus_char` is the sign character; `digit_map` converts a digit 0–9 to its
@@ -533,4 +533,4 @@ for OP in (:show, :print, :display)
 end
 
 export Basis, CanonicalBasis, RotatedBasis, CylindricalBasis, SphericalBasis, OrthogonalBasis, AllOrthogonalBasis
-export getdim, vecbasis, metric, angles, isorthogonal, isorthonormal
+export get_dim, vecbasis, metric, angles, isorthogonal, isorthonormal

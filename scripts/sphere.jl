@@ -1,3 +1,20 @@
+# ============================================================================
+#  Isotropic sphere under classical remote loadings (symbolic)
+#
+#  Constructs the displacement/stress fields inside a hollow isotropic
+#  sphere for three canonical remote strain states:
+#    1. Spherical:              𝔼 = 𝟏
+#    2. Deviatoric axisymmetric: 𝔼 = 𝟏 − 3 𝐞₃⊗𝐞₃
+#    3. Pure shear:              𝔼 = 𝐞₁⊗𝐞₁ − 𝐞₂⊗𝐞₂
+#
+#  For each case, solves the Navier equilibrium equations symbolically
+#  (via SymPy `dsolve`/`solve`) and recovers the radial traction 𝐓⋅𝐞ʳ
+#  plus the Lamé exponents (α, Λ) of the displacement ansatz uₐ(r) = C·rᵅ.
+# ============================================================================
+
+import Pkg
+Pkg.activate(joinpath(@__DIR__, ".."); io = devnull)
+
 using TensND, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations
 
 Spherical = coorsys_spherical()
@@ -6,9 +23,10 @@ Spherical = coorsys_spherical()
 ℬˢ = normalized_basis(Spherical)
 𝐱 = getOM(Spherical)
 @set_coorsys Spherical
+
 𝐞₁, 𝐞₂, 𝐞₃ = unitvec(coorsys_cartesian())
-𝕀, 𝕁, 𝕂 = ISO(Val(3),Val(Sym))
-𝟏 = tensId2(Val(3),Val(Sym))
+𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
+𝟏 = tens_Id2(Val(3), Val(Sym))
 k, μ = symbols("k μ", positive = true)
 ℂ = 3k*𝕁 + 2μ*𝕂
 remote_angle_functions(𝐄) = (fʳ=simplify(𝐞ʳ ⋅ 𝐄 ⋅ 𝐞ʳ) ; (diff(fʳ, θ)/2, diff(fʳ, ϕ)/(2sin(θ)), fʳ)) # return fᶿ, fᵠ, fʳ

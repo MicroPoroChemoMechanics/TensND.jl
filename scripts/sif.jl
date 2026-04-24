@@ -1,5 +1,17 @@
+# ============================================================================
+#  Stress intensity factors — isotropic Green's function machinery
+#
+#  Constructs the Hill polarisation tensor Λ = ℂ:ℾ:ℂ in the spherical
+#  frame for an isotropic matrix, where ℾ is the Green tensor built from
+#  𝐊 = 𝛏⋅ℂ⋅𝛏 (acoustic tensor).  Used to derive stress-intensity-factor
+#  integrals on crack fronts.
+# ============================================================================
+
+import Pkg
+Pkg.activate(joinpath(@__DIR__, ".."); io = devnull)
+
 using TensND, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations
-sympy.init_printing(use_unicode=true)
+sympy.init_printing(use_unicode = true)
 
 Cartesian = coorsys_cartesian(symbols("x y z", real = true))
 𝐞₁, 𝐞₂, 𝐞₃ = unitvec(Cartesian)
@@ -9,8 +21,8 @@ Spherical = coorsys_spherical((symbols("θ ϕ", real = true)..., symbols("ξ", p
 θ, ϕ, ξ = getcoords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
 ℬˢ = normalized_basis(Spherical)
 # @set_coorsys Spherical
-𝕀, 𝕁, 𝕂 = ISO(Val(3),Val(Sym))
-𝟏 = tensId2(Val(3),Val(Sym))
+𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
+𝟏 = tens_Id2(Val(3), Val(Sym))
 
 𝛏 = getOM(Spherical)
 

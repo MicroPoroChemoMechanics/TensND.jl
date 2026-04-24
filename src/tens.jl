@@ -1,7 +1,7 @@
 abstract type AbstractTens{order, dim, T <: Number} <: AbstractArray{T, order} end
 
-@pure getorder(::AbstractTens{order, dim, T}) where {order, dim, T} = order
-@pure getdim(::AbstractTens{order, dim, T}) where {order, dim, T} = dim
+@pure get_order(::AbstractTens{order, dim, T}) where {order, dim, T} = order
+@pure get_dim(::AbstractTens{order, dim, T}) where {order, dim, T} = dim
 @pure Base.eltype(::Type{AbstractTens{order, dim, T}}) where {order, dim, T} = T
 
 
@@ -80,8 +80,8 @@ end
 # directly; otherwise derive a candidate from the Kelvin-Mandel eigenstructure
 # (or fall back to `e₃` / the canonical frame for non-numeric element types).
 
-_default_TI_axis(t) = _candidate_TI_axis(Array(getarray(t)))
-_default_ORTHO_frame(t) = _candidate_ORTHO_frame(Array(getarray(t)))
+_default_TI_axis(t) = _candidate_TI_axis(Array(get_array(t)))
+_default_ORTHO_frame(t) = _candidate_ORTHO_frame(Array(get_array(t)))
 
 for order in (2, 4)
     @eval begin
@@ -110,7 +110,7 @@ for order in (2, 4)
         ```julia
         julia> n = [0., 0., 1.];
         
-        julia> C = tensTI(10., 3., 2.5, 12., 2., n);
+        julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
         
         julia> _, _, _, sym = best_sym_tens(C);
         
@@ -127,16 +127,16 @@ for order in (2, 4)
                 ε = 1.0e-6,
                 optimize_angles::Bool = false,
             ) where {dim, T}
-            basis = relevant_OrthonormalBasis(getbasis(t))
+            basis = relevant_OrthonormalBasis(get_basis(t))
             newt = change_tens(t, basis)
-            A = Array(getarray(newt))
+            A = Array(get_array(newt))
             if optimize_angles
                 return _best_sym_loop(newt, proj, ε, sym -> proj_tens(sym, A))
             else
                 # Cheap path: reuse structured references when available, otherwise
                 # derive candidates from the Kelvin-Mandel eigendecomposition.
-                n_default = hasmethod(getaxis, Tuple{typeof(t)}) ? getaxis(t) : _default_TI_axis(newt)
-                frame_default = hasmethod(getframe, Tuple{typeof(t)}) ? getframe(t) : _default_ORTHO_frame(newt)
+                n_default = hasmethod(axis, Tuple{typeof(t)}) ? axis(t) : _default_TI_axis(newt)
+                frame_default = hasmethod(frame, Tuple{typeof(t)}) ? frame(t) : _default_ORTHO_frame(newt)
                 return _best_sym_loop(
                     newt, proj, ε,
                     function (sym)
@@ -168,7 +168,7 @@ for order in (2, 4)
         ```julia
         julia> n = [0., 0., 1.];
         
-        julia> C = tensTI(10., 3., 2.5, 12., 2., n);
+        julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
         
         julia> _, _, drel, sym = best_sym_tens(C, n);
         
@@ -182,9 +182,9 @@ for order in (2, 4)
                 proj = (:ISO, :TI, :ORTHO),
                 ε = 1.0e-6,
             ) where {dim, T}
-            basis = relevant_OrthonormalBasis(getbasis(t))
+            basis = relevant_OrthonormalBasis(get_basis(t))
             newt = change_tens(t, basis)
-            A = Array(getarray(newt))
+            A = Array(get_array(newt))
             return _best_sym_loop(
                 newt, proj, ε,
                 sym -> sym == :ISO ? proj_tens(sym, A) : proj_tens(sym, A, n_or_frame)
@@ -245,21 +245,21 @@ TensOrthonormal(data::AbstractArray, ::CanonicalBasis) = TensCanonical(data)
 
 TensOrthonormal(t::TensOrthonormal) = t
 function TensOrthonormal(t::TensOrthogonal{order, dim, T}) where {order, dim, T}
-    m = Array(getarray(t))
-    ℬ = getbasis(t)
+    m = Array(get_array(t))
+    ℬ = get_basis(t)
     onℬ = relevant_OrthonormalBasis(ℬ)
     Λ = Dict(:cov => inv.(ℬ.λ), :cont => ℬ.λ)
     for ind in CartesianIndices(m)
-        m[ind] *= prod([Λ[getvar(t, i)][ind[i]] for i in 1:order])
+        m[ind] *= prod([Λ[get_var(t, i)][ind[i]] for i in 1:order])
     end
     return Tens(m, onℬ)
 end
 
-@inline Base.size(t::TensArray) = size(getarray(t))
-@inline Base.getindex(t::TensArray, ind...) = getindex(getarray(t), ind...)
+@inline Base.size(t::TensArray) = size(get_array(t))
+@inline Base.getindex(t::TensArray, ind...) = getindex(get_array(t), ind...)
 @pure datatype(::TensArray{order, dim, T, A}) where {order, dim, T, A} = A
 
-@inline Base.zero(t::AbstractTens) = Tens(zero.(getarray(t)), getbasis(t), getvar(t))
+@inline Base.zero(t::AbstractTens) = Tens(zero.(get_array(t)), get_basis(t), get_var(t))
 
 # This function aims at storing the table of components in the `Tensor` type whenever possible
 # Convert a raw array into the best matching Tensors.jl type (Vec, Tensor, or
@@ -284,13 +284,13 @@ tensor_or_array(tab::AbstractArray) = tab
 # Utility/Accessor Functions #
 ##############################
 
-getarray(t::TensArray) = t.data
-getbasis(t::TensBasis) = t.basis
-getbasis(::TensCanonical{order, dim, T}) where {order, dim, T} = CanonicalBasis{dim, T}()
-getvar(::TensOrthonormal{order}) where {order} = ntuple(_ -> :cov, Val(order))
-getvar(::TensOrthonormal, i::Integer) = :cov
-getvar(t::TensVar) = t.var
-getvar(t::TensVar, i::Integer) = t.var[i]
+get_array(t::TensArray) = t.data
+get_basis(t::TensBasis) = t.basis
+get_basis(::TensCanonical{order, dim, T}) where {order, dim, T} = CanonicalBasis{dim, T}()
+get_var(::TensOrthonormal{order}) where {order} = ntuple(_ -> :cov, Val(order))
+get_var(::TensOrthonormal, i::Integer) = :cov
+get_var(t::TensVar) = t.var
+get_var(t::TensVar, i::Integer) = t.var[i]
 
 
 #####################
@@ -307,12 +307,12 @@ for OP in (:show, :print, :display)
                 $OP(KM(t))
             else
                 print("→ array: ")
-                $OP(getarray(t))
+                $OP(get_array(t))
             end
             print("→ basis: ")
-            $OP(vecbasis(getbasis(t)))
+            $OP(vecbasis(get_basis(t)))
             print("→ var: ")
-            return $OP(getvar(t))
+            return $OP(get_var(t))
         end
         function Base.$OP(t::TensOrthonormal)
             $OP(typeof(t))
@@ -321,10 +321,10 @@ for OP in (:show, :print, :display)
                 $OP(KM(t))
             else
                 print("→ array: ")
-                $OP(getarray(t))
+                $OP(get_array(t))
             end
             print("→ basis: ")
-            return $OP(vecbasis(getbasis(t)))
+            return $OP(vecbasis(get_basis(t)))
         end
 
         # Base.$OP(t::AbstractTens{order,dim,T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order,dim,T} = intrinsic(t; vec= vec, coords = coords)
@@ -335,7 +335,7 @@ intrinsic(t::T) where {T} = println(t)
 
 function intrinsic(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}
     ind = CartesianIndices(t)
-    ℬ = getbasis(t)
+    ℬ = get_basis(t)
     firstprint = true
     s = ""
     for i in ind
@@ -349,7 +349,7 @@ function intrinsic(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple
             end
             j = Tuple(i)
             for k in 1:order
-                s *= strvecbasis(ℬ, coords[j[k]], invvar(getvar(t, k)); vec = vec)
+                s *= strvecbasis(ℬ, coords[j[k]], invvar(get_var(t, k)); vec = vec)
                 if k < order
                     s *= "⊗"
                 end
@@ -435,20 +435,20 @@ julia> factor.(components(TT, ℬ, (:cont,:cov)))
   (t12 + t13 + t22 + t23 - t32 - t33)/2      (t11 + t12 + t21 + t22 - t31 - t32)/2
 ```
 """
-components(t::AbstractTens) = getarray(t)
+components(t::AbstractTens) = get_array(t)
 
-components(t::TensOrthonormal, ::NTuple) = getarray(t)
+components(t::TensOrthonormal, ::NTuple) = get_array(t)
 
 function components(
         t::TensOrthogonal{order, dim, T},
         var::NTuple{order, Symbol},
     ) where {order, dim, T}
-    if isequal(var, getvar(t))
-        return getarray(t)
+    if isequal(var, get_var(t))
+        return get_array(t)
     else
-        m = Array(getarray(t))
-        ℬ = getbasis(t)
-        g_or_G = ntuple(i -> isequal(getvar(t, i), var[i]) ? I : metric(ℬ, var[i]), order)
+        m = Array(get_array(t))
+        ℬ = get_basis(t)
+        g_or_G = ntuple(i -> isequal(get_var(t, i), var[i]) ? I : metric(ℬ, var[i]), order)
         for ind in CartesianIndices(m)
             m[ind] *= prod([g_or_G[i][ind[i], ind[i]] for i in 1:order])
         end
@@ -462,7 +462,7 @@ for B in (AbstractBasis, OrthogonalBasis, OrthonormalBasis)
             ℬ::$B{dim},
             var::NTuple{order, Symbol},
         ) where {order, dim, T}
-        if isequal(ℬ, getbasis(t))
+        if isequal(ℬ, get_basis(t))
             return components(t, var)
         else
             return components(TensOrthonormal(t), ℬ, var)
@@ -471,15 +471,15 @@ for B in (AbstractBasis, OrthogonalBasis, OrthonormalBasis)
 end
 
 function components(t::Tens{order, dim, T}, var::NTuple{order, Symbol}) where {order, dim, T}
-    if isequal(var, getvar(t))
-        return getarray(t)
+    if isequal(var, get_var(t))
+        return get_array(t)
     else
-        m = Array(getarray(t))
+        m = Array(get_array(t))
         ec1 = ntuple(i -> i, Val(order))
         newcp = order + 1
         for i in 1:order
-            if !isequal(getvar(t, i), var[i])
-                g_or_G = metric(getbasis(t), var[i])
+            if !isequal(get_var(t, i), var[i])
+                g_or_G = metric(get_basis(t), var[i])
                 ec2 = (i, newcp)
                 ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
                 m = T.(einsum(EinCode((ec1, ec2), ec3), (m, g_or_G)))
@@ -494,20 +494,20 @@ function components(
         ℬ::AbstractBasis{dim},
         var::NTuple{order, Symbol},
     ) where {order, dim, T}
-    if isequal(ℬ, getbasis(t))
+    if isequal(ℬ, get_basis(t))
         return components(t, var)
     else
         bb = Dict{Tuple{Symbol, Symbol}, AbstractMatrix}()
         for v1 in (:cov, :cont), v2 in (:cov, :cont)
-            if v1 ∈ getvar(t) && v2 ∈ var
-                bb[v1, v2] = vecbasis(getbasis(t), invvar(v1))' * vecbasis(ℬ, v2)
+            if v1 ∈ get_var(t) && v2 ∈ var
+                bb[v1, v2] = vecbasis(get_basis(t), invvar(v1))' * vecbasis(ℬ, v2)
             end
         end
-        m = Array(getarray(t))
+        m = Array(get_array(t))
         ec1 = ntuple(i -> i, Val(order))
         newcp = order + 1
         for i in 1:order
-            c = bb[getvar(t, i), var[i]]
+            c = bb[get_var(t, i), var[i]]
             if c ≠ 1I
                 ec2 = (i, newcp)
                 ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
@@ -523,7 +523,7 @@ function components(
         ℬ::OrthogonalBasis{dim},
         var::NTuple{order, Symbol},
     ) where {order, dim, T}
-    if isequal(ℬ, getbasis(t))
+    if isequal(ℬ, get_basis(t))
         return components(t, var)
     else
         m = Array(components(t, relevant_OrthonormalBasis(ℬ)))
@@ -536,7 +536,7 @@ function components(
 end
 
 components(t::AbstractTens{order, dim, T}, ℬ::AbstractBasis{dim}) where {order, dim, T} =
-    components(t, ℬ, getvar(t))
+    components(t, ℬ, get_var(t))
 
 components(t::AbstractTens{order, dim, T}, ℬ::OrthonormalBasis{dim}) where {order, dim, T} =
     components(t, ℬ, ntuple(_ -> :cont, Val(order)))
@@ -545,11 +545,11 @@ function components(
         t::TensOrthonormal{order, dim, T},
         ℬ::OrthonormalBasis{dim},
     ) where {order, dim, T}
-    if isequal(ℬ, getbasis(t))
-        return getarray(t)
+    if isequal(ℬ, get_basis(t))
+        return get_array(t)
     else
-        bb = vecbasis(getbasis(t))' * vecbasis(ℬ)
-        m = Array(getarray(t))
+        bb = vecbasis(get_basis(t))' * vecbasis(ℬ)
+        m = Array(get_array(t))
         ec1 = ntuple(i -> i, Val(order))
         newcp = order + 1
         for i in 1:order
@@ -575,9 +575,9 @@ components(
 Extract the components of a tensor in the canonical basis
 """
 components_canon(t::AbstractTens) =
-    components(t, CanonicalBasis{getdim(t), eltype(t)}(), getvar(t))
+    components(t, CanonicalBasis{get_dim(t), eltype(t)}(), get_var(t))
 
-components_canon(t::TensOrthonormal) = components(t, CanonicalBasis{getdim(t), eltype(t)}())
+components_canon(t::TensOrthonormal) = components(t, CanonicalBasis{get_dim(t), eltype(t)}())
 
 """
     change_tens(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim},var::NTuple{order,Symbol})
@@ -623,7 +623,7 @@ Tens{1, 3, Sym, Vec{3, Sym}}
 ```
 """
 function change_tens(t::AbstractTens, ℬ::AbstractBasis, newvar::NTuple)
-    if isequal(ℬ, getbasis(t)) && isequal(newvar, getvar(t))
+    if isequal(ℬ, get_basis(t)) && isequal(newvar, get_var(t))
         return t
     else
         return Tens(components(t, ℬ, newvar), ℬ, newvar)
@@ -631,18 +631,18 @@ function change_tens(t::AbstractTens, ℬ::AbstractBasis, newvar::NTuple)
 end
 
 function change_tens(t::AbstractTens, newbasis::AbstractBasis)
-    if isequal(newbasis, getbasis(t))
+    if isequal(newbasis, get_basis(t))
         return t
     else
-        return Tens(components(t, newbasis, getvar(t)), newbasis, getvar(t))
+        return Tens(components(t, newbasis, get_var(t)), newbasis, get_var(t))
     end
 end
 
 function change_tens(t::AbstractTens, newvar::NTuple)
-    if isequal(newvar, getvar(t))
+    if isequal(newvar, get_var(t))
         return t
     else
-        return Tens(components(t, getbasis(t), newvar), getbasis(t), newvar)
+        return Tens(components(t, get_basis(t), newvar), get_basis(t), newvar)
     end
 end
 
@@ -679,39 +679,39 @@ TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
 # var: (:cont,)
 ```
 """
-change_tens_canon(t::AbstractTens) = change_tens(t, CanonicalBasis{getdim(t), eltype(t)}())
+change_tens_canon(t::AbstractTens) = change_tens(t, CanonicalBasis{get_dim(t), eltype(t)}())
 
 
 for OP in (:(tsimplify), :(tfactor), :(tsubs), :(ttrigsimp), :(texpand_trig))
     @eval $OP(t::Tensors.AllTensors{dim, T}, args...; kwargs...) where {dim, T <: Sym} =
         Tensors.get_base(typeof(t))($OP.(Tensors.get_data(t), args...; kwargs...))
     @eval $OP(t::AbstractTens{order, dim, T}, args...; kwargs...) where {order, dim, T <: Sym} =
-        Tens($OP(getarray(t), args...; kwargs...), $OP(getbasis(t), args...; kwargs...), getvar(t))
+        Tens($OP(get_array(t), args...; kwargs...), $OP(get_basis(t), args...; kwargs...), get_var(t))
 end
 for OP in (:(tdiff),)
     @eval $OP(t::Tensors.AllTensors{dim, T}, args...; kwargs...) where {dim, T <: Sym} =
         Tensors.get_base(typeof(t))($OP.(Tensors.get_data(t), args...; kwargs...))
     @eval $OP(t::AbstractTens{order, dim, T}, args...; kwargs...) where {order, dim, T <: Sym} =
-        Tens($OP(getarray(t), args...; kwargs...), getbasis(t), getvar(t))
+        Tens($OP(get_array(t), args...; kwargs...), get_basis(t), get_var(t))
 end
 diff_with_basis(t::AbstractTens{order, dim, T}, args...; kwargs...) where {order, dim, T <: Sym} =
-    change_tens(Tens(diff(components_canon(t), args...; kwargs...)), getbasis(t), getvar(t))
+    change_tens(Tens(diff(components_canon(t), args...; kwargs...)), get_basis(t), get_var(t))
 
 
 for OP in (:(tsimplify), :(tsubs))
     @eval $OP(t::Tensors.AllTensors{dim, Num}, args...; kwargs...) where {dim} =
         Tensors.get_base(typeof(t))($OP.(Tensors.get_data(t), args...; kwargs...))
     @eval $OP(t::AbstractTens{order, dim, Num}, args...; kwargs...) where {order, dim} =
-        Tens($OP(getarray(t), args...; kwargs...), $OP(getbasis(t), args...; kwargs...), getvar(t))
+        Tens($OP(get_array(t), args...; kwargs...), $OP(get_basis(t), args...; kwargs...), get_var(t))
 end
 for OP in (:(tdiff),)
     @eval $OP(t::Tensors.AllTensors{dim, Num}, args...; kwargs...) where {dim} =
         Tensors.get_base(typeof(t))($OP.(Tensors.get_data(t), args...; kwargs...))
     @eval $OP(t::AbstractTens{order, dim, Num}, args...; kwargs...) where {order, dim} =
-        Tens($OP(getarray(t), args...; kwargs...), getbasis(t), getvar(t))
+        Tens($OP(get_array(t), args...; kwargs...), get_basis(t), get_var(t))
 end
 diff_with_basis(t::AbstractTens{order, dim, Num}, args...; kwargs...) where {order, dim} =
-    change_tens(Tens(diff(components_canon(t), args...; kwargs...)), getbasis(t), getvar(t))
+    change_tens(Tens(diff(components_canon(t), args...; kwargs...)), get_basis(t), get_var(t))
 
 
 ##############
@@ -740,7 +740,7 @@ function same_basis(
         t1::AbstractTens{order1, dim},
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
-    ℬ = choose_best_basis(getbasis(t1), getbasis(t2))
+    ℬ = choose_best_basis(get_basis(t1), get_basis(t2))
     return change_tens(t1, ℬ), change_tens(t2, ℬ)
 end
 
@@ -748,8 +748,8 @@ function same_basis_same_var(
         t1::AbstractTens{order1, dim},
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
-    ℬ = choose_best_basis(getbasis(t1), getbasis(t2))
-    return change_tens(t1, ℬ, getvar(t1)), change_tens(t2, ℬ, getvar(t1))
+    ℬ = choose_best_basis(get_basis(t1), get_basis(t2))
+    return change_tens(t1, ℬ, get_var(t1)), change_tens(t2, ℬ, get_var(t1))
 end
 
 # same_basis(
@@ -760,7 +760,7 @@ end
 # same_basis_same_var(
 #     t1::AbstractTens{order1,dim},
 #     t2::AbstractTens{order2,dim},
-# ) where {order1,order2,dim} = t1, change_tens(t2, basis(t1), getvar(t1))
+# ) where {order1,order2,dim} = t1, change_tens(t2, basis(t1), get_var(t1))
 
 
 for OP in (:(==), :(!=), :(isequal))
@@ -769,7 +769,7 @@ for OP in (:(==), :(!=), :(isequal))
             t2::AbstractTens{order, dim},
         ) where {order, dim}
         nt1, nt2 = same_basis_same_var(t1, t2)
-        return $OP(getarray(nt1), getarray(nt2))
+        return $OP(get_array(nt1), get_array(nt2))
     end
 end
 
@@ -779,39 +779,39 @@ for OP in (:+, :-)
             t2::AbstractTens{order, dim},
         ) where {order, dim}
         nt1, nt2 = same_basis_same_var(t1, t2)
-        return Tens($OP(getarray(nt1), getarray(nt2)), getbasis(nt1), getvar(nt1))
+        return Tens($OP(get_array(nt1), get_array(nt2)), get_basis(nt1), get_var(nt1))
     end
     @eval @inline function Base.$OP(
             t1::AllTensOrthogonal{order, dim, T},
             t2::UniformScaling{T},
         ) where {order, dim, T <: Sym}
         nt1 = TensOrthonormal(t1)
-        return Tens($OP(getarray(nt1), t2), getbasis(nt1), getvar(nt1))
+        return Tens($OP(get_array(nt1), t2), get_basis(nt1), get_var(nt1))
     end
     @eval @inline function Base.$OP(
             t1::UniformScaling{T},
             t2::AllTensOrthogonal{order, dim, T},
         ) where {order, dim, T <: Sym}
         nt2 = TensOrthonormal(t2)
-        return Tens($OP(t1, getarray(nt2)), getbasis(nt2), getvar(nt2))
+        return Tens($OP(t1, get_array(nt2)), get_basis(nt2), get_var(nt2))
     end
 end
 
-@inline Base.:-(t::AbstractTens) = Tens(.-(getarray(t)), getbasis(t), getvar(t))
-@inline Base.:*(α::Number, t::AbstractTens) = Tens(α * getarray(t), getbasis(t), getvar(t))
-@inline Base.:*(t::AbstractTens, α::Number) = Tens(α * getarray(t), getbasis(t), getvar(t))
-@inline Base.:/(t::AbstractTens, α::Number) = Tens(getarray(t) / α, getbasis(t), getvar(t))
+@inline Base.:-(t::AbstractTens) = Tens(.-(get_array(t)), get_basis(t), get_var(t))
+@inline Base.:*(α::Number, t::AbstractTens) = Tens(α * get_array(t), get_basis(t), get_var(t))
+@inline Base.:*(t::AbstractTens, α::Number) = Tens(α * get_array(t), get_basis(t), get_var(t))
+@inline Base.:/(t::AbstractTens, α::Number) = Tens(get_array(t) / α, get_basis(t), get_var(t))
 
 @inline Base.inv(t::AbstractTens{2}) =
-    Tens(inv(getarray(t)), getbasis(t), (invvar(getvar(t, 2)), invvar(getvar(t, 1))))
+    Tens(inv(get_array(t)), get_basis(t), (invvar(get_var(t, 2)), invvar(get_var(t, 1))))
 @inline Base.inv(t::AbstractTens{4}) = Tens(
-    inv(getarray(t)),
-    getbasis(t),
+    inv(get_array(t)),
+    get_basis(t),
     (
-        invvar(getvar(t, 3)),
-        invvar(getvar(t, 4)),
-        invvar(getvar(t, 1)),
-        invvar(getvar(t, 2)),
+        invvar(get_var(t, 3)),
+        invvar(get_var(t, 4)),
+        invvar(get_var(t, 1)),
+        invvar(get_var(t, 2)),
     ),
 )
 
@@ -847,7 +847,7 @@ julia> KM(C)
 ```
 """
 KM(t::Tensors.AllTensors; kwargs...) = tomandel(t; kwargs...)
-KM(t::AbstractTens; kwargs...) = tomandel(getarray(t); kwargs...)
+KM(t::AbstractTens; kwargs...) = tomandel(get_array(t); kwargs...)
 
 KM(
     t::AbstractTens{order, dim},
@@ -876,16 +876,16 @@ const select_type_KM = Dict(
 
 
 """
-    invKM(v::AbstractVecOrMat; kwargs...)
+    inv_KM(v::AbstractVecOrMat; kwargs...)
 
 Define a tensor from a Kelvin-Mandel vector or matrix representation
 """
-invKM(TT::Type{<:Tensors.AllTensors}, v::AbstractVecOrMat; kwargs...) =
+inv_KM(TT::Type{<:Tensors.AllTensors}, v::AbstractVecOrMat; kwargs...) =
     Tens(frommandel(TT, v; kwargs...))
-invKM(TT::Type{<:Tensors.AllTensors}, v::AbstractVecOrMat, b::AbstractBasis; kwargs...) =
+inv_KM(TT::Type{<:Tensors.AllTensors}, v::AbstractVecOrMat, b::AbstractBasis; kwargs...) =
     Tens(frommandel(TT, v; kwargs...), b)
-invKM(v::AbstractVecOrMat; kwargs...) = invKM(select_type_KM[size(v)], v; kwargs...)
-invKM(v::AbstractVecOrMat, b::AbstractBasis; kwargs...) = invKM(select_type_KM[size(v)], v, b; kwargs...)
+inv_KM(v::AbstractVecOrMat; kwargs...) = inv_KM(select_type_KM[size(v)], v; kwargs...)
+inv_KM(v::AbstractVecOrMat, b::AbstractBasis; kwargs...) = inv_KM(select_type_KM[size(v)], v, b; kwargs...)
 
 
 """
@@ -903,9 +903,9 @@ function Tensors.otimes(
         return otimes(t1)
     else
         nt1, nt2 = same_basis(t1, t2)
-        data = otimes(getarray(nt1), getarray(nt2))
-        var = (getvar(nt1)..., getvar(nt2)...)
-        return Tens(data, getbasis(nt1), var)
+        data = otimes(get_array(nt1), get_array(nt2))
+        var = (get_var(nt1)..., get_var(nt2)...)
+        return Tens(data, get_basis(nt1), var)
     end
 end
 
@@ -917,16 +917,16 @@ function Tensors.otimes(
         return otimes(t1)
     else
         nt1, nt2 = same_basis(t1, t2)
-        data = otimes(getarray(nt1), getarray(nt2))
-        return Tens(data, getbasis(nt1))
+        data = otimes(get_array(nt1), get_array(nt2))
+        return Tens(data, get_basis(nt1))
     end
 end
 
 Tensors.otimes(v::AbstractTens{1, dim}) where {dim} =
-    Tens(otimes(getarray(v)), getbasis(v), (getvar(v)..., getvar(v)...))
+    Tens(otimes(get_array(v)), get_basis(v), (get_var(v)..., get_var(v)...))
 
 Tensors.otimes(v::TensOrthonormal{1, dim}) where {dim} =
-    Tens(otimes(getarray(v)), getbasis(v))
+    Tens(otimes(get_array(v)), get_basis(v))
 
 @inline function Tensors.otimes(S::SymmetricTensor{2, dim}) where {dim}
     return SymmetricTensor{4, dim}(
@@ -937,10 +937,10 @@ Tensors.otimes(v::TensOrthonormal{1, dim}) where {dim} =
 end
 
 Tensors.otimes(t::AbstractTens{2, dim}) where {dim} =
-    Tens(otimes(getarray(t)), getbasis(t), (getvar(t)..., getvar(t)...))
+    Tens(otimes(get_array(t)), get_basis(t), (get_var(t)..., get_var(t)...))
 
 Tensors.otimes(t::TensOrthonormal{2, dim}) where {dim} =
-    Tens(otimes(getarray(t)), getbasis(t))
+    Tens(otimes(get_array(t)), get_basis(t))
 
 
 function scontract(
@@ -972,11 +972,11 @@ function LinearAlgebra.dot(
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    var = (invvar(getvar(nt1)[end]), getvar(nt2)[(begin + 1):end]...)
-    nt2 = change_tens(nt2, getbasis(nt2), var)
-    data = scontract(getarray(nt1), getarray(nt2))
-    var = (getvar(nt1)[begin:(end - 1)]..., getvar(nt2)[(begin + 1):end]...)
-    return Tens(data, getbasis(nt1), var)
+    var = (invvar(get_var(nt1)[end]), get_var(nt2)[(begin + 1):end]...)
+    nt2 = change_tens(nt2, get_basis(nt2), var)
+    data = scontract(get_array(nt1), get_array(nt2))
+    var = (get_var(nt1)[begin:(end - 1)]..., get_var(nt2)[(begin + 1):end]...)
+    return Tens(data, get_basis(nt1), var)
 end
 
 function LinearAlgebra.dot(
@@ -984,15 +984,15 @@ function LinearAlgebra.dot(
         t2::TensOrthonormal{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = scontract(getarray(nt1), getarray(nt2))
-    return Tens(data, getbasis(nt1))
+    data = scontract(get_array(nt1), get_array(nt2))
+    return Tens(data, get_basis(nt1))
 end
 
 function LinearAlgebra.dot(t1::AbstractTens{1, dim}, t2::AbstractTens{1, dim}) where {dim}
     nt1, nt2 = same_basis(t1, t2)
-    var = (invvar(getvar(nt1)[end]), getvar(nt2)[(begin + 1):end]...)
-    nt2 = change_tens(nt2, getbasis(nt2), var)
-    return scontract(getarray(nt1), getarray(nt2))
+    var = (invvar(get_var(nt1)[end]), get_var(nt2)[(begin + 1):end]...)
+    nt2 = change_tens(nt2, get_basis(nt2), var)
+    return scontract(get_array(nt1), get_array(nt2))
 end
 
 function LinearAlgebra.dot(
@@ -1000,12 +1000,12 @@ function LinearAlgebra.dot(
         t2::TensOrthonormal{1, dim},
     ) where {dim}
     nt1, nt2 = same_basis(t1, t2)
-    return scontract(getarray(nt1), getarray(nt2))
+    return scontract(get_array(nt1), get_array(nt2))
 end
 
-LinearAlgebra.dot(v::TensOrthonormal{1, dim}) where {dim} = dot(getarray(v))
+LinearAlgebra.dot(v::TensOrthonormal{1, dim}) where {dim} = dot(get_array(v))
 
-LinearAlgebra.dot(t::TensOrthonormal{2, dim}) where {dim} = dot(getarray(t))
+LinearAlgebra.dot(t::TensOrthonormal{2, dim}) where {dim} = dot(get_array(t))
 
 LinearAlgebra.norm(u::AbstractTens{1, dim}) where {dim} = √(dot(u, u))
 
@@ -1017,26 +1017,26 @@ LinearAlgebra.norm(t::AbstractTens{2, dim}) where {dim} = √(dot(t, t))
 Calculate the tensor obtained after contraction with respect to the indices `i` and `j`
 """
 function contract(t::AbstractTens{order, dim}, i::Integer, j::Integer) where {order, dim}
-    var = ntuple(k -> k == j ? invvar(getvar(t, i)) : getvar(t, k), order)
-    nt = change_tens(t, getbasis(t), var)
-    data = contract(getarray(nt), i, j)
+    var = ntuple(k -> k == j ? invvar(get_var(t, i)) : get_var(t, k), order)
+    nt = change_tens(t, get_basis(t), var)
+    data = contract(get_array(nt), i, j)
     m = min(i, j)
     M = max(i, j)
-    var = (getvar(nt)[1:(m - 1)]..., getvar(nt)[(m + 1):(M - 1)]..., getvar(nt)[(M + 1):order]...)
-    return Tens(data, getbasis(nt), var)
+    var = (get_var(nt)[1:(m - 1)]..., get_var(nt)[(m + 1):(M - 1)]..., get_var(nt)[(M + 1):order]...)
+    return Tens(data, get_basis(nt), var)
 end
 
 function contract(t::AbstractTens{2, dim}, i::Integer, j::Integer) where {dim}
-    var = ntuple(k -> k == j ? invvar(getvar(t, i)) : getvar(t, k), 2)
-    nt = change_tens(t, getbasis(t), var)
-    return contract(getarray(nt), i, j)
+    var = ntuple(k -> k == j ? invvar(get_var(t, i)) : get_var(t, k), 2)
+    nt = change_tens(t, get_basis(t), var)
+    return contract(get_array(nt), i, j)
 end
 
 contract(t::TensOrthonormal{order, dim}, i::Integer, j::Integer) where {order, dim} =
-    Tens(contract(getarray(t), i, j), getbasis(t))
+    Tens(contract(get_array(t), i, j), get_basis(t))
 
 contract(t::TensOrthonormal{2, dim}, i::Integer, j::Integer) where {dim} =
-    contract(getarray(t), i, j)
+    contract(get_array(t), i, j)
 
 LinearAlgebra.tr(t::AbstractTens{2}) = contract(t, 1, 2)
 
@@ -1074,11 +1074,11 @@ function Tensors.dcontract(
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    var = (invvar(getvar(nt1)[end - 1]), invvar(getvar(nt1)[end]), getvar(nt2)[(begin + 2):end]...)
-    nt2 = change_tens(nt2, getbasis(nt2), var)
-    data = Tensors.dcontract(getarray(nt1), getarray(nt2))
-    var = (getvar(nt1)[begin:(end - 2)]..., getvar(nt2)[(begin + 2):end]...)
-    return Tens(data, getbasis(nt1), var)
+    var = (invvar(get_var(nt1)[end - 1]), invvar(get_var(nt1)[end]), get_var(nt2)[(begin + 2):end]...)
+    nt2 = change_tens(nt2, get_basis(nt2), var)
+    data = Tensors.dcontract(get_array(nt1), get_array(nt2))
+    var = (get_var(nt1)[begin:(end - 2)]..., get_var(nt2)[(begin + 2):end]...)
+    return Tens(data, get_basis(nt1), var)
 end
 
 function Tensors.dcontract(
@@ -1086,8 +1086,8 @@ function Tensors.dcontract(
         t2::TensOrthonormal{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = Tensors.dcontract(getarray(nt1), getarray(nt2))
-    return Tens(data, getbasis(nt1))
+    data = Tensors.dcontract(get_array(nt1), get_array(nt2))
+    return Tens(data, get_basis(nt1))
 end
 
 """
@@ -1117,13 +1117,13 @@ function Tensors.dotdot(
     ) where {order1, orderS, order2, dim}
     nS, nv1 = same_basis(S, v1)
     nS, nv2 = same_basis(S, v2)
-    var = (invvar(getvar(nS)[begin]),)
-    nv1 = change_tens(nv1, getbasis(nv1), var)
-    var = (invvar(getvar(nS)[end]),)
-    nv2 = change_tens(nv2, getbasis(nv2), var)
+    var = (invvar(get_var(nS)[begin]),)
+    nv1 = change_tens(nv1, get_basis(nv1), var)
+    var = (invvar(get_var(nS)[end]),)
+    nv2 = change_tens(nv2, get_basis(nv2), var)
     data = dotdot(nv1.data, nS.data, nv2.data)
-    var = (getvar(nS)[begin + 1], getvar(nS)[end - 1])
-    return Tens(data, getbasis(nS), var)
+    var = (get_var(nS)[begin + 1], get_var(nS)[end - 1])
+    return Tens(data, get_basis(nS), var)
 end
 
 function Tensors.dotdot(
@@ -1134,7 +1134,7 @@ function Tensors.dotdot(
     nS, nv1 = same_basis(S, v1)
     nS, nv2 = same_basis(S, v2)
     data = dotdot(nv1.data, nS.data, nv2.data)
-    return Tens(data, getbasis(nS))
+    return Tens(data, get_basis(nS))
 end
 
 """
@@ -1167,16 +1167,16 @@ function qcontract(
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
     var = (
-        invvar(getvar(nt1)[end - 3]),
-        invvar(getvar(nt1)[end - 2]),
-        invvar(getvar(nt1)[end - 1]),
-        invvar(getvar(nt1)[end]),
-        getvar(nt2)[(begin + 4):end]...,
+        invvar(get_var(nt1)[end - 3]),
+        invvar(get_var(nt1)[end - 2]),
+        invvar(get_var(nt1)[end - 1]),
+        invvar(get_var(nt1)[end]),
+        get_var(nt2)[(begin + 4):end]...,
     )
-    nt2 = change_tens(nt2, getbasis(nt2), var)
-    data = qcontract(getarray(nt1), getarray(nt2))
-    var = (getvar(nt1)[begin:(end - 4)]..., getvar(nt2)[(begin + 4):end]...)
-    return Tens(data, getbasis(nt1), var)
+    nt2 = change_tens(nt2, get_basis(nt2), var)
+    data = qcontract(get_array(nt1), get_array(nt2))
+    var = (get_var(nt1)[begin:(end - 4)]..., get_var(nt2)[(begin + 4):end]...)
+    return Tens(data, get_basis(nt1), var)
 end
 
 function qcontract(
@@ -1184,26 +1184,26 @@ function qcontract(
         t2::TensOrthonormal{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = qcontract(getarray(nt1), getarray(nt2))
-    return Tens(data, getbasis(nt1))
+    data = qcontract(get_array(nt1), get_array(nt2))
+    return Tens(data, get_basis(nt1))
 end
 
 function qcontract(t1::AbstractTens{4, dim}, t2::AbstractTens{4, dim}) where {dim}
     nt1, nt2 = same_basis(t1, t2)
     var = (
-        invvar(getvar(nt1)[end - 3]),
-        invvar(getvar(nt1)[end - 2]),
-        invvar(getvar(nt1)[end - 1]),
-        invvar(getvar(nt1)[end]),
-        getvar(nt2)[(begin + 4):end]...,
+        invvar(get_var(nt1)[end - 3]),
+        invvar(get_var(nt1)[end - 2]),
+        invvar(get_var(nt1)[end - 1]),
+        invvar(get_var(nt1)[end]),
+        get_var(nt2)[(begin + 4):end]...,
     )
-    nt2 = change_tens(nt2, getbasis(nt2), var)
-    return qcontract(getarray(nt1), getarray(nt2))
+    nt2 = change_tens(nt2, get_basis(nt2), var)
+    return qcontract(get_array(nt1), get_array(nt2))
 end
 
 function qcontract(t1::TensOrthonormal{4, dim}, t2::TensOrthonormal{4, dim}) where {dim}
     nt1, nt2 = same_basis(t1, t2)
-    return qcontract(getarray(nt1), getarray(nt2))
+    return qcontract(get_array(nt1), get_array(nt2))
 end
 
 """
@@ -1218,14 +1218,14 @@ function Tensors.otimesu(
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = otimesu(getarray(nt1), getarray(nt2))
+    data = otimesu(get_array(nt1), get_array(nt2))
     var = (
-        getvar(nt1)[begin:(end - 1)]...,
-        getvar(nt2)[begin],
-        getvar(nt1)[end],
-        getvar(nt2)[(begin + 1):end]...,
+        get_var(nt1)[begin:(end - 1)]...,
+        get_var(nt2)[begin],
+        get_var(nt1)[end],
+        get_var(nt2)[(begin + 1):end]...,
     )
-    return Tens(data, getbasis(nt1), var)
+    return Tens(data, get_basis(nt1), var)
 end
 
 function Tensors.otimesu(
@@ -1233,8 +1233,8 @@ function Tensors.otimesu(
         t2::TensOrthonormal{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = otimesu(getarray(nt1), getarray(nt2))
-    return Tens(data, getbasis(nt1))
+    data = otimesu(get_array(nt1), get_array(nt2))
+    return Tens(data, get_basis(nt1))
 end
 
 function Tensors.otimesl(
@@ -1242,15 +1242,15 @@ function Tensors.otimesl(
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = otimesl(getarray(nt1), getarray(nt2))
+    data = otimesl(get_array(nt1), get_array(nt2))
     var = (
-        getvar(nt1)[begin:(end - 1)]...,
-        getvar(nt2)[begin + 1],
-        getvar(nt1)[end],
-        getvar(nt2)[begin],
-        getvar(nt2)[(begin + 2):end]...,
+        get_var(nt1)[begin:(end - 1)]...,
+        get_var(nt2)[begin + 1],
+        get_var(nt1)[end],
+        get_var(nt2)[begin],
+        get_var(nt2)[(begin + 2):end]...,
     )
-    return Tens(data, getbasis(nt1), var)
+    return Tens(data, get_basis(nt1), var)
 end
 
 function Tensors.otimesl(
@@ -1258,8 +1258,8 @@ function Tensors.otimesl(
         t2::TensOrthonormal{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = otimesl(getarray(nt1), getarray(nt2))
-    return Tens(data, getbasis(nt1))
+    data = otimesl(get_array(nt1), get_array(nt2))
+    return Tens(data, get_basis(nt1))
 end
 
 otimesul(S1::SecondOrderTensor{dim}, S2::SecondOrderTensor{dim}) where {dim} =
@@ -1277,11 +1277,11 @@ function otimesul(
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    var = (getvar(nt1)[end - 1], getvar(nt1)[end], getvar(nt2)[(begin + 2):end]...)
-    nt2 = change_tens(nt2, getbasis(nt2), var)
-    data = otimesul(getarray(nt1), getarray(nt2))
-    var = (getvar(nt1)..., getvar(nt2)...)
-    return Tens(data, getbasis(nt1), var)
+    var = (get_var(nt1)[end - 1], get_var(nt1)[end], get_var(nt2)[(begin + 2):end]...)
+    nt2 = change_tens(nt2, get_basis(nt2), var)
+    data = otimesul(get_array(nt1), get_array(nt2))
+    var = (get_var(nt1)..., get_var(nt2)...)
+    return Tens(data, get_basis(nt1), var)
 end
 
 function otimesul(
@@ -1289,8 +1289,8 @@ function otimesul(
         t2::TensOrthonormal{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = otimesul(getarray(nt1), getarray(nt2))
-    return Tens(data, getbasis(nt1))
+    data = otimesul(get_array(nt1), get_array(nt2))
+    return Tens(data, get_basis(nt1))
 end
 
 
@@ -1306,11 +1306,11 @@ function sotimes(
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    var = (getvar(nt1)[end], getvar(nt2)[(begin + 1):end]...)
-    nt2 = change_tens(nt2, getbasis(nt2), var)
-    data = sotimes(getarray(nt1), getarray(nt2))
-    var = (getvar(nt1)..., getvar(nt2)...)
-    return Tens(data, getbasis(nt1), var)
+    var = (get_var(nt1)[end], get_var(nt2)[(begin + 1):end]...)
+    nt2 = change_tens(nt2, get_basis(nt2), var)
+    data = sotimes(get_array(nt1), get_array(nt2))
+    var = (get_var(nt1)..., get_var(nt2)...)
+    return Tens(data, get_basis(nt1), var)
 end
 
 function sotimes(
@@ -1321,11 +1321,11 @@ function sotimes(
         return otimes(t1)
     else
         nt1, nt2 = same_basis(t1, t2)
-        var = (getvar(nt1)[end], getvar(nt2)[(begin + 1):end]...)
-        nt2 = change_tens(nt2, getbasis(nt2), var)
-        data = sotimes(getarray(nt1), getarray(nt2))
-        var = (getvar(nt1)..., getvar(nt2)...)
-        return Tens(data, getbasis(nt1), var)
+        var = (get_var(nt1)[end], get_var(nt2)[(begin + 1):end]...)
+        nt2 = change_tens(nt2, get_basis(nt2), var)
+        data = sotimes(get_array(nt1), get_array(nt2))
+        var = (get_var(nt1)..., get_var(nt2)...)
+        return Tens(data, get_basis(nt1), var)
     end
 end
 
@@ -1334,8 +1334,8 @@ function sotimes(
         t2::TensOrthonormal{order2, dim},
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
-    data = sotimes(getarray(nt1), getarray(nt2))
-    return Tens(data, getbasis(nt1))
+    data = sotimes(get_array(nt1), get_array(nt2))
+    return Tens(data, get_basis(nt1))
 end
 
 function sotimes(
@@ -1346,65 +1346,65 @@ function sotimes(
         return otimes(t1)
     else
         nt1, nt2 = same_basis(t1, t2)
-        data = sotimes(getarray(nt1), getarray(nt2))
-        return Tens(data, getbasis(nt1))
+        data = sotimes(get_array(nt1), get_array(nt2))
+        return Tens(data, get_basis(nt1))
     end
 end
 
 Base.transpose(t::TensArray{order, dim, T, <:SecondOrderTensor}) where {order, dim, T} =
-    Tens(transpose(getarray(t)), getbasis(t), (getvar(t)[2], getvar(t)[1]))
+    Tens(transpose(get_array(t)), get_basis(t), (get_var(t)[2], get_var(t)[1]))
 
 Base.transpose(t::TensOrthonormal{order, dim, T, <:SecondOrderTensor}) where {order, dim, T} =
-    Tens(transpose(getarray(t)), getbasis(t))
+    Tens(transpose(get_array(t)), get_basis(t))
 
 Base.transpose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} = Tens(
-    Tensors.transpose(getarray(t)),
-    getbasis(t),
-    (getvar(t)[2], getvar(t)[1], getvar(t)[4], getvar(t)[3]),
+    Tensors.transpose(get_array(t)),
+    get_basis(t),
+    (get_var(t)[2], get_var(t)[1], get_var(t)[4], get_var(t)[3]),
 )
 
 Base.transpose(t::TensOrthonormal{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
-    Tens(Tensors.transpose(getarray(t)), getbasis(t))
+    Tens(Tensors.transpose(get_array(t)), get_basis(t))
 
 Tensors.majortranspose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
     Tens(
-    majortranspose(getarray(t)),
-    getbasis(t),
-    (getvar(t)[3], getvar(t)[4], getvar(t)[1], getvar(t)[2]),
+    majortranspose(get_array(t)),
+    get_basis(t),
+    (get_var(t)[3], get_var(t)[4], get_var(t)[1], get_var(t)[2]),
 )
 
 Tensors.majortranspose(
     t::TensOrthonormal{order, dim, T, <:FourthOrderTensor},
-) where {order, dim, T} = Tens(majortranspose(getarray(t)), getbasis(t))
+) where {order, dim, T} = Tens(majortranspose(get_array(t)), get_basis(t))
 
 Tensors.minortranspose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
     Tens(
-    minortranspose(getarray(t)),
-    getbasis(t),
-    (getvar(t)[2], getvar(t)[1], getvar(t)[4], getvar(t)[3]),
+    minortranspose(get_array(t)),
+    get_basis(t),
+    (get_var(t)[2], get_var(t)[1], get_var(t)[4], get_var(t)[3]),
 )
 
 Tensors.minortranspose(
     t::TensOrthonormal{order, dim, T, <:FourthOrderTensor},
-) where {order, dim, T} = Tens(minortranspose(getarray(t)), getbasis(t))
+) where {order, dim, T} = Tens(minortranspose(get_array(t)), get_basis(t))
 
-function tensbasis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cov}) where {dim, T}
+function tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cov}) where {dim, T}
     t = [T(Int(j == i)) for j in 1:dim]
     return Tens(t, ℬ, (:cont,))
 end
-function tensbasis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cont}) where {dim, T}
+function tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cont}) where {dim, T}
     t = [T(Int(j == i)) for j in 1:dim]
     return Tens(t, ℬ, (:cov,))
 end
-tensbasis(ℬ::AbstractBasis{dim, T}, i::Integer, var = :cov) where {dim, T} = tensbasis(ℬ, i, Val(var))
-tensbasis(ℬ::AbstractBasis{dim, T}, var = :cov) where {dim, T} = ntuple(i -> tensbasis(ℬ, i, Val(var)), getdim(ℬ))
+tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, var = :cov) where {dim, T} = tens_basis(ℬ, i, Val(var))
+tens_basis(ℬ::AbstractBasis{dim, T}, var = :cov) where {dim, T} = ntuple(i -> tens_basis(ℬ, i, Val(var)), get_dim(ℬ))
 
 export AbstractTens, Tens
 export proj_tens, best_sym_tens
-export getorder, arraytype, getdata, getarray, getbasis, getvar
+export get_order, arraytype, get_data, get_array, get_basis, get_var
 export intrinsic
 export components, components_canon, change_tens, change_tens_canon
 export diff_with_basis
-export KM, invKM
-export getbasis, getvar
-export tensbasis
+export KM, inv_KM
+export get_basis, get_var
+export tens_basis
