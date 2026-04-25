@@ -1,6 +1,12 @@
 using TensND
 using Documenter
+using DocumenterCitations
 using SymPy
+
+bib = CitationBibliography(
+    joinpath(@__DIR__, "src", "references.bib");
+    style = :numeric,
+)
 
 DocMeta.setdocmeta!(
     TensND,
@@ -98,7 +104,8 @@ makedocs(
     modules = [TensND],
     authors = "Jean-François Barthélémy <jfbarthelemy@users.noreply.github.com> and contributors",
     sitename = "TensND.jl",
-    format = Documenter.HTML(repolink = "https://github.com/MicMacTools/TensND.jl"; size_threshold_warn=1_000_000, size_threshold=1_000_000),
+    format = Documenter.HTML(repolink = "https://github.com/MicMacTools/TensND.jl"; size_threshold_warn = 1_000_000, size_threshold = 1_000_000),
+    plugins = [bib],
     pages = [
         "Home" => "index.md",
         "Manual" => [
@@ -114,6 +121,7 @@ makedocs(
             "tuto/projection.md",
         ],
         "API" => "api.md",
+        "References" => "references.md",
     ],
 )
 
