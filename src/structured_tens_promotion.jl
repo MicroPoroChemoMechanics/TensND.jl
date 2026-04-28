@@ -230,6 +230,27 @@ for OP in (:+, :-)
     end
 end
 
+# ── TensISO{4,3} ± TensTI{4,N} (any axis) ──────────────────────────────────
+# An iso 4-tensor is a special case of TI(axis) for any axis. Promote the
+# iso operand to TI using `fromISO` (lift to N=6 if the TI partner is N=6)
+# so the sum stays in the TI Walpole basis instead of falling through to
+# `TensCanonical` via the unstructured `+ ::AbstractTens` route.
+
+for OP in (:+, :-)
+    @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 5})
+        return $OP(fromISO(A, axis(B)), B)
+    end
+    @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensISO{4, 3})
+        return $OP(A, fromISO(B, axis(A)))
+    end
+    @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 6})
+        return $OP(_lift_walpole_N6(fromISO(A, axis(B))), B)
+    end
+    @eval function Base.$OP(A::TensTI{4, <:Any, 6}, B::TensISO{4, 3})
+        return $OP(A, _lift_walpole_N6(fromISO(B, axis(A))))
+    end
+end
+
 # ── TensISO{2,3} ± TensTI{2} ────────────────────────────────────────────────
 # TensISO{2,3}(λ) ≡ λ·𝟏 ≡ TensTI{2}(λ, λ, n) for any axis n.
 
