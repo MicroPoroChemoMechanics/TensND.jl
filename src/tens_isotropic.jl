@@ -406,7 +406,8 @@ function isotropify(A::AbstractArray{T, 4}) where {T}
     dim = size(A)[1]
     α = tens_J4(dim, T) ⊙ A
     # 5 = dim(deviatoric space) = dim(𝕂) for 3D; generalises to dim*(dim+1)/2 - 1
-    β = (tens_K4(dim, T) ⊙ A) / 5
+    dimK = dim*(dim+1)/2 - 1
+    β = (tens_K4(dim, T) ⊙ A) / dimK
     return TensISO{dim}(α, β)
 end
 
