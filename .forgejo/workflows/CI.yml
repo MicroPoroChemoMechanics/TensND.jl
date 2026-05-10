@@ -15,7 +15,7 @@ concurrency:
 jobs:
   test:
     name: Julia ${{ matrix.version }}
-    runs-on: codeberg-medium-lazy
+    runs-on: ubuntu-latest
     timeout-minutes: 1440
     env:
       JULIA_PKG_PRECOMPILE_AUTO: 0
