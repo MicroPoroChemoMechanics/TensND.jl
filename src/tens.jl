@@ -87,11 +87,11 @@ for order in (2, 4)
     @eval begin
         """
             best_sym_tens(t; proj=(:ISO, :TI, :ORTHO), ε=1e-6, optimize_angles=false)
-        
+
         Find the best (most restrictive) symmetry of tensor `t` by trying each
         symmetry class in `proj` (from most to least symmetric) and accepting the
         first whose relative projection error is below `ε`.
-        
+
         - `optimize_angles=false` (**default**, cheap path, no optimisation): the
           `:ISO` projection is closed-form; for `:TI` the symmetry axis is taken
           from `t` itself (if it is a structured TI container) or derived from the
@@ -99,25 +99,25 @@ for order in (2, 4)
           is taken from `t` or derived likewise.  No external optimiser needed.
         - `optimize_angles=true`: the `:TI` axis and `:ORTHO` frame are found by
           nonlinear optimisation (multistart L-BFGS) — requires `using NLopt`.
-        
+
         Returns `(projected, d, drel, sym)` where `sym ∈ {:ISO, :TI, :ORTHO, :ANISO}`.
-        
+
         **Behaviour change (vs. pre-2026 versions):** the default no-argument call
         no longer throws when NLopt is absent; set `optimize_angles=true` to restore
         the previous angle-optimised behaviour.
-        
+
         # Examples
         ```julia
         julia> n = [0., 0., 1.];
-        
+
         julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
-        
+
         julia> _, _, _, sym = best_sym_tens(C);
-        
+
         julia> sym === :TI
         true
         ```
-        
+
         See also [`best_sym_tens(t, n_or_frame)`](@ref) for fixed-axis/frame use,
         [`proj_tens`](@ref).
         """
@@ -154,24 +154,24 @@ for order in (2, 4)
 
         """
             best_sym_tens(t, n_or_frame; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
-        
+
         Find the best symmetry of tensor `t` with a **fixed** symmetry axis `n`
         (for TI) or material frame `frame` (for ORTHO).  No rotation optimisation
         is performed.
-        
+
         - `n_or_frame`: a vector (axis for TI) or `OrthonormalBasis{3}` (frame for
           ORTHO). For ISO projection the extra argument is ignored.
-        
+
         Returns `(projected, d, drel, sym)`.
-        
+
         # Examples
         ```julia
         julia> n = [0., 0., 1.];
-        
+
         julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
-        
+
         julia> _, _, drel, sym = best_sym_tens(C, n);
-        
+
         julia> sym == :TI && drel < 1e-12
         true
         ```
