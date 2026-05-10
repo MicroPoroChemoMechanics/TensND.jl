@@ -72,16 +72,28 @@ julia> div𝛔 = tsimplify(DIV(𝛔)) ; intrinsic(div𝛔)
 
 ## Installation
 
-The package can be installed with the Julia package manager. From the Julia REPL, type `]` to enter the Pkg REPL mode and run:
+TensND.jl is hosted on the [MPCM registry](https://codeberg.org/MicroPoroChemoMechanics/MPCM-Registry). Add the registry once, then install as usual.
 
-```julia
+In Pkg REPL mode (press `]` in the Julia REPL):
+
+```julia-repl
+pkg> registry add https://codeberg.org/MicroPoroChemoMechanics/MPCM-Registry
 pkg> add TensND
 ```
 
-Or, equivalently, via the `Pkg` API:
+Or via the `Pkg` API:
 
 ```julia
-julia> import Pkg; Pkg.add("TensND")
+using Pkg
+Pkg.Registry.add(RegistrySpec(url="https://codeberg.org/MicroPoroChemoMechanics/MPCM-Registry"))
+Pkg.add("TensND")
+```
+
+Or via SSH (if you have SSH access to Codeberg):
+
+```julia
+Pkg.Registry.add(RegistrySpec(url="ssh://git@codeberg.org/MicroPoroChemoMechanics/MPCM-Registry.git"))
+Pkg.add("TensND")
 ```
 
 ## Documentation
@@ -93,7 +105,20 @@ julia> import Pkg; Pkg.add("TensND")
 
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.17985768-blue)](https://doi.org/10.5281/zenodo.17985768)
 
-See [CITATION.cff](CITATION.cff) for citation details.
+If you use TensND.jl in your research, please cite it:
+
+```bibtex
+@software{barthelemy_tensnd,
+  author    = {Barth{\'e}lemy, Jean-Fran{\c{c}}ois},
+  title     = {{TensND.jl}: Package allowing tensor calculations in arbitrary coordinate systems},
+  version   = {0.1.7},
+  doi       = {10.5281/zenodo.17985768},
+  url       = {https://doi.org/10.5281/zenodo.17985768},
+  publisher = {Zenodo},
+}
+```
+
+The [CITATION.cff](CITATION.cff) file is also available for tools such as [Zenodo](https://zenodo.org/) and [citeas.org](https://citeas.org/).
 
 ## Acknowledgements
 

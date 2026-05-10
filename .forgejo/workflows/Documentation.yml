@@ -24,6 +24,17 @@ jobs:
           curl -fsSL https://install.julialang.org | sh -s -- --yes
           echo "$HOME/.juliaup/bin" >> $GITHUB_PATH
 
+      - name: Cache Julia packages
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.julia/packages
+            ~/.julia/compiled
+            ~/.julia/conda
+          key: ${{ runner.os }}-julia-docs-${{ hashFiles('docs/Project.toml', 'docs/Manifest.toml', 'Project.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-julia-docs-
+
       - name: Install Python, SymPy and git
         run: |
           sudo apt-get update -q
