@@ -1,0 +1,45 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version (e.g. 0.1.8)'
+        required: true
+
+jobs:
+  tag-and-register:
+    runs-on: codeberg-small
+    container:
+      image: julia:1
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PUSH_TOKEN }}
+          fetch-depth: 0
+
+      - name: Bump version in Project.toml
+        run: |
+          sed -i 's/^version = .*/version = "${{ inputs.version }}"/' Project.toml
+          git config user.name "forgejo-actions[bot]"
+          git config user.email "forgejo-actions[bot]@users.noreply.codeberg.org"
+          git add Project.toml
+          git commit -m "Set version to ${{ inputs.version }}"
+
+      - name: Create and push tag
+        run: |
+          git tag v${{ inputs.version }}
+          git push origin main
+          git push origin v${{ inputs.version }}
+
+      - name: Register in Codeberg registry
+        run: |
+          julia -e '
+            using Pkg
+            Pkg.add("LocalRegistry")
+            Pkg.develop(PackageSpec(path=pwd()))
+            using LocalRegistry, TensND
+            Pkg.Registry.add(RegistrySpec(url="https://codeberg.org/MicroPoroChemoMechanics/Julia-Registry"))
+            register(TensND; registry="Julia-Registry", push=true)
+          '

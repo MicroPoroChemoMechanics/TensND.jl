@@ -8,6 +8,7 @@ permissions:
   pull-requests: write
 jobs:
   CompatHelper:
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     steps:
       - name: Pkg.add("CompatHelper")

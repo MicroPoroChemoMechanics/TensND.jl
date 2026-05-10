@@ -15,8 +15,8 @@ concurrency:
 jobs:
   test:
     name: Julia ${{ matrix.version }}
-    runs-on: docker
-    timeout-minutes: 60
+    runs-on: codeberg-medium-lazy
+    timeout-minutes: 1440
     strategy:
       fail-fast: false
       matrix:

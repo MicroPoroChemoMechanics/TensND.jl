@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: docker
+    runs-on: codeberg-medium-lazy
     container:
       image: julia:1
 

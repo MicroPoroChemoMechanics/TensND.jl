@@ -16,6 +16,7 @@ env:
 jobs:
   format:
     name: Runic formatting
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     permissions:
       contents: write
