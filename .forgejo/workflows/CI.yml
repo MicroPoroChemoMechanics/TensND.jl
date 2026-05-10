@@ -35,17 +35,16 @@ jobs:
       - name: Install Python and SymPy
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q python3 python3-pip
+          sudo apt-get install -y -q python3 python3-pip python3-dev
           pip3 install sympy --break-system-packages || pip3 install sympy
 
       - name: Configure PyCall with system Python
         run: |
           julia -e '
             using Pkg
+            ENV["PYTHON"] = Sys.which("python3")
             Pkg.add("PyCall")
             Pkg.add("SymPy")
-            ENV["PYTHON"] = Sys.which("python3")
-            Pkg.build("PyCall")
           '
 
       - name: Build package
