@@ -27,7 +27,7 @@ jobs:
       - name: Install Python, SymPy and git
         run: |
           sudo apt-get update -q
-          sudo apt-get install -y -q python3 python3-pip git ssh
+          sudo apt-get install -y -q python3 python3-pip python3-dev git ssh
           pip3 install sympy --break-system-packages || pip3 install sympy
 
       - name: Install doc dependencies
