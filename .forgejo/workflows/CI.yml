@@ -17,6 +17,8 @@ jobs:
     name: Julia ${{ matrix.version }}
     runs-on: codeberg-medium-lazy
     timeout-minutes: 1440
+    env:
+      JULIA_NUM_PRECOMPILE_TASKS: 1
     strategy:
       fail-fast: false
       matrix:
