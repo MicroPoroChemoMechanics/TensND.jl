@@ -16,7 +16,7 @@ jobs:
   build:
     runs-on: codeberg-medium-lazy
     env:
-      JULIA_NUM_PRECOMPILE_TASKS: 1
+      JULIA_PKG_PRECOMPILE_AUTO: 0
 
     steps:
       - uses: actions/checkout@v4

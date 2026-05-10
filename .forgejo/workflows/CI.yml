@@ -18,7 +18,7 @@ jobs:
     runs-on: codeberg-medium-lazy
     timeout-minutes: 1440
     env:
-      JULIA_NUM_PRECOMPILE_TASKS: 1
+      JULIA_PKG_PRECOMPILE_AUTO: 0
     strategy:
       fail-fast: false
       matrix:
