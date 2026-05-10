@@ -23,16 +23,19 @@ jobs:
         version:
           - '1'
           - 'nightly'
-    container:
-      image: julia:${{ matrix.version }}
 
     steps:
       - uses: actions/checkout@v4
 
+      - name: Install Julia
+        run: |
+          curl -fsSL https://install.julialang.org | sh -s -- --yes --default-channel ${{ matrix.version }}
+          echo "$HOME/.juliaup/bin" >> $GITHUB_PATH
+
       - name: Install Python and SymPy
         run: |
-          apt-get update -q
-          apt-get install -y -q python3 python3-pip
+          sudo apt-get update -q
+          sudo apt-get install -y -q python3 python3-pip
           pip3 install sympy --break-system-packages || pip3 install sympy
 
       - name: Configure PyCall with system Python

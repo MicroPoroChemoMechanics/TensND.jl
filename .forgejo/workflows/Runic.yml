@@ -14,13 +14,16 @@ jobs:
   format:
     name: Runic formatting
     runs-on: codeberg-small
-    container:
-      image: julia:1
 
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.PUSH_TOKEN }}
+
+      - name: Install Julia
+        run: |
+          curl -fsSL https://install.julialang.org | sh -s -- --yes
+          echo "$HOME/.juliaup/bin" >> $GITHUB_PATH
 
       - name: Install Runic
         run: julia -e 'using Pkg; Pkg.activate("runic", shared=true); Pkg.add("Runic")'

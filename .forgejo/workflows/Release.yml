@@ -10,14 +10,17 @@ on:
 jobs:
   tag-and-register:
     runs-on: codeberg-small
-    container:
-      image: julia:1
 
     steps:
       - uses: actions/checkout@v4
         with:
           token: ${{ secrets.PUSH_TOKEN }}
           fetch-depth: 0
+
+      - name: Install Julia
+        run: |
+          curl -fsSL https://install.julialang.org | sh -s -- --yes
+          echo "$HOME/.juliaup/bin" >> $GITHUB_PATH
 
       - name: Bump version in Project.toml
         run: |
@@ -40,6 +43,7 @@ jobs:
             Pkg.add("LocalRegistry")
             Pkg.develop(PackageSpec(path=pwd()))
             using LocalRegistry, TensND
-            Pkg.Registry.add(RegistrySpec(url="https://codeberg.org/MicroPoroChemoMechanics/Julia-Registry"))
-            register(TensND; registry="Julia-Registry", push=true)
+            Pkg.Registry.add(RegistrySpec(url="ssh://git@codeberg.org/MicroPoroChemoMechanics/MPCM-Registry.git"))
+            register(TensND; registry="MPCM-Registry", push=true,
+                     repo="ssh://git@codeberg.org/MicroPoroChemoMechanics/TensND.jl.git")
           '
