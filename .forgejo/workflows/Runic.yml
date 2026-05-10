@@ -1,0 +1,43 @@
+name: Runic
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+jobs:
+  format:
+    name: Runic formatting
+    runs-on: docker
+    container:
+      image: julia:1
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PUSH_TOKEN }}
+
+      - name: Install Runic
+        run: julia -e 'using Pkg; Pkg.activate("runic", shared=true); Pkg.add("Runic")'
+
+      - name: Check formatting (PR)
+        if: ${{ github.event_name == 'pull_request' }}
+        run: |
+          julia --project=@runic -e 'using Runic; exit(Runic.main(["--check", "src/", "test/", "ext/"]))'
+
+      - name: Auto-format (push to main)
+        if: ${{ github.event_name == 'push' }}
+        run: |
+          julia --project=@runic -e 'using Runic; Runic.main(["--inplace", "src/", "test/", "ext/"])'
+          if [ -n "$(git diff --name-only)" ]; then
+            git config user.name "forgejo-actions[bot]"
+            git config user.email "forgejo-actions[bot]@users.noreply.codeberg.org"
+            git add -A
+            git commit -m "Style: auto-format with Runic"
+            git push
+          fi

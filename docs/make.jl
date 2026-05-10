@@ -84,8 +84,8 @@ mathengine =
 
 format = Documenter.HTML(;
     prettyurls = get(ENV, "CI", "false") == "true",
-    canonical = "https://MicMacTools.github.io/TensND.jl",
-    assets = String[],
+    canonical = "https://MicroPoroChemoMechanics.codeberg.page/TensND.jl",
+    assets = ["assets/logo.png", "assets/favicon.ico"],
     mathengine = mathengine,
 )
 
@@ -102,9 +102,9 @@ format = Documenter.HTML(;
 
 makedocs(
     modules = [TensND],
-    authors = "Jean-François Barthélémy <jfbarthelemy@users.noreply.github.com> and contributors",
+    authors = "Jean-François Barthélémy <jf.barthelemy@users.noreply.codeberg.org> and contributors",
     sitename = "TensND.jl",
-    format = Documenter.HTML(repolink = "https://github.com/MicMacTools/TensND.jl"; size_threshold_warn = 1_000_000, size_threshold = 1_000_000),
+    format = Documenter.HTML(repolink = "https://codeberg.org/MicroPoroChemoMechanics/TensND.jl"; size_threshold_warn = 1_000_000, size_threshold = 1_000_000),
     plugins = [bib],
     pages = [
         "Home" => "index.md",
@@ -125,4 +125,4 @@ makedocs(
     ],
 )
 
-deploydocs(; repo = "github.com/MicMacTools/TensND.jl", devbranch = "main")
+deploydocs(; repo = "codeberg.org/MicroPoroChemoMechanics/TensND.jl", devbranch = "main")

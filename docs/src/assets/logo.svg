@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>TensND — Calcul tensoriel en coordonnées curvilignes</title>
+  <defs>
+    <clipPath id="circ">
+      <circle cx="256" cy="256" r="248"/>
+    </clipPath>
+  </defs>
+  <g clip-path="url(#circ)" fill="none" stroke="#888888" stroke-width="1.8" opacity="0.4">
+    <path d="M 62 172 Q 256 138 452 196"/>
+    <path d="M 58 228 Q 256 200 456 252"/>
+    <path d="M 62 298 Q 256 278 448 316"/>
+    <path d="M 72 358 Q 256 348 430 372"/>
+    <path d="M 148 62 Q 164 256 136 432"/>
+    <path d="M 212 56 Q 232 256 206 444"/>
+    <path d="M 308 58 Q 290 256 316 442"/>
+    <path d="M 372 68 Q 372 256 400 428"/>
+  </g>
+  <line x1="256" y1="256" x2="379" y2="212" stroke="#CB3C33" stroke-width="15" stroke-linecap="round"/>
+  <polygon points="402,203 383,223 374,200" fill="#CB3C33"/>
+  <line x1="256" y1="256" x2="187" y2="158" stroke="#389826" stroke-width="15" stroke-linecap="round"/>
+  <polygon points="173,137 197,151 178,164" fill="#389826"/>
+  <line x1="256" y1="256" x2="179" y2="348" stroke="#9558B2" stroke-width="15" stroke-linecap="round"/>
+  <polygon points="163,367 170,340 188,356" fill="#9558B2"/>
+  <circle cx="256" cy="256" r="23" fill="#4063D8"/>
+</svg>

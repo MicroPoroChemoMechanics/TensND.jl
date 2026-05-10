@@ -2,7 +2,9 @@
 CurrentModule = TensND
 ```
 
-# Documentation for [TensND](https://github.com/MicMacTools/TensND.jl)
+# Documentation for [TensND](https://codeberg.org/MicroPoroChemoMechanics/TensND.jl)
+
+![TensND.jl](assets/logo.svg)
 
 *Symbolic and numerical tensor calculations in arbitrary coordinate systems.*
 
@@ -73,7 +75,7 @@ Depth = 1
 @misc{TensND.jl,
   author  = {Jean-François Barthélémy},
   title   = {TensND.jl},
-  url     = {https://github.com/MicMacTools/TensND.jl},
+  url     = {https://codeberg.org/MicroPoroChemoMechanics/TensND.jl},
   version = {v0.1.1},
   year    = {2021},
   month   = {8}
