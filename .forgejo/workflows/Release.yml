@@ -36,7 +36,7 @@ jobs:
           git push origin main
           git push origin v${{ inputs.version }}
 
-      - name: Register in Codeberg registry
+      - name: Register in MPCM-Registry
         run: |
           julia -e '
             using Pkg
@@ -47,3 +47,62 @@ jobs:
             register(TensND; registry="MPCM-Registry", push=true,
                      repo="ssh://git@codeberg.org/MicroPoroChemoMechanics/TensND.jl.git")
           '
+
+      - name: Zenodo — create new version draft
+        id: zenodo_draft
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+        run: |
+          RESPONSE=$(curl -s -X POST \
+            "https://zenodo.org/api/records/17985768/versions" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/json")
+          NEW_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+          echo "new_id=$NEW_ID" >> $GITHUB_OUTPUT
+          echo "Zenodo draft ID: $NEW_ID"
+
+      - name: Zenodo — update version metadata
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+        run: |
+          NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
+          curl -s -X PUT \
+            "https://zenodo.org/api/records/$NEW_ID/draft" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{\"metadata\":{\"version\":\"${{ inputs.version }}\"}}"
+
+      - name: Zenodo — upload source archive
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+        run: |
+          NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
+          FILENAME="TensND.jl-v${{ inputs.version }}.tar.gz"
+          git archive --format=tar.gz \
+            --prefix="TensND.jl-${{ inputs.version }}/" \
+            -o "$FILENAME" \
+            "v${{ inputs.version }}"
+          # Remove old files then upload new archive
+          OLD_FILES=$(curl -s "https://zenodo.org/api/records/$NEW_ID/draft/files" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" | grep -o '"key":"[^"]*"' | cut -d'"' -f4)
+          for f in $OLD_FILES; do
+            curl -s -X DELETE \
+              "https://zenodo.org/api/records/$NEW_ID/draft/files/$f" \
+              -H "Authorization: Bearer $ZENODO_TOKEN"
+          done
+          curl -s -X POST \
+            "https://zenodo.org/api/records/$NEW_ID/draft/files" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            -H "Content-Disposition: attachment; filename=$FILENAME" \
+            --data-binary @"$FILENAME"
+
+      - name: Zenodo — publish
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+        run: |
+          NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
+          curl -s -X POST \
+            "https://zenodo.org/api/records/$NEW_ID/draft/actions/publish" \
+            -H "Authorization: Bearer $ZENODO_TOKEN"
+          echo "Published Zenodo version ${{ inputs.version }}"

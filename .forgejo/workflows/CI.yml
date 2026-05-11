@@ -1,12 +1,7 @@
 name: CI
 
 on:
-  push:
-    branches:
-      - main
-    tags: ['*']
-  pull_request:
-  workflow_dispatch:
+  workflow_dispatch:  # Tests lancés en local — voir scripts/test_local.ps1
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -1,12 +1,7 @@
 name: Documentation
 
 on:
-  push:
-    branches:
-      - main
-    tags: ['*']
-  pull_request:
-  workflow_dispatch:
+  workflow_dispatch:  # Doc construite en local — voir scripts/deploy_docs.ps1
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
