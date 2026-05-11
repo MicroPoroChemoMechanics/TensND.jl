@@ -331,6 +331,13 @@ for OP in (:show, :print, :display)
     end
 end
 
+# Prevent SymPy's ImmutableMatrix from receiving 4D Julia arrays as elements,
+# which triggers a SymPyDeprecationWarning for non-Expr objects in a Matrix.
+# Redirect to the 2D Kelvin-Mandel representation instead.
+function Base.show(io::IO, M::MIME"text/latex", t::AbstractTens{4})
+    return show(io, M, KM(t))
+end
+
 intrinsic(t::T) where {T} = println(t)
 
 function intrinsic(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}

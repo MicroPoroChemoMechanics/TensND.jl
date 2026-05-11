@@ -8,7 +8,6 @@
 
 [![Docs - Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MicroPoroChemoMechanics.codeberg.page/TensND.jl/stable/)
 [![Docs - Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://MicroPoroChemoMechanics.codeberg.page/TensND.jl/dev/)
-[![Build Status](https://img.shields.io/gitea/workflow/status/MicroPoroChemoMechanics/TensND.jl/CI?gitea_url=https%3A%2F%2Fcodeberg.org&branch=main)](https://codeberg.org/MicroPoroChemoMechanics/TensND.jl/actions)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://codeberg.org/MicroPoroChemoMechanics/TensND.jl/src/branch/main/LICENSE)
 [![code style: runic](https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black)](https://github.com/fredrikekre/Runic.jl)
