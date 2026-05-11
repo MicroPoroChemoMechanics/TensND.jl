@@ -82,29 +82,21 @@ mathengine =
         true,
     )
 
-format = Documenter.HTML(;
-    prettyurls = get(ENV, "CI", "false") == "true",
-    canonical = "https://MicroPoroChemoMechanics.codeberg.page/TensND.jl",
-    assets = ["assets/logo.png", "assets/favicon.ico"],
-    mathengine = mathengine,
-)
-
 # format = Documenter.LaTeX(platform = "none")
-
-# open(joinpath(@__DIR__, "src", "assets", "custom.sty"), "w") do io
-#     write(io, "% WARNING: Automatically generated -- Do NOT edit by hand!\n")
-#     write(io, "% Script: $(@__FILE__)\n")
-#     write(io, "% Date: $(now())\n\n")
-#     for (name, definition) in
-#         macros write(io, "\\providecommand{\\$name}{$definition}\n")
-#     end
-# end
 
 makedocs(
     modules = [TensND],
-    authors = "Jean-François Barthélémy <jf.barthelemy@users.noreply.codeberg.org> and contributors",
+    authors = "Jean-François Barthélémy and contributors",
+    remotes = nothing,
     sitename = "TensND.jl",
-    format = Documenter.HTML(repolink = "https://codeberg.org/MicroPoroChemoMechanics/TensND.jl"; size_threshold_warn = 1_000_000, size_threshold = 1_000_000),
+    format = Documenter.HTML(;
+        prettyurls = get(ENV, "CI", "false") == "true",
+        canonical = "https://MicroPoroChemoMechanics.codeberg.page/TensND.jl",
+        repolink = "https://codeberg.org/MicroPoroChemoMechanics/TensND.jl",
+        mathengine = mathengine,
+        size_threshold_warn = 1_000_000,
+        size_threshold = 1_000_000,
+    ),
     plugins = [bib],
     pages = [
         "Home" => "index.md",

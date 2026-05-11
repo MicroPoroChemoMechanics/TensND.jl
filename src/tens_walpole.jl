@@ -75,6 +75,11 @@ get_basis(::TensTI{order, T}) where {order, T} = CanonicalBasis{3, T}()
 get_var(::TensTI{order}) where {order} = ntuple(_ -> :cont, Val(order))
 get_var(::TensTI, ::Integer) = :cont
 get_data(t::TensTI) = t.data
+"""
+    axis(t::TensTI)
+
+Return the symmetry axis of a transversely isotropic tensor.
+"""
 axis(t::TensTI) = t.n
 
 # ── Rebuild helper (used by symbolic ops) ─────────────────────────────────────
@@ -865,6 +870,11 @@ get_basis(::TensOrtho{T}) where {T} = CanonicalBasis{3, T}()
 get_var(::TensOrtho) = (:cont, :cont, :cont, :cont)
 get_var(::TensOrtho, ::Integer) = :cont
 get_data(t::TensOrtho) = t.data
+"""
+    frame(t::TensOrtho)
+
+Return the material frame of an orthotropic tensor.
+"""
 frame(t::TensOrtho) = t.frame
 
 # ── Rebuild helper (used by symbolic ops) ─────────────────────────────────────

@@ -1,7 +1,10 @@
 name: Documentation
 
 on:
-  workflow_dispatch:  # Doc construite en local — voir scripts/deploy_docs.ps1
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

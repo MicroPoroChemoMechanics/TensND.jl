@@ -55,7 +55,7 @@ julia> 𝟏.data
  0  0  1
 ```
 """
-tens_Id2(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T <: Number} = TensISO{2, dim, T}()
+tens_Id2(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} = TensISO{2, dim, T}()
 
 """
     tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(Sym))
@@ -74,7 +74,7 @@ julia> 𝕀 = t𝕀() ; KM(𝕀)
  0  0  0  0  0  1
 ```
 """
-tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T <: Number} = TensISO{4, dim, T}()
+tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} = TensISO{4, dim, T}()
 
 """
     tens_J4(::Val{dim} = Val(3), ::Val{T} = Val(Sym))
@@ -93,7 +93,7 @@ julia> 𝕁 = t𝕁() ; KM(𝕁)
    0    0    0  0  0  0
 ```
 """
-tens_J4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T <: Number} =
+tens_J4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} =
     TensISO{dim}(one(T), zero(T))
 
 """
@@ -113,7 +113,7 @@ julia> 𝕂 = t𝕂() ; KM(𝕂)
     0     0     0  0  0  1
 ```
 """
-tens_K4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T <: Number} =
+tens_K4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} =
     TensISO{dim}(zero(T), one(T))
 
 
@@ -134,7 +134,7 @@ true
 
 See also [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref).
 """
-iso_projectors(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T <: Number} =
+iso_projectors(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} =
     tens_Id4(Val(dim), Val(T)), tens_J4(Val(dim), Val(T)), tens_K4(Val(dim), Val(T))
 
 """
@@ -142,7 +142,7 @@ iso_projectors(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T <: Number
 
 Legacy alias of [`iso_projectors`](@ref) kept for backward compatibility.
 """
-ISO(args...) = iso_projectors(Val.(args)...)
+ISO(args...) = iso_projectors(args...)
 
 for FUNC in (:tens_Id2, :tens_Id4, :tens_J4, :tens_K4, :iso_projectors)
     @eval $FUNC(args...) = $FUNC(Val.(args)...)

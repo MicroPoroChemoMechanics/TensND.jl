@@ -1,7 +1,11 @@
 name: CI
 
 on:
-  workflow_dispatch:  # Tests lancés en local — voir scripts/test_local.ps1
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -11,7 +15,7 @@ jobs:
   test:
     name: Julia ${{ matrix.version }}
     runs-on: codeberg-medium-lazy
-    timeout-minutes: 1440
+    timeout-minutes: 120
     env:
       JULIA_PKG_PRECOMPILE_AUTO: 0
     strategy:

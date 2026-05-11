@@ -7,11 +7,12 @@ $ErrorActionPreference = "Stop"
 if (-not $env:DOCUMENTER_KEY) {
     Write-Error @"
 DOCUMENTER_KEY is not set.
-Run the one-time setup from WORKFLOW.md:
-  using DocumenterTools, TensND
-  DocumenterTools.genkeys(TensND)
-Then store the private key:
-  [System.Environment]::SetEnvironmentVariable("DOCUMENTER_KEY", "<key>", "User")
+Run the one-time setup from WORKFLOW.md (etape 1 a 3) :
+  [PowerShell] ssh-keygen -t ed25519 -C "documenter@codeberg" -f "$env:USERPROFILE\.ssh\documenter_codeberg" -N ''
+  [PowerShell] `$bytes = [System.IO.File]::ReadAllBytes("$env:USERPROFILE\.ssh\documenter_codeberg")
+  [PowerShell] `$b64 = [Convert]::ToBase64String(`$bytes)
+  [PowerShell] [System.Environment]::SetEnvironmentVariable("DOCUMENTER_KEY", `$b64, "User")
+Puis ouvre un nouveau terminal et relance ce script.
 "@
     exit 1
 }
