@@ -1,10 +1,7 @@
 name: Documentation
 
 on:
-  push:
-    branches: [main]
-    tags: ['v*']
-  workflow_dispatch:
+  workflow_dispatch:  # Doc construite en local — voir scripts/deploy_docs.ps1
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -13,6 +10,7 @@ concurrency:
 jobs:
   build:
     runs-on: codeberg-medium-lazy
+    timeout-minutes: 120
     env:
       JULIA_PKG_PRECOMPILE_AUTO: 0
 
