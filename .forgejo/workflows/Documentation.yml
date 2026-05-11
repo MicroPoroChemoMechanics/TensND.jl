@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: codeberg-medium-lazy
     env:
       JULIA_PKG_PRECOMPILE_AUTO: 0
 
