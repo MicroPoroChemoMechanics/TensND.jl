@@ -1,13 +1,20 @@
 #!/usr/bin/env julia
 # Build and deploy docs to Codeberg Pages (pages branch).
-# Usage:  julia --project=docs/ docs/deploy_docs.jl              # auto-detect branch or tag from git
-#         julia --project=docs/ docs/deploy_docs.jl v0.1.8       # force stable deploy for a given tag
 #
 # Requires SSH alias "codeberg-docs" in ~/.ssh/config pointing to a deploy key
 # with write access on the repository.
 #
-# Branch  →  deploys to dev/
-# Tag     →  deploys to stable/ + vX.Y.Z/
+# ── How to choose the deployment target ───────────────────────────────────────
+# Priority: command-line argument > DEPLOY_TARGET below > git auto-detect
+#
+# Command-line:
+#   julia --project=docs/ docs/deploy_docs.jl           # auto-detect
+#   julia --project=docs/ docs/deploy_docs.jl v0.1.8   # force tag
+#
+# In-file (set DEPLOY_TARGET below, takes effect when no argument is passed):
+#   nothing     — auto-detect from git: branch → dev/,  tag → stable/ + vX.Y.Z/
+#   "dev"       — force deploy to dev/
+#   "project"   — read version from Project.toml → stable/ + vX.Y.Z/
 
 using Pkg
 
@@ -23,12 +30,29 @@ if Sys.iswindows()
     ENV["TEMP"] = "C:/tmp"
 end
 
-builddir   = joinpath(docsdir, "build")
+builddir    = joinpath(docsdir, "build")
 repo_remote = "git@codeberg-docs:MicroPoroChemoMechanics/TensND.jl.git"
+
+# ── Deployment target ─────────────────────────────────────────────────────────
+# DEPLOY_TARGET = nothing       # auto-detect from git
+# DEPLOY_TARGET = "dev"       # force dev/ deploy
+DEPLOY_TARGET = "project"   # stable/ + vX.Y.Z/ using version from Project.toml
+
+function read_project_version()
+    for line in eachline(joinpath(dirname(docsdir), "Project.toml"))
+        m = match(r"^version\s*=\s*\"(.+)\"", line)
+        m !== nothing && return "v" * m.captures[1]
+    end
+    error("Could not read version from Project.toml")
+end
 
 # ── Detect branch or tag ───────────────────────────────────────────────────────
 tag = if !isempty(ARGS) && startswith(ARGS[1], "v") && tryparse(VersionNumber, ARGS[1][2:end]) !== nothing
-    ARGS[1]
+    ARGS[1]                          # command-line argument wins
+elseif DEPLOY_TARGET == "project"
+    read_project_version()
+elseif DEPLOY_TARGET == "dev"
+    ""                               # empty string → dev mode below
 else
     try
         strip(readchomp(`git describe --exact-match --tags HEAD`))
