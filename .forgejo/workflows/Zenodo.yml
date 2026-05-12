@@ -65,6 +65,30 @@ jobs:
           echo "latest_id=$LATEST_ID" >> $GITHUB_OUTPUT
           echo "Draft ID: $NEW_ID  (from published: $LATEST_ID)"
 
+      - name: Zenodo — inspect draft metadata
+        env:
+          ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
+        run: |
+          ZCURL="curl -s --retry 5 --retry-delay 30 --max-time 120"
+          NEW_ID="${{ steps.zenodo_draft.outputs.new_id }}"
+
+          DRAFT_RESP=$($ZCURL \
+            "https://zenodo.org/api/records/$NEW_ID/draft" \
+            -H "Authorization: Bearer $ZENODO_TOKEN")
+
+          echo "Full draft metadata:"
+          echo "$DRAFT_RESP" | grep -v "HTTP_STATUS:" | python3 -c "
+          import sys, json
+          draft = json.load(sys.stdin)
+          meta = draft.get('metadata', {})
+          print('Top-level keys in draft:', sorted(draft.keys()))
+          print('Metadata keys:', sorted(meta.keys()))
+          print('resource_type present:', 'resource_type' in meta)
+          print('creators present:', 'creators' in meta)
+          print('resource_type value:', meta.get('resource_type'))
+          print('creators value (first 3):', (meta.get('creators', [])[:3]))
+          "
+
       - name: Zenodo — update version metadata
         env:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
