@@ -37,6 +37,8 @@ jobs:
         env:
           PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
         run: |
+          git config --global user.name "forgejo-actions[bot]"
+          git config --global user.email "forgejo-actions[bot]@users.noreply.codeberg.org"
           git config --global url."https://forgejo-token:${PUSH_TOKEN}@codeberg.org/".insteadOf "https://codeberg.org/"
           julia -e '
             using Pkg
@@ -109,8 +111,6 @@ jobs:
       - name: Create and push tag
         run: |
           VERSION=v${{ steps.version.outputs.value }}
-          git config user.name "forgejo-actions[bot]"
-          git config user.email "forgejo-actions[bot]@users.noreply.codeberg.org"
           git tag "$VERSION"
           git push origin "$VERSION"
           echo "Tag $VERSION created and pushed"
