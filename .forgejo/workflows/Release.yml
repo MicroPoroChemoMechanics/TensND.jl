@@ -55,10 +55,23 @@ jobs:
         env:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
         run: |
+          # CONCEPT_ID = ID of the first deposit, never changes across versions
+          CONCEPT_ID=17985768
+          # Dynamically find the latest published version's deposit ID
+          LATEST=$(curl -s \
+            "https://zenodo.org/api/deposit/depositions?q=conceptrecid:$CONCEPT_ID&sort=mostrecent&size=1" \
+            -H "Authorization: Bearer $ZENODO_TOKEN")
+          echo "Latest depositions response: $LATEST"
+          LATEST_ID=$(echo "$LATEST" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+          if [ -z "$LATEST_ID" ]; then
+            echo "ERROR: could not find latest version ID for concept $CONCEPT_ID"
+            exit 1
+          fi
+          echo "Latest version deposit ID: $LATEST_ID"
+          # Create new version draft from latest
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
-            "https://zenodo.org/api/records/17985768/versions" \
-            -H "Authorization: Bearer $ZENODO_TOKEN" \
-            -H "Content-Type: application/json")
+            "https://zenodo.org/api/deposit/depositions/$LATEST_ID/actions/newversion" \
+            -H "Authorization: Bearer $ZENODO_TOKEN")
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
           BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:")
           echo "HTTP status: $HTTP_STATUS"
@@ -69,11 +82,11 @@ jobs:
           fi
           NEW_ID=$(echo "$BODY" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
           if [ -z "$NEW_ID" ]; then
-            echo "ERROR: could not extract new record ID from response"
+            echo "ERROR: could not extract new draft ID from response"
             exit 1
           fi
           echo "new_id=$NEW_ID" >> $GITHUB_OUTPUT
-          echo "Zenodo draft ID: $NEW_ID"
+          echo "Zenodo new draft ID: $NEW_ID"
 
       - name: Zenodo — update version metadata
         env:
@@ -81,7 +94,7 @@ jobs:
         run: |
           NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
           curl -s -X PUT \
-            "https://zenodo.org/api/records/$NEW_ID/draft" \
+            "https://zenodo.org/api/deposit/depositions/$NEW_ID" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
             -H "Content-Type: application/json" \
             -d "{\"metadata\":{\"version\":\"${{ steps.version.outputs.value }}\"}}"
@@ -97,19 +110,22 @@ jobs:
             --prefix="TensND.jl-${VERSION}/" \
             -o "$FILENAME" \
             HEAD
-          OLD_FILES=$(curl -s "https://zenodo.org/api/records/$NEW_ID/draft/files" \
-            -H "Authorization: Bearer $ZENODO_TOKEN" | grep -o '"key":"[^"]*"' | cut -d'"' -f4)
-          for f in $OLD_FILES; do
+          OLD_FILES=$(curl -s \
+            "https://zenodo.org/api/deposit/depositions/$NEW_ID/files" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" | grep -o '"filename":"[^"]*"' | cut -d'"' -f4)
+          FILE_IDS=$(curl -s \
+            "https://zenodo.org/api/deposit/depositions/$NEW_ID/files" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+          for fid in $FILE_IDS; do
             curl -s -X DELETE \
-              "https://zenodo.org/api/records/$NEW_ID/draft/files/$f" \
+              "https://zenodo.org/api/deposit/depositions/$NEW_ID/files/$fid" \
               -H "Authorization: Bearer $ZENODO_TOKEN"
           done
           curl -s -X POST \
-            "https://zenodo.org/api/records/$NEW_ID/draft/files" \
+            "https://zenodo.org/api/deposit/depositions/$NEW_ID/files" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
-            -H "Content-Type: application/octet-stream" \
-            -H "Content-Disposition: attachment; filename=$FILENAME" \
-            --data-binary @"$FILENAME"
+            -F "name=$FILENAME" \
+            -F "file=@$FILENAME"
 
       - name: Zenodo — publish
         env:
@@ -117,7 +133,7 @@ jobs:
         run: |
           NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
           curl -s -X POST \
-            "https://zenodo.org/api/records/$NEW_ID/draft/actions/publish" \
+            "https://zenodo.org/api/deposit/depositions/$NEW_ID/actions/publish" \
             -H "Authorization: Bearer $ZENODO_TOKEN"
           echo "Published Zenodo version ${{ steps.version.outputs.value }}"
 
