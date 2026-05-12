@@ -75,13 +75,25 @@ jobs:
             echo "ERROR: could not fetch draft: ${DRAFT:0:400}"
             exit 1
           fi
-          UPDATED=$(echo "$DRAFT" | python3 -c "import sys,json;raw=sys.stdin.read().strip();d,_=json.JSONDecoder().raw_decode(raw);d['metadata']['version']=sys.argv[1];print(json.dumps({'metadata':d['metadata']}))" "$VERSION")
+          TMPFILE=$(mktemp)
+          echo "$DRAFT" | python3 -c "import sys,json;raw=sys.stdin.read().strip();d,_=json.JSONDecoder().raw_decode(raw);meta=d['metadata'];meta['version']=sys.argv[1];[ri.update({'relation_type':{'id':ri['relation_type']}}) for ri in meta.get('related_identifiers',[]) if isinstance(ri.get('relation_type'),str)];json.dump({'metadata':meta},sys.stdout)" "$VERSION" > "$TMPFILE"
+          if [ ! -s "$TMPFILE" ]; then
+            echo "ERROR: failed to generate updated metadata (Python script produced no output)"
+            exit 1
+          fi
+          echo "Metadata payload (first 300 chars): $(head -c 300 $TMPFILE)"
           RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" -X PUT \
             "https://zenodo.org/api/records/$NEW_ID/draft" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "$UPDATED")
-          echo "Metadata update status: $(echo "$RESP" | grep "HTTP_STATUS:" | cut -d: -f2)"
+            -d @"$TMPFILE")
+          RESP_STATUS=$(echo "$RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          echo "Metadata update status: $RESP_STATUS"
+          rm -f "$TMPFILE"
+          if [ "$RESP_STATUS" != "200" ]; then
+            echo "ERROR: metadata update failed: $(echo "$RESP" | grep -v "HTTP_STATUS:" | head -c 400)"
+            exit 1
+          fi
 
       - name: Zenodo — upload source archive
         env:
