@@ -46,7 +46,8 @@ jobs:
             using LocalRegistry
             Pkg.Registry.add(RegistrySpec(url="https://codeberg.org/MicroPoroChemoMechanics/MPCM-Registry.git"))
             register(pwd(); registry="MPCM-Registry", push=true,
-                     repo="https://codeberg.org/MicroPoroChemoMechanics/TensND.jl.git")
+                     repo="https://codeberg.org/MicroPoroChemoMechanics/TensND.jl.git",
+                     ignore_reregistration=true)
           '
 
       - name: Zenodo — create new version draft
@@ -54,11 +55,23 @@ jobs:
         env:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
         run: |
-          RESPONSE=$(curl -s -X POST \
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
             "https://zenodo.org/api/records/17985768/versions" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
             -H "Content-Type: application/json")
-          NEW_ID=$(echo "$RESPONSE" | grep -o '"id":"[^"]*"' | head -1 | cut -d'"' -f4)
+          HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
+          BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:")
+          echo "HTTP status: $HTTP_STATUS"
+          echo "Response: $BODY"
+          if [ "$HTTP_STATUS" != "201" ]; then
+            echo "ERROR: Zenodo API returned HTTP $HTTP_STATUS"
+            exit 1
+          fi
+          NEW_ID=$(echo "$BODY" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+          if [ -z "$NEW_ID" ]; then
+            echo "ERROR: could not extract new record ID from response"
+            exit 1
+          fi
           echo "new_id=$NEW_ID" >> $GITHUB_OUTPUT
           echo "Zenodo draft ID: $NEW_ID"
 
