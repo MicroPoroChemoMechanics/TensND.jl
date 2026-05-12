@@ -1,7 +1,7 @@
 name: CI
 
 on:
-  workflow_dispatch:  # Tests lancés en local — voir scripts/test_local.ps1
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

@@ -12,7 +12,7 @@ keywords:
   - "coordinate systems"
   - "symbolic"
   - "numeric"
-version: "0.1.7"
+version: "0.1.8"
 date-released: "2025-06-01"
 doi: "10.5281/zenodo.17985768"
 url: "https://codeberg.org/MicroPoroChemoMechanics/TensND.jl"
