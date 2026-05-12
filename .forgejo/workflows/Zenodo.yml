@@ -97,7 +97,7 @@ jobs:
           FILES_RESP=$($ZCURL "https://zenodo.org/api/records/$NEW_ID/draft/files" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
           echo "Existing files: $FILES_RESP"
-          FILE_KEYS=$(echo "$FILES_RESP" | grep -o '"key": *"[^"]*"' | sed 's/"key": *"//;s/"//')
+          FILE_KEYS=$(echo "$FILES_RESP" | grep -o '"key": *"[^"]*"' | sed 's/"key": *"//;s/"//' || true)
           for key in $FILE_KEYS; do
             ENCODED_KEY=$(echo "$key" | sed 's|/|%2F|g')
             echo "Deleting: $key"

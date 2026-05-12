@@ -35,8 +35,8 @@ repo_remote = "git@codeberg-docs:MicroPoroChemoMechanics/TensND.jl.git"
 
 # ── Deployment target ─────────────────────────────────────────────────────────
 # DEPLOY_TARGET = nothing       # auto-detect from git
-# DEPLOY_TARGET = "dev"       # force dev/ deploy
-DEPLOY_TARGET = "project"   # stable/ + vX.Y.Z/ using version from Project.toml
+DEPLOY_TARGET = "dev"       # force dev/ deploy
+# DEPLOY_TARGET = "project"   # stable/ + vX.Y.Z/ using version from Project.toml
 
 function read_project_version()
     for line in eachline(joinpath(dirname(docsdir), "Project.toml"))
