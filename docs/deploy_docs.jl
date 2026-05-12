@@ -1,12 +1,13 @@
 #!/usr/bin/env julia
 # Build and deploy docs to Codeberg Pages (pages branch).
-# Usage:  julia --project=docs/ docs/deploy_docs.jl
+# Usage:  julia --project=docs/ docs/deploy_docs.jl              # auto-detect branch or tag from git
+#         julia --project=docs/ docs/deploy_docs.jl v0.1.8       # force stable deploy for a given tag
 #
 # Requires SSH alias "codeberg-docs" in ~/.ssh/config pointing to a deploy key
 # with write access on the repository.
 #
-# Branch push  →  deploys to docs/dev/
-# Tag push     →  deploys to docs/stable/ + docs/vX.Y.Z/
+# Branch  →  deploys to dev/
+# Tag     →  deploys to stable/ + vX.Y.Z/
 
 using Pkg
 
@@ -26,10 +27,14 @@ builddir   = joinpath(docsdir, "build")
 repo_remote = "git@codeberg-docs:MicroPoroChemoMechanics/TensND.jl.git"
 
 # ── Detect branch or tag ───────────────────────────────────────────────────────
-tag = try
-    strip(readchomp(`git describe --exact-match --tags HEAD`))
-catch
-    ""
+tag = if !isempty(ARGS) && startswith(ARGS[1], "v") && tryparse(VersionNumber, ARGS[1][2:end]) !== nothing
+    ARGS[1]
+else
+    try
+        strip(readchomp(`git describe --exact-match --tags HEAD`))
+    catch
+        ""
+    end
 end
 is_tag = !isempty(tag) && startswith(tag, "v") && tryparse(VersionNumber, tag[2:end]) !== nothing
 ref = is_tag ? tag : strip(readchomp(`git rev-parse --abbrev-ref HEAD`))
