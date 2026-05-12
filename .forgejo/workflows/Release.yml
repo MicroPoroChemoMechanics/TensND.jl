@@ -106,26 +106,41 @@ jobs:
           NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
           VERSION=${{ steps.version.outputs.value }}
           FILENAME="TensND.jl-v${VERSION}.tar.gz"
+          echo "Draft ID: $NEW_ID"
+          echo "Archive: $FILENAME"
+          # Build archive
           git archive --format=tar.gz \
             --prefix="TensND.jl-${VERSION}/" \
             -o "$FILENAME" \
             HEAD
-          OLD_FILES=$(curl -s \
+          ls -lh "$FILENAME"
+          # List existing files in draft and delete them
+          FILES_RESP=$(curl -s \
             "https://zenodo.org/api/deposit/depositions/$NEW_ID/files" \
-            -H "Authorization: Bearer $ZENODO_TOKEN" | grep -o '"filename":"[^"]*"' | cut -d'"' -f4)
-          FILE_IDS=$(curl -s \
-            "https://zenodo.org/api/deposit/depositions/$NEW_ID/files" \
-            -H "Authorization: Bearer $ZENODO_TOKEN" | grep -o '"id":"[^"]*"' | cut -d'"' -f4)
+            -H "Authorization: Bearer $ZENODO_TOKEN")
+          echo "Existing files: $FILES_RESP"
+          FILE_IDS=$(echo "$FILES_RESP" | grep -o '"id": *"[^"]*"' | grep -o '[0-9a-f-]\{36\}')
           for fid in $FILE_IDS; do
+            echo "Deleting file $fid ..."
             curl -s -X DELETE \
               "https://zenodo.org/api/deposit/depositions/$NEW_ID/files/$fid" \
               -H "Authorization: Bearer $ZENODO_TOKEN"
           done
-          curl -s -X POST \
+          # Upload new archive
+          echo "Uploading $FILENAME ..."
+          UPLOAD_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
             "https://zenodo.org/api/deposit/depositions/$NEW_ID/files" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
             -F "name=$FILENAME" \
-            -F "file=@$FILENAME"
+            -F "file=@$FILENAME")
+          UPLOAD_STATUS=$(echo "$UPLOAD_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          UPLOAD_BODY=$(echo "$UPLOAD_RESP" | grep -v "HTTP_STATUS:")
+          echo "Upload HTTP status: $UPLOAD_STATUS"
+          echo "Upload response: $UPLOAD_BODY"
+          if [ "$UPLOAD_STATUS" != "201" ]; then
+            echo "ERROR: upload failed with HTTP $UPLOAD_STATUS"
+            exit 1
+          fi
 
       - name: Zenodo — publish
         env:
