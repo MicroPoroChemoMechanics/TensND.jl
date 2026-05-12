@@ -20,17 +20,18 @@ jobs:
           echo "value=$VERSION" >> $GITHUB_OUTPUT
           echo "Version: $VERSION"
 
+      - name: Abort if tag already exists
+        run: |
+          VERSION=v${{ steps.version.outputs.value }}
+          if git rev-parse "$VERSION" >/dev/null 2>&1; then
+            echo "ERROR: tag $VERSION already exists. Bump the version in Project.toml first."
+            exit 1
+          fi
+
       - name: Install Julia
         run: |
           curl -fsSL https://install.julialang.org | sh -s -- --yes
           echo "$HOME/.juliaup/bin" >> $GITHUB_PATH
-
-      - name: Create and push tag
-        run: |
-          git config user.name "forgejo-actions[bot]"
-          git config user.email "forgejo-actions[bot]@users.noreply.codeberg.org"
-          git tag v${{ steps.version.outputs.value }}
-          git push origin v${{ steps.version.outputs.value }}
 
       - name: Register in MPCM-Registry
         env:
@@ -80,8 +81,7 @@ jobs:
           git archive --format=tar.gz \
             --prefix="TensND.jl-${VERSION}/" \
             -o "$FILENAME" \
-            "v${VERSION}"
-          # Remove old files then upload new archive
+            HEAD
           OLD_FILES=$(curl -s "https://zenodo.org/api/records/$NEW_ID/draft/files" \
             -H "Authorization: Bearer $ZENODO_TOKEN" | grep -o '"key":"[^"]*"' | cut -d'"' -f4)
           for f in $OLD_FILES; do
@@ -105,3 +105,12 @@ jobs:
             "https://zenodo.org/api/records/$NEW_ID/draft/actions/publish" \
             -H "Authorization: Bearer $ZENODO_TOKEN"
           echo "Published Zenodo version ${{ steps.version.outputs.value }}"
+
+      - name: Create and push tag
+        run: |
+          VERSION=v${{ steps.version.outputs.value }}
+          git config user.name "forgejo-actions[bot]"
+          git config user.email "forgejo-actions[bot]@users.noreply.codeberg.org"
+          git tag "$VERSION"
+          git push origin "$VERSION"
+          echo "Tag $VERSION created and pushed"
