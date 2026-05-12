@@ -62,7 +62,7 @@ jobs:
             "https://zenodo.org/api/deposit/depositions?q=conceptrecid:$CONCEPT_ID&sort=mostrecent&size=1" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
           echo "Latest depositions response: $LATEST"
-          LATEST_ID=$(echo "$LATEST" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+          LATEST_ID=$(echo "$LATEST" | grep -o '"id": *[0-9][0-9]*' | head -1 | tr -dc '0-9')
           if [ -z "$LATEST_ID" ]; then
             echo "ERROR: could not find latest version ID for concept $CONCEPT_ID"
             exit 1
@@ -80,7 +80,7 @@ jobs:
             echo "ERROR: Zenodo API returned HTTP $HTTP_STATUS"
             exit 1
           fi
-          NEW_ID=$(echo "$BODY" | grep -o '"id":[0-9]*' | head -1 | cut -d: -f2)
+          NEW_ID=$(echo "$BODY" | grep -o '"id": *[0-9][0-9]*' | head -1 | tr -dc '0-9')
           if [ -z "$NEW_ID" ]; then
             echo "ERROR: could not extract new draft ID from response"
             exit 1
