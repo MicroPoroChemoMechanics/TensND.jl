@@ -76,9 +76,10 @@ Depth = 1
   author  = {Jean-François Barthélémy},
   title   = {TensND.jl},
   url     = {https://codeberg.org/MicroPoroChemoMechanics/TensND.jl},
-  version = {v0.1.1},
-  year    = {2021},
-  month   = {8}
+  doi     = {10.5281/zenodo.17985768},
+  version = {v0.1.8},
+  year    = {2026},
+  month   = {5}
 }
 ```
 

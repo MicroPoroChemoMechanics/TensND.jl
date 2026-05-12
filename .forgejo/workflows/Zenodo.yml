@@ -75,11 +75,13 @@ jobs:
             -H "Authorization: Bearer $ZENODO_TOKEN")
           PUB_STATUS=$(echo "$PUB_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
           PUB_BODY=$(echo "$PUB_RESP" | grep -v "HTTP_STATUS:")
-          echo "Published record fetch status: $PUB_STATUS"
+          echo "Published record fetch status: $PUB_STATUS  (LATEST_ID=$LATEST_ID)"
           if [ "$PUB_STATUS" != "200" ]; then
             echo "ERROR: could not fetch published record: ${PUB_BODY:0:400}"
             exit 1
           fi
+          echo "Published record top-level keys: $(echo "$PUB_BODY" | python3 -c "import sys,json;d=json.load(sys.stdin);print(sorted(d.keys()))")"
+          echo "Published metadata keys: $(echo "$PUB_BODY" | python3 -c "import sys,json;d=json.load(sys.stdin);print(sorted(d.get('metadata',{}).keys()))")"
           TMPFILE=$(mktemp)
           echo "$PUB_BODY" | python3 -c "import sys,json;pub=sys.stdin.read().strip();d,_=json.JSONDecoder().raw_decode(pub);meta=d['metadata'];meta['version']=sys.argv[1];meta['publication_date']=sys.argv[2];[ri.update({'relation_type':{'id':ri['relation_type']}}) for ri in meta.get('related_identifiers',[]) if isinstance(ri.get('relation_type'),str)];[meta.pop(f,None) for f in ['doi','prereserve_doi']];json.dump({'metadata':meta},sys.stdout)" "$VERSION" "$TODAY" > "$TMPFILE"
           if [ ! -s "$TMPFILE" ]; then
