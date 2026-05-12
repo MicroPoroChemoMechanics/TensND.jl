@@ -56,7 +56,8 @@ jobs:
             echo "Reusing existing draft: $NEW_ID"
           fi
           echo "new_id=$NEW_ID" >> $GITHUB_OUTPUT
-          echo "Draft ID: $NEW_ID"
+          echo "latest_id=$LATEST_ID" >> $GITHUB_OUTPUT
+          echo "Draft ID: $NEW_ID  (from published: $LATEST_ID)"
 
       - name: Zenodo — update version metadata
         env:
@@ -64,34 +65,39 @@ jobs:
         run: |
           ZCURL="curl -s --retry 3 --retry-delay 20 --max-time 60"
           NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
+          LATEST_ID=${{ steps.zenodo_draft.outputs.latest_id }}
           VERSION=${{ steps.version.outputs.value }}
-          DRAFT_RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" \
-            "https://zenodo.org/api/records/$NEW_ID/draft" \
+          TODAY=$(date +%Y-%m-%d)
+          # Fetch from the LATEST PUBLISHED record — guaranteed complete valid metadata.
+          # Do NOT use the draft: if it was reused from a previous failed run it may be empty.
+          PUB_RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" \
+            "https://zenodo.org/api/records/$LATEST_ID" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
-          DRAFT_STATUS=$(echo "$DRAFT_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
-          DRAFT=$(echo "$DRAFT_RESP" | grep -v "HTTP_STATUS:")
-          echo "Draft fetch status: $DRAFT_STATUS"
-          if [ "$DRAFT_STATUS" != "200" ]; then
-            echo "ERROR: could not fetch draft: ${DRAFT:0:400}"
+          PUB_STATUS=$(echo "$PUB_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          PUB_BODY=$(echo "$PUB_RESP" | grep -v "HTTP_STATUS:")
+          echo "Published record fetch status: $PUB_STATUS"
+          if [ "$PUB_STATUS" != "200" ]; then
+            echo "ERROR: could not fetch published record: ${PUB_BODY:0:400}"
             exit 1
           fi
           TMPFILE=$(mktemp)
-          echo "$DRAFT" | python3 -c "import sys,json;raw=sys.stdin.read().strip();d,_=json.JSONDecoder().raw_decode(raw);meta=d['metadata'];meta['version']=sys.argv[1];[ri.update({'relation_type':{'id':ri['relation_type']}}) for ri in meta.get('related_identifiers',[]) if isinstance(ri.get('relation_type'),str)];json.dump({'metadata':meta},sys.stdout)" "$VERSION" > "$TMPFILE"
+          echo "$PUB_BODY" | python3 -c "import sys,json;pub=sys.stdin.read().strip();d,_=json.JSONDecoder().raw_decode(pub);meta=d['metadata'];meta['version']=sys.argv[1];meta['publication_date']=sys.argv[2];[ri.update({'relation_type':{'id':ri['relation_type']}}) for ri in meta.get('related_identifiers',[]) if isinstance(ri.get('relation_type'),str)];[meta.pop(f,None) for f in ['doi','prereserve_doi']];json.dump({'metadata':meta},sys.stdout)" "$VERSION" "$TODAY" > "$TMPFILE"
           if [ ! -s "$TMPFILE" ]; then
             echo "ERROR: failed to generate updated metadata (Python script produced no output)"
             exit 1
           fi
-          echo "Metadata payload (first 300 chars): $(head -c 300 $TMPFILE)"
+          echo "Metadata payload (first 400 chars): $(head -c 400 $TMPFILE)"
           RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" -X PUT \
             "https://zenodo.org/api/records/$NEW_ID/draft" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
             -H "Content-Type: application/json" \
             -d @"$TMPFILE")
           RESP_STATUS=$(echo "$RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          RESP_BODY=$(echo "$RESP" | grep -v "HTTP_STATUS:")
           echo "Metadata update status: $RESP_STATUS"
           rm -f "$TMPFILE"
           if [ "$RESP_STATUS" != "200" ]; then
-            echo "ERROR: metadata update failed: $(echo "$RESP" | grep -v "HTTP_STATUS:" | head -c 400)"
+            echo "ERROR: metadata update failed: ${RESP_BODY:0:400}"
             exit 1
           fi
 
