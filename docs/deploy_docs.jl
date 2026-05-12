@@ -143,6 +143,7 @@ println("🚀 Pushing pages branch...")
 cd(pagesdir) do
     run(`git config user.name "TensND Documenter"`)
     run(`git config user.email "docs@tensnd.codeberg.page"`)
+    run(`git config core.autocrlf false`)
     run(`git add -A`)
     if !isempty(strip(readchomp(`git status --porcelain`)))
         msg = is_tag ? "Deploy $tag" : "Deploy dev ($ref)"
