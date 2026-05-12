@@ -59,34 +59,32 @@ jobs:
           echo "latest_id=$LATEST_ID" >> $GITHUB_OUTPUT
           echo "Draft ID: $NEW_ID  (from published: $LATEST_ID)"
 
-      - name: Zenodo — update version metadata
+      - name: Zenodo — update version metadata from published record
         env:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
         run: |
           ZCURL="curl -s --retry 5 --retry-delay 30 --max-time 120"
           NEW_ID="${{ steps.zenodo_draft.outputs.new_id }}"
+          LATEST_ID="${{ steps.zenodo_draft.outputs.latest_id }}"
           VERSION="${{ steps.version.outputs.value }}"
           TODAY=$(date +%Y-%m-%d)
-          DRAFT_RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" \
-            "https://zenodo.org/api/records/$NEW_ID/draft" \
+          PUB_RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" \
+            "https://zenodo.org/api/records/$LATEST_ID" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
-          DRAFT_STATUS=$(echo "$DRAFT_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
-          DRAFT=$(echo "$DRAFT_RESP" | grep -v "HTTP_STATUS:")
-          echo "Draft fetch status: $DRAFT_STATUS"
-          if [ "$DRAFT_STATUS" != "200" ]; then
-            echo "ERROR: could not fetch draft: ${DRAFT:0:400}"
+          PUB_STATUS=$(echo "$PUB_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          PUB_BODY=$(echo "$PUB_RESP" | grep -v "HTTP_STATUS:")
+          echo "Published record fetch status: $PUB_STATUS (LATEST_ID=$LATEST_ID)"
+          if [ "$PUB_STATUS" != "200" ]; then
+            echo "ERROR: could not fetch published record: ${PUB_BODY:0:400}"
             exit 1
           fi
           TMPFILE=$(mktemp)
-          # Single-line Python required: multi-line code at column 0 breaks the YAML block scalar.
-          # Logic: update version + publication_date; add resource_type and creators if missing;
-          # convert any string relation_type to {"id": ...} for InvenioRDM compatibility.
-          echo "$DRAFT" | python3 -c "import sys,json;draft=json.load(sys.stdin);meta=draft['metadata'];meta['version']=sys.argv[1];meta['publication_date']=sys.argv[2];meta.setdefault('resource_type',{'type':'software','subtype':'computer-program','description':'Julia package'});meta['creators'] if meta.get('creators') else meta.update({'creators':[{'name':'Jean-Francois Barthelemy','affiliation':'MicroPoroChemoMechanics'}]});[ri.update({'relation_type':{'id':ri['relation_type']}}) for ri in meta.get('related_identifiers',[]) if isinstance(ri.get('relation_type'),str)];json.dump({'metadata':meta},sys.stdout)" "$VERSION" "$TODAY" > "$TMPFILE"
+          echo "$PUB_BODY" | python3 -c "import sys,json;pub=json.load(sys.stdin);meta=pub['metadata'].copy();meta['version']=sys.argv[1];meta['publication_date']=sys.argv[2];meta.pop('doi',None);meta.pop('prereserve_doi',None);related=meta.get('related_identifiers',[]);[ri.update({'relation_type':{'id':ri['relation_type']}}) for ri in related if isinstance(ri.get('relation_type'),str)];json.dump({'metadata':meta},sys.stdout)" "$VERSION" "$TODAY" > "$TMPFILE"
           if [ ! -s "$TMPFILE" ]; then
             echo "ERROR: failed to generate updated metadata (Python produced no output)"
             exit 1
           fi
-          echo "Metadata payload (first 400 chars): $(head -c 400 "$TMPFILE")"
+          echo "Metadata payload (first 500 chars): $(head -c 500 "$TMPFILE")"
           RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" -X PUT \
             "https://zenodo.org/api/records/$NEW_ID/draft" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
@@ -97,7 +95,7 @@ jobs:
           echo "Metadata update status: $RESP_STATUS"
           rm -f "$TMPFILE"
           if [ "$RESP_STATUS" != "200" ]; then
-            echo "ERROR: metadata update failed: ${RESP_BODY:0:400}"
+            echo "ERROR: metadata update failed: ${RESP_BODY:0:500}"
             exit 1
           fi
 
