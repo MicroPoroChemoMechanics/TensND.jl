@@ -65,17 +65,17 @@ end
 # ── Remove only the directories that will be replaced ─────────────────────────
 # (keeps other versioned directories intact across deploys)
 if is_tag
-    rm(joinpath(pagesdir, "stable");      recursive = true, force = true)
-    rm(joinpath(pagesdir, tag[2:end]);    recursive = true, force = true)
+    rm(joinpath(pagesdir, "stable"); recursive = true, force = true)
+    rm(joinpath(pagesdir, tag);      recursive = true, force = true)
 else
-    rm(joinpath(pagesdir, "dev");         recursive = true, force = true)
+    rm(joinpath(pagesdir, "dev");    recursive = true, force = true)
 end
 
 # ── Copy build into target subdirectory ───────────────────────────────────────
 if is_tag
     cp(builddir, joinpath(pagesdir, "stable"))
-    cp(builddir, joinpath(pagesdir, tag[2:end]))
-    println("$tag → stable/ + $(tag[2:end])/")
+    cp(builddir, joinpath(pagesdir, tag))
+    println("$tag → stable/ + $tag/")
 else
     cp(builddir, joinpath(pagesdir, "dev"))
     println("$ref → dev/")
