@@ -57,11 +57,11 @@ jobs:
         run: |
           # CONCEPT_ID = ID of the first deposit, never changes across versions
           CONCEPT_ID=17985768
-          # Dynamically find the latest published version's deposit ID
+          # Use records API (published only, drafts excluded) to find latest version ID
           LATEST=$(curl -s \
-            "https://zenodo.org/api/deposit/depositions?q=conceptrecid:$CONCEPT_ID&sort=mostrecent&size=1" \
+            "https://zenodo.org/api/records?q=conceptrecid:$CONCEPT_ID&sort=mostrecent&size=1" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
-          echo "Latest depositions response: $LATEST"
+          echo "Latest published record: $LATEST"
           LATEST_ID=$(echo "$LATEST" | grep -o '"id": *[0-9][0-9]*' | head -1 | tr -dc '0-9')
           if [ -z "$LATEST_ID" ]; then
             echo "ERROR: could not find latest version ID for concept $CONCEPT_ID"
