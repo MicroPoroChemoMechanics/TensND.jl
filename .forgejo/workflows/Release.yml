@@ -55,49 +55,56 @@ jobs:
         env:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
         run: |
-          # CONCEPT_ID = ID of the first deposit, never changes across versions
+          # CONCEPT_ID = first deposit ID, never changes
           CONCEPT_ID=17985768
-          # Use records API (published only, drafts excluded) to find latest version ID
+          # Find latest published version (records API = published only)
           LATEST=$(curl -s \
             "https://zenodo.org/api/records?q=conceptrecid:$CONCEPT_ID&sort=mostrecent&size=1" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
-          echo "Latest published record: $LATEST"
           LATEST_ID=$(echo "$LATEST" | grep -o '"id": *[0-9][0-9]*' | head -1 | tr -dc '0-9')
           if [ -z "$LATEST_ID" ]; then
-            echo "ERROR: could not find latest version ID for concept $CONCEPT_ID"
+            echo "ERROR: could not find latest published version"
             exit 1
           fi
-          echo "Latest version deposit ID: $LATEST_ID"
-          # Create new version draft from latest
+          echo "Latest published version ID: $LATEST_ID"
+          # Create new version draft using new RDM API
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
-            "https://zenodo.org/api/deposit/depositions/$LATEST_ID/actions/newversion" \
-            -H "Authorization: Bearer $ZENODO_TOKEN")
+            "https://zenodo.org/api/records/$LATEST_ID/versions" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/json")
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
           BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:")
           echo "HTTP status: $HTTP_STATUS"
-          echo "Response: $BODY"
+          echo "Response (truncated): ${BODY:0:300}"
           if [ "$HTTP_STATUS" != "201" ]; then
             echo "ERROR: Zenodo API returned HTTP $HTTP_STATUS"
             exit 1
           fi
           NEW_ID=$(echo "$BODY" | grep -o '"id": *[0-9][0-9]*' | head -1 | tr -dc '0-9')
           if [ -z "$NEW_ID" ]; then
-            echo "ERROR: could not extract new draft ID from response"
+            echo "ERROR: could not extract new draft ID"
             exit 1
           fi
           echo "new_id=$NEW_ID" >> $GITHUB_OUTPUT
-          echo "Zenodo new draft ID: $NEW_ID"
+          echo "New draft ID: $NEW_ID"
 
       - name: Zenodo — update version metadata
         env:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
         run: |
           NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
-          curl -s -X PUT \
-            "https://zenodo.org/api/deposit/depositions/$NEW_ID" \
+          VERSION=${{ steps.version.outputs.value }}
+          # GET current draft to preserve existing metadata
+          DRAFT=$(curl -s \
+            "https://zenodo.org/api/records/$NEW_ID/draft" \
+            -H "Authorization: Bearer $ZENODO_TOKEN")
+          # PATCH only the version field
+          RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X PUT \
+            "https://zenodo.org/api/records/$NEW_ID/draft" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
             -H "Content-Type: application/json" \
-            -d "{\"metadata\":{\"version\":\"${{ steps.version.outputs.value }}\"}}"
+            -d "{\"metadata\":{\"version\":\"$VERSION\"}}")
+          echo "Metadata update status: $(echo "$RESP" | grep "HTTP_STATUS:" | cut -d: -f2)"
 
       - name: Zenodo — upload source archive
         env:
@@ -106,40 +113,48 @@ jobs:
           NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
           VERSION=${{ steps.version.outputs.value }}
           FILENAME="TensND.jl-v${VERSION}.tar.gz"
-          echo "Draft ID: $NEW_ID"
-          echo "Archive: $FILENAME"
-          # Build archive
-          git archive --format=tar.gz \
-            --prefix="TensND.jl-${VERSION}/" \
-            -o "$FILENAME" \
-            HEAD
+          echo "Draft ID: $NEW_ID  Archive: $FILENAME"
+          git archive --format=tar.gz --prefix="TensND.jl-${VERSION}/" -o "$FILENAME" HEAD
           ls -lh "$FILENAME"
-          # List existing files in draft and delete them
+          # Delete existing files in draft (copied from previous version)
           FILES_RESP=$(curl -s \
-            "https://zenodo.org/api/deposit/depositions/$NEW_ID/files" \
+            "https://zenodo.org/api/records/$NEW_ID/draft/files" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
           echo "Existing files: $FILES_RESP"
-          FILE_IDS=$(echo "$FILES_RESP" | grep -o '"id": *"[^"]*"' | grep -o '[0-9a-f-]\{36\}')
-          for fid in $FILE_IDS; do
-            echo "Deleting file $fid ..."
+          FILE_KEYS=$(echo "$FILES_RESP" | grep -o '"key": *"[^"]*"' | sed 's/"key": *"//;s/"//')
+          for key in $FILE_KEYS; do
+            echo "Deleting: $key"
+            ENCODED_KEY=$(echo "$key" | sed 's|/|%2F|g')
             curl -s -X DELETE \
-              "https://zenodo.org/api/deposit/depositions/$NEW_ID/files/$fid" \
+              "https://zenodo.org/api/records/$NEW_ID/draft/files/$ENCODED_KEY" \
               -H "Authorization: Bearer $ZENODO_TOKEN"
           done
-          # Upload new archive
-          echo "Uploading $FILENAME ..."
-          UPLOAD_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
-            "https://zenodo.org/api/deposit/depositions/$NEW_ID/files" \
+          # Initialize upload
+          INIT=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            "https://zenodo.org/api/records/$NEW_ID/draft/files" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
-            -F "name=$FILENAME" \
-            -F "file=@$FILENAME")
-          UPLOAD_STATUS=$(echo "$UPLOAD_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
-          UPLOAD_BODY=$(echo "$UPLOAD_RESP" | grep -v "HTTP_STATUS:")
-          echo "Upload HTTP status: $UPLOAD_STATUS"
-          echo "Upload response: $UPLOAD_BODY"
-          if [ "$UPLOAD_STATUS" != "201" ]; then
-            echo "ERROR: upload failed with HTTP $UPLOAD_STATUS"
-            exit 1
+            -H "Content-Type: application/json" \
+            -d "[{\"key\": \"$FILENAME\"}]")
+          echo "Init status: $(echo "$INIT" | grep "HTTP_STATUS:" | cut -d: -f2)"
+          # Upload content
+          UPLOAD=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X PUT \
+            "https://zenodo.org/api/records/$NEW_ID/draft/files/$FILENAME/content" \
+            -H "Authorization: Bearer $ZENODO_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary @"$FILENAME")
+          UPLOAD_STATUS=$(echo "$UPLOAD" | grep "HTTP_STATUS:" | cut -d: -f2)
+          echo "Upload status: $UPLOAD_STATUS"
+          if [ "$UPLOAD_STATUS" != "200" ]; then
+            echo "ERROR: upload failed"; exit 1
+          fi
+          # Commit
+          COMMIT=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            "https://zenodo.org/api/records/$NEW_ID/draft/files/$FILENAME/commit" \
+            -H "Authorization: Bearer $ZENODO_TOKEN")
+          COMMIT_STATUS=$(echo "$COMMIT" | grep "HTTP_STATUS:" | cut -d: -f2)
+          echo "Commit status: $COMMIT_STATUS"
+          if [ "$COMMIT_STATUS" != "200" ]; then
+            echo "ERROR: commit failed"; exit 1
           fi
 
       - name: Zenodo — publish
@@ -147,9 +162,15 @@ jobs:
           ZENODO_TOKEN: ${{ secrets.ZENODO_TOKEN }}
         run: |
           NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
-          curl -s -X POST \
-            "https://zenodo.org/api/deposit/depositions/$NEW_ID/actions/publish" \
-            -H "Authorization: Bearer $ZENODO_TOKEN"
+          RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
+            "https://zenodo.org/api/records/$NEW_ID/draft/actions/publish" \
+            -H "Authorization: Bearer $ZENODO_TOKEN")
+          HTTP_STATUS=$(echo "$RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          echo "Publish status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" != "202" ]; then
+            echo "ERROR: $(echo "$RESP" | grep -v "HTTP_STATUS:")"
+            exit 1
+          fi
           echo "Published Zenodo version ${{ steps.version.outputs.value }}"
 
       - name: Create and push tag
