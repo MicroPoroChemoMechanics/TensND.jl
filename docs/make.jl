@@ -117,5 +117,6 @@ makedocs(
     ],
 )
 
-# deploydocs(; repo = "codeberg.org/MicroPoroChemoMechanics/TensND.jl", devbranch = "main")
+deploydocs(; repo = "git@codeberg-docs:MicroPoroChemoMechanics/TensND.jl.git", devbranch = "main", push_preview = false)
+
 println("Build complet ! Consultez docs/build/")

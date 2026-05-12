@@ -41,7 +41,7 @@ ref = is_tag ? tag : strip(readchomp(`git rev-parse --abbrev-ref HEAD`))
 println("$(is_tag ? "📦 TAG" : "🐛 BRANCH") $ref")
 
 # ── Build docs (CI=false → Documenter skips its own deploydocs) ───────────────
-ENV["CI"] = "false"
+ENV["CI"] = "true"
 println("🔨 Building...")
 include(joinpath(docsdir, "make.jl"))
 println("✅ Build complete")
@@ -80,6 +80,32 @@ else
     cp(builddir, joinpath(pagesdir, "dev"))
     println("$ref → dev/")
 end
+
+# ── Generate versions.js and root index.html ──────────────────────────────────
+version_dirs = sort(
+    filter(d -> isdir(joinpath(pagesdir, d)) && startswith(d, "v") &&
+                tryparse(VersionNumber, d[2:end]) !== nothing,
+           readdir(pagesdir)),
+    by = d -> VersionNumber(d[2:end]), rev = true,
+)
+versions = String[]
+isdir(joinpath(pagesdir, "stable")) && push!(versions, "stable")
+append!(versions, version_dirs)
+isdir(joinpath(pagesdir, "dev")) && push!(versions, "dev")
+newest = isempty(version_dirs) ? "dev" : version_dirs[1]
+versions_list = join(["\"$v\"" for v in versions], ",")
+write(joinpath(pagesdir, "versions.js"),
+    "var DOC_VERSIONS = [$versions_list];\n" *
+    "var DOCUMENTER_NEWEST = \"$newest\";\n" *
+    "var DOCUMENTER_STABLE = \"stable\";\n")
+println("✅ versions.js: $(join(versions, ", "))")
+redirect = isdir(joinpath(pagesdir, "stable")) ? "stable" : "dev"
+write(joinpath(pagesdir, "index.html"),
+    "<!DOCTYPE html>\n<html>\n" *
+    "<head><meta http-equiv=\"refresh\" content=\"0; url=$redirect/\"/></head>\n" *
+    "<body><p>Redirecting to <a href=\"$redirect/\">documentation</a>.</p></body>\n" *
+    "</html>\n")
+println("✅ index.html → $redirect/")
 
 # ── Commit and push ────────────────────────────────────────────────────────────
 println("🚀 Pushing pages branch...")
