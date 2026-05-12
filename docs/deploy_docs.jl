@@ -95,13 +95,20 @@ else
     rm(joinpath(pagesdir, "dev");    recursive = true, force = true)
 end
 
-# ── Copy build into target subdirectory ───────────────────────────────────────
+# ── Copy build into target subdirectory and write siteinfo.js ─────────────────
+function write_siteinfo(dir, version)
+    write(joinpath(dir, "siteinfo.js"), "var DOCUMENTER_CURRENT_VERSION = \"$version\";\n")
+end
+
 if is_tag
     cp(builddir, joinpath(pagesdir, "stable"))
+    write_siteinfo(joinpath(pagesdir, "stable"), "stable")
     cp(builddir, joinpath(pagesdir, tag))
+    write_siteinfo(joinpath(pagesdir, tag), tag)
     println("$tag → stable/ + $tag/")
 else
     cp(builddir, joinpath(pagesdir, "dev"))
+    write_siteinfo(joinpath(pagesdir, "dev"), "dev")
     println("$ref → dev/")
 end
 
@@ -141,7 +148,7 @@ cd(pagesdir) do
         msg = is_tag ? "Deploy $tag" : "Deploy dev ($ref)"
         run(`git commit -m $msg`)
         run(`git push -u origin pages`)
-        dest = is_tag ? tag[2:end] : "dev"
+        dest = is_tag ? tag : "dev"
         println("✅ Deployed! → $(dest)/")
     else
         println("ℹ️  No changes to deploy.")

@@ -60,10 +60,10 @@ Several tutorials demonstrate advanced usage of TensND in various contexts:
 
 ```@contents
 Pages = [
-    "tuto/nlayersphere.md",
-    "tuto/coorsystems_num.md",
-    "tuto/green_function.md",
-    "tuto/projection.md",
+    "nlayersphere.md",
+    "coorsystems_num.md",
+    "green_function.md",
+    "projection.md",
 ]
 Depth = 1
 ```

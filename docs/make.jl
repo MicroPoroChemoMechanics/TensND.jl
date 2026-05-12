@@ -96,6 +96,7 @@ makedocs(
         mathengine = mathengine,
         size_threshold_warn = 1_000_000,
         size_threshold = 1_000_000,
+        assets = ["assets/favicon.ico"],
     ),
     plugins = [bib],
     pages = [
