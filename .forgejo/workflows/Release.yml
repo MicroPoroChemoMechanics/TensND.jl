@@ -101,9 +101,17 @@ jobs:
           ZCURL="curl -s --retry 3 --retry-delay 20 --max-time 60"
           NEW_ID=${{ steps.zenodo_draft.outputs.new_id }}
           VERSION=${{ steps.version.outputs.value }}
-          DRAFT=$($ZCURL "https://zenodo.org/api/records/$NEW_ID/draft" \
+          DRAFT_RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" \
+            "https://zenodo.org/api/records/$NEW_ID/draft" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
-          UPDATED=$(echo "$DRAFT" | python3 -c "import sys,json;d=json.load(sys.stdin);d['metadata']['version']=sys.argv[1];print(json.dumps({'metadata':d['metadata']}))" "$VERSION")
+          DRAFT_STATUS=$(echo "$DRAFT_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
+          DRAFT=$(echo "$DRAFT_RESP" | grep -v "HTTP_STATUS:")
+          echo "Draft fetch status: $DRAFT_STATUS"
+          if [ "$DRAFT_STATUS" != "200" ]; then
+            echo "ERROR: could not fetch draft: ${DRAFT:0:400}"
+            exit 1
+          fi
+          UPDATED=$(echo "$DRAFT" | python3 -c "import sys,json;raw=sys.stdin.read().strip();d,_=json.JSONDecoder().raw_decode(raw);d['metadata']['version']=sys.argv[1];print(json.dumps({'metadata':d['metadata']}))" "$VERSION")
           RESP=$($ZCURL -w "\nHTTP_STATUS:%{http_code}" -X PUT \
             "https://zenodo.org/api/records/$NEW_ID/draft" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
