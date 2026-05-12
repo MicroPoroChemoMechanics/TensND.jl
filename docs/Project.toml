@@ -1,6 +1,7 @@
 [deps]
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
+FilePathsBase = "48062228-2e41-5def-b9a4-89aafe57970f"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 SymPy = "24249f21-da20-56a4-8eb1-6a02cf4ae2e6"
