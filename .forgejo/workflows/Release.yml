@@ -5,7 +5,7 @@ on:
 
 jobs:
   tag-and-register:
-    runs-on: codeberg-small
+    runs-on: codeberg-medium-lazy
 
     steps:
       - uses: actions/checkout@v4
