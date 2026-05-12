@@ -57,7 +57,7 @@ jobs:
         run: |
           # CONCEPT_ID = first deposit ID, never changes
           CONCEPT_ID=17985768
-          # Find latest published version (records API = published only)
+          # Find latest published version (records API = published only, no drafts)
           LATEST=$(curl -s \
             "https://zenodo.org/api/records?q=conceptrecid:$CONCEPT_ID&sort=mostrecent&size=1" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
@@ -67,26 +67,33 @@ jobs:
             exit 1
           fi
           echo "Latest published version ID: $LATEST_ID"
-          # Create new version draft using new RDM API
+          # Try to create a new version draft
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST \
             "https://zenodo.org/api/records/$LATEST_ID/versions" \
             -H "Authorization: Bearer $ZENODO_TOKEN" \
             -H "Content-Type: application/json")
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS:" | cut -d: -f2)
           BODY=$(echo "$RESPONSE" | grep -v "HTTP_STATUS:")
-          echo "HTTP status: $HTTP_STATUS"
-          echo "Response (truncated): ${BODY:0:300}"
-          if [ "$HTTP_STATUS" != "201" ]; then
-            echo "ERROR: Zenodo API returned HTTP $HTTP_STATUS"
-            exit 1
-          fi
-          NEW_ID=$(echo "$BODY" | grep -o '"id": *[0-9][0-9]*' | head -1 | tr -dc '0-9')
-          if [ -z "$NEW_ID" ]; then
-            echo "ERROR: could not extract new draft ID"
-            exit 1
+          echo "Create version status: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" = "201" ]; then
+            NEW_ID=$(echo "$BODY" | grep -o '"id": *[0-9][0-9]*' | head -1 | tr -dc '0-9')
+            echo "New draft created: $NEW_ID"
+          else
+            echo "Create failed (response: ${BODY:0:200}), searching for existing draft..."
+            # A draft from a previous run may already exist — reuse it
+            DRAFTS=$(curl -s \
+              "https://zenodo.org/api/user/records?q=conceptrecid:$CONCEPT_ID&is_draft=true&sort=mostrecent&size=1" \
+              -H "Authorization: Bearer $ZENODO_TOKEN")
+            echo "Existing drafts: ${DRAFTS:0:300}"
+            NEW_ID=$(echo "$DRAFTS" | grep -o '"id": *[0-9][0-9]*' | head -1 | tr -dc '0-9')
+            if [ -z "$NEW_ID" ]; then
+              echo "ERROR: could not create or find a draft"
+              exit 1
+            fi
+            echo "Reusing existing draft: $NEW_ID"
           fi
           echo "new_id=$NEW_ID" >> $GITHUB_OUTPUT
-          echo "New draft ID: $NEW_ID"
+          echo "Draft ID: $NEW_ID"
 
       - name: Zenodo — update version metadata
         env:
