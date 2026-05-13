@@ -72,14 +72,26 @@ jobs:
             "https://zenodo.org/api/records/$LATEST_ID" \
             -H "Authorization: Bearer $ZENODO_TOKEN")
           PUB_STATUS=$(echo "$PUB_RESP" | grep "HTTP_STATUS:" | cut -d: -f2)
-          PUB_BODY=$(echo "$PUB_RESP" | grep -v "HTTP_STATUS:")
-          echo "Published record fetch status: $PUB_STATUS (LATEST_ID=$LATEST_ID)"
-          if [ "$PUB_STATUS" != "200" ]; then
-            echo "ERROR: could not fetch published record: ${PUB_BODY:0:400}"
-            exit 1
-          fi
+          PUB=$(echo "$PUB_RESP" | grep -v "HTTP_STATUS:")
           TMPFILE=$(mktemp)
-          echo "$PUB_BODY" | python3 -c "import sys,json;pub=json.load(sys.stdin);meta=pub['metadata'].copy();meta['version']=sys.argv[1];meta['publication_date']=sys.argv[2];meta.pop('doi',None);meta.pop('prereserve_doi',None);related=meta.get('related_identifiers',[]);[ri.update({'relation_type':{'id':ri['relation_type']}}) for ri in related if isinstance(ri.get('relation_type'),str)];json.dump({'metadata':meta},sys.stdout)" "$VERSION" "$TODAY" > "$TMPFILE"
+          python3 -c "
+          import sys, json
+          pub = json.loads(sys.argv[1])
+          meta = pub['metadata'].copy()
+          meta['version'] = sys.argv[2]
+          meta['publication_date'] = sys.argv[3]
+          meta.pop('doi', None)
+          meta.pop('prereserve_doi', None)
+          if 'resource_type' not in meta:
+              meta['resource_type'] = {'type': 'software', 'subtype': 'computer-program'}
+          if 'creators' not in meta or not meta['creators']:
+              meta['creators'] = [{'person_name': 'Jean-François Barthélémy', 'affiliation': 'MicroPoroChemoMechanics'}]
+          related = meta.get('related_identifiers', [])
+          for ri in related:
+              if isinstance(ri.get('relation_type'), str):
+                  ri['relation_type'] = {'id': ri['relation_type']}
+          json.dump({'metadata': meta}, sys.stdout)
+          " "$PUB" "$VERSION" "$TODAY" > "$TMPFILE"
           if [ ! -s "$TMPFILE" ]; then
             echo "ERROR: failed to generate updated metadata (Python produced no output)"
             exit 1
