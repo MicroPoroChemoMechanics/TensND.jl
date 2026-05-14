@@ -31,12 +31,13 @@ if Sys.iswindows()
 end
 
 builddir    = joinpath(docsdir, "build")
+packagedir  = dirname(docsdir)
 repo_remote = "git@codeberg-docs:MicroPoroChemoMechanics/TensND.jl.git"
 
 # ── Deployment target ─────────────────────────────────────────────────────────
-DEPLOY_TARGET = nothing       # auto-detect from git
+# DEPLOY_TARGET = nothing       # auto-detect from git
 # DEPLOY_TARGET = "dev"       # force dev/ deploy
-# DEPLOY_TARGET = "project"   # stable/ + vX.Y.Z/ using version from Project.toml
+DEPLOY_TARGET = "project"   # stable/ + vX.Y.Z/ using version from Project.toml
 
 function read_project_version()
     for line in eachline(joinpath(dirname(docsdir), "Project.toml"))
@@ -55,13 +56,13 @@ elseif DEPLOY_TARGET == "dev"
     ""                               # empty string → dev mode below
 else
     try
-        strip(readchomp(`git describe --exact-match --tags HEAD`))
+        strip(readchomp(`git -C $packagedir describe --exact-match --tags HEAD`))
     catch
         ""
     end
 end
 is_tag = !isempty(tag) && startswith(tag, "v") && tryparse(VersionNumber, tag[2:end]) !== nothing
-ref = is_tag ? tag : strip(readchomp(`git rev-parse --abbrev-ref HEAD`))
+ref = is_tag ? tag : strip(readchomp(`git -C $packagedir rev-parse --abbrev-ref HEAD`))
 println("$(is_tag ? "📦 TAG" : "🐛 BRANCH") $ref")
 
 # ── Build docs (CI=false → Documenter skips its own deploydocs) ───────────────
