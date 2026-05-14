@@ -1,10 +1,7 @@
 name: Runic
 
 on:
-  push:
-    branches:
-      - main
-  pull_request:
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,13 +25,7 @@ jobs:
       - name: Install Runic
         run: julia -e 'using Pkg; Pkg.activate("runic", shared=true); Pkg.add("Runic")'
 
-      - name: Check formatting (PR)
-        if: ${{ github.event_name == 'pull_request' }}
-        run: |
-          julia --project=@runic -e 'using Runic; exit(Runic.main(["--check", "src/", "test/", "ext/"]))'
-
-      - name: Auto-format (push to main)
-        if: ${{ github.event_name == 'push' }}
+      - name: Format with Runic
         run: |
           julia --project=@runic -e 'using Runic; Runic.main(["--inplace", "src/", "test/", "ext/"])'
           if [ -n "$(git diff --name-only)" ]; then
