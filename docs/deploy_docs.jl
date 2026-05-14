@@ -7,9 +7,11 @@
 # ── How to choose the deployment target ───────────────────────────────────────
 # Priority: command-line argument > DEPLOY_TARGET below > git auto-detect
 #
-# Command-line:
-#   julia --project=docs/ docs/deploy_docs.jl           # auto-detect
-#   julia --project=docs/ docs/deploy_docs.jl v0.1.8   # force tag
+# Command-line (any of):
+#   julia --project=docs/ docs/deploy_docs.jl           # use DEPLOY_TARGET (or auto)
+#   julia --project=docs/ docs/deploy_docs.jl dev       # force dev/
+#   julia --project=docs/ docs/deploy_docs.jl project   # stable/ + vX.Y.Z/ from Project.toml
+#   julia --project=docs/ docs/deploy_docs.jl v0.1.8    # specific tag → stable/ + vX.Y.Z/
 #
 # In-file (set DEPLOY_TARGET below, takes effect when no argument is passed):
 #   nothing     — auto-detect from git: branch → dev/,  tag → stable/ + vX.Y.Z/
@@ -48,11 +50,15 @@ function read_project_version()
 end
 
 # ── Detect branch or tag ───────────────────────────────────────────────────────
-tag = if !isempty(ARGS) && startswith(ARGS[1], "v") && tryparse(VersionNumber, ARGS[1][2:end]) !== nothing
-    ARGS[1]                          # command-line argument wins
-elseif DEPLOY_TARGET == "project"
+# CLI argument (if any) overrides in-file DEPLOY_TARGET.
+effective_target = !isempty(ARGS) ? ARGS[1] : DEPLOY_TARGET
+
+tag = if effective_target isa AbstractString && startswith(effective_target, "v") &&
+        tryparse(VersionNumber, effective_target[2:end]) !== nothing
+    effective_target                 # explicit vX.Y.Z tag
+elseif effective_target == "project"
     read_project_version()
-elseif DEPLOY_TARGET == "dev"
+elseif effective_target == "dev"
     ""                               # empty string → dev mode below
 else
     try
