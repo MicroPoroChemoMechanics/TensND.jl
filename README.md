@@ -6,10 +6,10 @@
 
 *Symbolic and numerical tensor calculations in arbitrary coordinate systems.*
 
-[![Docs - Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MicroPoroChemoMechanics.codeberg.page/TensND.jl/stable/)
-[![Docs - Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://MicroPoroChemoMechanics.codeberg.page/TensND.jl/dev/)
+[![Docs - Stable](https://img.shields.io/badge/docs-stable-blue.svg)](https://MicroPoroChemoMechanics.github.io/TensND.jl/stable/)
+[![Docs - Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://MicroPoroChemoMechanics.github.io/TensND.jl/dev/)
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://codeberg.org/MicroPoroChemoMechanics/TensND.jl/src/branch/main/LICENSE)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/MicroPoroChemoMechanics/TensND.jl/blob/main/LICENSE)
 [![code style: runic](https://img.shields.io/badge/code_style-%E1%9A%B1%E1%9A%A2%E1%9A%BE%E1%9B%81%E1%9A%B2-black)](https://github.com/fredrikekre/Runic.jl)
 
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.17985769.svg)](https://doi.org/10.5281/zenodo.17985769)
@@ -72,12 +72,12 @@ julia> div𝛔 = tsimplify(DIV(𝛔)) ; intrinsic(div𝛔)
 
 ## Installation
 
-TensND.jl is hosted on the [MPCM registry](https://codeberg.org/MicroPoroChemoMechanics/MPCM-Registry). Add the registry once, then install as usual.
+TensND.jl is hosted on the [MPCM registry](https://github.com/MicroPoroChemoMechanics/MPCM-Registry). Add the registry once, then install as usual.
 
 In Pkg REPL mode (press `]` in the Julia REPL):
 
 ```julia-repl
-pkg> registry add https://codeberg.org/MicroPoroChemoMechanics/MPCM-Registry
+pkg> registry add https://github.com/MicroPoroChemoMechanics/MPCM-Registry
 pkg> add TensND
 ```
 
@@ -85,21 +85,21 @@ Or via the `Pkg` API:
 
 ```julia
 using Pkg
-Pkg.Registry.add(RegistrySpec(url="https://codeberg.org/MicroPoroChemoMechanics/MPCM-Registry"))
+Pkg.Registry.add(RegistrySpec(url="https://github.com/MicroPoroChemoMechanics/MPCM-Registry"))
 Pkg.add("TensND")
 ```
 
 Or via SSH (if you have SSH access to Codeberg):
 
 ```julia
-Pkg.Registry.add(RegistrySpec(url="ssh://git@codeberg.org/MicroPoroChemoMechanics/MPCM-Registry.git"))
+Pkg.Registry.add(RegistrySpec(url="https://github.com/MicroPoroChemoMechanics/MPCM-Registry.git"))
 Pkg.add("TensND")
 ```
 
 ## Documentation
 
-- [**STABLE**](https://MicroPoroChemoMechanics.codeberg.page/TensND.jl/stable/) &mdash; **most recently tagged version of the documentation.**
-- [**DEV**](https://MicroPoroChemoMechanics.codeberg.page/TensND.jl/dev/) &mdash; **development version of the documentation.**
+- [**STABLE**](https://MicroPoroChemoMechanics.github.io/TensND.jl/stable/) &mdash; **most recently tagged version of the documentation.**
+- [**DEV**](https://MicroPoroChemoMechanics.github.io/TensND.jl/dev/) &mdash; **development version of the documentation.**
 
 ## Citation
 

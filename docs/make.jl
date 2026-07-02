@@ -91,8 +91,8 @@ makedocs(
     sitename = "TensND.jl",
     format = Documenter.HTML(;
         prettyurls = get(ENV, "CI", "false") == "true",
-        canonical = "https://MicroPoroChemoMechanics.codeberg.page/TensND.jl",
-        repolink = "https://codeberg.org/MicroPoroChemoMechanics/TensND.jl",
+        canonical = "https://MicroPoroChemoMechanics.github.io/TensND.jl",
+        repolink = "https://github.com/MicroPoroChemoMechanics/TensND.jl",
         mathengine = mathengine,
         size_threshold_warn = 1_000_000,
         size_threshold = 1_000_000,
@@ -118,6 +118,6 @@ makedocs(
     ],
 )
 
-deploydocs(; repo = "git@codeberg-docs:MicroPoroChemoMechanics/TensND.jl.git", devbranch = "main", push_preview = false)
+deploydocs(; repo = "github.com/MicroPoroChemoMechanics/TensND.jl.git", devbranch = "main", push_preview = false)
 
 println("Build complet ! Consultez docs/build/")

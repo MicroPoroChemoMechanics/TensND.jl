@@ -15,6 +15,6 @@ keywords:
 version: "0.2.0"
 date-released: "2026-05-14"
 doi: "10.5281/zenodo.17985768"
-url: "https://codeberg.org/MicroPoroChemoMechanics/TensND.jl"
-repository-code: "https://codeberg.org/MicroPoroChemoMechanics/TensND.jl"
+url: "https://github.com/MicroPoroChemoMechanics/TensND.jl"
+repository-code: "https://github.com/MicroPoroChemoMechanics/TensND.jl"
 license: "MIT"

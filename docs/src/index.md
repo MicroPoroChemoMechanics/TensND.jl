@@ -2,7 +2,7 @@
 CurrentModule = TensND
 ```
 
-# Documentation for [TensND](https://codeberg.org/MicroPoroChemoMechanics/TensND.jl)
+# Documentation for [TensND](https://github.com/MicroPoroChemoMechanics/TensND.jl)
 
 ![TensND.jl](assets/logo.svg)
 
@@ -75,7 +75,7 @@ Depth = 1
 @misc{TensND.jl,
   author  = {Jean-François Barthélémy},
   title   = {TensND.jl},
-  url     = {https://codeberg.org/MicroPoroChemoMechanics/TensND.jl},
+  url     = {https://github.com/MicroPoroChemoMechanics/TensND.jl},
   doi     = {10.5281/zenodo.17985768},
   version = {v0.1.8},
   year    = {2026},
