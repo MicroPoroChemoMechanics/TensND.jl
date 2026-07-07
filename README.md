@@ -111,7 +111,7 @@ If you use TensND.jl in your research, please cite it:
 
 ```bibtex
 @software{barthelemy_tensnd,
-  author    = {Barth{\'e}lemy, Jean-Fran{\c{c}}ois},
+  author    = {Barth{\'e}l{\'e}my, Jean-Fran{\c{c}}ois},
   title     = {{TensND.jl}: Package allowing tensor calculations in arbitrary coordinate systems},
   version   = {0.1.8},
   doi       = {10.5281/zenodo.17985768},
