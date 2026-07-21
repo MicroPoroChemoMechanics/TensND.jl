@@ -74,12 +74,11 @@ julia> div𝛔 = tsimplify(DIV(𝛔)) ; intrinsic(div𝛔)
 
 ## Installation
 
-TensND.jl is hosted on the [MPCM registry](https://github.com/MicroPoroChemoMechanics/MPCM-Registry). Add the registry once, then install as usual.
+TensND.jl is registered in Julia's General registry.
 
 In Pkg REPL mode (press `]` in the Julia REPL):
 
 ```julia-repl
-pkg> registry add https://github.com/MicroPoroChemoMechanics/MPCM-Registry
 pkg> add TensND
 ```
 
@@ -87,14 +86,6 @@ Or via the `Pkg` API:
 
 ```julia
 using Pkg
-Pkg.Registry.add(RegistrySpec(url="https://github.com/MicroPoroChemoMechanics/MPCM-Registry"))
-Pkg.add("TensND")
-```
-
-Or via SSH (if you have SSH access to Codeberg):
-
-```julia
-Pkg.Registry.add(RegistrySpec(url="https://github.com/MicroPoroChemoMechanics/MPCM-Registry.git"))
 Pkg.add("TensND")
 ```
 
