@@ -33,23 +33,6 @@ jobs:
           curl -fsSL https://install.julialang.org | sh -s -- --yes
           echo "$HOME/.juliaup/bin" >> $GITHUB_PATH
 
-      - name: Register in MPCM-Registry
-        env:
-          PUSH_TOKEN: ${{ secrets.PUSH_TOKEN }}
-        run: |
-          git config --global user.name "forgejo-actions[bot]"
-          git config --global user.email "forgejo-actions[bot]@users.noreply.codeberg.org"
-          git config --global url."https://forgejo-token:${PUSH_TOKEN}@codeberg.org/".insteadOf "https://codeberg.org/"
-          julia -e '
-            using Pkg
-            Pkg.add("LocalRegistry")
-            using LocalRegistry
-            Pkg.Registry.add(RegistrySpec(url="https://codeberg.org/MicroPoroChemoMechanics/MPCM-Registry.git"))
-            register(pwd(); registry="MPCM-Registry", push=true,
-                     repo="https://codeberg.org/MicroPoroChemoMechanics/TensND.jl.git",
-                     ignore_reregistration=true)
-          '
-
       - name: Create and push tag
         run: |
           VERSION=v${{ steps.version.outputs.value }}
