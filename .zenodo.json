@@ -1,0 +1,29 @@
+{
+    "title": "TensND.jl: Package allowing tensor calculations in arbitrary coordinate systems",
+    "description": "This Julia package provides tools to perform tensor calculations of any order and any dimension in arbitrary coordinate systems (cartesian, polar, cylindrical, spherical, spheroidal or any user defined coordinate systems...). In particular differential operators are available: gradient, symmetrized gradient, divergence, Laplace, Hessian.",
+    "creators": [
+        {
+            "name": "Barthélémy, Jean-François",
+            "affiliation": "Cerema, UMR MCD",
+            "orcid": "0000-0002-1968-8939"
+        }
+    ],
+    "upload_type": "software",
+    "access_right": "open",
+    "license": "MIT",
+    "keywords": [
+        "tensor",
+        "differential calculation",
+        "coordinate systems",
+        "symbolic",
+        "numeric",
+        "Julia"
+    ],
+    "related_identifiers": [
+        {
+            "identifier": "10.5281/zenodo.17985768",
+            "relation": "isNewVersionOf",
+            "resource_type": "software"
+        }
+    ]
+}

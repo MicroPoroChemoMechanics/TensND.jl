@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.2.1 — Maintenance
+
+- `[compat]` upper bound for `TimerOutputs` raised to `"0.5, 1"`.
+- CI badge restored; Runic badge; DOI badge switched to shields.io with the
+  concept DOI (was pointing to a stale per-version DOI).
+- Installation instructions updated for registration in Julia's General
+  registry (no registry to add beforehand).
+- Confirmed each GitHub Release keeps archiving automatically to Zenodo's
+  existing concept DOI `10.5281/zenodo.17985768` via the native
+  GitHub↔Zenodo integration (no workflow or token needed).
+- Retired the Codeberg return path: removed `.forgejo/` workflows and
+  `docs/deploy_docs.jl`; GitHub is now the sole home.
+
 ## v0.2.0 — API unification & TI type fusion (breaking)
 
 ### Breaking changes
