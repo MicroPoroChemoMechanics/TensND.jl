@@ -658,11 +658,13 @@
         @test R4 isa TensTI{2, Float64, 2}
         @test opequal(get_array(R4), dcontract(get_array(T2), get_array(W)))
 
-        # Axis mismatch → assertion
+        # Axis mismatch → generic fallback (no assertion), values exact
         n2 = (1.0, 0.0, 0.0)
         Wm = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n2)
         T2m = TensTI{2}(4.0, 7.0, n)
-        @test_throws AssertionError Wm ⊡ T2m
+        Rm = Wm ⊡ T2m
+        @test !(Rm isa TensTI)
+        @test opequal(Array(get_array(Rm)), dcontract(get_array(Wm), get_array(T2m)))
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -726,6 +728,125 @@
         W1 = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n1)
         O_from_w1 = walpole_to_ortho(W1, frame, 1)
         @test opequal(get_array(W1), get_array(O_from_w1))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "TensTI{4,T,8} — full axially-invariant algebra" begin
+        ez = (0.0, 0.0, 1.0)
+        nax = (0.6, 0.0, 0.8)   # unit, non-canonical axis
+
+        # Mandel patterns of the antisymmetric generators (axis = e₃)
+        M7 = KM(tens_W7(ez))
+        M8 = KM(tens_W8(ez))
+        s2 = 1 / sqrt(2.0)
+        @test M7[4, 5] ≈ -1.0 atol = atol_num
+        @test M7[5, 4] ≈ 1.0 atol = atol_num
+        @test sum(abs, M7) ≈ 2.0 atol = atol_num
+        @test M8[6, 1] ≈ s2 atol = atol_num
+        @test M8[6, 2] ≈ -s2 atol = atol_num
+        @test M8[1, 6] ≈ -s2 atol = atol_num
+        @test M8[2, 6] ≈ s2 atol = atol_num
+        @test sum(abs, M8) ≈ 4s2 atol = atol_num
+
+        # constructor / accessors / lifts
+        A8 = TensTI{4}(1.0, 2.0, 0.3, -0.4, 1.5, 2.5, 0.7, -0.2, nax)
+        @test A8 isa TensTI{4, Float64, 8}
+        @test get_ℓ8(A8) == (1.0, 2.0, 0.3, -0.4, 1.5, 2.5, 0.7, -0.2)
+        A5 = TensTI{4}(1.0, 2.0, 0.5, 3.0, 4.0, nax)
+        @test get_ℓ8(A5) == (1.0, 2.0, 0.5, 0.5, 3.0, 4.0, 0.0, 0.0)
+        @test TensND._lift_walpole_N8(A5) isa TensTI{4, Float64, 8}
+        @test !issymmetric(A8)
+        @test !Tensors.ismajorsymmetric(A8)
+        @test issymmetric(TensTI{4}(1.0, 2.0, 0.5, 0.5, 3.0, 4.0, 0.0, 0.0, nax))
+
+        # algebraic closure: product rule vs array dcontract, inverse
+        B8 = TensTI{4}(0.8, -1.2, 0.1, 0.9, 2.0, 0.4, -0.6, 1.1, nax)
+        C8 = A8 ⊡ B8
+        @test C8 isa TensTI{4, Float64, 8}
+        Ca = Tensor{4, 3}(get_array(A8)) ⊡ Tensor{4, 3}(get_array(B8))
+        @test maximum(abs, get_array(C8) .- Array(Ca)) < 1.0e-12
+        Id = A8 ⊡ inv(A8)
+        @test maximum(abs, KM(Id) .- I(6)) < 1.0e-12
+
+        # minor symmetry of the array is exact (6×6 Mandel route preserved)
+        @test Tensors.issymmetric(Tensor{4, 3}(get_array(A8)))
+
+        # mixed-N ± lift
+        S = A5 + A8
+        @test S isa TensTI{4, Float64, 8}
+        @test maximum(abs, get_array(S) .- (get_array(A5) .+ get_array(A8))) < 1.0e-12
+        ISO4 = TensISO{3}(2.0, 3.0)
+        SI = ISO4 + A8
+        @test SI isa TensTI{4, Float64, 8}
+        @test maximum(abs, get_array(SI) .- (get_array(ISO4) .+ get_array(A8))) < 1.0e-12
+
+        # mixed-axis fallback (no assertion, generic result, values exact)
+        B8b = TensTI{4}(0.8, -1.2, 0.1, 0.9, 2.0, 0.4, -0.6, 1.1, ez)
+        S2 = A8 + B8b
+        @test !(S2 isa TensTI)
+        @test maximum(abs, Array(get_array(S2)) .- (get_array(A8) .+ get_array(B8b))) < 1.0e-12
+        P2 = A8 ⊡ B8b
+        Pref = Tensor{4, 3}(get_array(A8)) ⊡ Tensor{4, 3}(get_array(B8b))
+        @test maximum(abs, Array(get_array(P2)) .- Array(Pref)) < 1.0e-12
+
+        # W₇, W₈ annihilate symmetric 2nd-order tensors
+        tsym = TensTI{2}(1.3, -0.4, nax)
+        @test maximum(abs, get_array(tens_W7(nax) ⊡ tsym)) < 1.0e-13
+        @test maximum(abs, get_array(tens_W8(nax) ⊡ tsym)) < 1.0e-13
+
+        # ForwardDiff genericity through the closed algebra
+        FD = TensND.ForwardDiff
+        f = x -> get_ℓ8(inv(TensTI{4}(x, 2.0, 0.3, -0.4, 1.5, 2.5, 0.7, -0.2, ez)))[1]
+        g = FD.derivative(f, 1.0)
+        h = 1.0e-6
+        @test g ≈ (f(1.0 + h) - f(1.0 - h)) / 2h atol = 1.0e-6
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "TensTI{2,T,3} — axially-invariant 2nd order with rotation part" begin
+        ez = (0.0, 0.0, 1.0)
+        nax = (0.6, 0.0, 0.8)
+
+        t3 = TensTI{2}(2.0, 5.0, 0.7, nax)
+        @test t3 isa TensTI{2, Float64, 3}
+        @test !issymmetric(t3)
+        @test tr(t3) ≈ 9.0
+
+        # w convention: w·p = n×p → arr[1,2] = −c, arr[2,1] = +c for n = e₃
+        arr = get_array(TensTI{2}(0.0, 0.0, 1.0, ez))
+        @test arr[1, 2] ≈ -1.0
+        @test arr[2, 1] ≈ 1.0
+
+        # dot = complex product in the plane ⊕ scalar on the axis
+        t3b = TensTI{2}(1.5, -1.0, -0.3, nax)
+        d = t3 ⋅ t3b
+        @test d isa TensTI{2, Float64, 3}
+        @test maximum(abs, get_array(d) .- (get_array(t3) * get_array(t3b))) < 1.0e-12
+
+        # inverse
+        @test maximum(abs, (get_array(t3) * get_array(inv(t3))) .- I(3)) < 1.0e-12
+
+        # lifts and ISO interplay
+        t2 = TensTI{2}(1.0, 2.0, nax)
+        s = t2 + t3
+        @test s isa TensTI{2, Float64, 3}
+        @test maximum(abs, get_array(s) .- (get_array(t2) .+ get_array(t3))) < 1.0e-12
+        iso2 = TensISO{3}(4.0)
+        s2 = iso2 + t3
+        @test s2 isa TensTI{2, Float64, 3}
+        @test maximum(abs, get_array(s2) .- (get_array(iso2) .+ get_array(t3))) < 1.0e-12
+
+        # 4th ⊡ 2nd drops the antisymmetric part
+        A5 = TensTI{4}(1.0, 2.0, 0.5, 3.0, 4.0, nax)
+        r = A5 ⊡ t3
+        rsym = A5 ⊡ TensTI{2}(2.0, 5.0, nax)
+        @test maximum(abs, get_array(r) .- get_array(rsym)) < 1.0e-13
+
+        # mixed-axis dot falls back generically
+        t3c = TensTI{2}(1.5, -1.0, -0.3, ez)
+        dm = t3 ⋅ t3c
+        @test !(dm isa TensTI)
+        @test maximum(abs, Array(get_array(dm)) .- (get_array(t3) * get_array(t3c))) < 1.0e-12
     end
 
 end  # "Walpole & Ortho tensors"

@@ -304,7 +304,8 @@ end
 # ── TensTI{4} ⊡ TensTI{2} / TensTI{2} ⊡ TensTI{4} (same axis) ──────────
 
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 2})
-    @assert axis(A) == axis(B) "dcontract(TensTI{4}, TensTI{2}) requires the same axis"
+    axis(A) == axis(B) ||
+        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(A)
     a, b = get_data(B)
@@ -315,7 +316,8 @@ function Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 2})
 end
 
 function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensTI{4})
-    @assert axis(A) == axis(B) "dcontract(TensTI{2}, TensTI{4}) requires the same axis"
+    axis(A) == axis(B) ||
+        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(B)
     a, b = get_data(A)
@@ -339,7 +341,8 @@ end
 #   = a₁a₂·nT + b₁b₂·nₙ
 
 function LinearAlgebra.dot(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 2})
-    @assert axis(A) == axis(B) "dot(TensTI{2}, TensTI{2}) requires the same axis"
+    axis(A) == axis(B) ||
+        return LinearAlgebra.dot(_generic_tens(A), _generic_tens(B))
     a₁, b₁ = get_data(A)
     a₂, b₂ = get_data(B)
     return TensTI{2}(a₁ * a₂, b₁ * b₂, axis(A))

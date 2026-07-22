@@ -273,17 +273,9 @@ Kelvin-Mandel (6×6) matrix of the Walpole tensor.
 KM(t::TensTI{4}) = tomandel(tensor_or_array(get_array(t)))
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
-# Scalar ops (-, α*A, A*α, A/α) and _check_same_reference defined in
-# structured_tens_ops.jl
-
-@inline function Base.:+(A::TensTI{4, <:Any, N}, B::TensTI{4, <:Any, N}) where {N}
-    _check_same_reference(A, B)
-    return _rebuild(A, get_data(A) .+ get_data(B))
-end
-@inline function Base.:-(A::TensTI{4, <:Any, N}, B::TensTI{4, <:Any, N}) where {N}
-    _check_same_reference(A, B)
-    return _rebuild(A, get_data(A) .- get_data(B))
-end
+# Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
+# Binary ± (same-N, mixed-N, mixed-axis fallback) implemented in the unified
+# block further below (see "Arithmetic — axis-aware ±").
 
 # ── Double contraction (Walpole product rule) ─────────────────────────────────
 
@@ -292,9 +284,13 @@ end
 
 Product rule via 2×2 matrix product + scalar products for ℓ₅, ℓ₆.
 Always returns N=6 since the product of two symmetric tensors need not be symmetric.
+
+If the axes differ, the operation falls back to the generic (unstructured)
+`Tens` route via `get_array` — the product of two TI tensors with different
+axes is generally fully anisotropic.
 """
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{4})
-    @assert A.n == B.n "dcontract(TensTI{4},TensTI{4}) requires the same axis"
+    A.n == B.n || return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
     ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆ = get_ℓ(A)
     ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆ = get_ℓ(B)
     # 2×2 matrix rule: M_A × M_B where M = [[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]]
@@ -651,16 +647,36 @@ Base.getindex(t::TensTI{2}, i::Integer, j::Integer) =
 
 KM(t::TensTI{2}) = tomandel(tensor_or_array(get_array(t)))
 
-# ── Arithmetic ───────────────────────────────────────────────────────────────
-# Scalar ops (-, α*A, A*α, A/α) and _check_same_reference defined in
-# structured_tens_ops.jl
+# ── Arithmetic — axis-aware ± ────────────────────────────────────────────────
+# Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
+#
+# Binary ± between two TensTI of the same order:
+#   • same axis, same N     → structured result (data-wise ±)
+#   • same axis, mixed N    → lift to the richer parametrization (see the
+#                              mixed-N methods in the N=8 / N=3 section below
+#                              and in structured_tens_promotion.jl)
+#   • different axes        → fall back to the generic `Tens` route: the sum
+#                              of two TI tensors with different axes has no TI
+#                              structure. This replaces the former hard
+#                              assertion, enabling multi-axis accumulation in
+#                              scheme kernels (e.g. self-consistent estimates
+#                              with several inclusion-family axes).
+# Note: axes are compared for strict equality; `n` and `−n` are treated as
+# different axes (the antisymmetric components ℓ₇, ℓ₈ and the order-2 `c`
+# coefficient are odd in `n`), falling back to the generic route.
+
+# Generic (unstructured) view of a structured tensor, used by all fallbacks.
+_generic_tens(t::AbstractTens) = Tens(tensor_or_array(get_array(t)))
+
+@inline _generic_binary(op, A::AbstractTens, B::AbstractTens) =
+    Tens(tensor_or_array(broadcast(op, get_array(A), get_array(B))))
 
 @inline function Base.:+(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
-    _check_same_reference(A, B)
+    axis(A) == axis(B) || return _generic_binary(+, A, B)
     return _rebuild(A, get_data(A) .+ get_data(B))
 end
 @inline function Base.:-(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
-    _check_same_reference(A, B)
+    axis(A) == axis(B) || return _generic_binary(-, A, B)
     return _rebuild(A, get_data(A) .- get_data(B))
 end
 
@@ -1156,13 +1172,377 @@ components(t::TensOrtho) = get_array(t)
 components(t::TensOrtho, ::NTuple{4, Symbol}) = get_array(t)
 
 ##############################################################################
+# TensTI{4,T,8} — full axially-invariant (azimuthal-average) 4th-order space #
+# TensTI{2,T,3} — full axially-invariant 2nd-order space                     #
+##############################################################################
+#
+# The space of minor-symmetric 4th-order tensors invariant under all rotations
+# about an axis n is EIGHT-dimensional — it is the commutant of the SO(2)
+# action on the 6-dim Kelvin-Mandel space, which decomposes into
+#
+#   m=0 (invariants)      : {ε_nn-axial, ε-in-plane-spherical} → full 2×2 block
+#                            (4 parameters: ℓ₁, ℓ₂, ℓ₃, ℓ₄ — Walpole W₁..W₄)
+#   m=1 (axial shears)    : commutant ≅ ℂ → z₁ = ℓ₆ + i ℓ₇
+#   m=2 (in-plane devia.) : commutant ≅ ℂ → z₂ = ℓ₅ + i ℓ₈
+#
+# The two extra generators beyond the classical Walpole basis are the
+# antisymmetric (major-antisymmetric) couplings that appear e.g. in the exact
+# azimuthal average of strain-concentration tensors:
+#
+#   W₇[i,j,k,l] = −(1/2)( w[i,k]nₙ[j,l] + w[i,l]nₙ[j,k]
+#                        + w[j,k]nₙ[i,l] + w[j,l]nₙ[i,k] )
+#   W₈[i,j,k,l] = +(1/4)( w[i,k]nT[j,l] + w[i,l]nT[j,k]
+#                        + w[j,k]nT[i,l] + w[j,l]nT[i,k] )
+#
+# where w is the in-plane rotation generator w·p = n × p (w[i,j] = ε[i,k,j]n[k],
+# odd in n).  In the Kelvin-Mandel frame with n = e₃ (ordering 11,22,33,23,13,12):
+#
+#   W₇ : M₄₅ = −1, M₅₄ = +1                       (m=1 antisymmetric coupling)
+#   W₈ : M₆₁ = +1/√2, M₆₂ = −1/√2, M₁₆ = −1/√2, M₂₆ = +1/√2   (m=2)
+#
+# Because the 8-dim space is a commutant ALGEBRA, it is closed under double
+# contraction and inversion, with the cheap product rule
+#
+#   block 2×2 :  [[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]]  → matrix product / matrix inverse
+#   z₁ = ℓ₆ + i ℓ₇                   → complex product / complex inverse
+#   z₂ = ℓ₅ + i ℓ₈                   → complex product / complex inverse
+#
+# Both W₇ and W₈ annihilate every symmetric 2nd-order tensor under double
+# contraction (their minor-symmetrized structure cancels), so all existing
+# 4th⊡2nd rules based on ℓ₁..ℓ₄ remain valid for N=8.
+#
+# Similarly, the space of 2nd-order tensors invariant under rotations about n
+# is THREE-dimensional: a·nT + b·nₙ + c·w (the antisymmetric in-plane part c·w
+# is what a plain symmetric TI parametrization cannot represent).
+# ─────────────────────────────────────────────────────────────────────────────
+
+# ── Constructors ─────────────────────────────────────────────────────────────
+
+# TensTI{4}(ℓ₁,…,ℓ₈, n) → TensTI{4, T, 8}
+# Full axially-invariant 4th-order tensor (see block comment above).
+function TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈, n)
+    T = promote_type(
+        typeof(ℓ₁), typeof(ℓ₂), typeof(ℓ₃), typeof(ℓ₄),
+        typeof(ℓ₅), typeof(ℓ₆), typeof(ℓ₇), typeof(ℓ₈), eltype_of(n)
+    )
+    nv = _extract_vec(n)
+    return TensTI{4, T, 8}(
+        (T(ℓ₁), T(ℓ₂), T(ℓ₃), T(ℓ₄), T(ℓ₅), T(ℓ₆), T(ℓ₇), T(ℓ₈)),
+        (T(nv[1]), T(nv[2]), T(nv[3]))
+    )
+end
+
+# TensTI{2}(a, b, c, n) → TensTI{2, T, 3}
+# Full axially-invariant 2nd-order tensor a·nT + b·nₙ + c·w.
+function TensTI{2}(a, b, c, n)
+    T = promote_type(typeof(a), typeof(b), typeof(c), eltype_of(n))
+    nv = _extract_vec(n)
+    return TensTI{2, T, 3}((T(a), T(b), T(c)), (T(nv[1]), T(nv[2]), T(nv[3])))
+end
+
+"""
+    tens_W7(n) → TensTI{4, T, 8}   (m=1 antisymmetric generator)
+"""
+tens_W7(n) = TensTI{4}(
+    zero(eltype_of(n)), zero(eltype_of(n)), zero(eltype_of(n)), zero(eltype_of(n)),
+    zero(eltype_of(n)), zero(eltype_of(n)), one(eltype_of(n)), zero(eltype_of(n)), n
+)
+
+"""
+    tens_W8(n) → TensTI{4, T, 8}   (m=2 antisymmetric generator)
+"""
+tens_W8(n) = TensTI{4}(
+    zero(eltype_of(n)), zero(eltype_of(n)), zero(eltype_of(n)), zero(eltype_of(n)),
+    zero(eltype_of(n)), zero(eltype_of(n)), zero(eltype_of(n)), one(eltype_of(n)), n
+)
+
+# ── Accessors ────────────────────────────────────────────────────────────────
+
+# For N=8, `get_ℓ` returns the six Walpole coefficients (dropping ℓ₇, ℓ₈).
+# This keeps every ℓ₁..ℓ₄-based 4th⊡2nd contraction rule valid (W₅..W₈
+# annihilate symmetric 2nd-order tensors); use `get_ℓ8` when the
+# antisymmetric couplings matter.
+get_ℓ(t::TensTI{4, T, 8}) where {T} =
+    (t.data[1], t.data[2], t.data[3], t.data[4], t.data[5], t.data[6])
+
+"""
+    get_ℓ8(t::TensTI{4,T,N}) → NTuple{8,T}
+
+Always returns the 8-tuple `(ℓ₁, …, ℓ₆, ℓ₇, ℓ₈)` of coefficients in the full
+axially-invariant basis `{W₁,…,W₈}`.  For `N=5`/`N=6` the antisymmetric
+couplings `ℓ₇ = ℓ₈ = 0`.
+"""
+get_ℓ8(t::TensTI{4, T, 5}) where {T} =
+    (t.data[1], t.data[2], t.data[3], t.data[3], t.data[4], t.data[5], zero(T), zero(T))
+get_ℓ8(t::TensTI{4, T, 6}) where {T} =
+    (t.data[1], t.data[2], t.data[3], t.data[4], t.data[5], t.data[6], zero(T), zero(T))
+get_ℓ8(t::TensTI{4, T, 8}) where {T} = t.data
+
+"""
+    _lift_walpole_N8(A::TensTI{4, T, N}) → TensTI{4, T, 8}
+
+Lift a Walpole tensor (`N=5` or `N=6`) to the full axially-invariant `N=8`
+form with vanishing antisymmetric couplings.
+"""
+_lift_walpole_N8(A::TensTI{4, T, 5}) where {T} = TensTI{4, T, 8}(get_ℓ8(A), axis(A))
+_lift_walpole_N8(A::TensTI{4, T, 6}) where {T} = TensTI{4, T, 8}(get_ℓ8(A), axis(A))
+_lift_walpole_N8(A::TensTI{4, T, 8}) where {T} = A
+
+# Lift a 2nd-order symmetric TI (N=2) to the full axially-invariant N=3 form.
+_lift_ti2_N3(A::TensTI{2, T, 2}) where {T} =
+    TensTI{2, T, 3}((A.data[1], A.data[2], zero(T)), axis(A))
+_lift_ti2_N3(A::TensTI{2, T, 3}) where {T} = A
+
+# ── get_array ────────────────────────────────────────────────────────────────
+
+function get_array(t::TensTI{4, T, 8}) where {T}
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = t.data
+    n = t.n
+    sq2 = sqrt(T(2))
+    δ(i, j) = i == j ? one(T) : zero(T)
+    nn(i, j) = n[i] * n[j]
+    nT(i, j) = δ(i, j) - nn(i, j)
+    # In-plane rotation generator w·p = n × p  (odd in n)
+    ε(i, j, k) =
+        (i, j, k) in ((1, 2, 3), (2, 3, 1), (3, 1, 2)) ? one(T) :
+        (i, j, k) in ((3, 2, 1), (1, 3, 2), (2, 1, 3)) ? -one(T) : zero(T)
+    w(i, j) = ε(i, 1, j) * n[1] + ε(i, 2, j) * n[2] + ε(i, 3, j) * n[3]
+    result = Array{T, 4}(undef, 3, 3, 3, 3)
+    # Fill the canonical (i ≤ j, k ≤ l) entries only, then mirror — this keeps
+    # the minor symmetry EXACT in floating point (summation order would
+    # otherwise differ between mirrored entries, breaking the
+    # `tensor_or_array` SymmetricTensor detection and the 6×6 Mandel routes).
+    for i in 1:3, j in i:3, k in 1:3, l in k:3
+        W1 = nn(i, j) * nn(k, l)
+        W2 = nT(i, j) * nT(k, l) / 2
+        W3 = nn(i, j) * nT(k, l) / sq2
+        W4 = nT(i, j) * nn(k, l) / sq2
+        W5 = (nT(i, k) * nT(j, l) + nT(i, l) * nT(j, k)) / 2 - nT(i, j) * nT(k, l) / 2
+        W6 = (nT(i, k) * nn(j, l) + nT(i, l) * nn(j, k) + nn(i, k) * nT(j, l) + nn(i, l) * nT(j, k)) / 2
+        W7 = -(w(i, k) * nn(j, l) + w(i, l) * nn(j, k) + w(j, k) * nn(i, l) + w(j, l) * nn(i, k)) / 2
+        W8 = (w(i, k) * nT(j, l) + w(i, l) * nT(j, k) + w(j, k) * nT(i, l) + w(j, l) * nT(i, k)) / 4
+        val =
+            ℓ₁ * W1 + ℓ₂ * W2 + ℓ₃ * W3 + ℓ₄ * W4 +
+            ℓ₅ * W5 + ℓ₆ * W6 + ℓ₇ * W7 + ℓ₈ * W8
+        result[i, j, k, l] = val
+        result[j, i, k, l] = val
+        result[i, j, l, k] = val
+        result[j, i, l, k] = val
+    end
+    return result
+end
+
+function get_array(t::TensTI{2, T, 3}) where {T}
+    a, b, c = t.data
+    n = t.n
+    δ(i, j) = i == j ? one(T) : zero(T)
+    ε(i, j, k) =
+        (i, j, k) in ((1, 2, 3), (2, 3, 1), (3, 1, 2)) ? one(T) :
+        (i, j, k) in ((3, 2, 1), (1, 3, 2), (2, 1, 3)) ? -one(T) : zero(T)
+    w(i, j) = ε(i, 1, j) * n[1] + ε(i, 2, j) * n[2] + ε(i, 3, j) * n[3]
+    result = Array{T, 2}(undef, 3, 3)
+    for i in 1:3, j in 1:3
+        nnij = n[i] * n[j]
+        result[i, j] = a * (δ(i, j) - nnij) + b * nnij + c * w(i, j)
+    end
+    return result
+end
+
+# ── Symmetry queries ─────────────────────────────────────────────────────────
+
+LinearAlgebra.issymmetric(t::TensTI{4, T, 8}) where {T} =
+    isequal(t.data[3], t.data[4]) && iszero(t.data[7]) && iszero(t.data[8])
+Tensors.ismajorsymmetric(t::TensTI{4, T, 8}) where {T} = issymmetric(t)
+LinearAlgebra.issymmetric(t::TensTI{2, T, 3}) where {T} = iszero(t.data[3])
+
+LinearAlgebra.tr(t::TensTI{2, T, 3}) where {T} = 2 * t.data[1] + t.data[2]
+
+# ── Double contraction (commutant-algebra product rule) ──────────────────────
+
+"""
+    dcontract(A::TensTI{4,T,8}, B::TensTI{4,T,8}) → TensTI{4, T, 8}
+
+Closed product rule in the 8-dim commutant algebra:
+2×2 block product for (ℓ₁..ℓ₄), complex products for z₁ = ℓ₆ + iℓ₇ (m=1)
+and z₂ = ℓ₅ + iℓ₈ (m=2).
+"""
+function Tensors.dcontract(A::TensTI{4, <:Any, 8}, B::TensTI{4, <:Any, 8})
+    A.n == B.n || return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆, ℓA₇, ℓA₈ = A.data
+    ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆, ℓB₇, ℓB₈ = B.data
+    n₁ = ℓA₁ * ℓB₁ + ℓA₃ * ℓB₄
+    n₃ = ℓA₁ * ℓB₃ + ℓA₃ * ℓB₂
+    n₄ = ℓA₄ * ℓB₁ + ℓA₂ * ℓB₄
+    n₂ = ℓA₄ * ℓB₃ + ℓA₂ * ℓB₂
+    n₆ = ℓA₆ * ℓB₆ - ℓA₇ * ℓB₇
+    n₇ = ℓA₆ * ℓB₇ + ℓA₇ * ℓB₆
+    n₅ = ℓA₅ * ℓB₅ - ℓA₈ * ℓB₈
+    n₈ = ℓA₅ * ℓB₈ + ℓA₈ * ℓB₅
+    T = promote_type(eltype(A), eltype(B))
+    return TensTI{4, T, 8}(
+        (T(n₁), T(n₂), T(n₃), T(n₄), T(n₅), T(n₆), T(n₇), T(n₈)), A.n
+    )
+end
+
+Tensors.dcontract(A::TensTI{4, <:Any, 8}, B::TensTI{4}) =
+    Tensors.dcontract(A, _lift_walpole_N8(B))
+Tensors.dcontract(A::TensTI{4}, B::TensTI{4, <:Any, 8}) =
+    Tensors.dcontract(_lift_walpole_N8(A), B)
+
+# ── Inverse ──────────────────────────────────────────────────────────────────
+
+"""
+    inv(t::TensTI{4, T, 8}) → TensTI{4, T, 8}
+
+Inverse in the commutant algebra: 2×2 block inverse + two complex inverses.
+"""
+function Base.inv(t::TensTI{4, T, 8}) where {T}
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = t.data
+    det = ℓ₁ * ℓ₂ - ℓ₃ * ℓ₄
+    d₁ = ℓ₆ * ℓ₆ + ℓ₇ * ℓ₇     # |z₁|²
+    d₂ = ℓ₅ * ℓ₅ + ℓ₈ * ℓ₈     # |z₂|²
+    return TensTI{4, T, 8}(
+        (
+            ℓ₂ / det, ℓ₁ / det, -ℓ₃ / det, -ℓ₄ / det,
+            ℓ₅ / d₂, ℓ₆ / d₁, -ℓ₇ / d₁, -ℓ₈ / d₂,
+        ), t.n
+    )
+end
+
+@inline Base.literal_pow(::typeof(^), A::TensTI{4, <:Any, 8}, ::Val{-1}) = inv(A)
+
+"""
+    inv(t::TensTI{2, T, 3}) → TensTI{2, T, 3}
+
+Inverse of `a·nT + b·nₙ + c·w`: the in-plane part is the complex number
+`a + ic` (since `w² = −nT`), the axial part is `b`:
+`(a + ic)⁻¹ ⊕ b⁻¹` → `(a/(a²+c²), 1/b, −c/(a²+c²))`.
+"""
+function Base.inv(t::TensTI{2, T, 3}) where {T}
+    a, b, c = t.data
+    d = a * a + c * c
+    return TensTI{2, T, 3}((a / d, one(T) / b, -c / d), t.n)
+end
+
+@inline Base.literal_pow(::typeof(^), A::TensTI{2, <:Any, 3}, ::Val{-1}) = inv(A)
+
+# ── Mixed-N ± (same order, lift to the richer parametrization) ───────────────
+
+for OP in (:+, :-)
+    @eval Base.$OP(A::TensTI{4, <:Any, 8}, B::TensTI{4, <:Any, 5}) =
+        $OP(A, _lift_walpole_N8(B))
+    @eval Base.$OP(A::TensTI{4, <:Any, 5}, B::TensTI{4, <:Any, 8}) =
+        $OP(_lift_walpole_N8(A), B)
+    @eval Base.$OP(A::TensTI{4, <:Any, 8}, B::TensTI{4, <:Any, 6}) =
+        $OP(A, _lift_walpole_N8(B))
+    @eval Base.$OP(A::TensTI{4, <:Any, 6}, B::TensTI{4, <:Any, 8}) =
+        $OP(_lift_walpole_N8(A), B)
+    @eval Base.$OP(A::TensTI{2, <:Any, 3}, B::TensTI{2, <:Any, 2}) =
+        $OP(A, _lift_ti2_N3(B))
+    @eval Base.$OP(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 3}) =
+        $OP(_lift_ti2_N3(A), B)
+    @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 8})
+        return $OP(_lift_walpole_N8(fromISO(A, axis(B))), B)
+    end
+    @eval function Base.$OP(A::TensTI{4, <:Any, 8}, B::TensISO{4, 3})
+        return $OP(A, _lift_walpole_N8(fromISO(B, axis(A))))
+    end
+    @eval function Base.$OP(A::TensISO{2, 3}, B::TensTI{2, <:Any, 3})
+        λ = get_data(A)[1]
+        a, b, c = get_data(B)
+        return TensTI{2}($OP(λ, a), $OP(λ, b), $OP(zero(λ), c), axis(B))
+    end
+    @eval function Base.$OP(A::TensTI{2, <:Any, 3}, B::TensISO{2, 3})
+        a, b, c = get_data(A)
+        λ = get_data(B)[1]
+        return TensTI{2}($OP(a, λ), $OP(b, λ), c, axis(A))
+    end
+end
+
+# ── 2nd-order products (dot) in the N=3 space ────────────────────────────────
+#
+# With nT, nₙ orthogonal projectors and w the in-plane rotation generator:
+#   nT·nT = nT, nₙ·nₙ = nₙ, nT·nₙ = 0, w·nT = nT·w = w, w·nₙ = nₙ·w = 0,
+#   w·w = −nT
+# so the in-plane part (a, c) multiplies like the complex number a + ic and
+# the axial part like the scalar b.
+
+function LinearAlgebra.dot(A::TensTI{2, <:Any, 3}, B::TensTI{2, <:Any, 3})
+    axis(A) == axis(B) || return LinearAlgebra.dot(_generic_tens(A), _generic_tens(B))
+    a₁, b₁, c₁ = get_data(A)
+    a₂, b₂, c₂ = get_data(B)
+    return TensTI{2}(a₁ * a₂ - c₁ * c₂, b₁ * b₂, a₁ * c₂ + c₁ * a₂, axis(A))
+end
+
+LinearAlgebra.dot(A::TensTI{2, <:Any, 3}, B::TensTI{2, <:Any, 2}) =
+    LinearAlgebra.dot(A, _lift_ti2_N3(B))
+LinearAlgebra.dot(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 3}) =
+    LinearAlgebra.dot(_lift_ti2_N3(A), B)
+
+function LinearAlgebra.dot(A::TensTI{2, <:Any, 3}, B::TensISO{2, 3})
+    a, b, c = get_data(A)
+    λ = get_data(B)[1]
+    return TensTI{2}(a * λ, b * λ, c * λ, axis(A))
+end
+function LinearAlgebra.dot(A::TensISO{2, 3}, B::TensTI{2, <:Any, 3})
+    λ = get_data(A)[1]
+    a, b, c = get_data(B)
+    return TensTI{2}(λ * a, λ * b, λ * c, axis(B))
+end
+
+# ── 4th ⊡ 2nd with the N=3 space ─────────────────────────────────────────────
+# A minor-symmetric 4th-order tensor annihilates the antisymmetric part c·w,
+# so the contraction reduces to the symmetric (a, b) part.
+
+Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 3}) =
+    Tensors.dcontract(A, TensTI{2}(B.data[1], B.data[2], axis(B)))
+Tensors.dcontract(A::TensTI{2, <:Any, 3}, B::TensTI{4}) =
+    Tensors.dcontract(TensTI{2}(A.data[1], A.data[2], axis(A)), B)
+
+# ── is_ISO for the new shapes ────────────────────────────────────────────────
+
+is_ISO(t::TensTI{2, <:Any, 3}) = t.data[1] == t.data[2] && iszero(t.data[3])
+
+# ── Display ──────────────────────────────────────────────────────────────────
+
+function Base.show(io::IO, A::TensTI{4, <:Any, 8})
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = A.data
+    print(
+        io, "(", ℓ₁, ") W₁ + (", ℓ₂, ") W₂ + (", ℓ₃, ") W₃ + (", ℓ₄,
+        ") W₄ + (", ℓ₅, ") W₅ + (", ℓ₆, ") W₆ + (", ℓ₇, ") W₇ + (", ℓ₈, ") W₈"
+    )
+    return print(io, "\n  axis n = ", A.n)
+end
+
+function intrinsic(A::TensTI{4, <:Any, 8})
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = A.data
+    println(
+        "(", ℓ₁, ") W₁ + (", ℓ₂, ") W₂ + (", ℓ₃, ") W₃ + (", ℓ₄,
+        ") W₄ + (", ℓ₅, ") W₅ + (", ℓ₆, ") W₆ + (", ℓ₇, ") W₇ + (", ℓ₈, ") W₈"
+    )
+    return println("  axis n = ", A.n)
+end
+
+function Base.show(io::IO, A::TensTI{2, <:Any, 3})
+    a, b, c = get_data(A)
+    print(io, "(", a, ") nT + (", b, ") nₙ + (", c, ") w")
+    return print(io, "\n  axis n = ", A.n)
+end
+
+function intrinsic(A::TensTI{2, <:Any, 3})
+    a, b, c = get_data(A)
+    println("(", a, ") nT + (", b, ") nₙ + (", c, ") w")
+    return println("  axis n = ", A.n)
+end
+
+##############################################################################
 # Exports
 ##############################################################################
 
 export TensTI, TensOrtho
-export tens_W1, tens_W2, tens_W3, tens_W4, tens_W5, tens_W6
+export tens_W1, tens_W2, tens_W3, tens_W4, tens_W5, tens_W6, tens_W7, tens_W8
 export Walpole, walpole_basis, walpole_basis_sym
-export get_ℓ, axis, frame, reference, symmetry
+export get_ℓ, get_ℓ8, axis, frame, reference, symmetry
 export fromISO, is_TI, is_ORTHO
 export tens_TI, arg_TI, tens_TI_eng, arg_TI_eng, tens_TI_Hoenig, arg_TI_Hoenig
 export KM_material

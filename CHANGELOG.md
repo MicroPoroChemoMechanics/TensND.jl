@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.2.2 — Full axially-invariant TI algebra (additive)
+
+### Added
+
+- `TensTI{4, T, 8}` — the FULL 8-dimensional space of minor-symmetric
+  4th-order tensors invariant under rotations about an axis (the commutant of
+  the SO(2) action on Kelvin-Mandel space): the six Walpole coefficients plus
+  two antisymmetric azimuthal generators `W₇` (m=1) and `W₈` (m=2). Closed
+  under double contraction and inversion via a 2×2 block product and two
+  complex products; `get_ℓ8`, `tens_W7`, `tens_W8` accessors; lifts from
+  `N=5`/`N=6`. This is what an EXACT azimuthal average of a (generally
+  non-major-symmetric) concentration tensor lives in — `ℓ₃ ≠ ℓ₄` and the
+  antisymmetric couplings are no longer forced to zero.
+- `TensTI{2, T, 3}` — 2nd-order axially-invariant tensor `a·nT + b·nₙ + c·w`
+  (`w` the in-plane rotation generator), preserving the antisymmetric in-plane
+  part; closed `dot`/`inv` (complex-number algebra in the plane ⊕ scalar on
+  the axis).
+
+### Changed
+
+- Binary `±` and `dcontract`/`dot` between two structured TI tensors with
+  DIFFERENT axes now fall back to a generic `Tens` result instead of throwing
+  an axis-mismatch assertion. This enables accumulation of differently-axed TI
+  contributions (e.g. multi-orientation self-consistent estimates). Same-axis
+  behaviour is unchanged.
+
 ## v0.2.1 — Maintenance
 
 - `[compat]` upper bound for `TimerOutputs` raised to `"0.5, 1"`.
