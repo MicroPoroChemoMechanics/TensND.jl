@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.2.4 — TensOrtho: concrete frame field, closed-form inverse
+
+### Fixed
+
+- **Regression from v0.2.3**: decoupling the material frame's element type from
+  the data element type was done by erasing the field to the abstract
+  `frame::OrthonormalBasis{3}` (a `Union{CanonicalBasis{3,T},RotatedBasis{3,T}}
+  where T`), which made the field non-concrete. Every access boxed and
+  dispatched dynamically: `get_array(::TensOrtho)` and a single
+  `getindex(::TensOrtho, i,j,k,l)` each allocated **283 264 bytes** (≈440× the
+  81-`Float64` array actually needed), even behind a function barrier. Fixed by
+  making the frame a genuine type parameter — `TensOrtho{T, B<:OrthonormalBasis{3}}`
+  — which keeps `B` independent of `T` (preserving the v0.2.3 ForwardDiff fix)
+  while restoring concreteness: `get_array`/`getindex` now allocate ~736 bytes
+  (~385× reduction), matching the necessary 81-`Float64` array.
+
+### Changed
+
+- `inv(::TensOrtho)` now uses a closed-form inverse of the documented block
+  structure — the upper 3×3 symmetric block via scalar adjugate/determinant,
+  and each shear term as `Cₘₘ' = 1/(4Cₘₘ)` — instead of a dense 6×6
+  `Matrix`-allocating LU factorization. Verified against the previous dense
+  inverse to machine precision (`< 1e-10` on the Kelvin-Mandel matrix), and
+  still `ForwardDiff`-compatible (verified against finite differences).
+
 ## v0.2.3 — TensOrtho ForwardDiff compatibility
 
 ### Fixed

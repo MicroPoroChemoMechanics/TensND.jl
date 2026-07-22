@@ -852,7 +852,7 @@ end
 # ─────────────────────────────────────────────────────────────────────────────
 
 """
-    TensOrtho{T} <: AbstractTens{4,3,T}
+    TensOrtho{T, B<:OrthonormalBasis{3}} <: AbstractTens{4,3,T}
 
 Orthotropic 4th-order tensor with material frame `(e₁,e₂,e₃)` and 9 independent
 elastic constants `(C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)` where
@@ -870,15 +870,23 @@ with `Pₘ = eₘ⊗eₘ`. The Kelvin-Mandel matrix in the material frame is blo
      [ 0,  0,  0,  2C₄₄, 0,   0  ],
      [ 0,  0,  0,   0,  2C₅₅, 0  ],
      [ 0,  0,  0,   0,   0,  2C₆₆]]
+
+The frame's element type `B` is a free type parameter, independent of the data
+eltype `T`: differentiating w.r.t. the elastic constants (`T = ForwardDiff.Dual`)
+does not require a `Dual`-typed geometric frame. Keeping `B` as a concrete type
+parameter (rather than erasing it to the abstract `OrthonormalBasis{3}`) is what
+lets `t.frame` be inferred and stored unboxed.
 """
-struct TensOrtho{T} <: AbstractTens{4, 3, T}
-    data::NTuple{9, T}            # (C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)
-    frame::OrthonormalBasis{3}    # material frame (e₁,e₂,e₃)
-    # The frame eltype is intentionally decoupled from the data eltype `T`:
-    # differentiating w.r.t. the elastic constants (T = ForwardDiff.Dual)
-    # must not require a Dual-typed geometric frame.  `get_array` promotes
-    # the (Float64) frame against the Dual data as needed.
+struct TensOrtho{T, B <: OrthonormalBasis{3}} <: AbstractTens{4, 3, T}
+    data::NTuple{9, T}    # (C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)
+    frame::B               # material frame (e₁,e₂,e₃)
 end
+
+# Outer constructor preserving the historical `TensOrtho{T}(data, frame)` call
+# form (used by `_rebuild` and the scalar/matrix constructors below) — infers
+# the frame type parameter `B` from the `frame` argument.
+TensOrtho{T}(data::NTuple{9}, frame::B) where {T, B <: OrthonormalBasis{3}} =
+    TensOrtho{T, B}(data, frame)
 
 # ── Traits ────────────────────────────────────────────────────────────────────
 
@@ -1044,12 +1052,30 @@ end
 """
     inv(t::TensOrtho) → TensOrtho
 
-Inverse via the KM matrix in the material frame (block-diagonal, efficiently invertible).
+Inverse in closed form: the upper 3×3 symmetric block `[[C₁₁,C₁₂,C₁₃],[C₁₂,C₂₂,C₂₃],
+[C₁₃,C₂₃,C₃₃]]` is inverted via its scalar adjugate/determinant, and each shear
+term inverts as `Cₘₘ' = 1/(4Cₘₘ)` (since the KM diagonal entry is `2Cₘₘ`). No
+heap allocation, no LU factorization — matches the block structure documented
+on `TensOrtho`.
 """
 function Base.inv(t::TensOrtho{T}) where {T}
-    Km = KM_material(t)
-    Km_inv = inv(Km)
-    return TensOrtho(Km_inv, t.frame)
+    a, b, c, d, e, f = get_data(t)[1:6]   # a=C₁₁, b=C₂₂, c=C₃₃, d=C₁₂, e=C₁₃, f=C₂₃
+    C44, C55, C66 = get_data(t)[7:9]
+    det = a * b * c + 2 * d * e * f - a * f * f - b * e * e - c * d * d
+    inv_det = one(T) / det
+    C11_inv = (b * c - f * f) * inv_det
+    C22_inv = (a * c - e * e) * inv_det
+    C33_inv = (a * b - d * d) * inv_det
+    C12_inv = (e * f - c * d) * inv_det
+    C13_inv = (d * f - b * e) * inv_det
+    C23_inv = (d * e - a * f) * inv_det
+    C44_inv = inv(4 * C44)
+    C55_inv = inv(4 * C55)
+    C66_inv = inv(4 * C66)
+    return TensOrtho(
+        C11_inv, C22_inv, C33_inv, C12_inv, C13_inv, C23_inv,
+        C44_inv, C55_inv, C66_inv, t.frame
+    )
 end
 
 @inline Base.literal_pow(::typeof(^), A::TensOrtho, ::Val{-1}) = inv(A)

@@ -45,7 +45,7 @@ julia> I4 = TensISO{3}(2.0, 3.0);   # α=2, β=3
 
 julia> O = iso_to_ortho(I4, CanonicalBasis{3,Float64}());
 
-julia> typeof(O) === TensOrtho{Float64}
+julia> O isa TensOrtho{Float64}
 true
 
 julia> get_data(O)[1], get_data(O)[4], get_data(O)[7]

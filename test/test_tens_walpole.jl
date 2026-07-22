@@ -882,4 +882,36 @@
         @test gi ≈ (cc(250.0e3 + h) - cc(250.0e3 - h)) / 2h atol = 1.0e-9
     end
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "TensOrtho — concrete frame field, closed-form inv (v0.2.4 regression)" begin
+        frame = CanonicalBasis{3, Float64}()
+        O = TensOrtho(
+            250.0e3, 180.0e3, 150.0e3, 90.0e3, 80.0e3, 70.0e3,
+            60.0e3, 50.0e3, 40.0e3, frame
+        )
+        # The frame field must be a concrete type: TensOrtho{T} decouples the
+        # frame eltype from T (for ForwardDiff) via a *type parameter*, not by
+        # erasing it to the abstract `OrthonormalBasis{3}` — an abstract field
+        # boxes every access and defeats inference (v0.2.3 regression).
+        @test isconcretetype(fieldtype(typeof(O), :frame))
+        @test typeof(O) === TensOrtho{Float64, CanonicalBasis{3, Float64}}
+
+        # get_array/getindex must not allocate wildly more than the necessary
+        # 81-Float64 array (~650 B). The boxed-frame regression allocated
+        # 283 264 B per call (≈440×) because every field access on the
+        # abstract `frame` triggered dynamic dispatch.
+        get_array(O)  # warm up
+        @test (@allocated get_array(O)) < 2000
+        O[1, 1, 1, 1]
+        @test (@allocated O[1, 1, 1, 1]) < 2000
+
+        # Closed-form inv (3×3 block adjugate + shear reciprocals) must match
+        # the dense 6×6 Kelvin-Mandel inverse to machine precision.
+        Km = TensND.KM_material(O)
+        Km_inv_dense = inv(Km)
+        Km_inv_closed = TensND.KM_material(inv(O))
+        @test maximum(abs.(Km_inv_closed .- Km_inv_dense)) < 1.0e-10
+        @test maximum(abs.(Km * Km_inv_closed - Matrix(I, 6, 6))) < 1.0e-12
+    end
+
 end  # "Walpole & Ortho tensors"
