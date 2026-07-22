@@ -1,5 +1,15 @@
 # Changelog
 
+## v0.2.3 — TensOrtho ForwardDiff compatibility
+
+### Fixed
+
+- `TensOrtho` is now `ForwardDiff`-compatible: the material frame's element
+  type is decoupled from the data element type (`frame::OrthonormalBasis{3}`
+  instead of `{3, T}`), so differentiating w.r.t. the nine elastic constants
+  (data `T = ForwardDiff.Dual`) no longer requires — and no longer fails to
+  build — a Dual-typed geometric frame.
+
 ## v0.2.2 — Full axially-invariant TI algebra (additive)
 
 ### Added

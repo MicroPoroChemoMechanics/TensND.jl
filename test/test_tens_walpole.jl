@@ -849,4 +849,37 @@
         @test maximum(abs, Array(get_array(dm)) .- (get_array(t3) * get_array(t3c))) < 1.0e-12
     end
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "TensOrtho — ForwardDiff compatibility (frame eltype decoupled)" begin
+        FD = TensND.ForwardDiff
+        frame = CanonicalBasis{3, Float64}()
+        # build TensOrtho with a Dual elastic constant against a Float64 frame
+        O = TensOrtho(
+            FD.Dual(250.0e3, 1.0), 250.0e3, 250.0e3, 100.0e3, 100.0e3, 100.0e3,
+            80.0e3, 80.0e3, 80.0e3, frame
+        )
+        @test eltype(O) <: FD.Dual
+        @test frame isa TensND.OrthonormalBasis{3, Float64}   # frame stays Float64
+        # ∂C₁₁₁₁/∂C₁₁ = 1
+        g = FD.derivative(
+            c11 -> get_array(
+                TensOrtho(c11, 250.0e3, 250.0e3, 100.0e3, 100.0e3, 100.0e3, 80.0e3, 80.0e3, 80.0e3, frame)
+            )[1, 1, 1, 1],
+            250.0e3
+        )
+        @test g ≈ 1.0
+        # inverse is also differentiable (∂ over the KM block inverse)
+        gi = FD.derivative(
+            c11 -> get_array(
+                inv(TensOrtho(c11, 250.0e3, 250.0e3, 100.0e3, 100.0e3, 100.0e3, 80.0e3, 80.0e3, 80.0e3, frame))
+            )[1, 1, 1, 1],
+            250.0e3
+        )
+        h = 1.0
+        cc(x) = get_array(
+            inv(TensOrtho(x, 250.0e3, 250.0e3, 100.0e3, 100.0e3, 100.0e3, 80.0e3, 80.0e3, 80.0e3, frame))
+        )[1, 1, 1, 1]
+        @test gi ≈ (cc(250.0e3 + h) - cc(250.0e3 - h)) / 2h atol = 1.0e-9
+    end
+
 end  # "Walpole & Ortho tensors"

@@ -873,7 +873,11 @@ with `Pₘ = eₘ⊗eₘ`. The Kelvin-Mandel matrix in the material frame is blo
 """
 struct TensOrtho{T} <: AbstractTens{4, 3, T}
     data::NTuple{9, T}            # (C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)
-    frame::OrthonormalBasis{3, T} # material frame (e₁,e₂,e₃)
+    frame::OrthonormalBasis{3}    # material frame (e₁,e₂,e₃)
+    # The frame eltype is intentionally decoupled from the data eltype `T`:
+    # differentiating w.r.t. the elastic constants (T = ForwardDiff.Dual)
+    # must not require a Dual-typed geometric frame.  `get_array` promotes
+    # the (Float64) frame against the Dual data as needed.
 end
 
 # ── Traits ────────────────────────────────────────────────────────────────────
