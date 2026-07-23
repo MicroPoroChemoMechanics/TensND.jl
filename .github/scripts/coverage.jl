@@ -59,6 +59,13 @@ function report(fcs)
 end
 
 fcs = merged_coverage()
-report(fcs)
+covered, total = report(fcs)
+# Without `.cov` files every source lands in the "never loaded" branch and the
+# report is a silent 0 % — which would be uploaded and shown on the badge as if
+# it were real.  Fail loudly instead.
+covered == 0 && error(
+    "No coverage data found: every file reports 0 %.  Did `julia-runtest` run " *
+        "with `coverage: true`, and is this script running from the repo root?"
+)
 LCOV.writefile("lcov.info", fcs)
 clean_folder.(filter(isdir, CLEAN_DIRS))

@@ -634,6 +634,30 @@ Convenience dispatch: `proj_tens(:TI, A, n)` calls `proj_tens(Val(:TI), A, n)`.
 proj_tens(sym::Symbol, A::AbstractArray, arg) = proj_tens(Val(sym), A, arg)
 
 # ── Fallbacks for optimized versions (require NLopt) ─────────────────────────
+#
+# `TensNDNLoptExt` supplies the real optimizers.  It must NOT define methods
+# with the same signatures as the fallbacks below: overwriting a method is
+# forbidden during module precompilation, so the extension would fail to
+# precompile and be rebuilt (with a warning) on every session.
+#
+# Hence the indirection through `_proj_tens_opt`: the fallback here is the
+# catch-all `Val{S}`/`AbstractArray` method, and the extension registers
+# strictly *more specific* methods, which is plain dispatch — no overwrite.
+
+"""
+    _proj_tens_opt(::Val{S}, A) -> (B, d, drel)
+
+Internal hook for the rotation-optimized projections.  The fallback throws;
+`TensNDNLoptExt` adds the concrete methods when NLopt is loaded.
+"""
+function _proj_tens_opt(::Val{S}, A::AbstractArray) where {S}
+    fixed = S === :ORTHO ? "proj_tens(:ORTHO, A, frame)" : "proj_tens(:TI, A, n)"
+    return error(
+        "NLopt.jl is required for rotation-optimized $S projection. " *
+            "Run `using NLopt` or add NLopt to your project. " *
+            "For fixed-axis/frame projection, use $fixed."
+    )
+end
 
 """
     proj_tens(::Val{:TI}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
@@ -643,13 +667,8 @@ symmetry axes. Requires the NLopt package: `using NLopt`.
 
 See also [`proj_tens(::Val{:TI}, A, n)`](@ref) for fixed-axis projection.
 """
-function proj_tens(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
-    error(
-        "NLopt.jl is required for rotation-optimized TI projection. " *
-            "Run `using NLopt` or add NLopt to your project. " *
-            "For fixed-axis projection, use proj_tens(:TI, A, n)."
-    )
-end
+proj_tens(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
+    _proj_tens_opt(Val(:TI), A)
 
 """
     proj_tens(::Val{:TI}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
@@ -657,13 +676,8 @@ end
 Find the best TI approximation of a 2nd-order tensor `A` by optimizing
 the symmetry axis. Requires the NLopt package: `using NLopt`.
 """
-function proj_tens(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
-    error(
-        "NLopt.jl is required for rotation-optimized TI projection. " *
-            "Run `using NLopt` or add NLopt to your project. " *
-            "For fixed-axis projection, use proj_tens(:TI, A, n)."
-    )
-end
+proj_tens(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
+    _proj_tens_opt(Val(:TI), A)
 
 """
     proj_tens(::Val{:ORTHO}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
@@ -671,13 +685,8 @@ end
 Find the best orthotropic approximation of `A` by optimizing over all
 possible material frames. Requires the NLopt package: `using NLopt`.
 """
-function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
-    error(
-        "NLopt.jl is required for rotation-optimized ORTHO projection. " *
-            "Run `using NLopt` or add NLopt to your project. " *
-            "For fixed-frame projection, use proj_tens(:ORTHO, A, frame)."
-    )
-end
+proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
+    _proj_tens_opt(Val(:ORTHO), A)
 
 """
     proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
@@ -685,13 +694,8 @@ end
 Find the best orthotropic approximation of a 2nd-order tensor `A` by
 optimizing the material frame. Requires the NLopt package: `using NLopt`.
 """
-function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
-    error(
-        "NLopt.jl is required for rotation-optimized ORTHO projection. " *
-            "Run `using NLopt` or add NLopt to your project. " *
-            "For fixed-frame projection, use proj_tens(:ORTHO, A, frame)."
-    )
-end
+proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
+    _proj_tens_opt(Val(:ORTHO), A)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Value-level symmetry predicates on raw arrays

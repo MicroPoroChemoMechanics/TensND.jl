@@ -32,6 +32,10 @@ include("test_tens_projection.jl")
 include("test_special_tens.jl")
 include("test_coorsystems.jl")
 include("test_coorsystems_num.jl")
+include("test_submanifold.jl")
+# Must stay last: it loads NLopt, which `test_tens_projection.jl` requires to
+# be absent.
+include("test_nlopt_ext.jl")
 
 print_timer()
 println()

@@ -45,28 +45,12 @@ jobs:
         run: |
           julia -e '
             using Pkg
+            ENV["PYTHON"] = ""
             Pkg.add("PyCall")
             Pkg.add("SymPy")
-            ENV["PYTHON"] = ""
-            try
-              Pkg.build("PyCall")
-            catch e
-              @warn "PyCall build failed, retrying..." exception=e
-              sleep(5)
-              Pkg.build("PyCall")
-            end
+            Pkg.build("PyCall")
             using PyCall
             pyimport_conda("sympy", "sympy")'
-      # - name: Install dependencies
-      #   run: |
-      #     julia -e '
-      #       using Pkg
-      #       Pkg.add("PyCall")
-      #       Pkg.add("SymPy")
-      #       ENV["PYTHON"] = Sys.iswindows() ? "python" : ""
-      #       Pkg.build("PyCall")
-      #       using PyCall
-      #       pyimport_conda("sympy", "sympy")'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
         with:
@@ -82,7 +66,10 @@ jobs:
           using Pkg
           Pkg.activate(; temp = true)
           Pkg.add("Coverage")
-          include(joinpath(".github", "scripts", "coverage.jl"))
+          # `pwd()` is the workspace root.  An absolute path is required: the
+          # `run:` block is written to a temp file by the runner, and `include`
+          # resolves relative to THAT file's directory, not the cwd.
+          include(joinpath(pwd(), ".github", "scripts", "coverage.jl"))
       - uses: codecov/codecov-action@v5
         if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
         with:

@@ -136,10 +136,10 @@ curvature(SM::SubManifoldSym) = SM.b
 Riemann(SM::SubManifoldSym{dim}) where {dim} = SM.Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
 
 function ∂(
-        t::AbstractTens{order, dim, Sym},
+        t::AbstractTens{order, dim, T},
         i::Integer,
         SM::SubManifoldSym{dim},
-    ) where {order, dim}
+    ) where {order, dim, T <: SymType}
     t = only_coords(SM, t)
     ℬ = natural_basis(SM)
     var = ntuple(_ -> :cont, order)
@@ -155,21 +155,21 @@ function ∂(
     return change_tens(Tens(simprules(data, SM), ℬ, var), normalized_basis(SM), var)
 end
 
-∂(t::Sym, i::Integer, SM::SubManifoldSym{dim}) where {dim} =
+∂(t::SymType, i::Integer, SM::SubManifoldSym{dim}) where {dim} =
     tdiff(only_coords(SM, t), getcoords(SM, i))
 
 function ∂(
-        t::AbstractTens{order, dim, Sym},
-        x::Sym,
+        t::AbstractTens{order, dim, T},
+        x::SymType,
         SM::SubManifoldSym{dim},
-    ) where {order, dim}
+    ) where {order, dim, T <: SymType}
     ind = findfirst(i -> i == x, getcoords(SM))
     return isnothing(ind) ? zero(t) : ∂(t, ind, SM)
 end
 
 function ∂(
-        t::Sym,
-        x::Sym,
+        t::SymType,
+        x::SymType,
         SM::SubManifoldSym{dim},
     ) where {dim}
     ind = findfirst(i -> i == x, getcoords(SM))
@@ -181,8 +181,11 @@ end
 
 Calculate the gradient of `T` with respect to the coordinate system `SM`
 """
-GRAD(T::Union{Sym, AbstractTens{order, dim, Sym}}, SM::SubManifoldSym{dim}) where {order, dim} =
-    sum([∂(T, i, SM) ⊗ natvec(SM, i, :cont) for i in 1:(dim - 1)])
+GRAD(
+    t::Union{T, AbstractTens{order, dim, T}},
+    SM::SubManifoldSym{dim},
+) where {order, dim, T <: SymType} =
+    sum([∂(t, i, SM) ⊗ natvec(SM, i, :cont) for i in 1:(dim - 1)])
 
 
 """
@@ -191,17 +194,21 @@ GRAD(T::Union{Sym, AbstractTens{order, dim, Sym}}, SM::SubManifoldSym{dim}) wher
 Calculate the symmetrized gradient of `T` with respect to the coordinate system `SM`
 """
 SYMGRAD(
-    T::Union{Sym, AbstractTens{order, dim, Sym}},
+    t::Union{T, AbstractTens{order, dim, T}},
     SM::SubManifoldSym{dim},
-) where {order, dim} = sum([∂(T, i, SM) ⊗ˢ natvec(SM, i, :cont) for i in 1:(dim - 1)])
+) where {order, dim, T <: SymType} =
+    sum([∂(t, i, SM) ⊗ˢ natvec(SM, i, :cont) for i in 1:(dim - 1)])
 
 """
     DIV(T::AbstractTens{order,dim,Sym},SM::SubManifoldSym{dim}) where {order,dim}
 
 Calculate the divergence  of `T` with respect to the coordinate system `SM`
 """
-DIV(T::AbstractTens{order, dim, Sym}, SM::SubManifoldSym{dim}) where {order, dim} =
-    sum([∂(T, i, SM) ⋅ natvec(SM, i, :cont) for i in 1:(dim - 1)])
+DIV(
+    t::AbstractTens{order, dim, T},
+    SM::SubManifoldSym{dim},
+) where {order, dim, T <: SymType} =
+    sum([∂(t, i, SM) ⋅ natvec(SM, i, :cont) for i in 1:(dim - 1)])
 
 """
     LAPLACE(T::Union{Sym,AbstractTens{order,dim,Sym}},SM::SubManifoldSym{dim}) where {order,dim}
@@ -209,17 +216,19 @@ DIV(T::AbstractTens{order, dim, Sym}, SM::SubManifoldSym{dim}) where {order, dim
 Calculate the Laplace operator of `T` with respect to the coordinate system `SM`
 """
 LAPLACE(
-    T::Union{Sym, AbstractTens{order, dim, Sym}},
+    t::Union{T, AbstractTens{order, dim, T}},
     SM::SubManifoldSym{dim},
-) where {order, dim} = DIV(GRAD(T, SM), SM)
+) where {order, dim, T <: SymType} = DIV(GRAD(t, SM), SM)
 
 """
     HESS(T::Union{Sym,AbstractTens{order,dim,Sym}},SM::SubManifoldSym{dim}) where {order,dim}
 
 Calculate the Hessian of `T` with respect to the coordinate system `SM`
 """
-HESS(T::Union{Sym, AbstractTens{order, dim, Sym}}, SM::SubManifoldSym{dim}) where {order, dim} =
-    GRAD(GRAD(T, SM), SM)
+HESS(
+    t::Union{T, AbstractTens{order, dim, T}},
+    SM::SubManifoldSym{dim},
+) where {order, dim, T <: SymType} = GRAD(GRAD(t, SM), SM)
 
 export SubManifoldSym
 export normal, submetric, curvature, Riemann

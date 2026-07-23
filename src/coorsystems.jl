@@ -153,11 +153,16 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
     end
 end
 
-with_tmp_var(CS::CoorSystemSym, t) = length(CS.tmp_var) > 0 ? tsubs(t, CS.tmp_var...) : t
-only_coords(CS::CoorSystemSym, t) = length(CS.to_coords) > 0 ? tsubs(t, CS.to_coords...) : t
+# These four were restricted to `CoorSystemSym` while every neighbouring
+# accessor below dispatches on `AbstractCoorSystem`.  `SubManifoldSym` is also
+# an `AbstractCoorSystem` and carries the very same fields, so the restriction
+# made `∂`/`GRAD`/`DIV`/`LAPLACE`/`HESS` on a submanifold fail with a
+# `MethodError` on `only_coords`.
+with_tmp_var(CS::AbstractCoorSystem, t) = length(CS.tmp_var) > 0 ? tsubs(t, CS.tmp_var...) : t
+only_coords(CS::AbstractCoorSystem, t) = length(CS.to_coords) > 0 ? tsubs(t, CS.to_coords...) : t
 
-getcoords(CS::CoorSystemSym) = CS.coords
-getcoords(CS::CoorSystemSym, i::Integer) = getcoords(CS)[i]
+getcoords(CS::AbstractCoorSystem) = CS.coords
+getcoords(CS::AbstractCoorSystem, i::Integer) = getcoords(CS)[i]
 
 @pure get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
 

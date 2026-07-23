@@ -21,7 +21,7 @@ using NLopt
 using ForwardDiff
 using StaticArrays
 
-import TensND: proj_tens, _rot3_raw, _KM_rotation, _KM_of_array,
+import TensND: proj_tens, _proj_tens_opt, _rot3_raw, _KM_rotation, _KM_of_array,
     _project_TI_KM, _build_TI_KM,
     _project_ORTHO_KM, _build_ORTHO_KM,
     _frobenius, _n_from_angles, _angles_from_n,
@@ -197,7 +197,7 @@ julia> drel < 1e-6
 true
 ```
 """
-function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+function TensND._proj_tens_opt(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
     C_KM = _KM_of_array(A)
     sqnorm_C = sum(x -> x^2, C_KM)
     if sqnorm_C ≈ zero(T)
@@ -238,7 +238,7 @@ julia> drel < 1e-6
 true
 ```
 """
-function TensND.proj_tens(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
+function TensND._proj_tens_opt(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
     sqnorm_A = sum(x -> x^2, A)
     if sqnorm_A ≈ zero(T)
         z = zero(T)
@@ -278,7 +278,7 @@ julia> drel < 1e-4
 true
 ```
 """
-function TensND.proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+function TensND._proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
     C_KM = _KM_of_array(A)
     sqnorm_C = sum(x -> x^2, C_KM)
     if sqnorm_C ≈ zero(T)
@@ -317,7 +317,7 @@ julia> d ≥ 0
 true
 ```
 """
-function TensND.proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
+function TensND._proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
     sqnorm_A = sum(x -> x^2, A)
     if sqnorm_A ≈ zero(T)
         z = zero(T)

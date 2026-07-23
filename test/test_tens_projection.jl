@@ -332,7 +332,9 @@
     # ═══════════════════════════════════════════════════════════════════════════
     @testsection "best_sym_tens — no NLopt needed by default" begin
         # Regression: the default no-argument form must not throw when NLopt
-        # is absent from the session.  (NLopt is not loaded in the base test env.)
+        # is absent from the session.  This file must therefore keep running
+        # BEFORE `test_nlopt_ext.jl`, which is what loads NLopt (see the
+        # include order in runtests.jl) — once loaded it stays loaded.
         aniso_KM = Float64[
             10 3 2 1 0 0
             3 8 1 0 1 0
