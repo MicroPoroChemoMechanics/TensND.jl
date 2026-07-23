@@ -1,0 +1,19 @@
+coverage:
+  status:
+    project:
+      default:
+        # Informational: report the number, never block the CI on a variation.
+        informational: true
+    patch:
+      default:
+        informational: true
+
+comment:
+  layout: "reach, diff, files"
+  behavior: default
+
+ignore:
+  - "docs/**"
+  - "test/**"
+  - "scripts/**"
+  - "notebooks/**"

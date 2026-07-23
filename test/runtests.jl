@@ -2,6 +2,12 @@ using TensND
 using Test
 using TimerOutputs
 using LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations
+using Random
+
+# `test_bases.jl` and `test_tens_isotropic.jl` draw random bases and moduli.
+# Seed once so a CI failure is always reproducible locally instead of
+# depending on the draw.
+Random.seed!(20260723)
 
 macro testsection(str, block)
     return quote

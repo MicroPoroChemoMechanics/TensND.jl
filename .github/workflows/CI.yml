@@ -69,3 +69,23 @@ jobs:
       #       pyimport_conda("sympy", "sympy")'
       - uses: julia-actions/julia-buildpkg@v1
       - uses: julia-actions/julia-runtest@v1
+        with:
+          # Instrument only the primary job: coverage disables precompilation
+          # caching and would slow down every other matrix entry for nothing.
+          coverage: ${{ matrix.os == 'ubuntu-latest' && matrix.version == '1' }}
+      # Not julia-actions/julia-processcoverage: see the header of the script
+      # for why its `amend_coverage_from_src!` step misreports this package.
+      - name: Process coverage
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
+        shell: julia --color=yes {0}
+        run: |
+          using Pkg
+          Pkg.activate(; temp = true)
+          Pkg.add("Coverage")
+          include(joinpath(".github", "scripts", "coverage.jl"))
+      - uses: codecov/codecov-action@v5
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
+        with:
+          files: lcov.info
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: false

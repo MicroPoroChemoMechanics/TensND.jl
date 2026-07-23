@@ -68,13 +68,20 @@
             @test get_dim(b3) == 3
 
             if T ≠ Sym
+                # General (non-orthogonal) basis built from a random invertible
+                # matrix.  Note the duality relations are only satisfied up to
+                # rounding here, unlike the exact integer basis `bv` above, so
+                # compare with `≈` rather than `isone`.
                 v = rand(T, 3, 3)
                 while det(v) ≈ 0
                     v = rand(T, 3, 3)
                 end
-                @test eltype(bv) == T
-                @test isone(vecbasis(bv, :cont)' * vecbasis(bv, :cov))
-                @test isone(metric(bv, :cont)' * metric(bv, :cov))
+                bvr = Basis(v)
+                @test eltype(bvr) == T
+                @test !isorthogonal(bvr)
+                @test vecbasis(bvr, :cont)' * vecbasis(bvr, :cov) ≈ 1I
+                @test metric(bvr, :cont)' * metric(bvr, :cov) ≈ 1I
+                @test Array(vecbasis(bvr, :cov)) ≈ v
             end
 
         end
