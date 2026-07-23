@@ -260,8 +260,22 @@ function get_array(t::TensTI{4, T}) where {T}
     return result
 end
 
-Base.getindex(t::TensTI{4}, i::Integer, j::Integer, k::Integer, l::Integer) =
-    get_array(t)[i, j, k, l]
+function Base.getindex(t::TensTI{4}, i::Integer, j::Integer, k::Integer, l::Integer)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(t)
+    n = t.n
+    T = eltype(t)
+    sq2 = sqrt(T(2))
+    δ(a, b) = a == b ? one(T) : zero(T)
+    nn(a, b) = n[a] * n[b]
+    nT(a, b) = δ(a, b) - nn(a, b)
+    W1 = nn(i, j) * nn(k, l)
+    W2 = nT(i, j) * nT(k, l) / 2
+    W3 = nn(i, j) * nT(k, l) / sq2
+    W4 = nT(i, j) * nn(k, l) / sq2
+    W5 = (nT(i, k) * nT(j, l) + nT(i, l) * nT(j, k)) / 2 - nT(i, j) * nT(k, l) / 2
+    W6 = (nT(i, k) * nn(j, l) + nT(i, l) * nn(j, k) + nn(i, k) * nT(j, l) + nn(i, l) * nT(j, k)) / 2
+    return ℓ₁ * W1 + ℓ₂ * W2 + ℓ₃ * W3 + ℓ₄ * W4 + ℓ₅ * W5 + ℓ₆ * W6
+end
 
 # ── Kelvin-Mandel matrix ──────────────────────────────────────────────────────
 
@@ -640,8 +654,13 @@ function get_array(t::TensTI{2, T, 2}) where {T}
     return result
 end
 
-Base.getindex(t::TensTI{2}, i::Integer, j::Integer) =
-    get_array(t)[i, j]
+function Base.getindex(t::TensTI{2, T, 2}, i::Integer, j::Integer) where {T}
+    a, b = t.data
+    n = t.n
+    δij = i == j ? one(T) : zero(T)
+    nnij = n[i] * n[j]
+    return a * (δij - nnij) + b * nnij
+end
 
 # ── KM ───────────────────────────────────────────────────────────────────────
 
@@ -1362,6 +1381,34 @@ function get_array(t::TensTI{4, T, 8}) where {T}
     return result
 end
 
+# Canonicalizes (i,j) and (k,l) before evaluating — mirrors `get_array`'s own
+# canonical-fill-then-mirror strategy, so `getindex` matches it bit-for-bit
+# (the W7/W8 sums are not literally invariant to summation order under an
+# (i,j) or (k,l) swap, unlike the simple products in W1-W4).
+function Base.getindex(t::TensTI{4, T, 8}, i::Integer, j::Integer, k::Integer, l::Integer) where {T}
+    ii, jj = i <= j ? (i, j) : (j, i)
+    kk, ll = k <= l ? (k, l) : (l, k)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = t.data
+    n = t.n
+    sq2 = sqrt(T(2))
+    δ(a, b) = a == b ? one(T) : zero(T)
+    nn(a, b) = n[a] * n[b]
+    nT(a, b) = δ(a, b) - nn(a, b)
+    ε(a, b, c) =
+        (a, b, c) in ((1, 2, 3), (2, 3, 1), (3, 1, 2)) ? one(T) :
+        (a, b, c) in ((3, 2, 1), (1, 3, 2), (2, 1, 3)) ? -one(T) : zero(T)
+    w(a, b) = ε(a, 1, b) * n[1] + ε(a, 2, b) * n[2] + ε(a, 3, b) * n[3]
+    W1 = nn(ii, jj) * nn(kk, ll)
+    W2 = nT(ii, jj) * nT(kk, ll) / 2
+    W3 = nn(ii, jj) * nT(kk, ll) / sq2
+    W4 = nT(ii, jj) * nn(kk, ll) / sq2
+    W5 = (nT(ii, kk) * nT(jj, ll) + nT(ii, ll) * nT(jj, kk)) / 2 - nT(ii, jj) * nT(kk, ll) / 2
+    W6 = (nT(ii, kk) * nn(jj, ll) + nT(ii, ll) * nn(jj, kk) + nn(ii, kk) * nT(jj, ll) + nn(ii, ll) * nT(jj, kk)) / 2
+    W7 = -(w(ii, kk) * nn(jj, ll) + w(ii, ll) * nn(jj, kk) + w(jj, kk) * nn(ii, ll) + w(jj, ll) * nn(ii, kk)) / 2
+    W8 = (w(ii, kk) * nT(jj, ll) + w(ii, ll) * nT(jj, kk) + w(jj, kk) * nT(ii, ll) + w(jj, ll) * nT(ii, kk)) / 4
+    return ℓ₁ * W1 + ℓ₂ * W2 + ℓ₃ * W3 + ℓ₄ * W4 + ℓ₅ * W5 + ℓ₆ * W6 + ℓ₇ * W7 + ℓ₈ * W8
+end
+
 function get_array(t::TensTI{2, T, 3}) where {T}
     a, b, c = t.data
     n = t.n
@@ -1376,6 +1423,18 @@ function get_array(t::TensTI{2, T, 3}) where {T}
         result[i, j] = a * (δ(i, j) - nnij) + b * nnij + c * w(i, j)
     end
     return result
+end
+
+function Base.getindex(t::TensTI{2, T, 3}, i::Integer, j::Integer) where {T}
+    a, b, c = t.data
+    n = t.n
+    δij = i == j ? one(T) : zero(T)
+    ε(p, q, r) =
+        (p, q, r) in ((1, 2, 3), (2, 3, 1), (3, 1, 2)) ? one(T) :
+        (p, q, r) in ((3, 2, 1), (1, 3, 2), (2, 1, 3)) ? -one(T) : zero(T)
+    wij = ε(i, 1, j) * n[1] + ε(i, 2, j) * n[2] + ε(i, 3, j) * n[3]
+    nnij = n[i] * n[j]
+    return a * (δij - nnij) + b * nnij + c * wij
 end
 
 # ── Symmetry queries ─────────────────────────────────────────────────────────

@@ -804,6 +804,81 @@ function is_ORTHO(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
     return drel < ε
 end
 
+# ──────────────────────────────────────────────────────────────────────────────
+# AbstractTens-dispatching convenience wrappers
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# Every `proj_tens`/`is_ISO`/`is_TI`/`is_ORTHO` method above operates on a raw
+# `AbstractArray` (the caller must `get_array(t)` first). These thin wrappers
+# let them be called directly on any `TensND.AbstractTens` (order 2 or 4) —
+# the analogue of echoes' `.paramsym(sym)` attached to the tensor itself.
+# They dispatch below the type-specific `is_ISO(::TensISO)`, `is_ISO(::TensTI)`,
+# `is_ISO(::TensOrtho)`, … predicates already defined in `tens_isotropic.jl` /
+# `tens_walpole.jl` (those remain the more specific, and cheaper, match for
+# structured types) — in practice these wrappers fire for the fully generic
+# `Tens{4,3}` / `Tens{2,3}` (no assumed symmetry), which is exactly the case
+# that needs a best-fit projection rather than a type-level answer.
+
+proj_tens(v::Val{:ISO}, t::AbstractTens) = proj_tens(v, get_array(t))
+proj_tens(v::Val{:TI}, t::AbstractTens{4, dim, T}, n) where {dim, T} = proj_tens(v, get_array(t), n)
+proj_tens(v::Val{:TI}, t::AbstractTens{2, dim, T}, n) where {dim, T} = proj_tens(v, get_array(t), n)
+proj_tens(v::Val{:ORTHO}, t::AbstractTens{4, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
+    proj_tens(v, get_array(t), frame)
+proj_tens(v::Val{:ORTHO}, t::AbstractTens{2, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
+    proj_tens(v, get_array(t), frame)
+proj_tens(sym::Symbol, t::AbstractTens, args...) = proj_tens(Val(sym), t, args...)
+
+is_ISO(t::AbstractTens; kwargs...) = is_ISO(get_array(t); kwargs...)
+is_TI(t::AbstractTens, n; kwargs...) = is_TI(get_array(t), n; kwargs...)
+is_TI(t::AbstractTens; kwargs...) = is_TI(get_array(t); kwargs...)
+is_ORTHO(t::AbstractTens, frame; kwargs...) = is_ORTHO(get_array(t), frame; kwargs...)
+is_ORTHO(t::AbstractTens; kwargs...) = is_ORTHO(get_array(t); kwargs...)
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Public aliases for the per-block Kelvin-Mandel ↔ symmetry-parameter
+# conversions (previously private `_project_TI_KM`/`_build_TI_KM`/
+# `_project_ORTHO_KM`/`_build_ORTHO_KM`, used internally by `proj_tens`).
+# Exposed publicly so that callers working directly on 6×6 Kelvin-Mandel
+# blocks (e.g. MeanFieldHom's per-timestep ALV Volterra matrices) can reuse
+# the same closed-form projection without going through a full `AbstractTens`.
+# ──────────────────────────────────────────────────────────────────────────────
+
+"""
+    ti_params_from_KM(C::AbstractMatrix) → (ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)
+
+Project a 6×6 Kelvin-Mandel matrix (in a frame where `e₃` is the TI symmetry
+axis) onto the major-symmetric TI subspace, returning the 5 Walpole
+coefficients. See [`proj_tens`](@ref) for the tensor-level equivalent.
+"""
+const ti_params_from_KM = _project_TI_KM
+
+"""
+    KM_from_ti_params(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆) → SMatrix{6,6}
+
+Build a 6×6 Kelvin-Mandel matrix (in the frame where `e₃` is the TI axis)
+from 5 major-symmetric Walpole coefficients — the reciprocal of
+[`ti_params_from_KM`](@ref).
+"""
+const KM_from_ti_params = _build_TI_KM
+
+"""
+    ortho_params_from_KM(C::AbstractMatrix) → NTuple{9}
+
+Extract the 9 orthotropic parameters `(C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)`
+from a 6×6 Kelvin-Mandel matrix in the material frame. See
+[`proj_tens`](@ref) for the tensor-level equivalent.
+"""
+const ortho_params_from_KM = _project_ORTHO_KM
+
+"""
+    KM_from_ortho_params(C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆) → SMatrix{6,6}
+
+Build a 6×6 Kelvin-Mandel matrix in the material frame from 9 orthotropic
+parameters — the reciprocal of [`ortho_params_from_KM`](@ref).
+"""
+const KM_from_ortho_params = _build_ORTHO_KM
+
 # ── Exports ──────────────────────────────────────────────────────────────────
 
 export proj_tens
+export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params

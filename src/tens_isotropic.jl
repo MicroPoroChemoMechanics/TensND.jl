@@ -317,9 +317,11 @@ function Tensors.dcontract(
     ) where {order, dim, T}
     nB = TensOrthonormal(B)
     m = get_array(nB)
-    ec1 = ntuple(i -> i, order)
+    # `ec1` is the identity permutation, so this is a plain index swap of the
+    # first two axes — `permutedims` does the same thing without OMEinsum's
+    # `EinCode` dispatch/allocation overhead.
     ec2 = (2, 1, ntuple(i -> i + 2, order - 2)...)
-    m2 = einsum(EinCode((ec1,), ec2), (m,))
+    m2 = permutedims(m, ec2)
     newm =
         get_data(A)[2] * (m + m2) / 2 +
         (get_data(A)[1] - get_data(A)[2]) * Id2{dim, T}() ⊗ contract(m, 1, 2) / dim
@@ -332,9 +334,10 @@ function Tensors.dcontract(
     ) where {order, dim, T}
     nA = TensOrthonormal(A)
     m = get_array(nA)
-    ec1 = ntuple(i -> i, order)
+    # Plain index swap of the last two axes — see the mirror-image method
+    # above for why `permutedims` replaces the OMEinsum call.
     ec2 = (ntuple(i -> i, order - 2)..., order, order - 1)
-    m2 = einsum(EinCode((ec1,), ec2), (m,))
+    m2 = permutedims(m, ec2)
     newm =
         (m + m2) * get_data(B)[2] / 2 +
         contract(m, order - 1, order) ⊗ Id2{dim, T}() * (get_data(B)[1] - get_data(B)[2]) / dim
