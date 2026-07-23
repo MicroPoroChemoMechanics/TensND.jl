@@ -1,6 +1,6 @@
 name = "TensND"
 uuid = "474b5345-2588-4284-8a58-2430a1a40cb0"
-version = "0.2.4"
+version = "0.2.5"
 authors = ["Jean-François Barthélémy"]
 
 [deps]
