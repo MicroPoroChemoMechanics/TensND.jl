@@ -45,10 +45,14 @@ using NLopt
     @testsection "proj_tens(:TI, A) — order 4, generic input" begin
         # A genuinely non-TI tensor: the optimizer must beat (or match) the
         # canonical-axis projection, never do worse.
-        arr = Array(get_array(TensOrtho(
-            20.0, 8.0, 6.0, 30.0, 7.0, 40.0, 5.0, 6.0, 7.0,
-            CanonicalBasis{3, Float64}()
-        )))
+        arr = Array(
+            get_array(
+                TensOrtho(
+                    20.0, 8.0, 6.0, 30.0, 7.0, 40.0, 5.0, 6.0, 7.0,
+                    CanonicalBasis{3, Float64}()
+                )
+            )
+        )
         B_opt, _, drel_opt = proj_tens(:TI, arr)
         @test B_opt isa TensTI{4}
         @test 0.0 ≤ drel_opt ≤ 1.0
