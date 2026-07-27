@@ -1,7 +1,24 @@
 abstract type AbstractBasis{dim, T <: Number} <: AbstractMatrix{T} end
 
 @pure Base.size(::AbstractBasis{dim}) where {dim} = (dim, dim)
-Base.getindex(ℬ::AbstractBasis, i::Integer, j::Integer) = getindex(vecbasis(ℬ, :cov), i, j)
+
+# `Val(:cov)` is spelled out rather than reached through `vecbasis(ℬ, :cov)`:
+# the Symbol overload builds the `Val` from a runtime value, so the dispatch was
+# dynamic on EVERY scalar access — 67 ns to read one entry.  Since
+# `AbstractBasis <: AbstractMatrix`, that cost was paid by every generic
+# traversal of a basis.
+Base.getindex(ℬ::AbstractBasis, i::Integer, j::Integer) =
+    getindex(vecbasis(ℬ, Val(:cov)), i, j)
+
+# Equality compares the primal bases as a whole.  The `AbstractArray` fallback
+# would do it entry by entry through the `getindex` above, i.e. `2·dim²`
+# separate `vecbasis` calls: measured at 1117 ns for two 3×3 bases, which made
+# it the dominant cost of every `_check_same_reference` — more expensive than
+# the tensor algebra it was guarding.  Semantics are unchanged (still an
+# elementwise comparison of the primal bases, so a `RotatedBasis` holding the
+# identity still equals a `CanonicalBasis`); only the number of dispatches is.
+Base.:(==)(A::AbstractBasis{dim}, B::AbstractBasis{dim}) where {dim} =
+    vecbasis(A, Val(:cov)) == vecbasis(B, Val(:cov))
 @pure Base.eltype(::Type{AbstractBasis{dim, T}}) where {dim, T} = T
 @pure get_dim(::AbstractBasis{dim}) where {dim} = dim
 

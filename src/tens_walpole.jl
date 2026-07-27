@@ -1084,7 +1084,7 @@ Returns the 6×6 Kelvin-Mandel matrix in the material frame (block-diagonal).
 function KM_material(t::TensOrtho{T}) where {T}
     C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(t)
     z = zero(T)
-    return [
+    return @SMatrix [
         C11  C12  C13   z    z    z  ;
         C12  C22  C23   z    z    z  ;
         C13  C23  C33   z    z    z  ;
@@ -1092,6 +1092,46 @@ function KM_material(t::TensOrtho{T}) where {T}
         z    z    z    z  2C55   z  ;
         z    z    z    z    z  2C66
     ]
+end
+
+# ── Kelvin-Mandel congruence of the material frame ────────────────────────────
+#
+# `KM(t)` is the Kelvin-Mandel matrix in the CANONICAL frame, `KM_material(t)`
+# the block-diagonal one in the material frame.  The two are related by the
+# congruence
+#
+#     KM(t) == Q * KM_material(t) * transpose(Q)
+#
+# where `Q` is the 6×6 Kelvin-Mandel representation of the 4th-order rotation
+# operator `R ⊠ˢ R` (i.e. `KM(rot6(θ,ϕ,ψ))`, see `rot6`), built here directly
+# from the frame vectors so that no angles need to be recovered.  `Q` is
+# orthogonal, which is what makes Kelvin-Mandel the right normalization for
+# this: in Voigt notation the analogous matrix is not.
+#
+# `tomandel` orders the pairs (11, 22, 33, 32, 31, 21), and the off-diagonal
+# Kelvin-Mandel basis tensors carry a √2, which is where the three cases below
+# come from.  The identity above is asserted in
+# `test/test_tens_walpole.jl`, on a rotated frame — do not "simplify" the √2
+# bookkeeping without re-running it.
+const _KM_PAIR = ((1, 1), (2, 2), (3, 3), (3, 2), (3, 1), (2, 1))
+
+@inline function _km_entry(E, s2, I::Int, J::Int)
+    (i, j) = _KM_PAIR[I]
+    (a, b) = _KM_PAIR[J]
+    return @inbounds if i == j && a == b
+        E[i, a] * E[j, a]
+    elseif i == j
+        s2 * E[i, a] * E[j, b]
+    elseif a == b
+        s2 * E[i, a] * E[j, a]
+    else
+        E[i, a] * E[j, b] + E[i, b] * E[j, a]
+    end
+end
+
+@inline function _km_congruence(E::AbstractMatrix{T}) where {T}
+    s2 = sqrt(T(2))
+    return SMatrix{6, 6, T}(_km_entry(E, s2, I, J) for I in 1:6, J in 1:6)
 end
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
@@ -1139,6 +1179,52 @@ function Base.inv(t::TensOrtho{T}) where {T}
 end
 
 @inline Base.literal_pow(::typeof(^), A::TensOrtho, ::Val{-1}) = inv(A)
+
+# ── Double contraction ────────────────────────────────────────────────────────
+
+"""
+    dcontract(A::TensOrtho, B::TensOrtho) → TensCanonical{4,3}
+
+Closed form via the material-frame Kelvin-Mandel blocks.
+
+Double contraction *is* the matrix product in Kelvin-Mandel, and in the shared
+material frame both operands are block-diagonal, `[3×3 sym] ⊕ diag(2C₄₄,2C₅₅,2C₆₆)`,
+so the product costs one 3×3 product plus three scalar products instead of two
+dense 81-component expansions.  The result is then carried back to the
+canonical frame by the congruence of §`_km_congruence`:
+
+    KM(A ⊡ B) == Q * (KM_material(A) * KM_material(B)) * transpose(Q)
+
+**The result is not a `TensOrtho`.** The product of two symmetric 3×3 blocks is
+not symmetric unless they commute, so `A ⊡ B` is orthotropic *without major
+symmetry* — 12 independent constants where `TensOrtho` stores 9. This is the
+same widening that makes `dcontract(::TensTI{4}, ::TensTI{4})` return N=6
+rather than N=5. Rather than introduce a 12-parameter container, this method
+returns the very `TensCanonical` the generic route used to produce, bitwise
+compatible with it up to floating-point reassociation.
+
+If the two material frames differ the product is generally fully anisotropic
+and the generic route is taken instead.
+"""
+function Tensors.dcontract(A::TensOrtho, B::TensOrtho)
+    frame(A) == frame(B) ||
+        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    T = promote_type(eltype(A), eltype(B))
+    E = vecbasis(frame(A), :cov)
+    Q = _km_congruence(SMatrix{3, 3, T}(E))
+    # Block product in the material frame: the upper 3×3 blocks multiply, the
+    # lower ones are diagonal.  Writing it blockwise rather than as a 6×6
+    # product keeps the structural zeros out of the arithmetic (LLVM cannot
+    # fold `x * 0.0` on its own, since that is not `0.0` for every `x`).
+    Ma = KM_material(A)
+    Mb = KM_material(B)
+    S = SMatrix{3, 3, T}(@view Ma[1:3, 1:3]) * SMatrix{3, 3, T}(@view Mb[1:3, 1:3])
+    d = SVector{3, T}(Ma[4, 4] * Mb[4, 4], Ma[5, 5] * Mb[5, 5], Ma[6, 6] * Mb[6, 6])
+    Q1 = Q[:, SVector(1, 2, 3)]
+    Q2 = Q[:, SVector(4, 5, 6)]
+    KMcan = Q1 * S * transpose(Q1) + (Q2 .* transpose(d)) * transpose(Q2)
+    return inv_KM(SymmetricTensor{4, 3}, KMcan)
+end
 
 # ── Symmetry ──────────────────────────────────────────────────────────────────
 

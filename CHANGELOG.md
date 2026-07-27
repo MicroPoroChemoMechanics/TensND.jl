@@ -1,6 +1,39 @@
 # Changelog
 
-## v0.2.6 — TensOrtho closed-form getindex, generic-conversion fix, TensTI mixed-eltype constructor
+## v0.2.6 — TensOrtho closed forms, basis-comparison fix, generic-conversion fix
+
+### Added
+
+- **Closed-form `dcontract(::TensOrtho, ::TensOrtho)`** (and
+  `TensISO{4,3} ⊡ TensOrtho`, promoted onto the material frame). Double
+  contraction *is* the matrix product in Kelvin-Mandel, and in a shared material
+  frame both operands are block-diagonal — `[3×3 sym] ⊕ diag(2C₄₄,2C₅₅,2C₆₆)` —
+  so the product is one 3×3 product plus three scalar products instead of two
+  dense 81-component expansions. Different material frames still fall back to
+  the generic route, bit for bit, since the product is then generally fully
+  anisotropic.
+
+  **The result is deliberately not a `TensOrtho`.** The product of two symmetric
+  3×3 Kelvin-Mandel blocks is not symmetric unless they commute, so `A ⊡ B` is
+  orthotropic *without major symmetry*: 12 independent constants where
+  `TensOrtho` stores 9. This is the same widening that already makes
+  `dcontract(::TensTI{4}, ::TensTI{4})` return N=6 rather than N=5. Rather than
+  introduce a 12-parameter container, the method returns the very
+  `TensCanonical` the generic route produced, agreeing with it to 6.2e-16.
+
+- **`_km_congruence`**, the 6×6 Kelvin-Mandel congruence of a material frame,
+  built straight from the frame vectors (no angle recovery). It is what relates
+  the two Kelvin-Mandel views of a `TensOrtho`:
+
+      KM(t) == Q * KM_material(t) * transpose(Q)
+
+  `Q` is the Kelvin-Mandel representation of `R ⊠ˢ R`, i.e. `KM(rot6(θ,ϕ,ψ))`,
+  and it is **orthogonal** — that is precisely what Kelvin-Mandel buys over
+  Voigt, where the analogous matrix is not. The identity is pinned in
+  `test/test_tens_walpole.jl` on rotated frames, because in the canonical frame
+  `Q == I` and every convention error hides.
+
+  `KM_material` now returns an `SMatrix`.
 
 ### Performance
 
@@ -34,7 +67,38 @@
   `tensor_or_array` 3147 → **393 ns**; `TensOrtho ⊡ TensOrtho`
   10 240 → **4541 ns** (−56 %), 8976 → 4816 B.
 
+- **Comparing two bases cost more than the tensor algebra it guarded.**
+  `AbstractBasis <: AbstractMatrix`, and its `getindex` reached the stored
+  matrix through `vecbasis(ℬ, :cov)` — the `Symbol` overload, which builds
+  `Val(var)` from a *runtime* value, so reading one entry went through a
+  dynamic dispatch (67 ns). The `AbstractArray` fallback for `==` then did
+  `2·dim²` of them: **1117 ns to compare two 3×3 bases**, which dominated every
+  `_check_same_reference` and therefore every binary operation on `TensOrtho`.
+
+  `getindex` now names `Val(:cov)` literally, and `==` compares the primal
+  bases in one shot. Semantics are unchanged — still an elementwise comparison,
+  so a `RotatedBasis` holding the identity still equals a `CanonicalBasis`.
+
+  Basis `==` 1117 → **162 ns**. Combined with the closed form above,
+  `TensOrtho ⊡ TensOrtho` 4541 → **164 ns / 304 B**, i.e. **−98.8 %** against
+  the 13 860 ns / 9136 B this contraction cost before v0.2.6.
+
+- **`inv_KM` inferred as `Any`.** The shape-to-type mapping went through
+  `select_type_KM[size(v)]`; indexing a `Dict{…, UnionAll}` yields a type as a
+  runtime *value*, so `frommandel` was reached by dynamic dispatch. Each shape
+  now names its tensor type literally at its own call site, so every branch is
+  concrete. (Returning the type from a helper would not work — the union would
+  then be over `UnionAll` values, which carries no type information.)
+  `select_type_KM` is kept as the documented table.
+
+  `inv_KM` on a 6×6: 228 → **37.5 ns**; inferred return type `Any` →
+  `TensCanonical{4,dim,Float64}`. Round-trips for all eight shapes (orders 2
+  and 4, symmetric and not, dims 2 and 3) are covered by tests.
+
 ### Fixed
+
+- **Corrupted `rot6` docstring** — stray text (`cde Liv Lehn ϕ`) had replaced
+  `cϕ` in one entry of the displayed matrix.
 
 - **`TensTI` could not be built with `Dual` coefficients and a real axis.** The
   inner constructor `TensTI{order,T,N}(::NTuple{N,T}, ::NTuple{3,T})` demanded a

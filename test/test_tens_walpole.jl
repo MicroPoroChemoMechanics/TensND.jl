@@ -914,4 +914,60 @@
         @test maximum(abs.(Km * Km_inv_closed - Matrix(I, 6, 6))) < 1.0e-12
     end
 
+    @testsection "TensOrtho — Kelvin-Mandel congruence of the material frame" begin
+        # `KM(t)` is the canonical-frame matrix, `KM_material(t)` the
+        # block-diagonal one in the material frame.  The closed-form
+        # `dcontract` rests entirely on the congruence relating them, so pin it
+        # explicitly — and on a ROTATED frame, since in the canonical frame
+        # `Q == I` and every convention error hides.
+        for angles in ((0.0, 0.0, 0.0), (0.7, -0.4, 1.1), (-1.3, 2.2, 0.35))
+            ℬ = RotatedBasis(angles...)
+            O = TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ)
+            E = TensND.vecbasis(TensND.frame(O), :cov)
+            Q = TensND._km_congruence(E)
+            @test maximum(abs, Q * transpose(Q) - I) < 1.0e-14      # orthogonal
+            @test maximum(abs, KM(O) - Q * TensND.KM_material(O) * transpose(Q)) < 1.0e-12
+        end
+    end
+
+    @testsection "TensOrtho — closed-form double contraction" begin
+        dense(t) = [t[i, j, k, l] for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
+        ref(A, B) = Tensors.dcontract(TensND._generic_tens(A), TensND._generic_tens(B))
+
+        for angles in ((0.0, 0.0, 0.0), (0.7, -0.4, 1.1), (-1.3, 2.2, 0.35))
+            ℬ = RotatedBasis(angles...)
+            A = TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ)
+            B = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, ℬ)
+            R = dense(ref(A, B))
+            @test maximum(abs, dense(A ⊡ B) - R) / maximum(abs, R) < 1.0e-14
+
+            # Isotropic operands are promoted onto the material frame.
+            I4 = TensISO{3}(3.0, 2.0)
+            for (l, r) in ((I4, A), (A, I4))
+                Rlr = dense(ref(l, r))
+                @test maximum(abs, dense(l ⊡ r) - Rlr) / maximum(abs, Rlr) < 1.0e-14
+            end
+
+            # `A ⊡ inv(A)` is the identity on symmetric 2nd-order tensors.
+            @test maximum(abs, dense(A ⊡ inv(A)) - dense(TensND._generic_tens(TensISO{3}(1.0, 1.0)))) < 1.0e-12
+        end
+
+        # Different material frames: the product is generally fully anisotropic
+        # and must fall back to the generic route, bit for bit.
+        A = TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, RotatedBasis(0.7, -0.4, 1.1))
+        B = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, RotatedBasis(-1.3, 2.2, 0.35))
+        @test dense(A ⊡ B) == dense(ref(A, B))
+
+        # The result is orthotropic WITHOUT major symmetry: the product of two
+        # symmetric 3×3 Kelvin-Mandel blocks is not symmetric unless they
+        # commute.  This is why `dcontract` cannot return a `TensOrtho`, and it
+        # is the same widening as `TensTI{4}` N=5 → N=6.
+        ℬ = RotatedBasis(0.7, -0.4, 1.1)
+        A = TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ)
+        B = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, ℬ)
+        P = A ⊡ B
+        @test maximum(abs, [P[i, j, k, l] - P[k, l, i, j] for i in 1:3, j in 1:3, k in 1:3, l in 1:3]) > 1.0
+        @test Tensors.isminorsymmetric(get_array(P))
+    end
+
 end  # "Walpole & Ortho tensors"

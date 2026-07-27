@@ -363,6 +363,17 @@ function LinearAlgebra.dot(A::TensISO{2, 3}, B::TensTI{2, <:Any, 2})
     return TensTI{2}(λ * a, λ * b, axis(B))
 end
 
+# ── TensISO{4,3} ⊡ TensOrtho / TensOrtho ⊡ TensISO{4,3} ─────────────────────
+# An isotropic tensor is orthotropic in *every* frame, so promoting it onto the
+# other operand's material frame is exact and lets the closed form of
+# `dcontract(::TensOrtho, ::TensOrtho)` take over instead of the dense route.
+# Mirrors the ± promotion above.
+
+@inline Tensors.dcontract(A::TensISO{4, 3}, B::TensOrtho) =
+    Tensors.dcontract(iso_to_ortho(A, frame(B)), B)
+@inline Tensors.dcontract(A::TensOrtho, B::TensISO{4, 3}) =
+    Tensors.dcontract(A, iso_to_ortho(B, frame(A)))
+
 # ──────────────────────────────────────────────────────────────────────────────
 # Exports
 # ──────────────────────────────────────────────────────────────────────────────
