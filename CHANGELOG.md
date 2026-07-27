@@ -97,6 +97,46 @@
 
 ### Fixed
 
+- **`proj_tens(:TI, A)` and `proj_tens(:ORTHO, A)` were nondeterministic, and
+  intermittently wrong.** The NLopt extension opened with `GD_MLSL`, a
+  *stochastic* global optimizer whose generator NLopt seeds from the clock. Two
+  calls on the same array returned different angles, and roughly 1 call in 200
+  returned a spurious local minimum: on a tensor that is exactly orthotropic
+  about the frame `Basis(0.3, 0.7, 0.2)`, `drel ≈ 0.4389` instead of `≈ 1e-13`.
+  This surfaced as a CI failure on a single matrix entry, but had nothing to do
+  with the platform or the Julia version — it would eventually hit any of them.
+
+  `GD_MLSL` is replaced by a deterministic multi-start. The starting points are
+  the eigenstructure candidate (`_candidate_TI_axis` / `_candidate_ORTHO_frame`,
+  which are *exact* whenever the tensor genuinely has the symmetry being
+  projected onto — the failing case above is one, and they return it to 1.5e-15
+  with no optimization at all) followed by a fixed angular grid containing the
+  canonical axes and the canonical frame. Each start is refined with
+  `LD_TNEWTON`, and the objective is evaluated at every start *and* every refined
+  start, so the answer is never worse than the best start.
+
+  A challenger has to beat the incumbent by more than the objective's own
+  evaluation noise (`1e-14`) to displace it, and the exact candidate is scanned
+  first. Without that floor the fix would have been half a fix: `j = 1 − ‖B‖²/‖C‖²`
+  is a difference of O(1) quantities, so near an exact symmetry it lands anywhere
+  in ±1e-16 and a refined point could displace the exact candidate by "improving"
+  purely in rounding. Visible on a symmetric 3×3, whose eigenframe *is* its
+  orthotropic projection: the candidate gives `drel = 4e-16`, the noise-level
+  winner `drel ≈ 1e-8` — the angular resolution of the refinement.
+
+  Two properties now hold that did not before, and both are pinned in
+  `test/test_nlopt_ext.jl`:
+
+  - repeated calls on the same array return bit-identical results;
+  - the optimized projection is never worse than the fixed-axis / fixed-frame
+    projection along any grid point — a guarantee by construction, not a
+    property of the optimizer's luck.
+
+  Measured against the old strategy over 150 random anisotropic tensors, the
+  multi-start never returned a worse objective (0/150) and ran 3-8× faster
+  (ORTHO 6.5 → 2.3 ms, TI 8.3 → 1.0 ms), the global pass having been the bulk of
+  the cost.
+
 - **Corrupted `rot6` docstring** — stray text (`cde Liv Lehn ϕ`) had replaced
   `cϕ` in one entry of the displayed matrix.
 

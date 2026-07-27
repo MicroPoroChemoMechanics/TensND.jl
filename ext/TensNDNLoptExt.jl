@@ -7,9 +7,22 @@
 #   - proj_tens(Val(:ORTHO), A)   — optimize ORTHO frame (θ, ϕ, ψ)          #
 # for both 4th-order and 2nd-order tensors.                                  #
 #                                                                            #
-# Strategy (from ECHOES tensor_approx.h):                                    #
-#   Pass 1: GD_MLSL (global) + LD_TNEWTON (local), coarse tolerances        #
-#   Pass 2: LD_TNEWTON (local), fine tolerances                              #
+# Strategy: deterministic multi-start + LD_TNEWTON local refinement.         #
+# The starting points are the eigenstructure candidate (`_candidate_TI_axis` #
+# / `_candidate_ORTHO_frame`, exact whenever the tensor really does have     #
+# that symmetry) plus a fixed angular grid containing the canonical axes.    #
+# The best objective over {every start} ∪ {every refined start} is kept, so  #
+# the optimized projection is never worse than the fixed-axis / fixed-frame  #
+# projection along any grid point.                                           #
+#                                                                            #
+# Earlier versions ran the ECHOES tensor_approx.h strategy: a GD_MLSL global #
+# pass, then a local one.  GD_MLSL is *stochastic* and NLopt seeds its       #
+# generator from the clock, so the result was irreproducible from one call   #
+# to the next: on a tensor exactly orthotropic about a tilted frame, ~0.5 %  #
+# of runs returned a spurious local minimum (drel ≈ 0.44 instead of ≈1e-13), #
+# which surfaced as an intermittent CI failure.  The multi-start below       #
+# matched or beat the best of 30 GD_MLSL runs on every tensor tested (150    #
+# random anisotropic ones included) and is 3-8× faster.                      #
 #                                                                            #
 # Gradient computed via ForwardDiff.                                         #
 ##############################################################################
@@ -25,7 +38,8 @@ import TensND: proj_tens, _proj_tens_opt, _rot3_raw, _KM_rotation, _KM_of_array,
     _project_TI_KM, _build_TI_KM,
     _project_ORTHO_KM, _build_ORTHO_KM,
     _frobenius, _n_from_angles, _angles_from_n,
-    _extract_vec
+    _extract_vec, _candidate_TI_axis, _candidate_ORTHO_frame,
+    angles, vecbasis
 
 # ── Objective function: TI, order 4 ─────────────────────────────────────────
 
@@ -97,27 +111,49 @@ function _obj_ORTHO2(x, A, sqnorm_A)
     return one(eltype(x)) - B_sqnorm / sqnorm_A
 end
 
-# ── Two-pass NLopt optimization ──────────────────────────────────────────────
+# ── Deterministic multi-start optimization ───────────────────────────────────
+
+# Angular start grids.  Both contain the canonical frame (all angles zero) and
+# the canonical axes, which is what gives the "never worse than a fixed-frame
+# projection" guarantee.  `θ = 0` makes ϕ irrelevant for the TI axis
+# `n = (sinθ cosϕ, sinθ sinϕ, cosθ)`, hence the filter.
+const _TI_STARTS = [
+    [θ, ϕ] for θ in (0.0, π / 4, π / 2) for ϕ in (0.0, π / 4, π / 2, 3π / 4)
+        if !(θ == 0.0 && ϕ != 0.0)
+]
+
+const _ORTHO_STARTS = [
+    [θ, ϕ, ψ] for θ in (0.0, π / 4, π / 2)
+        for ϕ in (0.0, π / 3, 2π / 3) for ψ in (0.0, π / 4)
+]
+
+# Refinement bounds.  Generous rather than a fundamental domain: the
+# eigenstructure candidate arrives with whatever Euler representative
+# `angles` produced (ϕ and ψ may be negative), and a gradient method started
+# at a good point does not wander.  The objective is well defined for any
+# angles, and so is the frame rebuilt from them.
+const _ANGLE_BOUND = 2π
+
+# Smallest objective decrease worth acting on.  `j = 1 − ‖B‖²/‖C‖²` is a
+# difference of O(1) quantities, so evaluating it near an exact symmetry costs
+# a few ulps of cancellation and `j` lands anywhere in ±1e-16.  Without this
+# floor, a refined point could displace an earlier start by "improving" `j`
+# purely in rounding noise — and since the starts are ordered exact-candidate
+# first, the point being displaced is the *better* one.  It shows up plainly on
+# a symmetric 3×3, whose eigenframe is its orthotropic projection exactly:
+# the candidate gives drel = 0, the noise-level winner gives drel ≈ 1e-8, the
+# angular resolution of the refinement.
+const _IMPROVE_TOL = 1.0e-14
 
 """
-    _optimize_angles(obj, n_angles, x0; kwargs...) → (x_opt, j_opt)
+    _refine_angles(obj, n_angles, x0) → x
 
-Two-pass NLopt optimization matching ECHOES tensor_approx.h strategy:
-- Pass 1: GD_MLSL (global) + LD_TNEWTON (local), coarse tolerances
-- Pass 2: LD_TNEWTON (local), fine tolerances
-
-Bounds: θ ∈ [0, π/2], ϕ ∈ [0, 2π] (TI) or [0, π] (ORTHO), ψ ∈ [0, π/2].
+Local refinement of `obj` from `x0` with `LD_TNEWTON`, gradient supplied by
+`ForwardDiff`.  Returns `x0` unchanged if NLopt errors out — the caller keeps
+the best objective seen, so a failed refinement can only be a missed
+improvement, never a regression.
 """
-function _optimize_angles(obj, n_angles::Int, x0::Vector{Float64})
-    lb = zeros(n_angles)
-    ub = fill(π / 2, n_angles)
-    if n_angles >= 2
-        ub[2] = n_angles > 2 ? π : 2π   # ϕ bound: 2π for TI (2 angles), π for ORTHO (3 angles)
-    end
-
-    x = copy(x0)
-
-    # NLopt objective with ForwardDiff gradient (shared by both passes)
+function _refine_angles(obj, n_angles::Int, x0::Vector{Float64})
     nlopt_obj = (x_vec, grad_vec) -> begin
         if length(grad_vec) > 0
             grad_vec .= ForwardDiff.gradient(obj, x_vec)
@@ -125,52 +161,83 @@ function _optimize_angles(obj, n_angles::Int, x0::Vector{Float64})
         return obj(x_vec)
     end
 
-    # ── Pass 1: Global search ──
-    try
-        opt1 = NLopt.Opt(:GD_MLSL, n_angles)
-        NLopt.lower_bounds!(opt1, lb)
-        NLopt.upper_bounds!(opt1, ub)
-        NLopt.xtol_rel!(opt1, 1.0e-2)
-        NLopt.xtol_abs!(opt1, 1.0e-2)
-        NLopt.ftol_rel!(opt1, 1.0e-3)
-        NLopt.maxeval!(opt1, 1000)
+    return try
+        opt = NLopt.Opt(:LD_TNEWTON, n_angles)
+        NLopt.lower_bounds!(opt, fill(-_ANGLE_BOUND, n_angles))
+        NLopt.upper_bounds!(opt, fill(_ANGLE_BOUND, n_angles))
+        NLopt.xtol_rel!(opt, 1.0e-8)
+        NLopt.xtol_abs!(opt, 1.0e-8)
+        NLopt.ftol_rel!(opt, 1.0e-10)
+        NLopt.maxeval!(opt, 200)
+        NLopt.min_objective!(opt, nlopt_obj)
 
-        local_opt = NLopt.Opt(:LD_TNEWTON, n_angles)
-        NLopt.lower_bounds!(local_opt, lb)
-        NLopt.upper_bounds!(local_opt, ub)
-        NLopt.xtol_rel!(local_opt, 1.0e-3)
-        NLopt.xtol_abs!(local_opt, 1.0e-3)
-        NLopt.ftol_rel!(local_opt, 1.0e-3)
-        NLopt.maxeval!(local_opt, 1000)
-        NLopt.local_optimizer!(opt1, local_opt)
-
-        NLopt.min_objective!(opt1, nlopt_obj)
-
-        (minf, minx, ret) = NLopt.optimize(opt1, x)
-        x = minx
+        (_, minx, _) = NLopt.optimize(opt, copy(x0))
+        minx
     catch e
-        @debug "NLopt global optimizer failed; proceeding to local refinement" exception = (e, catch_backtrace())
+        @debug "NLopt local refinement failed; keeping the starting point" exception = (e, catch_backtrace())
+        copy(x0)
+    end
+end
+
+"""
+    _optimize_angles(obj, n_angles, starts) → x_opt
+
+Minimize `obj` over the angles by refining every point of `starts` locally and
+keeping the best result.
+
+Deterministic: no random search is involved, so two calls on the same tensor
+return the same angles.  `obj` is evaluated at each start *before* refining it,
+so the returned point is never worse than the best start — in particular never
+worse than the eigenstructure candidate, which is exact for a tensor that
+genuinely has the symmetry being projected onto.
+
+`starts` is scanned in order and a challenger must beat the incumbent by
+`_IMPROVE_TOL`, so the earliest start wins whenever the difference is rounding
+noise.  Callers therefore put their most trustworthy candidate first.
+"""
+function _optimize_angles(obj, n_angles::Int, starts)
+    best_x = first(starts)
+    best_j = obj(best_x)
+
+    for x0 in starts
+        j0 = obj(x0)
+        if j0 < best_j - _IMPROVE_TOL
+            best_j, best_x = j0, x0
+        end
+        x = _refine_angles(obj, n_angles, x0)
+        j = obj(x)
+        if j < best_j - _IMPROVE_TOL
+            best_j, best_x = j, x
+        end
     end
 
-    # ── Pass 2: Local refinement ──
-    try
-        opt2 = NLopt.Opt(:LD_TNEWTON, n_angles)
-        NLopt.lower_bounds!(opt2, lb)
-        NLopt.upper_bounds!(opt2, ub)
-        NLopt.xtol_rel!(opt2, 1.0e-6)
-        NLopt.xtol_abs!(opt2, 1.0e-6)
-        NLopt.ftol_rel!(opt2, 1.0e-6)
-        NLopt.maxeval!(opt2, 100)
+    return best_x
+end
 
-        NLopt.min_objective!(opt2, nlopt_obj)
+# ── Deterministic start sets ─────────────────────────────────────────────────
 
-        (minf, minx, ret) = NLopt.optimize(opt2, x)
-        x = minx
-    catch e
-        @debug "NLopt local optimizer failed; returning best x found so far" exception = (e, catch_backtrace())
-    end
+"""
+    _ti_starts(A) → Vector{Vector{Float64}}
 
-    return x
+Start set for the TI axis: the eigenstructure candidate
+(`_candidate_TI_axis`, exact for a genuinely TI tensor) followed by
+`_TI_STARTS`.
+"""
+function _ti_starts(A)
+    θ, ϕ = _angles_from_n(_candidate_TI_axis(A))
+    return vcat([[Float64(θ), Float64(ϕ)]], _TI_STARTS)
+end
+
+"""
+    _ortho_starts(A) → Vector{Vector{Float64}}
+
+Start set for the orthotropic frame: the eigenstructure candidate
+(`_candidate_ORTHO_frame`, exact for a genuinely orthotropic tensor) followed
+by `_ORTHO_STARTS`.
+"""
+function _ortho_starts(A)
+    a = angles(Matrix(vecbasis(_candidate_ORTHO_frame(A), :cov)))
+    return vcat([[Float64(a.θ), Float64(a.ϕ), Float64(a.ψ)]], _ORTHO_STARTS)
 end
 
 # ── proj_tens: TI, order 4, optimized ────────────────────────────────────────
@@ -207,8 +274,7 @@ function TensND._proj_tens_opt(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: A
     end
 
     obj = x -> _obj_TI4(x, C_KM, sqnorm_C)
-    x0 = [T(π / 4), T(π / 4)]
-    x_opt = _optimize_angles(obj, 2, Float64.(x0))
+    x_opt = _optimize_angles(obj, 2, _ti_starts(A))
 
     n = _n_from_angles(x_opt[1], x_opt[2])
     return proj_tens(Val(:TI), A, n)
@@ -247,8 +313,7 @@ function TensND._proj_tens_opt(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: A
     end
 
     obj = x -> _obj_TI2(x, A, sqnorm_A)
-    x0 = [T(π / 4), T(π / 4)]
-    x_opt = _optimize_angles(obj, 2, Float64.(x0))
+    x_opt = _optimize_angles(obj, 2, _ti_starts(A))
 
     n = _n_from_angles(x_opt[1], x_opt[2])
     return proj_tens(Val(:TI), A, n)
@@ -288,8 +353,7 @@ function TensND._proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <
     end
 
     obj = x -> _obj_ORTHO4(x, C_KM, sqnorm_C)
-    x0 = [T(π / 4), T(π / 4), T(π / 4)]
-    x_opt = _optimize_angles(obj, 3, Float64.(x0))
+    x_opt = _optimize_angles(obj, 3, _ortho_starts(A))
 
     frame = RotatedBasis(x_opt[1], x_opt[2], x_opt[3])
     return proj_tens(Val(:ORTHO), A, frame)
@@ -325,8 +389,7 @@ function TensND._proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <
     end
 
     obj = x -> _obj_ORTHO2(x, A, sqnorm_A)
-    x0 = [T(π / 4), T(π / 4), T(π / 4)]
-    x_opt = _optimize_angles(obj, 3, Float64.(x0))
+    x_opt = _optimize_angles(obj, 3, _ortho_starts(A))
 
     frame = RotatedBasis(x_opt[1], x_opt[2], x_opt[3])
     return proj_tens(Val(:ORTHO), A, frame)

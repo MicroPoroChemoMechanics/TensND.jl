@@ -256,14 +256,35 @@ B_ort_opt, d_ort_opt, drel_ort_opt = proj_tens(:ORTHO, get_array(C_tilt))
 println("ORTHO optimized relative distance = ", drel_ort_opt)
 ```
 
-The optimizer uses a two-pass strategy matching the ECHOES C++ library:
+The optimizer is a **deterministic multi-start**:
 
-1. **Pass 1**: global search (`GD_MLSL`) with a local sub-optimizer (`LD_TNEWTON`),
-   coarse tolerances (`xtol = 1e-2`, `ftol = 1e-3`), up to 1000 evaluations.
-2. **Pass 2**: local refinement (`LD_TNEWTON`), fine tolerances (`xtol = ftol = 1e-6`),
-   up to 100 evaluations.
+1. **Starting points**: the eigenstructure candidate — the isolated eigenvector of
+   the trace tensor `dᵢⱼ = Cᵢₖⱼₖ` for `:TI`, its full eigenframe for `:ORTHO`,
+   which is *exact* when the tensor really does have that symmetry — followed by a
+   fixed angular grid that includes the canonical axes and the canonical frame.
+2. **Refinement**: each start is refined with `LD_TNEWTON`
+   (`xtol = 1e-8`, `ftol = 1e-10`, up to 200 evaluations).
+3. **Selection**: the objective is evaluated at every start *and* at every refined
+   start, and the best point wins. A challenger must improve on the incumbent by
+   more than the objective's evaluation noise (`1e-14`), so near an exact symmetry
+   the eigenstructure candidate is kept rather than displaced by a point that is
+   only better in rounding.
+
+Two consequences worth relying on:
+
+- the result is **reproducible** — calling `proj_tens(:ORTHO, A)` twice on the same
+  array returns bit-identical angles;
+- the optimized projection is **never worse** than the fixed-frame projection along
+  any grid point, the canonical frame included.
 
 Gradients are computed automatically via `ForwardDiff.jl`.
+
+!!! note "Changed in v0.2.6"
+    Earlier versions used the two-pass strategy of the ECHOES C++ library, whose
+    first pass was the stochastic global optimizer `GD_MLSL`. Since NLopt seeds its
+    generator from the clock, repeated calls could return different angles, and a
+    small fraction of them a spurious local minimum. The multi-start above removes
+    the randomness and is also faster.
 
 ## Summary of the projection API
 

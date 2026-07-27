@@ -132,6 +132,61 @@ using NLopt
         @test all(iszero, B)
     end
 
+    @testsection "proj_tens — determinism and monotonicity" begin
+        # Regression guard for the stochastic-optimizer bug: the first pass used
+        # to be `GD_MLSL`, whose generator NLopt seeds from the clock.  Repeated
+        # calls returned different angles, and ~0.5 % of them a spurious local
+        # minimum — on the rotated-frame tensor above, `drel ≈ 0.44` instead of
+        # `≈ 1e-13`, which showed up as an intermittent CI failure.  The two
+        # properties below are what the deterministic multi-start buys, and
+        # neither held before.
+
+        arr_ortho = Array(
+            get_array(
+                TensOrtho(
+                    20.0, 8.0, 6.0, 30.0, 7.0, 40.0, 5.0, 6.0, 7.0,
+                    Basis(0.3, 0.7, 0.2)
+                )
+            )
+        )
+        # A tensor with no symmetry at all, so the optimum is a genuine
+        # compromise rather than an exactly recoverable frame.
+        M = Float64[
+            31.0 6.0 5.0 1.2 0.8 2.1
+            6.0 27.0 4.5 0.7 1.9 1.1
+            5.0 4.5 35.0 2.3 1.4 0.6
+            1.2 0.7 2.3 12.0 1.1 0.9
+            0.8 1.9 1.4 1.1 14.0 1.7
+            2.1 1.1 0.6 0.9 1.7 16.0
+        ]
+        arr_aniso = Array(get_array(inv_KM(M)))
+
+        for (name, arr) in (("exactly orthotropic", arr_ortho), ("fully anisotropic", arr_aniso))
+            for sym in (:TI, :ORTHO)
+                # 1. Repeatable: same input, bit-identical output.
+                results = [proj_tens(sym, arr)[3] for _ in 1:4]
+                @test all(==(results[1]), results)
+
+                # 2. Never worse than a fixed-frame projection along a start of
+                #    the grid — the canonical frame is one, so this is a
+                #    guarantee by construction, not a hope about the optimizer.
+                fixed = sym === :TI ?
+                    proj_tens(Val(:TI), arr, (0.0, 0.0, 1.0))[3] :
+                    proj_tens(Val(:ORTHO), arr, CanonicalBasis{3, Float64}())[3]
+                @test results[1] ≤ fixed + 1.0e-8
+            end
+        end
+
+        # Order 2 obeys the same two properties.
+        A2 = Float64[5.0 1.0 2.0; 1.0 8.0 3.0; 2.0 3.0 12.0]
+        for sym in (:TI, :ORTHO)
+            results = [proj_tens(sym, A2)[3] for _ in 1:4]
+            @test all(==(results[1]), results)
+        end
+        # Diagonalising a symmetric 3×3 *is* its orthotropic projection.
+        @test proj_tens(:ORTHO, A2)[3] < 1.0e-10
+    end
+
     @testsection "best_sym_tens — optimize_angles path" begin
         # With NLopt loaded, `optimize_angles = true` goes through the
         # extension instead of throwing.

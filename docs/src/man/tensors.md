@@ -435,5 +435,7 @@ B_opt, d_opt, drel_opt = proj_tens(:TI, get_array(C))
 B_ort, d_ort, drel_ort = proj_tens(:ORTHO, get_array(C))
 ```
 
-The optimiser uses a two-pass strategy (global + local refinement) inspired by the
-ECHOES library, with gradients computed via ForwardDiff.
+The optimiser is a deterministic multi-start: the eigenstructure candidate plus a fixed
+angular grid, each refined with `LD_TNEWTON` and the best kept, with gradients computed
+via ForwardDiff. Repeated calls return bit-identical angles, and the result is never
+worse than the fixed-frame projection along a grid point.
