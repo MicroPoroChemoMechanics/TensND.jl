@@ -65,6 +65,16 @@ struct TensTI{order, T, N} <: AbstractTens{order, 3, T}
         new{order, T, N}(data, n)
 end
 
+# Mixed-eltype constructor.  The symmetry axis is a piece of GEOMETRY and is
+# routinely a plain `Float64` (`(0.0, 0.0, 1.0)`) while the Walpole
+# coefficients get promoted — most importantly to `ForwardDiff.Dual` when a
+# scheme is differentiated with respect to a modulus.  Requiring a single `T`
+# for both made every such call fail with
+# `MethodError: no method matching TensTI{4, Dual, N}(::NTuple{N, Dual}, ::NTuple{3, Float64})`.
+# Convert both tuples to `T` instead.
+TensTI{order, T, N}(data::NTuple{N, Any}, n::NTuple{3, Any}) where {order, T, N} =
+    TensTI{order, T, N}(map(T, data), map(T, n))
+
 # ── Traits ────────────────────────────────────────────────────────────────────
 
 @pure Base.eltype(::Type{TensTI{order, T, N}}) where {order, T, N} = T
@@ -980,18 +990,20 @@ end
 
 Compute the 3×3×3×3 component array in the canonical frame.
 """
-function get_array(t::TensOrtho{T}) where {T}
-    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(t)
-    # Frame vectors as columns of vecbasis(frame, :cov) → e[m] = frame vector m
-    E = vecbasis(t.frame, :cov)   # 3×3 matrix, column m = eₘ
-    result = Array{T, 4}(undef, 3, 3, 3, 3)
-    # Pₘ[i,j] = E[i,m]*E[j,m]
-    P(m, i, j) = E[i, m] * E[j, m]
-    # (A ⊠ˢ B)[i,j,k,l] = (A[i,k]*B[j,l] + A[i,l]*B[j,k] + A[j,k]*B[i,l] + A[j,l]*B[i,k])/4
-    # Note: the factor 2C in the formula accounts for the 2 in "2Cₘₘ(Pₘ⊠ˢPₙ + Pₙ⊠ˢPₘ)"
-    # which is the standard Voigt-to-tensor conversion for shear moduli.
-    for i in 1:3, j in 1:3, k in 1:3, l in 1:3
-        val = (
+# One entry of the canonical-frame component array.  Factored out of
+# `get_array` so that `getindex` can evaluate a SINGLE component without
+# materializing all 81 — see the comment on `getindex(::TensOrtho, …)`.
+#
+# `E` is `vecbasis(frame, :cov)`, whose column `m` is the frame vector `eₘ`;
+# `Pₘ[i,j] = E[i,m] * E[j,m]`.  The factor 2 in `2Cₘₘ(Pₘ⊠ˢPₙ + Pₙ⊠ˢPₘ)` is the
+# standard Voigt-to-tensor conversion for the shear moduli.
+@inline function _ortho_entry(
+        E, C11, C22, C33, C12, C13, C23, C44, C55, C66,
+        i::Integer, j::Integer, k::Integer, l::Integer
+    )
+    @inbounds begin
+        P(m, a, b) = E[a, m] * E[b, m]
+        return (
             C11 * P(1, i, j) * P(1, k, l)
                 + C22 * P(2, i, j) * P(2, k, l)
                 + C33 * P(3, i, j) * P(3, k, l)
@@ -1017,13 +1029,42 @@ function get_array(t::TensOrtho{T}) where {T}
                     E[j, 2] * E[k, 1] * E[i, 1] * E[l, 2] + E[j, 2] * E[l, 1] * E[i, 1] * E[k, 2]
             ) / 2
         )
-        result[i, j, k, l] = val
+    end
+end
+
+function get_array(t::TensOrtho{T}) where {T}
+    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(t)
+    E = vecbasis(t.frame, :cov)
+    result = Array{T, 4}(undef, 3, 3, 3, 3)
+    @inbounds for i in 1:3, j in 1:3, k in 1:3, l in 1:3
+        result[i, j, k, l] =
+            _ortho_entry(E, C11, C22, C33, C12, C13, C23, C44, C55, C66, i, j, k, l)
     end
     return result
 end
 
-Base.getindex(t::TensOrtho, i::Integer, j::Integer, k::Integer, l::Integer) =
-    get_array(t)[i, j, k, l]
+"""
+    getindex(t::TensOrtho, i, j, k, l)
+
+Single component in closed form.
+
+This used to be `get_array(t)[i,j,k,l]`, i.e. an `Array{T,4}` allocation plus
+an 81-iteration loop **per scalar access**.  Since `TensOrtho <: AbstractArray`,
+every generic algorithm (`Array(t)`, `norm`, broadcasting, `show`, `tomandel`,
+…) walks the tensor element by element, so an O(81) traversal cost O(81²) and
+81 allocations.  `TensOrtho` was the last structured type still on that dense
+path — `TensISO` and `TensTI` had already been given closed forms.
+"""
+Base.@propagate_inbounds function Base.getindex(
+        t::TensOrtho, i::Integer, j::Integer, k::Integer, l::Integer
+    )
+    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(t)
+    return _ortho_entry(
+        vecbasis(t.frame, :cov), C11, C22, C33, C12, C13, C23, C44, C55, C66, i, j, k, l
+    )
+end
+
+Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 
 # ── KM in the material frame ──────────────────────────────────────────────────
 

@@ -266,9 +266,28 @@ end
 # SymmetricTensor).  Falls through to the input unchanged for types that are
 # already Tensors.AllTensors or for orders not in {1,2,4}.
 tensor_or_array(tab::AbstractArray{T, 1}) where {T} = Vec{size(tab, 1)}(tab)
+# `dim` comes from `size(tab, 1)`, i.e. it is a RUNTIME value.  Writing
+# `Tensor{order, dim}(tab)` with such a `dim` builds a non-concrete type at
+# compile time, so the construction is fully dynamic: measured at 3147 ns and
+# 3120 bytes for an 81-element array — versus 311 ns to produce that array in
+# the first place.  Since every structured tensor reaches the generic route
+# through this function (`change_tens` → `same_basis` → every binary
+# operation), that cost was paid twice per `⊡` between structured operands.
+#
+# Funnel the runtime `dim` through `Val` so each branch constructs a concrete
+# type.  Only 2 and 3 are specialized — the dimensions this package actually
+# uses; anything else falls back to the previous dynamic path.
+@inline function _to_tensor(tab, ::Val{dim}, ::Val{order}) where {dim, order}
+    newtab = Tensor{order, dim}(tab)
+    return Tensors.issymmetric(newtab) ?
+        convert(SymmetricTensor{order, dim}, newtab) : newtab
+end
+
 for order in (2, 4)
     @eval function tensor_or_array(tab::AbstractArray{T, $order}) where {T}
         dim = size(tab, 1)
+        dim == 3 && return _to_tensor(tab, Val(3), Val($order))
+        dim == 2 && return _to_tensor(tab, Val(2), Val($order))
         newtab = Tensor{$order, dim}(tab)
         if Tensors.issymmetric(newtab)
             newtab = convert(SymmetricTensor{$order, dim}, newtab)

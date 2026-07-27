@@ -1,5 +1,57 @@
 # Changelog
 
+## v0.2.6 — TensOrtho closed-form getindex, generic-conversion fix, TensTI mixed-eltype constructor
+
+### Performance
+
+- **`getindex(::TensOrtho, i,j,k,l)` was `get_array(t)[i,j,k,l]`** — an
+  `Array{T,4}` allocation plus an 81-iteration loop (~40 multiplications each)
+  **per scalar access**. Since `TensOrtho <: AbstractArray`, every generic
+  algorithm (`Array(t)`, `norm`, broadcasting, `show`, `tomandel`, …) walks the
+  tensor element by element, so an O(81) traversal cost O(81²) and 81
+  allocations. `TensOrtho` was the last structured type still on the dense
+  path; `TensISO` and `TensTI` already had closed forms.
+
+  The per-entry expression is now factored into `_ortho_entry`, shared by
+  `get_array` (loop) and `getindex` (single entry), so there is one source of
+  truth for the formula. Measured, values bitwise identical:
+
+  | | before | after |
+  |---|---|---|
+  | `getindex` | 2792 ns / 2304 B | **5 ns / 96 B** |
+  | `Array(t)` (81 accesses) | 48 810 ns / 60 448 B | **2240 ns / 832 B** |
+  | `get_array` | 575 ns | **311 ns** |
+
+- **`tensor_or_array` built a non-concrete type.** `dim = size(tab, 1)` is a
+  *runtime* value, so `Tensor{order, dim}(tab)` was constructed dynamically:
+  3147 ns and 3120 bytes for an 81-element array, against 311 ns to produce
+  that array in the first place. Every structured tensor reaches the generic
+  route through this function (`change_tens` → `same_basis` → every binary
+  operation), so the cost was paid twice per `⊡` between structured operands.
+  The runtime `dim` is now funnelled through `Val` so each branch constructs a
+  concrete type (2 and 3 specialized; anything else keeps the old path).
+
+  `tensor_or_array` 3147 → **393 ns**; `TensOrtho ⊡ TensOrtho`
+  10 240 → **4541 ns** (−56 %), 8976 → 4816 B.
+
+### Fixed
+
+- **`TensTI` could not be built with `Dual` coefficients and a real axis.** The
+  inner constructor `TensTI{order,T,N}(::NTuple{N,T}, ::NTuple{3,T})` demanded a
+  single element type for both the Walpole coefficients and the symmetry axis.
+  But the axis is *geometry* — routinely a literal `(0.0, 0.0, 1.0)` — while the
+  coefficients get promoted, most importantly to `ForwardDiff.Dual` whenever a
+  homogenization scheme is differentiated with respect to a modulus. Every such
+  call failed with
+
+  ```
+  MethodError: no method matching TensTI{4, Dual{…}, 5}(::NTuple{5, Dual{…}}, ::Tuple{Float64, Float64, Float64})
+  ```
+
+  which made `ForwardDiff` unusable through any scheme carrying a `TensTI` phase
+  property. Fixed by an outer constructor that converts both tuples to `T`.
+
+
 ## v0.2.4 — TensOrtho: concrete frame field, closed-form inverse
 
 ### Fixed
