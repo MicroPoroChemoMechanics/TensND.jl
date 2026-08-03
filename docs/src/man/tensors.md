@@ -353,7 +353,7 @@ t = TensOrtho(10., 8., 9., 3., 2., 4., 2.5, 3., 1.5, ℬ) ;
 ## Projection onto symmetry subspaces
 
 Given an arbitrary tensor (2nd or 4th order), one can project it onto the closest tensor
-with a prescribed symmetry class (ISO, TI, ORTHO).  The projection minimises the Frobenius
+with a prescribed symmetry class (ISO, TI, ORTHO).  The projection minimizes the Frobenius
 distance ``\lVert B - A \rVert`` over all tensors ``B`` of the target symmetry.
 
 The function `proj_tens` provides this projection.  It returns a 3-tuple `(B, d, drel)`:
@@ -422,7 +422,7 @@ sym
 
 ### Rotation-optimized projection (requires NLopt)
 
-When no axis or frame is provided, `proj_tens` optimises the rotation angles to find the
+When no axis or frame is provided, `proj_tens` optimizes the rotation angles to find the
 best approximation.  This requires the `NLopt` package (declared as a weak dependency):
 
 ```julia
@@ -435,7 +435,7 @@ B_opt, d_opt, drel_opt = proj_tens(:TI, get_array(C))
 B_ort, d_ort, drel_ort = proj_tens(:ORTHO, get_array(C))
 ```
 
-The optimiser is a deterministic multi-start: the eigenstructure candidate plus a fixed
+The optimizer is a deterministic multi-start: the eigenstructure candidate plus a fixed
 angular grid, each refined with `LD_TNEWTON` and the best kept, with gradients computed
 via ForwardDiff. Repeated calls return bit-identical angles, and the result is never
 worse than the fixed-frame projection along a grid point.

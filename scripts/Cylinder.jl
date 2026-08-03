@@ -1,10 +1,10 @@
 # ============================================================================
-#  Cylindrical coordinate system — symbolic symmetrised gradient
+#  Cylindrical coordinate system — symbolic symmetrized gradient
 #
 #  Builds an axisymmetric (independent of θ) displacement field
 #    𝛏(r, z) = ξʳ(r, z) 𝐞ʳ + ξᶻ(r, z) 𝐞ᶻ
 #  and computes its symmetric gradient (strain tensor) in the
-#  normalised cylindrical basis.
+#  normalized cylindrical basis.
 # ============================================================================
 
 import Pkg

@@ -92,19 +92,19 @@ for order in (2, 4)
         symmetry class in `proj` (from most to least symmetric) and accepting the
         first whose relative projection error is below `ε`.
 
-        - `optimize_angles=false` (**default**, cheap path, no optimisation): the
+        - `optimize_angles=false` (**default**, cheap path, no optimization): the
           `:ISO` projection is closed-form; for `:TI` the symmetry axis is taken
           from `t` itself (if it is a structured TI container) or derived from the
           Kelvin-Mandel eigenstructure (otherwise); for `:ORTHO` the material frame
-          is taken from `t` or derived likewise.  No external optimiser needed.
+          is taken from `t` or derived likewise.  No external optimizer needed.
         - `optimize_angles=true`: the `:TI` axis and `:ORTHO` frame are found by
-          nonlinear optimisation (multistart L-BFGS) — requires `using NLopt`.
+          nonlinear optimization (multistart L-BFGS) — requires `using NLopt`.
 
         Returns `(projected, d, drel, sym)` where `sym ∈ {:ISO, :TI, :ORTHO, :ANISO}`.
 
-        **Behaviour change (vs. pre-2026 versions):** the default no-argument call
+        **Behavior change (vs. pre-2026 versions):** the default no-argument call
         no longer throws when NLopt is absent; set `optimize_angles=true` to restore
-        the previous angle-optimised behaviour.
+        the previous angle-optimized behavior.
 
         # Examples
         ```julia
@@ -156,7 +156,7 @@ for order in (2, 4)
             best_sym_tens(t, n_or_frame; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
 
         Find the best symmetry of tensor `t` with a **fixed** symmetry axis `n`
-        (for TI) or material frame `frame` (for ORTHO).  No rotation optimisation
+        (for TI) or material frame `frame` (for ORTHO).  No rotation optimization
         is performed.
 
         - `n_or_frame`: a vector (axis for TI) or `OrthonormalBasis{3}` (frame for

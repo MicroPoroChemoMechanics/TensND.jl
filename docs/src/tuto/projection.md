@@ -190,7 +190,7 @@ _, _, drel_ort, sym_ort = best_sym_tens(t_ort, frame; proj = (:TI, :ORTHO))
 println("ORTHO tensor → detected symmetry: ", sym_ort, " (drel = ", round(drel_ort, sigdigits=4), ")")
 ```
 
-## Part 5 — Cheap vs. angle-optimised detection
+## Part 5 — Cheap vs. angle-optimized detection
 
 `best_sym_tens(t)` (no extra argument) detects the tightest symmetry that fits
 the tensor.  Two routes are available via the `optimize_angles` keyword:
@@ -200,8 +200,8 @@ the tensor.  Two routes are available via the `optimize_angles` keyword:
   frame are either taken from the structured container when `t` is already a
   `TensTI{4}`, `TensTI` or `TensOrtho`, or derived from the Kelvin-Mandel
   eigendecomposition of the trace tensor ``d_{ij} = C_{ikjk}``.  **No
-  optimisation runs; NLopt is not required.**
-- **Angle-optimised route** (`optimize_angles = true`): a two-pass global +
+  optimization runs; NLopt is not required.**
+- **Angle-optimized route** (`optimize_angles = true`): a two-pass global +
   local search over the Euler angles finds the best axis / frame.  **Requires
   `using NLopt`** — otherwise an explicit error is raised.
 
@@ -233,15 +233,15 @@ The single-argument forms `is_TI(A)` and `is_ORTHO(A)` use the same KM
 eigendecomposition to propose a candidate axis / frame cheaply; passing
 `optimize_angles = true` switches to the NLopt-backed search.
 
-!!! note "Behaviour change (2026)"
+!!! note "Behavior change (2026)"
     Before this refactor, `best_sym_tens(t)` always required `NLopt` and
     threw when the package was absent.  The default is now the cheap route;
-    pass `optimize_angles = true` to restore the previous behaviour.
+    pass `optimize_angles = true` to restore the previous behavior.
 
 ## Part 6 — Rotation-optimized projection (NLopt extension)
 
 When `optimize_angles = true`, `proj_tens` without axis/frame and
-`best_sym_tens` run a global optimisation over the rotation angles.
+`best_sym_tens` run a global optimization over the rotation angles.
 This requires loading the `NLopt` package:
 
 ```julia
@@ -297,14 +297,14 @@ Gradients are computed automatically via `ForwardDiff.jl`.
 | `proj_tens(:ORTHO, A)` | ORTHO projection, frame optimized (requires NLopt) |
 | `best_sym_tens(t, n_or_frame)` | Best symmetry with fixed axis/frame |
 | `best_sym_tens(t)` | Best symmetry, cheap (KM eigendecomposition) |
-| `best_sym_tens(t; optimize_angles = true)` | Best symmetry, angle-optimised (requires NLopt) |
+| `best_sym_tens(t; optimize_angles = true)` | Best symmetry, angle-optimized (requires NLopt) |
 | `is_ISO(A; ε)`, `is_TI(A, n; ε)`, `is_ORTHO(A, frame; ε)` | Value-level boolean predicates |
 
 All projection functions return `(B, d, drel)` (or `(B, d, drel, sym)` for `best_sym_tens`).
 
 ## Part 7 — Cross-type dispatch (structured arithmetic)
 
-TensND recognises several inclusion relationships between the structured
+TensND recognizes several inclusion relationships between the structured
 tensor types and preserves the highest available symmetry in binary
 operations:
 

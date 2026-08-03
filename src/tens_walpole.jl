@@ -36,7 +36,7 @@
     TensTI{order, T, N} <: AbstractTens{order, 3, T}
 
 Transversely isotropic tensor of order `order` (always `dim=3`) with symmetry
-axis `n`, parametrised like `TensISO{order, dim, T, N}`.
+axis `n`, parametrized like `TensISO{order, dim, T, N}`.
 
 Three concrete shapes are supported:
 
@@ -427,7 +427,7 @@ end
     arg_TI(t::TensTI{4}) → (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
 
 Extract the 5 independent TI components from a Walpole tensor,
-directly from the stored coefficients (no array materialisation).
+directly from the stored coefficients (no array materialization).
 
 Inverse of [`tens_TI`](@ref):
 - `C₃₃₃₃ = ℓ₁`

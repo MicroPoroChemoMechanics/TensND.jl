@@ -153,7 +153,7 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
     end
 end
 
-# These four were restricted to `CoorSystemSym` while every neighbouring
+# These four were restricted to `CoorSystemSym` while every neighboring
 # accessor below dispatches on `AbstractCoorSystem`.  `SubManifoldSym` is also
 # an `AbstractCoorSystem` and carries the very same fields, so the restriction
 # made `∂`/`GRAD`/`DIV`/`LAPLACE`/`HESS` on a submanifold fail with a

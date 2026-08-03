@@ -1,0 +1,26 @@
+{
+  "_comment": "Exceptions to the productive -ize/-ise regex rule engine in spelling_tool.py. 'always_ise_base' are base infinitives that end in -ise in BOTH US and UK English (there is no -ize form) -- expanded at load time into inflected forms via the silent-e rule (advise -> advise/advised/advises/advising). 'invariant_words' are literal forms (already inflected, or non-verbs) that must never be treated as a US/UK variant even though they end in -ize/-ise. Words ending in '-wise' (otherwise, likewise, elementwise, componentwise, pairwise, columnwise, rowwise...) are excluded generically by spelling_tool.py itself (any match whose stem ends in 'w' is skipped), not listed here.",
+  "always_ise_base": [
+    "advise", "advertise", "apprise", "chastise", "circumcise", "comprise",
+    "compromise", "demise", "despise", "devise", "disguise", "enterprise",
+    "excise", "exercise", "exorcise", "expertise", "franchise", "improvise",
+    "incise", "merchandise", "premise", "praise", "promise", "reprise",
+    "revise", "supervise", "surprise", "televise", "precise"
+  ],
+  "invariant_words": [
+    "size", "sizes", "sized", "sizing", "sizable",
+    "downsize", "downsizes", "downsized", "downsizing",
+    "oversize", "oversized", "undersize", "undersized",
+    "resize", "resizes", "resized", "resizing",
+    "capsize", "capsizes", "capsized", "capsizing",
+    "prize", "prizes", "prized", "prizing",
+    "seize", "seizes", "seized", "seizing", "seizure", "seizures",
+    "concise", "imprecise", "imprecisely", "imprecision", "precision", "precisely",
+    "cruise", "cruises", "cruised", "cruising",
+    "bruise", "bruises", "bruised", "bruising",
+    "noise", "noises", "noisy",
+    "poise", "poised", "poising",
+    "analyses", "paralyses", "catalyses", "dialyses", "hydrolyses", "electrolyses"
+  ],
+  "_analyses_note": "analyses/paralyses/catalyses/dialyses/hydrolyses/electrolyses are the Greek -sis/-ses noun plurals (analysis->analyses, identical spelling in US and UK), which collide with the UK 3rd-person-singular verb form of analyse/paralyse/catalyse/dialyse/hydrolyse/electrolyse ('it analyses the data'). The noun-plural sense dominates in scientific prose, so these are treated as invariant (never flagged/converted) rather than risking corrupting a correct plural noun."
+}

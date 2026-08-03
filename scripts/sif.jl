@@ -1,7 +1,7 @@
 # ============================================================================
 #  Stress intensity factors — isotropic Green's function machinery
 #
-#  Constructs the Hill polarisation tensor Λ = ℂ:ℾ:ℂ in the spherical
+#  Constructs the Hill polarization tensor Λ = ℂ:ℾ:ℂ in the spherical
 #  frame for an isotropic matrix, where ℾ is the Green tensor built from
 #  𝐊 = 𝛏⋅ℂ⋅𝛏 (acoustic tensor).  Used to derive stress-intensity-factor
 #  integrals on crack fronts.

@@ -303,16 +303,16 @@ end
 #   dᵢⱼ = Cᵢₖⱼₖ = ∑ₖ C[i,k,j,k]
 # captures the principal-direction structure (Cowin-Mehrabadi 1990).  Its
 # eigenvectors are candidate principal axes for TI / ORTHO detection without
-# running any optimisation.
+# running any optimization.
 
 """
     _trace_tensor(C::AbstractArray{T,4}) → SMatrix{3,3,T,9}
 
 Return the 2nd-order "trace" tensor `dᵢⱼ = ∑ₖ C[i,k,j,k]` — its eigenstructure
-exposes the principal directions of `C` cheaply (no optimisation required).
+exposes the principal directions of `C` cheaply (no optimization required).
 
 Used to propose candidate TI axes and candidate orthotropic frames when the
-user asks for symmetry detection without angle optimisation.
+user asks for symmetry detection without angle optimization.
 """
 function _trace_tensor(C::AbstractArray{T, 4}) where {T}
     d = MMatrix{3, 3, T}(undef)
@@ -323,7 +323,7 @@ function _trace_tensor(C::AbstractArray{T, 4}) where {T}
         end
         d[i, j] = s
     end
-    return SMatrix{3, 3, T}((d + d') / 2)  # symmetrise to guard numerical noise
+    return SMatrix{3, 3, T}((d + d') / 2)  # symmetrize to guard numerical noise
 end
 
 """
@@ -434,7 +434,7 @@ _candidate_ORTHO_frame(::AbstractArray{T, 2}) where {T} = CanonicalBasis{3, T}()
 Project a 4th-order tensor `A` (3×3×3×3) onto the transversely isotropic subspace
 with fixed symmetry axis `n`. Returns a major-symmetric `TensTI{4, T, 5}`.
 
-The projection minimises the Frobenius distance `‖B − A‖` over all TI tensors `B`
+The projection minimizes the Frobenius distance `‖B − A‖` over all TI tensors `B`
 with axis `n`.
 
 Returns a 3-tuple `(B, d, drel)`:
@@ -698,14 +698,14 @@ proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
 # components satisfy this symmetry to tolerance ε?" rather than "does this
 # container impose this symmetry?".  The default cheap path uses the
 # Kelvin-Mandel eigenstructure to propose a candidate axis/frame without any
-# optimisation (O(1)); the expensive path with `optimize_angles=true` routes
+# optimization (O(1)); the expensive path with `optimize_angles=true` routes
 # to the NLopt-backed `proj_tens(Val(:TI|:ORTHO), A)` fallbacks.
 
 """
     is_ISO(A::AbstractArray; ε=1e-6) → Bool
 
 Return `true` when the components of `A` satisfy material isotropy up to
-relative tolerance `ε` (closed-form projection: no optimisation).
+relative tolerance `ε` (closed-form projection: no optimization).
 
 The value-level predicate complements the type-level `is_ISO(::TensISO) = true`
 defined in `tens_isotropic.jl`: the type version asks whether the
@@ -807,7 +807,7 @@ end
 # Every `proj_tens`/`is_ISO`/`is_TI`/`is_ORTHO` method above operates on a raw
 # `AbstractArray` (the caller must `get_array(t)` first). These thin wrappers
 # let them be called directly on any `TensND.AbstractTens` (order 2 or 4) —
-# the analogue of echoes' `.paramsym(sym)` attached to the tensor itself.
+# the analog of echoes' `.paramsym(sym)` attached to the tensor itself.
 # They dispatch below the type-specific `is_ISO(::TensISO)`, `is_ISO(::TensTI)`,
 # `is_ISO(::TensOrtho)`, … predicates already defined in `tens_isotropic.jl` /
 # `tens_walpole.jl` (those remain the more specific, and cheaper, match for

@@ -3,7 +3,7 @@
 #
 #  Builds Kelvin/Mindlin-type Green's functions in plane strain (2D) and
 #  in 3D spherical coordinates, then verifies the identity
-#     ℾ  ≡  −HESS(𝐆)  with appropriate symmetrisation
+#     ℾ  ≡  −HESS(𝐆)  with appropriate symmetrization
 #  by matching against the classical closed-form tensor expressions.
 #
 #  Also derives the determinant of the deformation gradient  J = det(𝟏+F∇𝐆)
