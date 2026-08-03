@@ -1080,9 +1080,44 @@ LinearAlgebra.dot(v::TensOrthonormal{1, dim}) where {dim} = dot(get_array(v))
 
 LinearAlgebra.dot(t::TensOrthonormal{2, dim}) where {dim} = dot(get_array(t))
 
+"""
+    norm(t::AbstractTens)
+
+Euclidean (Frobenius) norm of a tensor: the square root of its **full**
+self-contraction, `√(uᵢuⁱ)` at order 1, `√(tᵢⱼtⁱʲ)` at order 2 and
+`√(tᵢⱼₖₗtⁱʲᵏˡ)` at order 4 — a scalar in every case, and independent of the
+basis in which the tensor is expressed.
+
+At order 2 this is the double contraction `⊡`, not the single contraction
+`⋅`: `t ⋅ t` is again a second-order tensor, so `√(dot(t, t))` would return a
+matrix rather than a number (and would then break `isapprox`, which needs a
+scalar distance).
+"""
 LinearAlgebra.norm(u::AbstractTens{1, dim}) where {dim} = √(dot(u, u))
 
-LinearAlgebra.norm(t::AbstractTens{2, dim}) where {dim} = √(dot(t, t))
+LinearAlgebra.norm(t::AbstractTens{2, dim}) where {dim} = √(dcontract(t, t))
+
+LinearAlgebra.norm(t::AbstractTens{4, dim}) where {dim} = √(qcontract(t, t))
+
+"""
+    isapprox(t1::AbstractTens, t2::AbstractTens; kwargs...)
+
+Approximate equality of two tensors, compared **component-wise in the
+canonical basis**. Two tensors expressed in different bases, or stored in
+different concrete types (a `TensISO`, a `TensTI` and a plain `Tens` may all
+denote the same tensor), therefore compare equal whenever they are the same
+tensor — which the generic `AbstractArray` fallback cannot guarantee, since
+it subtracts the stored components.
+
+`kwargs` are forwarded to the underlying `isapprox` (`atol`, `rtol`, `nans`).
+"""
+function Base.isapprox(
+        t1::AbstractTens{order, dim}, t2::AbstractTens{order, dim}; kwargs...
+    ) where {order, dim}
+    return isapprox(
+        Array(components_canon(t1)), Array(components_canon(t2)); kwargs...
+    )
+end
 
 """
     contract(t::AbstractTens{order,dim}, i::Integer, j::Integer)

@@ -51,13 +51,20 @@ end
 
 """
     _KM_rotation(θ, ϕ, ψ) → SMatrix{6,6}
+    _KM_rotation(R::AbstractMatrix) → SMatrix{6,6}
 
-6×6 Kelvin-Mandel (Bond) rotation matrix from Euler angles (θ, ϕ, ψ).
-Compatible with ForwardDiff.
+6×6 Kelvin-Mandel (Bond) rotation matrix, from ZYZ Euler angles `(θ, ϕ, ψ)`
+or directly from a 3×3 rotation matrix `R` whose **columns** are the new
+basis vectors.
 
-Transforms a 6×6 KM matrix as: `C' = Q' · C · Q` where `Q = _KM_rotation(...)`.
+Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = _KM_rotation(…)`;
+`Q` is orthogonal.
 
-Uses the standard Bond matrix construction from `R = _rot3_raw(θ, ϕ, ψ)`.
+Built entirely with `SMatrix` / `ntuple`, so it is compatible with
+`ForwardDiff.Dual` **and** with non-`isbits` element types such as
+`SymPy.Sym` or `Symbolics.Num`. (It used to fill an `MMatrix{6,6,T}(undef)`,
+which cannot even be constructed for a symbolic `T` — that made every
+`proj_tens` / `best_sym_tens` call fail on a symbolic tensor.)
 
 # Examples
 ```julia
@@ -67,43 +74,28 @@ julia> size(Q)
 (6, 6)
 ```
 """
-function _KM_rotation(θ, ϕ, ψ)
-    R = _rot3_raw(θ, ϕ, ψ)
-    T = eltype(R)
-    sq2 = sqrt(T(2))
-    Q = MMatrix{6, 6, T}(undef)
+_KM_rotation(θ, ϕ, ψ) = _KM_rotation(_rot3_raw(θ, ϕ, ψ))
 
-    # (I,J) both in 1:3 — diagonal block: Q[I,J] = R[I,J]²
-    for I in 1:3, J in 1:3
-        Q[I, J] = R[I, J]^2
-    end
-
-    # I ∈ 1:3, J ∈ 4:6 — normal-shear cross
-    for J in 4:6
-        k, l = _KM_COUPLES[J]
-        for I in 1:3
-            Q[I, J] = sq2 * R[I, k] * R[I, l]
-        end
-    end
-
-    # I ∈ 4:6, J ∈ 1:3 — shear-normal cross
-    for I in 4:6
-        i, j = _KM_COUPLES[I]
-        for J in 1:3
-            Q[I, J] = sq2 * R[i, J] * R[j, J]
-        end
-    end
-
-    # (I,J) both in 4:6 — shear-shear block
-    for I in 4:6
-        i, j = _KM_COUPLES[I]
-        for J in 4:6
+function _KM_rotation(R::AbstractMatrix{T}) where {T}
+    sq2 = sqrt(2 * one(T))
+    return SMatrix{6, 6, T}(
+        ntuple(Val(36)) do n
+            # column-major: element n is (row I, column J)
+            I = mod1(n, 6)
+            J = (n - 1) ÷ 6 + 1
+            i, j = _KM_COUPLES[I]
             k, l = _KM_COUPLES[J]
-            Q[I, J] = R[i, k] * R[j, l] + R[i, l] * R[j, k]
+            @inbounds if I ≤ 3 && J ≤ 3
+                R[i, k]^2                                   # normal-normal
+            elseif I ≤ 3
+                sq2 * R[i, k] * R[i, l]                     # normal-shear
+            elseif J ≤ 3
+                sq2 * R[i, k] * R[j, k]                     # shear-normal
+            else
+                R[i, k] * R[j, l] + R[i, l] * R[j, k]       # shear-shear
+            end
         end
-    end
-
-    return SMatrix{6, 6, T}(Q)
+    )
 end
 
 """
