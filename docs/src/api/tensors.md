@@ -15,7 +15,7 @@ get_basis
 get_var
 get_data
 get_array
-intrinsic
+print_tensor
 KM
 inv_KM
 diff_with_basis

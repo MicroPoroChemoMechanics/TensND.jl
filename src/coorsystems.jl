@@ -4,16 +4,22 @@ abstract type AbstractCoorSystem{dim, T <: Number} <: Any end
 # Build the canonical basis vectors (eᵢ), natural covariant (aᵢ) and
 # contravariant (aⁱ) vectors from the normalized basis and Lamé coefficients.
 function _build_basis_vectors(normalized_basis::AbstractBasis{dim, T}, χᵢ::NTuple{dim}) where {dim, T}
+    # Variances matter here, and only on a NON-orthogonal chart: components
+    # `(0,…,1,…,0)` with variance `:cont` expand on the basis vectors 𝐞ᵢ, with
+    # `:cov` on the *dual* vectors 𝐞ⁱ. The two coincide when the normalized
+    # basis is orthonormal — which every predefined system is — so a swap here
+    # is invisible until someone builds a skew chart, and then it silently
+    # returns the dual frame and every differential operator is wrong.
     eᵢ = ntuple(
-        i -> Tens(Vec{dim}(j -> j == i ? one(T) : zero(T)), normalized_basis, (:cov,)),
+        i -> Tens(Vec{dim}(j -> j == i ? one(T) : zero(T)), normalized_basis, (:cont,)),
         dim,
     )
     aᵢ = ntuple(
-        i -> Tens(Vec{dim}(j -> j == i ? χᵢ[i] : zero(T)), normalized_basis, (:cov,)),
+        i -> Tens(Vec{dim}(j -> j == i ? χᵢ[i] : zero(T)), normalized_basis, (:cont,)),
         dim,
     )
     aⁱ = ntuple(
-        i -> Tens(Vec{dim}(j -> j == i ? inv(χᵢ[i]) : zero(T)), normalized_basis, (:cont,)),
+        i -> Tens(Vec{dim}(j -> j == i ? inv(χᵢ[i]) : zero(T)), normalized_basis, (:cov,)),
         dim,
     )
     return eᵢ, aᵢ, aⁱ
@@ -313,10 +319,14 @@ end
 ∂(t::T, i::Integer, CS::CoorSystemSym{dim, T}) where {dim, T <: SymType} =
     tdiff(only_coords(CS, t), getcoords(CS, i))
 
+# `T` stays coupled to the tensor here, unlike the other operators: loosening it
+# to `AbstractTens{order,dim}` makes this method ambiguous with the variadic
+# plain-derivative fallback `∂(t::AbstractTens{order,dim,T}, xᵢ...)`, which can
+# absorb `(x, CS)` as its trailing arguments.
 function ∂(
         t::AbstractTens{order, dim, T},
         x::T,
-        CS::CoorSystemSym{dim, T},
+        CS::CoorSystemSym{dim},
     ) where {order, dim, T <: SymType}
     ind = findfirst(i -> i == x, getcoords(CS))
     return ind === nothing ? zero(t) : ∂(t, ind, CS)
@@ -362,7 +372,7 @@ julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; GRAD(𝐞ʳ)   # = (𝐞�
 
 See also [`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref).
 """
-GRAD(t::Union{T, AbstractTens{order, dim, T}}, CS::CoorSystemSym{dim, T}) where {order, dim, T <: SymType} =
+GRAD(t::Union{T, AbstractTens{order, dim}}, CS::CoorSystemSym{dim}) where {order, dim, T <: SymType} =
     sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:dim])
 
 
@@ -394,8 +404,8 @@ julia> SYMGRAD(𝛏)       # axisymmetric strain tensor, with εᶿᶿ = ξʳ/r
 See also [`GRAD`](@ref), [`DIV`](@ref).
 """
 SYMGRAD(
-    t::Union{T, AbstractTens{order, dim, T}},
-    CS::CoorSystemSym{dim, T},
+    t::Union{T, AbstractTens{order, dim}},
+    CS::CoorSystemSym{dim},
 ) where {order, dim, T <: SymType} = sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:dim])
 
 
@@ -431,7 +441,7 @@ julia> simplify(DIV(𝛔)) # radial equilibrium operator
 
 See also [`GRAD`](@ref), [`LAPLACE`](@ref).
 """
-DIV(t::AbstractTens{order, dim, T}, CS::CoorSystemSym{dim, T}) where {order, dim, T <: SymType} =
+DIV(t::AbstractTens{order, dim, T}, CS::CoorSystemSym{dim}) where {order, dim, T <: SymType} =
     sum([∂(t, i, CS) ⋅ natvec(CS, i, :cont) for i in 1:dim])
 
 
@@ -459,8 +469,8 @@ julia> n = symbols("n", integer = true) ; simplify(LAPLACE(r^n * cos(n*θ)))   #
 See also [`GRAD`](@ref), [`DIV`](@ref), [`HESS`](@ref).
 """
 LAPLACE(
-    t::Union{T, AbstractTens{order, dim, T}},
-    CS::CoorSystemSym{dim, T},
+    t::Union{T, AbstractTens{order, dim}},
+    CS::CoorSystemSym{dim},
 ) where {order, dim, T <: SymType} = DIV(GRAD(t, CS), CS)
 
 """
@@ -487,7 +497,7 @@ julia> simplify(HESS(1/r))    # the kernel of the 3-D Laplace equation
 
 See also [`GRAD`](@ref), [`LAPLACE`](@ref).
 """
-HESS(t::Union{T, AbstractTens{order, dim, T}}, CS::CoorSystemSym{dim, T}) where {order, dim, T <: SymType} =
+HESS(t::Union{T, AbstractTens{order, dim}}, CS::CoorSystemSym{dim}) where {order, dim, T <: SymType} =
     GRAD(GRAD(t, CS), CS)
 
 """
@@ -758,54 +768,147 @@ julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞
 
 julia> @set_coorsys Spherical
 
-julia> intrinsic(GRAD(𝐞ʳ),vec)
+julia> print_tensor(GRAD(𝐞ʳ),vec)
 (1/r)𝐞ᶿ⊗𝐞ᶿ + (1/r)𝐞ᵠ⊗𝐞ᵠ
 
-julia> intrinsic(DIV(𝐞ʳ ⊗ 𝐞ʳ),vec)
+julia> print_tensor(DIV(𝐞ʳ ⊗ 𝐞ʳ),vec)
 (2/r)𝐞ʳ
 
 julia> LAPLACE(1/r)
 0
 ``` 
 """
+# ── The default coordinate system ────────────────────────────────────────────
+#
+# `@set_coorsys` used to `@eval` single-argument methods for `∂`, `GRAD`, `DIV`,
+# … straight into this module. That is global mutation of the method table from
+# a macro, and it caused two concrete failures:
+#
+#   * `∂(t, x)` already means "plain derivative with respect to the symbol `x`"
+#     (see the `∂` docstring). The generated method was *more specific* than
+#     that fallback, so after any `@set_coorsys` the same call silently became a
+#     covariant derivative in the default chart — which then failed to find `x`
+#     among its own coordinates and returned `zero(t)`. Every constructor that
+#     differentiates a position vector was broken by it.
+#   * it invalidates compiled code and is invisible at the call site.
+#
+# The default is now a plain `Ref`, and the single-argument methods are defined
+# once, below. `∂` deliberately gets **no** default-chart method: it keeps its
+# one unambiguous meaning.
+
+const _DEFAULT_COORSYS = Ref{Any}(nothing)
+const _DEFAULT_COORSYS_VEC = Ref{Char}('𝐞')
+const _DEFAULT_COORSYS_COORDS = Ref{Any}(nothing)
+
+"""
+    set_coorsys!(CS; vec = '𝐞', coords = nothing) → CS
+
+Make `CS` the default coordinate system, so that [`GRAD`](@ref),
+[`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref) and
+[`print_tensor`](@ref) may be called with a single argument.
+
+`vec` and `coords` control how [`print_tensor`](@ref) names the basis vectors.
+The macro [`@set_coorsys`](@ref) is a thin wrapper over this function.
+
+!!! note "`∂` is deliberately not affected"
+    `∂(t, x)` always means the plain derivative of `t` with respect to the
+    symbol `x`, whether or not a default chart is set. For the covariant
+    derivative, pass the system explicitly: `∂(t, x, CS)`.
+
+See also [`default_coorsys`](@ref), [`unset_coorsys!`](@ref).
+"""
+function set_coorsys!(CS::AbstractCoorSystem; vec::Char = '𝐞', coords = nothing)
+    _DEFAULT_COORSYS[] = CS
+    _DEFAULT_COORSYS_VEC[] = vec
+    _DEFAULT_COORSYS_COORDS[] = coords
+    return CS
+end
+
+"""
+    default_coorsys() → AbstractCoorSystem
+
+The coordinate system installed by [`set_coorsys!`](@ref) or
+[`@set_coorsys`](@ref). Throws if none has been set.
+"""
+function default_coorsys()
+    CS = _DEFAULT_COORSYS[]
+    CS === nothing && error(
+        "no default coordinate system is set: call `set_coorsys!(CS)` " *
+            "(or `@set_coorsys CS`), or pass the system explicitly as the last argument."
+    )
+    return CS
+end
+
+"""
+    unset_coorsys!()
+
+Forget the default coordinate system installed by [`set_coorsys!`](@ref).
+"""
+function unset_coorsys!()
+    _DEFAULT_COORSYS[] = nothing
+    _DEFAULT_COORSYS_COORDS[] = nothing
+    return nothing
+end
+
+# Single-argument forms, defined once and for all.
+GRAD(t::Union{T, AbstractTens}) where {T <: SymType} = GRAD(t, default_coorsys())
+SYMGRAD(t::Union{T, AbstractTens}) where {T <: SymType} = SYMGRAD(t, default_coorsys())
+DIV(t::AbstractTens) = DIV(t, default_coorsys())
+LAPLACE(t::Union{T, AbstractTens}) where {T <: SymType} = LAPLACE(t, default_coorsys())
+HESS(t::Union{T, AbstractTens}) where {T <: SymType} = HESS(t, default_coorsys())
+
+"""
+    @set_coorsys CS [vec] [coords]
+
+Make `CS` the default coordinate system for the differential operators, so they
+can be called with one argument.
+
+Equivalent to [`set_coorsys!`](@ref)`(CS; vec, coords)`; kept as a macro for
+familiarity. Unlike earlier versions it **does not define any method** — it only
+stores the system — and it leaves the meaning of `∂(t, x)` untouched.
+
+# Examples
+```julia
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
+
+julia> @set_coorsys Spherical
+
+julia> LAPLACE(1 / r)      # one argument
+0
+```
+
+See also [`set_coorsys!`](@ref), [`default_coorsys`](@ref),
+[`unset_coorsys!`](@ref).
+"""
 macro set_coorsys(CS = coorsys_cartesian(), vec = '𝐞', coords = nothing)
     m = @__MODULE__
     return quote
-        $m.∂(t::AbstractTens{order, dim, T}, i::Integer) where {order, dim, T <: SymType} = $m.∂(t, i, $(esc(CS)))
-        $m.∂(t::AbstractTens{order, dim, T}, x::Sym) where {order, dim, T <: SymType} = $m.∂(t, x, $(esc(CS)))
-        $m.∂(t::SymType, i::Integer) = $m.∂(t, i, $(esc(CS)))
-        $m.∂(t::SymType, x::Sym) = $m.∂(t, x, $(esc(CS)))
-        $m.GRAD(t::Union{T, AbstractTens}) where {T <: SymType} = $m.GRAD(t, $(esc(CS)))
-        $m.SYMGRAD(t::Union{T, AbstractTens}) where {T <: SymType} = $m.SYMGRAD(t, $(esc(CS)))
-        $m.DIV(t::AbstractTens) = $m.DIV(t, $(esc(CS)))
-        $m.LAPLACE(t::Union{T, AbstractTens}) where {T <: SymType} = $m.LAPLACE(t, $(esc(CS)))
-        $m.HESS(t::Union{T, AbstractTens}) where {T <: SymType} = $m.HESS(t, $(esc(CS)))
-
-        if $(esc(coords)) === nothing
-            coords = string.(getcoords($(esc(CS))))
-        end
-        dim = get_dim($(esc(CS)))
-        if length(coords) == dim - 1
-            coords = (coords..., dim)
-        end
-        ℬ = normalized_basis($(esc(CS)))
-        $m.intrinsic(t::AbstractTens{order, dim, T}) where {order, dim, T <: SymType} = intrinsic(change_tens(t, ℬ); vec = $(esc(vec)), coords = coords)
-
-        # Base.show(t::AbstractTens{order,dim,T}) where {order,dim,T<:SymType} = intrinsic(change_tens(t, ℬ); vec = $(esc(vec)), coords = coords)
-        # Base.print(t::AbstractTens{order,dim,T}) where {order,dim,T<:SymType} = intrinsic(change_tens(t, ℬ); vec = $(esc(vec)), coords = coords)
-        # Base.display(t::AbstractTens{order,dim,T}) where {order,dim,T<:SymType} = intrinsic(change_tens(t, ℬ); vec = $(esc(vec)), coords = coords)
-
+        $m.set_coorsys!($(esc(CS)); vec = $(esc(vec)), coords = $(esc(coords)))
     end
 end
 
-function intrinsic(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '𝐞') where {order, dim, T}
+# One-argument `print_tensor` uses the default chart when one is set, so that a
+# result prints with the chart's own coordinate names (`𝐞ʳ`, `𝐞ᶿ`, …) rather
+# than with numbered basis vectors. Without a default it falls through to the
+# generic method in `tens.jl`.
+function print_tensor(t::AbstractTens{order, dim, T}) where {order, dim, T <: SymType}
+    CS = _DEFAULT_COORSYS[]
+    (CS === nothing || get_dim(CS) != dim) &&
+        return print_tensor(t; vec = _DEFAULT_COORSYS_VEC[], coords = ntuple(i -> i, dim))
+    coords = _DEFAULT_COORSYS_COORDS[]
+    coords === nothing && (coords = string.(getcoords(CS)))
+    length(coords) == dim - 1 && (coords = (coords..., dim))
+    return print_tensor(change_tens(t, normalized_basis(CS)); vec = _DEFAULT_COORSYS_VEC[], coords = coords)
+end
+
+function print_tensor(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '𝐞') where {order, dim, T}
     coords = string.(getcoords(CS))
     ℬ = normalized_basis(CS)
-    return intrinsic(change_tens(t, ℬ); vec = vec, coords = coords)
+    return print_tensor(change_tens(t, ℬ); vec = vec, coords = coords)
 end
 
 export ∂, CoorSystemSym, Lame, Christoffel
 export GRAD, SYMGRAD, DIV, LAPLACE, HESS
 export normalized_basis, natural_basis, natvec, unitvec, getcoords, getOM
 export coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal
-export @set_coorsys
+export @set_coorsys, set_coorsys!, default_coorsys, unset_coorsys!

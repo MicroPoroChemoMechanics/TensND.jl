@@ -7,6 +7,9 @@ Symbolic differential calculus on a curvilinear chart. Theory:
 ```@docs
 CoorSystemSym
 @set_coorsys
+set_coorsys!
+default_coorsys
+unset_coorsys!
 GRAD
 SYMGRAD
 DIV

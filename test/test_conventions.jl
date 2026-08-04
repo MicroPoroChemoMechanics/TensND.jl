@@ -274,12 +274,80 @@
         end
     end
 
+    @testset "non-orthogonal charts" begin
+        # Every predefined system is orthogonal, and on an orthogonal chart the
+        # covariant and contravariant natural vectors coincide — so a swap
+        # between the two is invisible there. It was not invisible here: with
+        # the variances exchanged, `natvec(CS, i, :cov)` returned the *dual*
+        # vector instead of ∂OM/∂qⁱ and the Laplacian of a harmonic function
+        # came out nonzero on any skew chart.
+        u, v = symbols("u v", real = true)
+        CS = CoorSystemSym(Tens([u + v^2, v]), (u, v))          # x = u+v², y = v
+
+        @test !isorthonormal(normalized_basis(CS))               # genuinely skew
+
+        # aᵢ = ∂OM/∂qⁱ
+        @test all(iszero, tsimplify(components_canon(natvec(CS, 1, :cov)) - [Sym(1), Sym(0)]))
+        @test all(iszero, tsimplify(components_canon(natvec(CS, 2, :cov)) - [2v, Sym(1)]))
+        # duality aᵢ ⋅ aʲ = δ
+        for i in 1:2, j in 1:2
+            @test iszero(tsimplify(natvec(CS, i, :cov) ⋅ natvec(CS, j, :cont) - (i == j)))
+        end
+        # the induced metric
+        @test all(iszero, tsimplify(metric(natural_basis(CS), :cov) - [1 2v; 2v 1 + 4v^2]))
+
+        # x² − y² and x·y are harmonic; expressed in (u, v) they must stay so.
+        @test iszero(simplify(LAPLACE((u + v^2)^2 - v^2, CS)))
+        @test iszero(simplify(LAPLACE((u + v^2) * v, CS)))
+    end
+
     @testset "Lamé coefficients of the predefined systems" begin
         @test all(isone, Lame(coorsys_cartesian()))
         r, θ = getcoords(coorsys_polar())
         @test collect(Lame(coorsys_polar())) == [1, r]
         θs, ϕs, rs = getcoords(coorsys_spherical())
         @test collect(Lame(coorsys_spherical())) == [rs, rs * sin(θs), 1]
+    end
+
+    @testset "classical operator identities" begin
+        # The compact assertion form of the `operator_identities` tutorial. Each
+        # identity holds trivially in Cartesian coordinates, tests the
+        # Christoffel symbols on a curvilinear chart, and tests the
+        # covariant/contravariant bookkeeping on the skew one — which is the
+        # only chart where the natural basis and its dual differ.
+        uu, vv = symbols("u v", real = true)
+        for CS in (
+                coorsys_cartesian(),
+                coorsys_polar(),
+                coorsys_spherical(),
+                CoorSystemSym(Tens([uu + vv^2, vv]), (uu, vv)),   # non-orthogonal
+            )
+            d = get_dim(CS)
+            q = getcoords(CS)
+            f = SymFunction("f", real = true)(q...)
+            g = SymFunction("g", real = true)(q...)
+            𝐯 = sum(SymFunction("v$i", real = true)(q...) * unitvec(CS, i) for i in 1:d)
+            𝟏 = tens_Id2(Val(d), Val(Sym))
+
+            zero_res(x) = iszero(tsimplify(maximum(abs, tsimplify.(get_array(x)))))
+            zero_sc(x) = iszero(tsimplify(x))
+
+            @test zero_sc(LAPLACE(f, CS) - DIV(GRAD(f, CS), CS))
+            @test zero_sc(LAPLACE(f, CS) - tr(HESS(f, CS)))
+            @test zero_res(GRAD(f * g, CS) - (f * GRAD(g, CS) + g * GRAD(f, CS)))
+            @test zero_sc(
+                LAPLACE(f * g, CS) -
+                    (f * LAPLACE(g, CS) + 2 * (GRAD(f, CS) ⋅ GRAD(g, CS)) + g * LAPLACE(f, CS))
+            )
+            @test zero_sc(DIV(f * 𝐯, CS) - (GRAD(f, CS) ⋅ 𝐯 + f * DIV(𝐯, CS)))
+            @test zero_res(DIV(f * 𝟏, CS) - GRAD(f, CS))
+            @test zero_sc(tr(GRAD(𝐯, CS)) - DIV(𝐯, CS))
+            # `∂𝟏 = 0` is metric compatibility of the connection.
+            @test zero_res(∂(𝟏, 1, CS))
+            # Leibniz: `∂` is a derivation.
+            𝐚 = sum(SymFunction("a$i", real = true)(q...) * unitvec(CS, i) for i in 1:d)
+            @test zero_res(∂(𝐚 ⊗ 𝐯, 1, CS) - (∂(𝐚, 1, CS) ⊗ 𝐯 + 𝐚 ⊗ ∂(𝐯, 1, CS)))
+        end
     end
 
     @testset "harmonic functions are annihilated" begin

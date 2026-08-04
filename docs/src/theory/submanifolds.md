@@ -13,12 +13,12 @@ vectors, Lamé coefficients and unit tangents are those of
 [Curvilinear differential calculus](@ref th-curvilinear),
 
 ```math
-\underline{a}_i=\partial_i\underline{OM},
+\underline{a}_\alpha=\partial_\alpha\underline{OM},
 \qquad
-\chi_i=\|\underline{a}_i\|,
+\chi_\alpha=\|\underline{a}_\alpha\|,
 \qquad
-\underline{e}_i=\underline{a}_i/\chi_i
-\qquad (i=1,\ldots,d-1),
+\underline{e}_\alpha=\underline{a}_\alpha/\chi_\alpha
+\qquad (\alpha=1,\ldots,d-1),
 ```
 
 and the frame is closed by the **unit normal** ``\underline{n}``, built as the
@@ -30,10 +30,10 @@ it must be stated whenever a curvature is reported.
 ## The two fundamental forms
 
 ```math
-\boxed{\;a_{ij}=\underline{a}_i\cdot\underline{a}_j\;}
+\boxed{\;a_{\alpha\beta}=\underline{a}_\alpha\cdot\underline{a}_\beta\;}
 \qquad
-\boxed{\;b_{ij}=\underline{n}\cdot\partial_i\underline{a}_j
-              =-\,\partial_i\underline{n}\cdot\underline{a}_j\;}
+\boxed{\;b_{\alpha\beta}=\underline{n}\cdot\partial_\alpha\underline{a}_\beta
+              =-\,\partial_\alpha\underline{n}\cdot\underline{a}_\beta\;}
 ```
 
 - ``\boldsymbol{a}`` — the **first fundamental form**, the metric induced by the
@@ -43,7 +43,7 @@ it must be stated whenever a curvature is reported.
   the variation of the tangent frame. It measures how the surface bends *in* the
   ambient space. [`curvature`](@ref).
 
-The second equality follows from ``\underline{n}\cdot\underline{a}_j=0`` by
+The second equality follows from ``\underline{n}\cdot\underline{a}_\beta=0`` by
 differentiation, and is the Weingarten relation.
 
 Both are stored as ``d``-dimensional order-2 tensors with a vanishing last row
@@ -56,27 +56,31 @@ Decomposing ``\partial_i\underline{a}_j`` on the embedded frame gives the two
 classical equations, tangential and normal:
 
 ```math
-\partial_i\underline{a}_j=\Gamma^k_{ij}\,\underline{a}_k+b_{ij}\,\underline{n}
+\partial_\alpha\underline{a}_\beta
+=\Gamma^\gamma_{\alpha\beta}\,\underline{a}_\gamma
++b_{\alpha\beta}\,\underline{n}
 \qquad\text{(Gauss)}
 ```
 
 ```math
-\partial_i\underline{n}=-\,b_i{}^{j}\,\underline{a}_j
+\partial_\alpha\underline{n}=-\,b_\alpha{}^{\beta}\,\underline{a}_\beta
 \qquad\text{(Weingarten)}
 ```
 
 `SubManifoldSym` stores exactly this: the connection array ``\Gamma`` holds the
 intrinsic Christoffel symbols in its tangential block, ``\boldsymbol{b}`` in the
-slice ``\Gamma[:,:,d]`` (Gauss), and ``-b_i{}^{j}`` in ``\Gamma[:,d,:]``
+slice ``\Gamma[:,:,d]`` (Gauss), and ``-b_\alpha{}^{\beta}`` in ``\Gamma[:,d,:]``
 (Weingarten).
 
-!!! warning "`Riemann` returns Christoffel symbols, not a curvature"
-    [`Riemann`](@ref) returns the purely tangential block
+!!! note "`connection`, formerly `Riemann`"
+    [`connection`](@ref) returns the purely tangential block
     ``\Gamma[1{:}d{-}1,1{:}d{-}1,1{:}d{-}1]`` — the **Christoffel symbols of the
     induced metric**. These are connection coefficients: they are not tensor
     components, they change under a change of chart by an inhomogeneous rule, and
     they can be made to vanish at any single point. A Riemann curvature tensor
-    can do none of those things.
+    can do none of those things — which is why the accessor, once misleadingly
+    called `Riemann`, is now [`connection`](@ref). The old name still works and
+    forwards, with a deprecation warning.
 
     For a sphere of radius ``R`` parametrized by ``(\theta,\varphi)`` the
     function returns
@@ -88,20 +92,19 @@ slice ``\Gamma[:,:,d]`` (Gauss), and ``-b_i{}^{j}`` in ``\Gamma[:,d,:]``
     ```
 
     which are indeed the sphere's connection coefficients. The name is
-    misleading and is kept only for backward compatibility. The intrinsic
-    curvature is recovered from ``\boldsymbol{a}`` and ``\boldsymbol{b}`` by the
-    Gauss equation below.
+    The intrinsic curvature is recovered from ``\boldsymbol{a}`` and
+    ``\boldsymbol{b}`` by the Gauss equation below.
 
 ## Curvatures
 
-With the **shape operator** ``b_i{}^{j}=a^{ik}b_{kj}`` — the second form with one
-index raised —
+With the **shape operator** ``b_\alpha{}^{\beta}=a^{\beta\gamma}b_{\gamma\alpha}`` — the second form with
+one index raised —
 
 | Quantity | Definition | Sphere of radius ``R``, outward normal |
 | :------- | :--------- | :------------------------------------- |
-| principal curvatures | eigenvalues ``\kappa_i`` of ``b_i{}^{j}`` | ``-1/R,\ -1/R`` |
-| mean curvature | ``H=\tfrac{1}{d-1}\,\mathrm{tr}\,b_i{}^{j}`` | ``-1/R`` |
-| Gaussian curvature | ``K=\det b_i{}^{j}`` | ``1/R^2`` |
+| principal curvatures | eigenvalues ``\kappa_\alpha`` of ``b_\alpha{}^{\beta}`` | ``-1/R,\ -1/R`` |
+| mean curvature | ``H=\tfrac{1}{d-1}\,\mathrm{tr}\,b_\alpha{}^{\beta}`` | ``-1/R`` |
+| Gaussian curvature | ``K=\det b_\alpha{}^{\beta}`` | ``1/R^2`` |
 
 Gauss's *Theorema Egregium* is that ``K`` depends only on ``\boldsymbol{a}``,
 even though its definition uses ``\boldsymbol{b}``: it is an intrinsic quantity.

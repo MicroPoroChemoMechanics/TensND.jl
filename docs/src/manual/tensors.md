@@ -115,14 +115,14 @@ get_array(a ⊗ˢ b)
 
 ## Display
 
-[`intrinsic`](@ref) prints a tensor in **intrinsic** form — as a combination of
+[`print_tensor`](@ref) prints a tensor in **intrinsic** form — as a combination of
 basis dyads rather than as a component array, which is far more readable for
 symbolic results:
 
 ```@example tens2
 Spherical = coorsys_spherical()
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
-intrinsic(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ, Spherical)
+print_tensor(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ, Spherical)
 ```
 
 Structured types print in their compact algebraic form instead — see

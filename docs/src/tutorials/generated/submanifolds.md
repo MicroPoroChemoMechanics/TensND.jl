@@ -9,13 +9,16 @@ coordinate fewer than the ambient space, with the unit normal completing the
 frame. It carries both geometries — the metric it inherits, and the way it
 bends inside the ambient space.
 
+Surface indices run from ``1`` to ``d-1`` and are written ``\alpha,\beta,\gamma``;
+ambient indices run to ``d`` and are written ``i,j,k``.
+
 ```math
-a_{ij}=\underline{a}_i\cdot\underline{a}_j
+a_{\alpha\beta}=\underline{a}_\alpha\cdot\underline{a}_\beta
 \qquad\text{(first fundamental form)}
 ```
 
 ```math
-b_{ij}=\underline{n}\cdot\partial_i\underline{a}_j
+b_{\alpha\beta}=\underline{n}\cdot\partial_\alpha\underline{a}_\beta
 \qquad\text{(second fundamental form)}
 ```
 
@@ -85,7 +88,7 @@ tsimplify.(get_array(𝐛) + get_array(𝐚) / R)
 ## Curvatures
 
 The shape operator is the second form with one index raised,
-``b_i{}^{j}=a^{ik}b_{kj}``; its determinant is the Gaussian curvature and half
+``b_\alpha{}^{\beta}=a^{\beta\gamma}b_{\gamma\alpha}``; its determinant is the Gaussian curvature and half
 its trace the mean curvature.
 
 ````@example submanifolds
@@ -212,22 +215,23 @@ This is the practical face of [Bases and variance](@ref th-bases-variance): a
 tensor is not its component array, and only components in the same basis may
 be compared.
 
-## The connection accessor is misnamed
+## Intrinsic connection coefficients
 
-[`Riemann`](@ref) returns the **Christoffel symbols** of the induced metric,
-not the Riemann curvature tensor. For the sphere:
+[`connection`](@ref) returns the **connection coefficients** ``\Gamma^\gamma_{\alpha\beta}``
+of the induced metric — Christoffel symbols, never a Riemann curvature tensor.
+(The accessor used to be called `Riemann`, which named the wrong object.)
+For the sphere:
 
 ````@example submanifolds
-Γ = Riemann(Sphere)
+Γ = connection(Sphere)
 println("Γ^θ_ϕϕ = ", tsimplify(Γ[2, 2, 1]))
 println("Γ^ϕ_θϕ = ", tsimplify(Γ[1, 2, 2]), "     Γ^ϕ_ϕθ = ", tsimplify(Γ[2, 1, 2]))
 ````
 
-These are the sphere's connection coefficients. They are not tensor components
-— they change inhomogeneously under a change of chart and can be made to
-vanish at any single point, which no curvature can. The name is kept for
-backward compatibility only; the intrinsic curvature is the ``K`` computed
-above from ``\boldsymbol{a}`` and ``\boldsymbol{b}``.
+They are not tensor components: they change inhomogeneously under a change of
+chart and can be made to vanish at any single point, which no curvature can.
+The intrinsic curvature is the ``K`` computed above from ``\boldsymbol{a}``
+and ``\boldsymbol{b}``.
 
 ## Summary
 

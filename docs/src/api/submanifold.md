@@ -8,5 +8,5 @@ SubManifoldSym
 normal
 submetric
 curvature
-Riemann
+connection
 ```

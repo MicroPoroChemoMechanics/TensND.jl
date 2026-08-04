@@ -92,7 +92,7 @@ It must reproduce the closed form
         + 4μ * (𝐞ʳ ⊗ˢ 𝟏 ⊗ˢ 𝐞ʳ - (λ + μ) / (λ + 2μ) * 𝐞ʳ ⊗ 𝐞ʳ ⊗ 𝐞ʳ ⊗ 𝐞ʳ)
 )
 
-intrinsic(tsimplify(𝚲 - 𝚲₂), Spherical)
+print_tensor(tsimplify(𝚲 - 𝚲₂), Spherical)
 ````
 
 Identically zero.

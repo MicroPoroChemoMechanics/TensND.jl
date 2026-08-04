@@ -32,6 +32,7 @@ Simplest first within each group.
 | [Christoffel symbols](generated/christoffel.md) | the definition checked term by term, every predefined system tabulated, symbolic and numerical routes compared, spheroidal harmonics |
 | [Differential operators, numerically](generated/numerical_operators.md) | pointwise evaluation by AD, the Lamé hollow-sphere problem with its equilibrium residual, and sensitivities through the operators |
 | [Surfaces: fundamental forms and curvature](generated/submanifolds.md) | sphere, cylinder, plane and paraboloid; Gauss's *Theorema Egregium*; the array-comparison trap |
+| [Classical identities of the differential operators](generated/operator_identities.md) | every identity **checked**, not quoted, on four charts — including a deliberately non-orthogonal one, the only case that tests the covariant/contravariant bookkeeping |
 
 ## Applications in mechanics
 

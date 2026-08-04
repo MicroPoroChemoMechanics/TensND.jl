@@ -403,7 +403,7 @@ for OP in (:show, :print, :display)
             return $OP(vecbasis(get_basis(t)))
         end
 
-        # Base.$OP(t::AbstractTens{order,dim,T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order,dim,T} = intrinsic(t; vec= vec, coords = coords)
+        # Base.$OP(t::AbstractTens{order,dim,T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order,dim,T} = print_tensor(t; vec= vec, coords = coords)
     end
 end
 
@@ -422,27 +422,42 @@ function Base.show(io::IO, M::MIME"text/latex", t::AbstractTens{4, dim, T}) wher
 end
 
 """
-    intrinsic(t::AbstractTens; vec = '𝐞', coords = 1:dim)
-    intrinsic(t::AbstractTens, CS::AbstractCoorSystem; vec = '𝐞')
+    print_tensor(t::AbstractTens; vec = '𝐞', coords = 1:dim)
+    print_tensor(t::AbstractTens, CS::AbstractCoorSystem; vec = '𝐞')
 
-Print `t` in **intrinsic** form — as a combination of basis dyads such as
-`𝐞ʳ⊗𝐞ʳ` — rather than as a component array.
+Print `t` **expanded on its basis** — as a sum of basis products such as
+`(σʳʳ)𝐞ʳ⊗𝐞ʳ + (σᶿᶿ)𝐞ᶿ⊗𝐞ᶿ` — instead of as an array of components.
 
-Far more readable than the array for symbolic results, and the natural way to
-report a field computed in a curvilinear frame. Passing a coordinate system
-names the basis vectors after its coordinates; [`@set_coorsys`](@ref) makes that
-the default.
+This is a display helper: it writes to `stdout` and returns `nothing`. For
+symbolic results it is far more readable than the component array, and it is the
+natural way to report a field computed in a curvilinear frame. Zero components
+are omitted, and a vanishing tensor prints as `0`.
+
+Passing a coordinate system names the basis vectors after its coordinates;
+[`@set_coorsys`](@ref) makes that the default, so `print_tensor(t)` alone then
+prints `𝐞ʳ`, `𝐞ᶿ`, … rather than `𝐞₁`, `𝐞₂`, ….
+
+!!! note "Renamed from `intrinsic`"
+    The former name was misleading: what is printed is explicitly *basis
+    dependent* — it changes with the chart — whereas "intrinsic" denotes the
+    basis-free form. `intrinsic` still works and forwards here, with a
+    deprecation warning.
 
 # Examples
 ```julia
 julia> Spherical = coorsys_spherical() ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
 
-julia> intrinsic(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ, Spherical)
-```
-"""
-intrinsic(t::T) where {T} = println(t)
+julia> @set_coorsys Spherical
 
-function intrinsic(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}
+julia> print_tensor(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ)
+𝐞ʳ⊗𝐞ʳ + (2)𝐞ᶿ⊗𝐞ᶿ
+```
+
+See also [`get_array`](@ref), [`components`](@ref).
+"""
+print_tensor(t::T) where {T} = println(t)
+
+function print_tensor(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}
     ind = CartesianIndices(t)
     ℬ = get_basis(t)
     firstprint = true
@@ -1615,7 +1630,10 @@ export proj_tens, best_sym_tens
 # package — the export was dead and `using TensND; arraytype` has always been
 # an UndefVarError, so removing it cannot break working code.
 export get_order, get_data, get_array, get_basis, get_var
-export intrinsic
+@deprecate intrinsic(t) print_tensor(t)
+@deprecate intrinsic(t, CS; kwargs...) print_tensor(t, CS; kwargs...)
+
+export print_tensor
 export components, components_canon, change_tens, change_tens_canon
 export diff_with_basis
 export KM, inv_KM

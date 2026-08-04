@@ -54,6 +54,7 @@ const PUBLISHED_SCRIPTS = [
     "11_christoffel.jl" => "christoffel",
     "12_numerical_operators.jl" => "numerical_operators",
     "13_submanifolds.jl" => "submanifolds",
+    "14_operator_identities.jl" => "operator_identities",
     # ── Applications in mechanics ────────────────────────────────────────────
     "20_green_function.jl" => "green_function",
     "21_cluster.jl" => "cluster",

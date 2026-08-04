@@ -13,9 +13,12 @@ normal**, so that the stored bases are still `dim`-dimensional.
 
 # Construction
 
+Surface indices run from `1` to `dim-1` and are written `α, β, γ`; ambient
+indices run to `dim` and are written `i, j, k`.
+
 The `dim-1` tangent vectors are the derivatives of the position vector,
 
-    𝐚ᵢ = ∂ᵢOM ,  χᵢ = ‖𝐚ᵢ‖ ,  𝐞ᵢ = 𝐚ᵢ / χᵢ    (i = 1 … dim-1)
+    𝐚_α = ∂_α OM ,  χ_α = ‖𝐚_α‖ ,  𝐞_α = 𝐚_α / χ_α    (α = 1 … dim-1)
 
 and the frame is closed by the unit normal `𝐧`, obtained as the generalized
 cross product of the tangent vectors. `𝐧` is stored last, with Lamé coefficient
@@ -27,16 +30,16 @@ Two order-2 tensors describe the surface, both stored with a vanishing
 last row and column so that they live in the tangent block:
 
 - the **first fundamental form** `𝐚` (induced metric), returned by
-  [`submetric`](@ref) — `aᵢⱼ = 𝐚ᵢ ⋅ 𝐚ⱼ`;
+  [`submetric`](@ref) — `a_αβ = 𝐚_α ⋅ 𝐚_β`;
 - the **second fundamental form** `𝐛` (curvature tensor), returned by
-  [`curvature`](@ref) — `bᵢⱼ = 𝐧 ⋅ ∂ᵢ𝐚ⱼ`.
+  [`curvature`](@ref) — `b_αβ = 𝐧 ⋅ ∂_α 𝐚_β`.
 
-The stored connection array `Γ` holds the Gauss–Weingarten equations of the
-embedded frame rather than a plain Christoffel array: `Γ[:,:,dim]` is `𝐛`
-(Gauss formula, the normal component of `∂ᵢ𝐚ⱼ`) and `Γ[:,dim,:]` is `-𝐛` with
-one index raised (Weingarten formula, the tangential derivative of `𝐧`). The
-purely tangential block, i.e. the intrinsic Christoffel symbols of the surface
-metric, is what [`Riemann`](@ref) returns.
+The stored array `Γ` holds the Gauss–Weingarten equations of the embedded frame
+rather than a plain Christoffel array: `Γ[:,:,dim]` is `𝐛` (Gauss formula, the
+normal component of `∂_α 𝐚_β`) and `Γ[:,dim,:]` is `-𝐛` with one index raised
+(Weingarten formula, the tangential derivative of `𝐧`). Its purely tangential
+block — the **intrinsic connection coefficients** `Γᵞ_αβ` of the induced
+metric — is what [`connection`](@ref) returns.
 
 The optional `tmp_coords`, `params`, `rules`, `tmp_var` and `to_coords`
 arguments have exactly the meaning they have for [`CoorSystemSym`](@ref): they
@@ -57,7 +60,7 @@ julia> curvature(Sphere)       # 𝐛 = -𝐚/R for a sphere of radius R
 ```
 
 See also [`CoorSystemSym`](@ref), [`normal`](@ref), [`submetric`](@ref),
-[`curvature`](@ref), [`Riemann`](@ref).
+[`curvature`](@ref), [`connection`](@ref).
 """
 struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem{dim, Sym}
     OM::VEC
@@ -111,26 +114,10 @@ struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem
         n = n / tsimplify(norm(n))
         A = hcat(A₀, n)
         normalized_basis = Basis(A)
-        eᵢ = ntuple(
-            i -> Tens(
-                Vec{dim}(j -> j == i ? one(Sym) : zero(Sym)),
-                normalized_basis,
-                (:cov,),
-            ),
-            dim,
-        )
-        aᵢ = ntuple(
-            i -> Tens(Vec{dim}(j -> j == i ? χᵢ[i] : zero(Sym)), normalized_basis, (:cov,)),
-            dim,
-        )
-        aⁱ = ntuple(
-            i -> Tens(
-                Vec{dim}(j -> j == i ? inv(χᵢ[i]) : zero(Sym)),
-                normalized_basis,
-                (:cont,),
-            ),
-            dim,
-        )
+        # Shared with `CoorSystemSym`: builds 𝐞ᵢ, 𝐚ᵢ and 𝐚ⁱ with the *correct*
+        # variances. Duplicating it here is what let the covariant/contravariant
+        # swap survive in the submanifold path after it was fixed for charts.
+        eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
         natural_basis = Basis(normalized_basis, χᵢ)
         a₀ = metric(natural_basis, :cov)
         a = Tens(SymmetricTensor{2, dim, Sym}((i, j) -> i < dim && j < dim ? a₀[i, j] : zero(Sym)), natural_basis, (:cov, :cov))
@@ -171,7 +158,7 @@ end
 
 Unit normal `𝐧` of the hypersurface, i.e. the last vector of the natural basis.
 Its orientation is that of the generalized cross product of the tangent vectors
-`∂ᵢOM` taken in the order of `coords`, so reversing two coordinates reverses
+`∂_α OM` taken in the order of `coords`, so reversing two coordinates reverses
 `𝐧` — and with it the sign of [`curvature`](@ref).
 
 # Examples
@@ -191,7 +178,7 @@ normal(SM::SubManifoldSym{dim}) where {dim} = natvec(SM, :cov)[dim]
     submetric(SM::SubManifoldSym) → AbstractTens{2,dim,Sym}
 
 First fundamental form `𝐚` of the hypersurface (the metric induced by the
-embedding), `aᵢⱼ = 𝐚ᵢ ⋅ 𝐚ⱼ`.
+embedding), `a_αβ = 𝐚_α ⋅ 𝐚_β`, with Greek surface indices running to `dim-1`.
 
 It is returned as a `dim`-dimensional order-2 tensor whose last row and column
 vanish, so that it can be combined directly with [`curvature`](@ref) and with
@@ -207,7 +194,7 @@ submetric(SM::SubManifoldSym) = SM.a
 """
     curvature(SM::SubManifoldSym) → AbstractTens{2,dim,Sym}
 
-Second fundamental form `𝐛` of the hypersurface, `bᵢⱼ = 𝐧 ⋅ ∂ᵢ𝐚ⱼ`, with `𝐧`
+Second fundamental form `𝐛` of the hypersurface, `b_αβ = 𝐧 ⋅ ∂_α 𝐚_β`, with `𝐧`
 the unit normal returned by [`normal`](@ref).
 
 Like [`submetric`](@ref) it is stored as a `dim`-dimensional order-2 tensor with
@@ -215,7 +202,7 @@ a vanishing last row and column. **Its sign follows the orientation of `𝐧`**:
 with the outward normal, a sphere of radius `R` gives `𝐛 = -𝐚/R`, hence the
 principal curvatures `-1/R`.
 
-The mixed form `𝐛` with one index raised is the Weingarten (shape) operator; its
+The mixed form `b_α{}^β` is the Weingarten (shape) operator; its
 trace is the mean curvature and its determinant, restricted to the tangent
 block, the Gaussian curvature.
 
@@ -224,25 +211,37 @@ See also [`SubManifoldSym`](@ref), [`submetric`](@ref), [`normal`](@ref).
 curvature(SM::SubManifoldSym) = SM.b
 
 """
-    Riemann(SM::SubManifoldSym{dim}) → Array{Sym,3}
+    connection(SM::SubManifoldSym{dim}) → Array{Sym,3}
 
-Intrinsic connection coefficients of the hypersurface: the purely tangential
-block `Γ[1:dim-1, 1:dim-1, 1:dim-1]` of the stored Gauss–Weingarten array, with
-the convention `Γ[i,j,k] = Γᵏᵢⱼ`.
+**Intrinsic connection coefficients** of the hypersurface — the Christoffel
+symbols `Γᵞ_αβ` of the induced metric — indexed `Γ[α,β,γ]`, the contravariant
+index last.
 
-!!! warning "The name is misleading"
-    Despite its name this function returns the **Christoffel symbols** of the
-    induced metric, *not* the Riemann curvature tensor. For a sphere of radius
-    `R` parametrized by `(θ, ϕ)` it returns `Γᶿ_ϕϕ = -sinθ cosθ` and
-    `Γᵠ_θϕ = Γᵠ_ϕθ = cotθ`, which are connection coefficients — they are not
-    tensor components and they vanish in a suitable chart, unlike a curvature.
-    The intrinsic curvature is recovered from these by the Gauss equation, or
-    directly from [`curvature`](@ref) and [`submetric`](@ref). The name is kept
-    for backward compatibility.
+Surface indices run from `1` to `dim-1` and are written with Greek letters
+`α, β, γ` throughout, to distinguish them from ambient indices `i, j, k` which
+run to `dim`. This is the purely tangential block of the Gauss–Weingarten array
+returned by [`Christoffel`](@ref).
 
-See also [`SubManifoldSym`](@ref), [`curvature`](@ref), [`Christoffel`](@ref).
+For a sphere of radius `R` parametrized by `(θ, φ)`:
+
+    Γᶿ_φφ = −sinθ cosθ ,   Γᵠ_θφ = Γᵠ_φθ = cotθ
+
+These are **connection coefficients, not curvature**: they are not the
+components of a tensor, they transform inhomogeneously under a change of chart,
+and they can be made to vanish at any single point. The intrinsic curvature
+follows from them by the Gauss equation, or directly from [`curvature`](@ref)
+and [`submetric`](@ref).
+
+!!! note "Renamed from `Riemann`"
+    This function was called `Riemann`, which named the wrong object entirely —
+    it never returned a Riemann curvature tensor. `Riemann` still works and
+    forwards here, with a deprecation warning.
+
+See also [`SubManifoldSym`](@ref), [`Christoffel`](@ref), [`curvature`](@ref).
 """
-Riemann(SM::SubManifoldSym{dim}) where {dim} = SM.Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
+connection(SM::SubManifoldSym{dim}) where {dim} = SM.Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
+
+@deprecate Riemann(SM::SubManifoldSym) connection(SM)
 
 function ∂(
         t::AbstractTens{order, dim, T},
@@ -340,4 +339,4 @@ HESS(
 ) where {order, dim, T <: SymType} = GRAD(GRAD(t, SM), SM)
 
 export SubManifoldSym
-export normal, submetric, curvature, Riemann
+export normal, submetric, curvature, connection, Riemann

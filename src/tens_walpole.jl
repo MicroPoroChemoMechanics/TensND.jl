@@ -574,7 +574,7 @@ function Base.show(io::IO, A::TensTI{4, <:Any, 6})
     return print(io, "\n  axis n = ", A.n)
 end
 
-function intrinsic(A::TensTI{4, <:Any, 5})
+function print_tensor(A::TensTI{4, <:Any, 5})
     ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(A)
     println(
         "(", ℓ₁, ") W₁ˢ + (", ℓ₂, ") W₂ˢ + (", ℓ₃,
@@ -582,7 +582,7 @@ function intrinsic(A::TensTI{4, <:Any, 5})
     )
     return println("  axis n = ", A.n)
 end
-function intrinsic(A::TensTI{4, <:Any, 6})
+function print_tensor(A::TensTI{4, <:Any, 6})
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(A)
     println(
         "(", ℓ₁, ") W₁ + (", ℓ₂, ") W₂ + (", ℓ₃,
@@ -595,7 +595,7 @@ for OP in (:show, :print, :display)
     @eval function Base.$OP(A::TensTI{4})
         $OP(typeof(A))
         print("→ decomposition: ")
-        intrinsic(A)
+        print_tensor(A)
         print("→ KM: ")
         return $OP(KM(A))
     end
@@ -754,7 +754,7 @@ function Base.show(io::IO, A::TensTI{2})
     return print(io, "\n  axis n = ", A.n)
 end
 
-function intrinsic(A::TensTI{2})
+function print_tensor(A::TensTI{2})
     a, b = get_data(A)
     println("(", a, ") nT + (", b, ") nₙ")
     return println("  axis n = ", A.n)
@@ -764,7 +764,7 @@ for OP in (:show, :print, :display)
     @eval function Base.$OP(A::TensTI{2})
         $OP(typeof(A))
         print("→ decomposition: ")
-        return intrinsic(A)
+        return print_tensor(A)
     end
 end
 
@@ -1306,7 +1306,7 @@ function Base.show(io::IO, A::TensOrtho)
     return print(io, "\n  frame: ", vecbasis(A.frame, :cov))
 end
 
-function intrinsic(A::TensOrtho)
+function print_tensor(A::TensOrtho)
     C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(A)
     println("(", C11, ") P₁⊗P₁ + (", C22, ") P₂⊗P₂ + (", C33, ") P₃⊗P₃")
     println("  + (", C12, ")(P₁⊗P₂+P₂⊗P₁) + (", C13, ")(P₁⊗P₃+P₃⊗P₁) + (", C23, ")(P₂⊗P₃+P₃⊗P₂)")
@@ -1318,7 +1318,7 @@ for OP in (:show, :print, :display)
     @eval function Base.$OP(A::TensOrtho)
         $OP(typeof(A))
         print("→ decomposition: ")
-        intrinsic(A)
+        print_tensor(A)
         print("→ KM (material frame): ")
         $OP(KM_material(A))
         print("→ KM (canonical frame): ")
@@ -1739,7 +1739,7 @@ function Base.show(io::IO, A::TensTI{4, <:Any, 8})
     return print(io, "\n  axis n = ", A.n)
 end
 
-function intrinsic(A::TensTI{4, <:Any, 8})
+function print_tensor(A::TensTI{4, <:Any, 8})
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = A.data
     println(
         "(", ℓ₁, ") W₁ + (", ℓ₂, ") W₂ + (", ℓ₃, ") W₃ + (", ℓ₄,
@@ -1754,7 +1754,7 @@ function Base.show(io::IO, A::TensTI{2, <:Any, 3})
     return print(io, "\n  axis n = ", A.n)
 end
 
-function intrinsic(A::TensTI{2, <:Any, 3})
+function print_tensor(A::TensTI{2, <:Any, 3})
     a, b, c = get_data(A)
     println("(", a, ") nT + (", b, ") nₙ + (", c, ") w")
     return println("  axis n = ", A.n)

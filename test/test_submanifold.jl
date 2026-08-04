@@ -3,7 +3,7 @@
     # `SubManifoldSym` builds the induced geometry of a hypersurface given by a
     # symbolic parametrization `OM(coords)`: unit normal, first fundamental
     # form (`submetric`), second fundamental form (`curvature`) and the
-    # connection coefficients (`Riemann`).
+    # connection coefficients (`connection`).
     #
     # Assertions are stated as geometric invariants (unit normal, orthogonality
     # to the tangent plane, Gaussian curvature) so they hold regardless of the
@@ -60,7 +60,7 @@
         OM = R * Tens(Vec{3}([sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]))
         SM = SubManifoldSym(OM, (θ, ϕ))
 
-        Γ = Riemann(SM)
+        Γ = connection(SM)
         @test size(Γ) == (2, 2, 2)
 
         # Christoffel symbols of the round sphere in (θ, ϕ):
@@ -115,7 +115,7 @@
         @test all(tsimplify.(b) .== 0)
 
         # …and no connection coefficients.
-        @test all(tsimplify.(Riemann(SM)) .== 0)
+        @test all(tsimplify.(connection(SM)) .== 0)
 
         # Normal is the constant e₃.
         n = components_canon(normal(SM))

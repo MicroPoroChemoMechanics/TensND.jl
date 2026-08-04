@@ -43,7 +43,7 @@ tsimplify.(components_canon(normal(Sphere)))
 | [`normal`](@ref) | the unit normal ``\underline{n}`` |
 | [`submetric`](@ref) | the first fundamental form ``\boldsymbol{a}`` |
 | [`curvature`](@ref) | the second fundamental form ``\boldsymbol{b}`` |
-| [`Riemann`](@ref) | the intrinsic Christoffel symbols (**see the warning**) |
+| [`connection`](@ref) | the intrinsic connection coefficients ``\Gamma^\gamma_{\alpha\beta}`` |
 
 ```@example sm
 get_array(submetric(Sphere))
@@ -69,19 +69,21 @@ tsimplify.(get_array(curvature(Sphere)) + get_array(submetric(Sphere)) / R)
     whenever a curvature is reported. The Gaussian curvature, being a
     determinant, is unaffected.
 
-!!! warning "`Riemann` returns Christoffel symbols"
-    Despite its name, [`Riemann`](@ref) returns the **Christoffel symbols** of
-    the induced metric, not the Riemann curvature tensor. For the sphere it
+!!! note "`connection` — renamed from `Riemann`"
+    [`connection`](@ref) returns the **connection coefficients** (Christoffel
+    symbols) of the induced metric, never a Riemann curvature tensor. The old
+    name `Riemann` named the wrong object; it still works and forwards, with a
+    deprecation warning. For the sphere it
     gives ``\Gamma^\theta_{\varphi\varphi}=-\sin\theta\cos\theta`` and
     ``\Gamma^\varphi_{\theta\varphi}=\cot\theta``. These are connection
-    coefficients: not tensor components, and removable at any single point. The
-    name is kept for backward compatibility. Compute the intrinsic curvature
-    from [`submetric`](@ref) and [`curvature`](@ref) instead.
+    coefficients: not tensor components, and removable at any single point.
+    Compute the intrinsic curvature from [`submetric`](@ref) and
+    [`curvature`](@ref) instead.
 
 ## Curvatures
 
 The shape operator is the second form with one index raised,
-``b_i{}^{j}=a^{ik}b_{kj}``; its determinant is the Gaussian curvature and its
+``b_\alpha{}^{\beta}=a^{\beta\gamma}b_{\gamma\alpha}``; its determinant is the Gaussian curvature and its
 normalized trace the mean curvature.
 
 ```@example sm

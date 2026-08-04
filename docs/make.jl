@@ -126,6 +126,7 @@ makedocs(
                 "tutorials/generated/christoffel.md",
                 "tutorials/generated/numerical_operators.md",
                 "tutorials/generated/submanifolds.md",
+                "tutorials/generated/operator_identities.md",
             ],
             "Applications in mechanics" => [
                 "tutorials/generated/green_function.md",

@@ -37,7 +37,7 @@ tsimplify(𝐊)
         + 4μ * (𝐞ʳ ⊗ˢ 𝟏 ⊗ˢ 𝐞ʳ - (λ + μ) / (λ + 2μ) * 𝐞ʳ ⊗ 𝐞ʳ ⊗ 𝐞ʳ ⊗ 𝐞ʳ)
 )
 
-intrinsic(tsimplify(𝚲 - 𝚲₂), Spherical)
+print_tensor(tsimplify(𝚲 - 𝚲₂), Spherical)
 
 C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃ = symbols("C₁₁₁₁ C₁₁₂₂ C₁₁₃₃ C₃₃₃₃ C₂₃₂₃", positive = true)
 n = 𝐞₃

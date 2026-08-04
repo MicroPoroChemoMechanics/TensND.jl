@@ -81,7 +81,7 @@ for var in ((:cov, :cov), (:cont, :cov), (:cov, :cont), (:cont, :cont))
     println("  variance ", var, " : all zero ? ", all(iszero, resid))
 end
 
-Γ = Riemann(Sphere)
+Γ = connection(Sphere)
 println("Γ^θ_ϕϕ = ", tsimplify(Γ[2, 2, 1]))
 println("Γ^ϕ_θϕ = ", tsimplify(Γ[1, 2, 2]), "     Γ^ϕ_ϕθ = ", tsimplify(Γ[2, 1, 2]))
 

@@ -35,6 +35,25 @@ LAPLACE(SymFunction("f", real = true)(r, θ))
 [`@set_coorsys`](@ref) installs a default system so the operators take one
 argument; without it, pass the system explicitly, `LAPLACE(f, Polar)`.
 
+| Call | Does |
+| :--- | :--- |
+| [`@set_coorsys`](@ref)` CS` / [`set_coorsys!`](@ref)`(CS)` | make `CS` the default |
+| [`default_coorsys`](@ref)`()` | the current default (throws if none) |
+| [`unset_coorsys!`](@ref)`()` | forget it |
+
+!!! note "`∂` is deliberately not affected by the default"
+    `∂(t, x)` always means the plain derivative of `t` with respect to the
+    symbol `x`; for the covariant derivative pass the chart explicitly,
+    `∂(t, x, CS)`.
+
+    Earlier versions had `@set_coorsys` **define methods** in the `TensND`
+    module, including one for `∂(t, x)`. That method was more specific than the
+    plain-derivative fallback, so the same call silently changed meaning — and
+    since both `CoorSystemSym` and `SubManifoldSym` differentiate a position
+    vector while being built, constructing *any* new chart after a
+    `@set_coorsys` failed. The default is now simply stored, and the
+    single-argument operator methods are defined once.
+
 | Operator | Order | Meaning |
 | :--- | :--- | :--- |
 | [`GRAD`](@ref) | ``+1`` | gradient, derivative index appended **on the right** |

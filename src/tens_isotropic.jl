@@ -303,8 +303,8 @@ for OP in (:show, :print, :display)
     end
 end
 
-intrinsic(A::TensISO{4}) = println("(", get_data(A)[1], ") 𝕁 + (", get_data(A)[2], ") 𝕂")
-intrinsic(A::TensISO{2}) = println("(", get_data(A)[1], ") 𝟏")
+print_tensor(A::TensISO{4}) = println("(", get_data(A)[1], ") 𝕁 + (", get_data(A)[2], ") 𝕂")
+print_tensor(A::TensISO{2}) = println("(", get_data(A)[1], ") 𝟏")
 
 # ── Rebuild helper (used by symbolic ops) ─────────────────────────────────────
 
