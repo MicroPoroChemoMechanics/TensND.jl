@@ -115,14 +115,21 @@ get_array(a ⊗ˢ b)
 
 ## Display
 
-[`print_tensor`](@ref) prints a tensor in **intrinsic** form — as a combination of
-basis dyads rather than as a component array, which is far more readable for
+[`print_tensor`](@ref) prints a tensor **expanded on its basis** — as a sum of
+basis products rather than as a component array, which is far more readable for
 symbolic results:
 
 ```@example tens2
 Spherical = coorsys_spherical()
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
 print_tensor(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ, Spherical)
+```
+
+Applied to a scalar it falls back to the rich `text/plain` display, so a
+symbolic expression comes out in SymPy's two-dimensional form:
+
+```@example tens2
+LAPLACE(1 / getcoords(Spherical)[3], Spherical) |> print_tensor
 ```
 
 Structured types print in their compact algebraic form instead — see

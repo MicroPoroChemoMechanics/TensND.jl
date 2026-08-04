@@ -58,7 +58,12 @@ julia> DIV(f(r) * 𝐞ʳ ⊗ 𝐞ʳ) |> print_tensor
 (Derivative(f(r), r) + 2*f(r)/r)𝐞ʳ
 
 julia> LAPLACE(f(r)) |> print_tensor
-Derivative(f(r), (r, 2)) + 2*Derivative(f(r), r)/r
+              d
+ 2          2⋅──(f(r))
+d             dr
+───(f(r)) + ──────────
+  2             r
+dr
 
 julia> for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ") @eval $(Symbol(σⁱʲ)) = SymFunction($σⁱʲ, real = true)($r) end
 

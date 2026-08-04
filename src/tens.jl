@@ -453,9 +453,36 @@ julia> print_tensor(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ)
 𝐞ʳ⊗𝐞ʳ + (2)𝐞ᶿ⊗𝐞ᶿ
 ```
 
+Applied to anything that is **not** a tensor — a scalar field, typically, so
+that `LAPLACE(f(r)) |> print_tensor` works in a pipeline — it falls back to the
+rich `text/plain` display, which for a symbolic expression is SymPy's
+two-dimensional form:
+
+```julia
+julia> LAPLACE(SymFunction("f", real = true)(r)) |> print_tensor
+              d
+ 2          2⋅──(f(r))
+d             dr
+───(f(r)) + ──────────
+  2             r
+dr
+```
+
+Tensor coefficients are deliberately *not* printed that way: a multi-line
+coefficient interpolated into `(…)𝐞ʳ⊗𝐞ʳ + (…)𝐞ᶿ⊗𝐞ᶿ` would destroy the layout
+that makes the expanded form readable in the first place.
+
 See also [`get_array`](@ref), [`components`](@ref).
 """
-print_tensor(t::T) where {T} = println(t)
+function print_tensor(t)
+    # The three-argument `show`, not `println`: SymPy's two-dimensional form is
+    # reachable only through `MIME"text/plain"`, which is what the REPL calls.
+    # `println` and `string` go through the two-argument `show` and give the
+    # flat form. `sympy.init_printing` does not change any of this — it is a
+    # no-op for all three paths in current SymPy.jl.
+    show(stdout, MIME"text/plain"(), t)
+    return println()
+end
 
 function print_tensor(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}
     ind = CartesianIndices(t)
