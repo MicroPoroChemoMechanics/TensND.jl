@@ -1,11 +1,78 @@
 # Changelog
 
+## v0.3.1 — `print_tensor` renamed to `pprint`
+
+### Deprecations
+
+Nothing breaks on upgrade: `print_tensor` and `intrinsic` are still exported and
+still forward, so this is a patch release, not a minor one.
+
+- `print_tensor(t)` → **`pprint(t)`** (v0.3.0's own rename of `intrinsic`, so a
+  short-lived name). Two reasons. Its **fallback method accepts anything**, and
+  a scalar field is the common case — `LAPLACE(f(r)) |> print_tensor` printed a
+  scalar under a name promising a tensor. And `pprint` is the name already used
+  across MPCM for a generic pretty-printer: `ChemistryLab.pprint` has methods on
+  `Formula`, `Species`, `Reaction` and on a plain `AbstractMatrix`, so it is not
+  a domain-specific name.
+
+  Note that `pprint` is therefore exported by two MPCM packages with no
+  dependency between them: in a session doing `using MeanFieldHom, ChemistryLab`
+  the unqualified `pprint` is ambiguous and must be written `TensND.pprint` or
+  `ChemistryLab.pprint`.
+
+### Bug fixes
+
+- The docstring example printed its terms in the wrong order: spherical
+  coordinates are ordered `(θ, ϕ, r)`, so `𝐞ʳ⊗𝐞ʳ + 2 𝐞ᶿ⊗𝐞ᶿ` displays as
+  `(2)𝐞ᶿ⊗𝐞ᶿ + 𝐞ʳ⊗𝐞ʳ`. The block is ```` ```julia ````, hence not executed by
+  Documenter, which is why nothing caught it.
+
+### Additions
+
+- `test/test_tens.jl` gains a `pprint` testset: the expanded layout, the
+  omission of zero components, the `0` of a vanishing tensor, the `vec`/`coords`
+  keywords, the variance deciding sub- or superscript, and both deprecated
+  aliases resolving.
+
+### Internal
+
+- The formatting half of `pprint` is split into `_pprint_string`, so the layout
+  is testable against a string instead of requiring `stdout` capture.
+
 ## v0.3.0 — non-orthogonal charts fixed, documentation overhaul, two renames
 
 Minor bump rather than patch: two public names change (both keep deprecated
 aliases) and `@set_coorsys` no longer defines methods, which is observable.
 
-### Fixed
+### Breaking changes
+
+- `Riemann(SM)` → **`connection(SM)`**. It returns the connection coefficients
+  (Christoffel symbols) of the induced metric — never a Riemann curvature
+  tensor.
+- `intrinsic(t)` → **`print_tensor(t)`**. What it prints is explicitly *basis
+  dependent*, which is the opposite of intrinsic.
+
+  Both old names still work and forward, with a deprecation warning.
+
+- **`@set_coorsys` no longer `@eval`s methods into the module**; it stores the
+  default chart, alongside the new `set_coorsys!` / `default_coorsys` /
+  `unset_coorsys!`. The single-argument operator methods are defined once,
+  unconditionally. The observable consequence: `∂(t, x)` now always means the
+  plain derivative with respect to the symbol `x`, and the covariant derivative
+  is spelled `∂(t, x, CS)`.
+
+  This was also a bug fix. The `@eval`ed `∂(t, x)` method was more specific than
+  the plain-derivative fallback, and since `CoorSystemSym` and `SubManifoldSym`
+  both differentiate a position vector *while being built*, that method captured
+  the call, failed to find the coordinate among *its own*, returned `zero(t)`,
+  and left the frame matrix singular — `NonInvertibleMatrixError` on every chart
+  constructed after a `@set_coorsys`.
+
+- `arraytype` is no longer exported. It was exported but never defined anywhere,
+  so `using TensND; arraytype` has always been an `UndefVarError`; removing the
+  export cannot break working code.
+
+### Bug fixes
 
 - **Non-orthogonal coordinate systems were silently wrong.**
   `_build_basis_vectors` exchanged the `:cov` and `:cont` variances, so
@@ -14,17 +81,6 @@ aliases) and `@set_coorsys` no longer defines methods, which is observable.
   all five predefined systems and the whole test suite hid it; on `x = u+v²,
   y = v` the Laplacian of a harmonic function came out nonzero. Charts really
   are arbitrary now. Pinned by the `non-orthogonal charts` testset.
-
-- **`@set_coorsys` broke every subsequent coordinate-system construction.** It
-  `@eval`ed single-argument methods into the module, including one for
-  `∂(t, x)` that was more specific than the plain-derivative fallback. Since
-  `CoorSystemSym` and `SubManifoldSym` both differentiate a position vector
-  while being built, that method captured the call, failed to find the
-  coordinate among *its own*, returned `zero(t)`, and left the frame matrix
-  singular — `NonInvertibleMatrixError`. The default chart is now simply stored
-  (`set_coorsys!` / `default_coorsys` / `unset_coorsys!`) and the
-  single-argument operator methods are defined once. `∂(t, x)` keeps its single
-  meaning: the plain derivative.
 
 - **Automatic differentiation through `proj_tens` was impossible.**
   `ForwardDiff.Dual <: Real` but not `<: AbstractFloat`, so the tolerant
@@ -56,41 +112,15 @@ aliases) and `@set_coorsys` no longer defines methods, which is observable.
 - `SubManifoldSym` carried a verbatim copy of the `CoorSystemSym` docstring, and
   the `Tens` and `coorsys_cartesian` examples referenced undefined names.
 
-### Renamed
-
-- `Riemann(SM)` → **`connection(SM)`**. It returns the connection coefficients
-  (Christoffel symbols) of the induced metric — never a Riemann curvature
-  tensor.
-- `intrinsic(t)` → **`print_tensor(t)`**. What it prints is explicitly *basis
-  dependent*, which is the opposite of intrinsic.
-
-Both old names still work and forward, with a deprecation warning.
-
-### Removed
-
-- `arraytype` was exported but never defined anywhere; `using TensND;
-  arraytype` has always been an `UndefVarError`, so removing the export cannot
-  break working code.
-
-### Changed
-
-- The symbolic `∂` and the five differential operators are defined **once**,
-  over `AbstractCoorSystem`, parametrized by the new `nderiv` trait (`dim` for a
-  chart, `dim-1` for a submanifold). `submanifold.jl` used to duplicate all six
-  definitions verbatim.
-- `CoorSystemSym` and `SubManifoldSym` now share one internal `ChartCore` block
-  instead of declaring the same fourteen fields twice.
-- Surface indices (`1 … dim-1`) are written `α, β, γ` throughout the
-  documentation, ambient indices `i, j, k`.
-
-### Added
+### Additions
 
 - `set_coorsys!`, `default_coorsys`, `unset_coorsys!`, `nderiv`.
 - Documentation rebuilt on the MeanFieldHom model: 14 Theory pages, 11 Manual
   pages, 16 Literate tutorials (each also a notebook and a standalone script),
   3 Developer pages and 12 curated API pages, with `checkdocs = :exports` as a
   guard. Bibliography expanded from 4 to 14 entries, every one verified against
-  Crossref — the previous `hoenig1979` DOI did not resolve.
+  Crossref — the previous `hoenig1979` DOI did not resolve. Surface indices
+  (`1 … dim-1`) are written `α, β, γ` throughout, ambient indices `i, j, k`.
 - Three chapters with no counterpart in the Echoes manual: bases and variance,
   curvilinear differential calculus, submanifolds. A fourth, the
   eight-dimensional axially invariant space behind `TensTI{4,T,8}`, appears in
@@ -102,6 +132,15 @@ Both old names still work and forward, with a deprecation warning.
   charts including a deliberately skew one.
 - `test/test_special_tens.jl` filled out: Levi-Civita, the `𝐞ᵖ/𝐞ᶜ/𝐞ˢ` frames,
   every `init_*`, `rot2`/`rot3`/`rot6`.
+
+### Internal
+
+- The symbolic `∂` and the five differential operators are defined **once**,
+  over `AbstractCoorSystem`, parametrized by the new `nderiv` trait (`dim` for a
+  chart, `dim-1` for a submanifold). `submanifold.jl` used to duplicate all six
+  definitions verbatim.
+- `CoorSystemSym` and `SubManifoldSym` now share one internal `ChartCore` block
+  instead of declaring the same fourteen fields twice.
 
 ## v0.2.6 — TensOrtho closed forms, basis-comparison fix, generic-conversion fix
 

@@ -64,7 +64,7 @@ Spherical = coorsys_spherical()
 σᶿᶿ = SymFunction("σᶿᶿ", real = true)(r)
 𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * (𝐞ᶿ ⊗ 𝐞ᶿ + 𝐞ᵠ ⊗ 𝐞ᵠ)
 
-print_tensor(DIV(𝛔))
+pprint(DIV(𝛔))
 ```
 
 The equilibrium equation of a spherically symmetric stress state, derived rather

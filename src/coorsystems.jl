@@ -812,10 +812,10 @@ julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞
 
 julia> @set_coorsys Spherical
 
-julia> print_tensor(GRAD(𝐞ʳ),vec)
+julia> pprint(GRAD(𝐞ʳ),vec)
 (1/r)𝐞ᶿ⊗𝐞ᶿ + (1/r)𝐞ᵠ⊗𝐞ᵠ
 
-julia> print_tensor(DIV(𝐞ʳ ⊗ 𝐞ʳ),vec)
+julia> pprint(DIV(𝐞ʳ ⊗ 𝐞ʳ),vec)
 (2/r)𝐞ʳ
 
 julia> LAPLACE(1/r)
@@ -849,9 +849,9 @@ const _DEFAULT_COORSYS_COORDS = Ref{Any}(nothing)
 
 Make `CS` the default coordinate system, so that [`GRAD`](@ref),
 [`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref) and
-[`print_tensor`](@ref) may be called with a single argument.
+[`pprint`](@ref) may be called with a single argument.
 
-`vec` and `coords` control how [`print_tensor`](@ref) names the basis vectors.
+`vec` and `coords` control how [`pprint`](@ref) names the basis vectors.
 The macro [`@set_coorsys`](@ref) is a thin wrapper over this function.
 
 !!! note "`∂` is deliberately not affected"
@@ -931,24 +931,24 @@ macro set_coorsys(CS = coorsys_cartesian(), vec = '𝐞', coords = nothing)
     end
 end
 
-# One-argument `print_tensor` uses the default chart when one is set, so that a
+# One-argument `pprint` uses the default chart when one is set, so that a
 # result prints with the chart's own coordinate names (`𝐞ʳ`, `𝐞ᶿ`, …) rather
 # than with numbered basis vectors. Without a default it falls through to the
 # generic method in `tens.jl`.
-function print_tensor(t::AbstractTens{order, dim, T}) where {order, dim, T <: SymType}
+function pprint(t::AbstractTens{order, dim, T}) where {order, dim, T <: SymType}
     CS = _DEFAULT_COORSYS[]
     (CS === nothing || get_dim(CS) != dim) &&
-        return print_tensor(t; vec = _DEFAULT_COORSYS_VEC[], coords = ntuple(i -> i, dim))
+        return pprint(t; vec = _DEFAULT_COORSYS_VEC[], coords = ntuple(i -> i, dim))
     coords = _DEFAULT_COORSYS_COORDS[]
     coords === nothing && (coords = string.(getcoords(CS)))
     length(coords) == dim - 1 && (coords = (coords..., dim))
-    return print_tensor(change_tens(t, normalized_basis(CS)); vec = _DEFAULT_COORSYS_VEC[], coords = coords)
+    return pprint(change_tens(t, normalized_basis(CS)); vec = _DEFAULT_COORSYS_VEC[], coords = coords)
 end
 
-function print_tensor(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '𝐞') where {order, dim, T}
+function pprint(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '𝐞') where {order, dim, T}
     coords = string.(getcoords(CS))
     ℬ = normalized_basis(CS)
-    return print_tensor(change_tens(t, ℬ); vec = vec, coords = coords)
+    return pprint(change_tens(t, ℬ); vec = vec, coords = coords)
 end
 
 export ∂, CoorSystemSym, Lame, Christoffel, nderiv

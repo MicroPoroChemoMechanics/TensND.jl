@@ -42,22 +42,22 @@ julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞
 
 julia> @set_coorsys Spherical
 
-julia> GRAD(𝐞ʳ) |> print_tensor
+julia> GRAD(𝐞ʳ) |> pprint
 (1/r)𝐞ᶿ⊗𝐞ᶿ + (1/r)𝐞ᵠ⊗𝐞ᵠ
 
-julia> DIV(𝐞ʳ ⊗ 𝐞ʳ) |> print_tensor
+julia> DIV(𝐞ʳ ⊗ 𝐞ʳ) |> pprint
 (2/r)𝐞ʳ
 
-julia> LAPLACE(1/r) |> print_tensor
+julia> LAPLACE(1/r) |> pprint
 0
 
 julia> f = SymFunction("f", real = true)
 f
 
-julia> DIV(f(r) * 𝐞ʳ ⊗ 𝐞ʳ) |> print_tensor
+julia> DIV(f(r) * 𝐞ʳ ⊗ 𝐞ʳ) |> pprint
 (Derivative(f(r), r) + 2*f(r)/r)𝐞ʳ
 
-julia> LAPLACE(f(r)) |> print_tensor
+julia> LAPLACE(f(r)) |> pprint
               d
  2          2⋅──(f(r))
 d             dr
@@ -67,10 +67,10 @@ dr
 
 julia> for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ") @eval $(Symbol(σⁱʲ)) = SymFunction($σⁱʲ, real = true)($r) end
 
-julia> 𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ ; print_tensor(𝛔)
+julia> 𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ ; pprint(𝛔)
 (σᶿᶿ(r))𝐞ᶿ⊗𝐞ᶿ + (σᵠᵠ(r))𝐞ᵠ⊗𝐞ᵠ + (σʳʳ(r))𝐞ʳ⊗𝐞ʳ
 
-julia> div𝛔 = tsimplify(DIV(𝛔)) ; print_tensor(div𝛔)
+julia> div𝛔 = tsimplify(DIV(𝛔)) ; pprint(div𝛔)
 ((-σᵠᵠ(r) + σᶿᶿ(r))/(r*tan(θ)))𝐞ᶿ + ((r*Derivative(σʳʳ(r), r) + 2*σʳʳ(r) - σᵠᵠ(r) - σᶿᶿ(r))/r)𝐞ʳ
 ```
 
@@ -116,12 +116,13 @@ The documentation is organized as a reading path:
 
 ## Release notes
 
-See [CHANGELOG.md](CHANGELOG.md). Two names changed in **v0.3.0**, both keeping deprecated aliases that forward:
+See [CHANGELOG.md](CHANGELOG.md). Three names have changed since v0.2.7, each keeping a deprecated alias that forwards:
 
-| Was | Is | Why |
-| :--- | :--- | :--- |
-| `Riemann(SM)` | `connection(SM)` | it returns the connection coefficients of the induced metric, never a Riemann curvature tensor |
-| `intrinsic(t)` | `print_tensor(t)` | what it prints is explicitly *basis dependent*, the opposite of intrinsic |
+| Was | Is | Since | Why |
+| :--- | :--- | :--- | :--- |
+| `Riemann(SM)` | `connection(SM)` | v0.3.0 | it returns the connection coefficients of the induced metric, never a Riemann curvature tensor |
+| `intrinsic(t)` | `pprint(t)` | v0.3.0 | what it prints is explicitly *basis dependent*, the opposite of intrinsic |
+| `print_tensor(t)` | `pprint(t)` | v0.3.1 | its fallback method accepts a **scalar**, so the name promised more than it delivered; `pprint` is the MPCM-wide name for a pretty-printer |
 
 `@set_coorsys` no longer defines methods — it stores the default chart, alongside the new `set_coorsys!`, `default_coorsys` and `unset_coorsys!`. As a consequence `∂(t, x)` always means the plain derivative with respect to the symbol `x`; the covariant derivative is `∂(t, x, CS)`.
 
@@ -135,7 +136,7 @@ If you use TensND.jl in your research, please cite it:
 @software{barthelemy_tensnd,
   author    = {Barth{\'e}l{\'e}my, Jean-Fran{\c{c}}ois},
   title     = {{TensND.jl}: Package allowing tensor calculations in arbitrary coordinate systems},
-  version   = {0.3.0},
+  version   = {0.3.1},
   doi       = {10.5281/zenodo.17985768},
   url       = {https://doi.org/10.5281/zenodo.17985768},
   publisher = {Zenodo},

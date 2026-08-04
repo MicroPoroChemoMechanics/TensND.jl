@@ -58,3 +58,42 @@
 
 
 end
+
+
+@testsection "pprint" begin
+    # `pprint` is the display entry point, renamed twice: `intrinsic` (through
+    # v0.2.7) → `print_tensor` (v0.3.0) → `pprint` (v0.3.1). Both former names
+    # must keep forwarding. `_pprint_string` is the formatting half, split out
+    # so the layout can be checked without capturing `stdout`.
+    S = coorsys_spherical()
+    𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(S)
+    θ, ϕ, r = getcoords(S)
+
+    # Expanded on the basis; a unit coefficient carries no parentheses, and
+    # zero components are dropped entirely.
+    t = 𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ
+    @test TensND._pprint_string(t; coords = ("θ", "ϕ", "r")) == "(2)𝐞ᶿ⊗𝐞ᶿ + 𝐞ʳ⊗𝐞ʳ"
+
+    # A vanishing tensor prints as `0`, not as an empty line.
+    @test TensND._pprint_string(t - t) == "0"
+
+    # `vec` renames the basis symbol, `coords` its indices. The index sits
+    # *above* because the components of `𝐞ʳ` are contravariant.
+    @test TensND._pprint_string(𝐞ʳ; vec = '𝐚', coords = (1, 2, 3)) == "𝐚³"
+
+    # The chart supplies the coordinate names, so the derived field reads in
+    # spherical notation rather than 𝐞₁, 𝐞₂, 𝐞₃.
+    g = change_tens(GRAD(𝐞ʳ, S), normalized_basis(S))
+    @test TensND._pprint_string(g; coords = ("θ", "ϕ", "r")) == "(1/r)𝐞ᶿ⊗𝐞ᶿ + (1/r)𝐞ᵠ⊗𝐞ᵠ"
+
+    # Every entry point returns `nothing` and writes to `stdout`; the two
+    # deprecated aliases resolve (a malformed `@deprecate` would be a
+    # `MethodError` here) — they emit a deprecation warning on stderr.
+    @test pprint(t, S) === nothing
+    @test print_tensor(t, S) === nothing
+    @test intrinsic(t, S) === nothing
+
+    # Fallback on a non-tensor: a scalar field, via the rich `text/plain`
+    # display rather than `println`.
+    @test pprint(LAPLACE(1 / r, S)) === nothing
+end

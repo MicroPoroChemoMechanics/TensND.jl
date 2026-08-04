@@ -403,7 +403,7 @@ for OP in (:show, :print, :display)
             return $OP(vecbasis(get_basis(t)))
         end
 
-        # Base.$OP(t::AbstractTens{order,dim,T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order,dim,T} = print_tensor(t; vec= vec, coords = coords)
+        # Base.$OP(t::AbstractTens{order,dim,T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order,dim,T} = pprint(t; vec= vec, coords = coords)
     end
 end
 
@@ -422,8 +422,8 @@ function Base.show(io::IO, M::MIME"text/latex", t::AbstractTens{4, dim, T}) wher
 end
 
 """
-    print_tensor(t::AbstractTens; vec = '𝐞', coords = 1:dim)
-    print_tensor(t::AbstractTens, CS::AbstractCoorSystem; vec = '𝐞')
+    pprint(t::AbstractTens; vec = '𝐞', coords = 1:dim)
+    pprint(t::AbstractTens, CS::AbstractCoorSystem; vec = '𝐞')
 
 Print `t` **expanded on its basis** — as a sum of basis products such as
 `(σʳʳ)𝐞ʳ⊗𝐞ʳ + (σᶿᶿ)𝐞ᶿ⊗𝐞ᶿ` — instead of as an array of components.
@@ -434,14 +434,16 @@ natural way to report a field computed in a curvilinear frame. Zero components
 are omitted, and a vanishing tensor prints as `0`.
 
 Passing a coordinate system names the basis vectors after its coordinates;
-[`@set_coorsys`](@ref) makes that the default, so `print_tensor(t)` alone then
+[`@set_coorsys`](@ref) makes that the default, so `pprint(t)` alone then
 prints `𝐞ʳ`, `𝐞ᶿ`, … rather than `𝐞₁`, `𝐞₂`, ….
 
-!!! note "Renamed from `intrinsic`"
-    The former name was misleading: what is printed is explicitly *basis
-    dependent* — it changes with the chart — whereas "intrinsic" denotes the
-    basis-free form. `intrinsic` still works and forwards here, with a
-    deprecation warning.
+!!! note "Formerly `intrinsic`, then `print_tensor`"
+    `intrinsic` was misleading: what is printed is explicitly *basis dependent*
+    — it changes with the chart — whereas "intrinsic" denotes the basis-free
+    form. `print_tensor` was misleading in turn, because the fallback below
+    accepts a **scalar**, and `pprint` is the name MPCM already uses for a
+    generic pretty-printer (`ChemistryLab.pprint`). Both former names still work
+    and forward here, with a deprecation warning.
 
 # Examples
 ```julia
@@ -449,17 +451,17 @@ julia> Spherical = coorsys_spherical() ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Sphe
 
 julia> @set_coorsys Spherical
 
-julia> print_tensor(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ)
-𝐞ʳ⊗𝐞ʳ + (2)𝐞ᶿ⊗𝐞ᶿ
+julia> pprint(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ)   # spherical coordinates are ordered (θ, ϕ, r)
+(2)𝐞ᶿ⊗𝐞ᶿ + 𝐞ʳ⊗𝐞ʳ
 ```
 
 Applied to anything that is **not** a tensor — a scalar field, typically, so
-that `LAPLACE(f(r)) |> print_tensor` works in a pipeline — it falls back to the
+that `LAPLACE(f(r)) |> pprint` works in a pipeline — it falls back to the
 rich `text/plain` display, which for a symbolic expression is SymPy's
 two-dimensional form:
 
 ```julia
-julia> LAPLACE(SymFunction("f", real = true)(r)) |> print_tensor
+julia> LAPLACE(SymFunction("f", real = true)(r)) |> pprint
               d
  2          2⋅──(f(r))
 d             dr
@@ -474,7 +476,7 @@ that makes the expanded form readable in the first place.
 
 See also [`get_array`](@ref), [`components`](@ref).
 """
-function print_tensor(t)
+function pprint(t)
     # The three-argument `show`, not `println`: SymPy's two-dimensional form is
     # reachable only through `MIME"text/plain"`, which is what the REPL calls.
     # `println` and `string` go through the two-argument `show` and give the
@@ -484,7 +486,13 @@ function print_tensor(t)
     return println()
 end
 
-function print_tensor(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}
+function pprint(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}
+    return println(_pprint_string(t; vec = vec, coords = coords))
+end
+
+# Formatting split from printing, so the layout can be tested against a string
+# instead of capturing `stdout`.
+function _pprint_string(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}
     ind = CartesianIndices(t)
     ℬ = get_basis(t)
     firstprint = true
@@ -508,11 +516,7 @@ function print_tensor(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntu
             firstprint = false
         end
     end
-    return if length(s) > 0
-        println(s)
-    else
-        println(0)
-    end
+    return length(s) > 0 ? s : "0"
 end
 
 
@@ -1657,10 +1661,12 @@ export proj_tens, best_sym_tens
 # package — the export was dead and `using TensND; arraytype` has always been
 # an UndefVarError, so removing it cannot break working code.
 export get_order, get_data, get_array, get_basis, get_var
-@deprecate intrinsic(t) print_tensor(t)
-@deprecate intrinsic(t, CS; kwargs...) print_tensor(t, CS; kwargs...)
+@deprecate intrinsic(t; kwargs...) pprint(t; kwargs...)
+@deprecate intrinsic(t, CS; kwargs...) pprint(t, CS; kwargs...)
+@deprecate print_tensor(t; kwargs...) pprint(t; kwargs...)
+@deprecate print_tensor(t, CS; kwargs...) pprint(t, CS; kwargs...)
 
-export print_tensor
+export pprint
 export components, components_canon, change_tens, change_tens_canon
 export diff_with_basis
 export KM, inv_KM
