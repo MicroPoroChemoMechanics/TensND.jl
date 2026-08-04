@@ -45,10 +45,21 @@ generates the scalar arithmetic and the symbolic passes from those two.
 Kelvin–Mandel picture. The orientation search lives in the weak-dependency
 extension `ext/TensNDNLoptExt.jl`, so `NLopt` is optional.
 
-**Differential calculus.** `coorsystems.jl` (symbolic) and
-`coorsystems_num.jl` (automatic differentiation) implement the same five
-operators against the same accessor interface. `submanifold.jl` restricts the
-construction to an embedded hypersurface.
+**Differential calculus.** The symbolic side is written **once**. `∂` and the
+five operators are defined in `coorsystems.jl` over `AbstractCoorSystem`, and
+the only thing a submanifold changes is how many directions it differentiates
+along — the [`nderiv`](@ref) trait, `dim` for a chart and `dim-1` for a surface.
+`submanifold.jl` therefore contains geometry and nothing else; it used to carry
+a verbatim copy of all six definitions, which is how one bug fix had to be
+applied twice and one variance bug survived in the copy.
+
+Both types hold the same internal `ChartCore` — position vector, coordinates, the
+two bases, the natural and dual frames, Lamé coefficients, connection array and
+simplification settings — and a submanifold adds only the two fundamental forms.
+
+`coorsystems_num.jl` keeps its own implementation, deliberately: its operators
+take a *field* and return a *function of the point*, a different evaluation
+model that a shared body would obscure rather than simplify.
 
 ## Two design decisions worth knowing
 

@@ -26,6 +26,47 @@ function _build_basis_vectors(normalized_basis::AbstractBasis{dim, T}, χᵢ::NT
 end
 
 """
+    ChartCore{dim,T,VEC,BNORM,BNAT}
+
+The geometry shared by every symbolic coordinate system: the position vector,
+the coordinates, the two bases, the natural and dual frames, the Lamé
+coefficients, the connection array, and the symbolic-simplification settings.
+
+Held by both [`CoorSystemSym`](@ref) and [`SubManifoldSym`](@ref) — which
+differ only in what they *add* to it (a submanifold adds the two fundamental
+forms) and in how many directions they differentiate along ([`nderiv`](@ref)).
+Declaring the block once is what keeps the two in step: it was previously
+duplicated field for field, and every fix to one had to be repeated in the
+other.
+
+Reached through [`core`](@ref); user code should go through the accessors
+([`getcoords`](@ref), [`Lame`](@ref), [`Christoffel`](@ref), …) instead.
+"""
+struct ChartCore{dim, T, VEC, BNORM, BNAT}
+    OM::VEC
+    coords::NTuple
+    normalized_basis::BNORM
+    natural_basis::BNAT
+    aᵢ::NTuple{dim}
+    χᵢ::NTuple{dim}
+    aⁱ::NTuple{dim}
+    eᵢ::NTuple{dim}
+    Γ::Array{T, 3}
+    tmp_coords::NTuple
+    params::NTuple
+    rules::Dict
+    tmp_var::Dict
+    to_coords::Dict
+end
+
+"""
+    core(CS::AbstractCoorSystem) → ChartCore
+
+The shared geometry block of `CS`. Internal: prefer the named accessors.
+"""
+core(CS::AbstractCoorSystem) = CS.core
+
+"""
     CoorSystemSym{dim,T,VEC,BNORM,BNAT}
 
 Curvilinear coordinate system with **exact symbolic** derivatives.
@@ -69,20 +110,7 @@ See [Adding a coordinate system](@ref dev-adding-coorsystem) for the recipe and
 [`coorsys_spheroidal`](@ref) for a worked example.
 """
 struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{dim, T}
-    OM::VEC
-    coords::NTuple{dim, T}
-    normalized_basis::BNORM
-    natural_basis::BNAT
-    aᵢ::NTuple{dim}
-    χᵢ::NTuple{dim}
-    aⁱ::NTuple{dim}
-    eᵢ::NTuple{dim}
-    Γ::Array{T, 3}
-    tmp_coords::NTuple
-    params::NTuple
-    rules::Dict
-    tmp_var::Dict
-    to_coords::Dict
+    core::ChartCore{dim, T, VEC, BNORM, BNAT}
     function CoorSystemSym(
             OM::VEC,
             coords::NTuple{dim, T},
@@ -106,20 +134,22 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
         )
         natural_basis = Basis(normalized_basis, χᵢ)
         return new{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
-            OM,
-            coords,
-            normalized_basis,
-            natural_basis,
-            aᵢ,
-            χᵢ,
-            aⁱ,
-            eᵢ,
-            Γ,
-            tmp_coords,
-            params,
-            rules,
-            tmp_var,
-            to_coords,
+            ChartCore{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
+                OM,
+                coords,
+                normalized_basis,
+                natural_basis,
+                aᵢ,
+                χᵢ,
+                aⁱ,
+                eᵢ,
+                Γ,
+                tmp_coords,
+                params,
+                rules,
+                tmp_var,
+                to_coords,
+            )
         )
     end
     function CoorSystemSym(
@@ -161,20 +191,22 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
         )
         natural_basis = Basis(normalized_basis, χᵢ)
         return new{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
-            OMc,
-            coords,
-            normalized_basis,
-            natural_basis,
-            aᵢ,
-            χᵢ,
-            aⁱ,
-            eᵢ,
-            Γ,
-            tmp_coords,
-            params,
-            rules,
-            tmp_var,
-            to_coords,
+            ChartCore{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
+                OMc,
+                coords,
+                normalized_basis,
+                natural_basis,
+                aᵢ,
+                χᵢ,
+                aⁱ,
+                eᵢ,
+                Γ,
+                tmp_coords,
+                params,
+                rules,
+                tmp_var,
+                to_coords,
+            )
         )
     end
 end
@@ -184,8 +216,8 @@ end
 # an `AbstractCoorSystem` and carries the very same fields, so the restriction
 # made `∂`/`GRAD`/`DIV`/`LAPLACE`/`HESS` on a submanifold fail with a
 # `MethodError` on `only_coords`.
-with_tmp_var(CS::AbstractCoorSystem, t) = length(CS.tmp_var) > 0 ? tsubs(t, CS.tmp_var...) : t
-only_coords(CS::AbstractCoorSystem, t) = length(CS.to_coords) > 0 ? tsubs(t, CS.to_coords...) : t
+with_tmp_var(CS::AbstractCoorSystem, t) = length(core(CS).tmp_var) > 0 ? tsubs(t, core(CS).tmp_var...) : t
+only_coords(CS::AbstractCoorSystem, t) = length(core(CS).to_coords) > 0 ? tsubs(t, core(CS).to_coords...) : t
 
 """
     getcoords(CS::AbstractCoorSystem) → NTuple
@@ -196,10 +228,22 @@ Coordinate symbols of `CS`, or the `i`-th one.
 Note the ordering of the spherical system, `(θ, ϕ, r)` and not `(r, θ, ϕ)`, so
 that `θ = ϕ = 0` reproduces the canonical basis in the canonical order.
 """
-getcoords(CS::AbstractCoorSystem) = CS.coords
+getcoords(CS::AbstractCoorSystem) = core(CS).coords
 getcoords(CS::AbstractCoorSystem, i::Integer) = getcoords(CS)[i]
 
 @pure get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
+
+"""
+    nderiv(CS::AbstractCoorSystem) → Int
+
+Number of independent differentiation directions of `CS`.
+
+`dim` for a chart of the whole space, `dim-1` for a [`SubManifoldSym`](@ref),
+which differentiates along its surface coordinates only. Every differential
+operator loops to `nderiv(CS)`, which is what lets a single implementation serve
+both.
+"""
+@pure nderiv(::AbstractCoorSystem{dim}) where {dim} = dim
 
 """
     getOM(CS::AbstractCoorSystem) → AbstractTens{1}
@@ -207,10 +251,10 @@ getcoords(CS::AbstractCoorSystem, i::Integer) = getcoords(CS)[i]
 Position vector of `CS` as a function of its coordinates — the map the natural
 basis, the Lamé coefficients and the Christoffel symbols are all derived from.
 """
-getOM(CS::AbstractCoorSystem) = CS.OM
+getOM(CS::AbstractCoorSystem) = core(CS).OM
 
-normalized_basis(CS::AbstractCoorSystem) = CS.normalized_basis
-natural_basis(CS::AbstractCoorSystem) = CS.natural_basis
+normalized_basis(CS::AbstractCoorSystem) = core(CS).normalized_basis
+natural_basis(CS::AbstractCoorSystem) = core(CS).natural_basis
 
 """
     Lame(CS::AbstractCoorSystem) → NTuple
@@ -226,7 +270,7 @@ return expressions; [`CoorSystemNum`](@ref) evaluates them at a point.
 
 See also [Curvilinear differential calculus](@ref th-curvilinear).
 """
-Lame(CS::AbstractCoorSystem) = CS.χᵢ
+Lame(CS::AbstractCoorSystem) = core(CS).χᵢ
 """
     Christoffel(CS::AbstractCoorSystem) → Array{T,3}
     Christoffel(CS::CoorSystemNum, x₀::AbstractVector) → Array{T,3}
@@ -243,16 +287,16 @@ partial derivative; every one of them vanishes exactly for a Cartesian chart.
 
 See also [`Lame`](@ref), [Curvilinear differential calculus](@ref th-curvilinear).
 """
-Christoffel(CS::AbstractCoorSystem) = CS.Γ
+Christoffel(CS::AbstractCoorSystem) = core(CS).Γ
 # simprules(t, CS::AbstractCoorSystem) = length(CS.rules) > 0 ? tsimplify(tsubs(tsimplify(t), CS.rules...)) : tsimplify(t)
-simprules(t, CS::AbstractCoorSystem) = length(CS.rules) > 0 ? tsubs(t, CS.rules...) : t
+simprules(t, CS::AbstractCoorSystem) = length(core(CS).rules) > 0 ? tsubs(t, core(CS).rules...) : t
 
-natvec(CS::AbstractCoorSystem, ::Val{:cov}) = CS.aᵢ
-natvec(CS::AbstractCoorSystem, ::Val{:cont}) = CS.aⁱ
+natvec(CS::AbstractCoorSystem, ::Val{:cov}) = core(CS).aᵢ
+natvec(CS::AbstractCoorSystem, ::Val{:cont}) = core(CS).aⁱ
 natvec(CS::AbstractCoorSystem, var = :cov) = natvec(CS, Val(var))
 natvec(CS::AbstractCoorSystem, i::Integer, var = :cov) = natvec(CS, var)[i]
 
-unitvec(CS::AbstractCoorSystem) = CS.eᵢ
+unitvec(CS::AbstractCoorSystem) = core(CS).eᵢ
 unitvec(CS::AbstractCoorSystem, i::Integer) = unitvec(CS)[i]
 
 function compute_Christoffel(coords, χ, γ, invγ)
@@ -299,7 +343,7 @@ Tens.TensRotated{2, 3, Sym, SymmetricTensor{2, 3, Sym, 6}}
 function ∂(
         t::AbstractTens{order, dim, T},
         i::Integer,
-        CS::CoorSystemSym{dim},
+        CS::AbstractCoorSystem{dim},
     ) where {order, dim, T <: SymType}
     t = only_coords(CS, t)
     ℬ = natural_basis(CS)
@@ -316,7 +360,7 @@ function ∂(
     return change_tens(Tens(simprules(data, CS), ℬ, var), normalized_basis(CS), var)
 end
 
-∂(t::T, i::Integer, CS::CoorSystemSym{dim, T}) where {dim, T <: SymType} =
+∂(t::T, i::Integer, CS::AbstractCoorSystem{dim}) where {dim, T <: SymType} =
     tdiff(only_coords(CS, t), getcoords(CS, i))
 
 # `T` stays coupled to the tensor here, unlike the other operators: loosening it
@@ -326,7 +370,7 @@ end
 function ∂(
         t::AbstractTens{order, dim, T},
         x::T,
-        CS::CoorSystemSym{dim},
+        CS::AbstractCoorSystem{dim},
     ) where {order, dim, T <: SymType}
     ind = findfirst(i -> i == x, getcoords(CS))
     return ind === nothing ? zero(t) : ∂(t, ind, CS)
@@ -335,7 +379,7 @@ end
 function ∂(
         t::T,
         x::T,
-        CS::CoorSystemSym{dim, T},
+        CS::AbstractCoorSystem{dim},
     ) where {dim, T <: SymType}
     ind = findfirst(i -> i == x, getcoords(CS))
     return ind === nothing ? zero(t) : ∂(t, ind, CS)
@@ -372,8 +416,8 @@ julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; GRAD(𝐞ʳ)   # = (𝐞�
 
 See also [`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref).
 """
-GRAD(t::Union{T, AbstractTens{order, dim}}, CS::CoorSystemSym{dim}) where {order, dim, T <: SymType} =
-    sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:dim])
+GRAD(t::Union{T, AbstractTens{order, dim}}, CS::AbstractCoorSystem{dim}) where {order, dim, T <: SymType} =
+    sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
 """
@@ -405,8 +449,8 @@ See also [`GRAD`](@ref), [`DIV`](@ref).
 """
 SYMGRAD(
     t::Union{T, AbstractTens{order, dim}},
-    CS::CoorSystemSym{dim},
-) where {order, dim, T <: SymType} = sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:dim])
+    CS::AbstractCoorSystem{dim},
+) where {order, dim, T <: SymType} = sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
 """
@@ -441,8 +485,8 @@ julia> simplify(DIV(𝛔)) # radial equilibrium operator
 
 See also [`GRAD`](@ref), [`LAPLACE`](@ref).
 """
-DIV(t::AbstractTens{order, dim, T}, CS::CoorSystemSym{dim}) where {order, dim, T <: SymType} =
-    sum([∂(t, i, CS) ⋅ natvec(CS, i, :cont) for i in 1:dim])
+DIV(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem{dim}) where {order, dim, T <: SymType} =
+    sum([∂(t, i, CS) ⋅ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
 """
@@ -470,7 +514,7 @@ See also [`GRAD`](@ref), [`DIV`](@ref), [`HESS`](@ref).
 """
 LAPLACE(
     t::Union{T, AbstractTens{order, dim}},
-    CS::CoorSystemSym{dim},
+    CS::AbstractCoorSystem{dim},
 ) where {order, dim, T <: SymType} = DIV(GRAD(t, CS), CS)
 
 """
@@ -497,7 +541,7 @@ julia> simplify(HESS(1/r))    # the kernel of the 3-D Laplace equation
 
 See also [`GRAD`](@ref), [`LAPLACE`](@ref).
 """
-HESS(t::Union{T, AbstractTens{order, dim}}, CS::CoorSystemSym{dim}) where {order, dim, T <: SymType} =
+HESS(t::Union{T, AbstractTens{order, dim}}, CS::AbstractCoorSystem{dim}) where {order, dim, T <: SymType} =
     GRAD(GRAD(t, CS), CS)
 
 """
@@ -907,7 +951,7 @@ function print_tensor(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; ve
     return print_tensor(change_tens(t, ℬ); vec = vec, coords = coords)
 end
 
-export ∂, CoorSystemSym, Lame, Christoffel
+export ∂, CoorSystemSym, Lame, Christoffel, nderiv
 export GRAD, SYMGRAD, DIV, LAPLACE, HESS
 export normalized_basis, natural_basis, natvec, unitvec, getcoords, getOM
 export coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal

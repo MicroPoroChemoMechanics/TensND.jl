@@ -5,6 +5,9 @@ lcov.info
 /Manifest.toml
 /docs/Manifest.toml
 /docs/build/
+/docs/generated_notebooks/
+/docs/generated_scripts/
+/build/
 
 .vscode/*
 

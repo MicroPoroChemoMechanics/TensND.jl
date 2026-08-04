@@ -105,7 +105,7 @@ If you use TensND.jl in your research, please cite it:
 @software{barthelemy_tensnd,
   author    = {Barth{\'e}l{\'e}my, Jean-Fran{\c{c}}ois},
   title     = {{TensND.jl}: Package allowing tensor calculations in arbitrary coordinate systems},
-  version   = {0.1.8},
+  version   = {0.3.0},
   doi       = {10.5281/zenodo.17985768},
   url       = {https://doi.org/10.5281/zenodo.17985768},
   publisher = {Zenodo},

@@ -1,5 +1,108 @@
 # Changelog
 
+## v0.3.0 — non-orthogonal charts fixed, documentation overhaul, two renames
+
+Minor bump rather than patch: two public names change (both keep deprecated
+aliases) and `@set_coorsys` no longer defines methods, which is observable.
+
+### Fixed
+
+- **Non-orthogonal coordinate systems were silently wrong.**
+  `_build_basis_vectors` exchanged the `:cov` and `:cont` variances, so
+  `natvec(CS, i, :cov)` returned the *dual* vector `𝐚ⁱ` instead of `∂OM/∂qⁱ`,
+  and `unitvec` likewise. On an orthogonal chart the two coincide, which is why
+  all five predefined systems and the whole test suite hid it; on `x = u+v²,
+  y = v` the Laplacian of a harmonic function came out nonzero. Charts really
+  are arbitrary now. Pinned by the `non-orthogonal charts` testset.
+
+- **`@set_coorsys` broke every subsequent coordinate-system construction.** It
+  `@eval`ed single-argument methods into the module, including one for
+  `∂(t, x)` that was more specific than the plain-derivative fallback. Since
+  `CoorSystemSym` and `SubManifoldSym` both differentiate a position vector
+  while being built, that method captured the call, failed to find the
+  coordinate among *its own*, returned `zero(t)`, and left the frame matrix
+  singular — `NonInvertibleMatrixError`. The default chart is now simply stored
+  (`set_coorsys!` / `default_coorsys` / `unset_coorsys!`) and the
+  single-argument operator methods are defined once. `∂(t, x)` keeps its single
+  meaning: the plain derivative.
+
+- **Automatic differentiation through `proj_tens` was impossible.**
+  `ForwardDiff.Dual <: Real` but not `<: AbstractFloat`, so the tolerant
+  symmetry predicates never applied to it; a few ulp of round-off made a
+  `Dual`-valued tensor look non-minor-symmetric, `_KM_of_array` built a `9×9`
+  matrix instead of a `6×6` one, and every call died with a
+  `DimensionMismatch`. Predicates now dispatch on `ApproxType`, which includes
+  `Dual`.
+
+- **`proj_tens(:ORTHO, A, frame)` returned `NaN` derivatives.** The material
+  frame was converted to the *field's* element type, so a `Float64` frame became
+  a `Dual` one with zero partials and `angles` evaluated its inverse
+  trigonometry at the gimbal-lock point of the canonical frame. The frame keeps
+  its own type.
+
+- **`CoorSystemNum` could not be differentiated with respect to a field
+  parameter.** The internal buffers took their element type from the Lamé
+  coefficients alone; they now promote with the field value.
+
+- **`show(::MIME"text/latex", ::AbstractTens{4})` threw for numeric tensors**
+  in any front-end requesting `text/latex` (Documenter, Jupyter). Restricted to
+  symbolic element types, which is what it was written for.
+
+- **`DIV(𝟏, CS)` was a `MethodError`**: `tens_Id2(Val(3), Val(Sym))` carries the
+  abstract `Sym` while a chart carries `Sym{PyCall.PyObject}`, and the operator
+  signatures forced the two to be identical. The field's element type and the
+  chart's are now independent.
+
+- `SubManifoldSym` carried a verbatim copy of the `CoorSystemSym` docstring, and
+  the `Tens` and `coorsys_cartesian` examples referenced undefined names.
+
+### Renamed
+
+- `Riemann(SM)` → **`connection(SM)`**. It returns the connection coefficients
+  (Christoffel symbols) of the induced metric — never a Riemann curvature
+  tensor.
+- `intrinsic(t)` → **`print_tensor(t)`**. What it prints is explicitly *basis
+  dependent*, which is the opposite of intrinsic.
+
+Both old names still work and forward, with a deprecation warning.
+
+### Removed
+
+- `arraytype` was exported but never defined anywhere; `using TensND;
+  arraytype` has always been an `UndefVarError`, so removing the export cannot
+  break working code.
+
+### Changed
+
+- The symbolic `∂` and the five differential operators are defined **once**,
+  over `AbstractCoorSystem`, parametrized by the new `nderiv` trait (`dim` for a
+  chart, `dim-1` for a submanifold). `submanifold.jl` used to duplicate all six
+  definitions verbatim.
+- `CoorSystemSym` and `SubManifoldSym` now share one internal `ChartCore` block
+  instead of declaring the same fourteen fields twice.
+- Surface indices (`1 … dim-1`) are written `α, β, γ` throughout the
+  documentation, ambient indices `i, j, k`.
+
+### Added
+
+- `set_coorsys!`, `default_coorsys`, `unset_coorsys!`, `nderiv`.
+- Documentation rebuilt on the MeanFieldHom model: 14 Theory pages, 11 Manual
+  pages, 16 Literate tutorials (each also a notebook and a standalone script),
+  3 Developer pages and 12 curated API pages, with `checkdocs = :exports` as a
+  guard. Bibliography expanded from 4 to 14 entries, every one verified against
+  Crossref — the previous `hoenig1979` DOI did not resolve.
+- Three chapters with no counterpart in the Echoes manual: bases and variance,
+  curvilinear differential calculus, submanifolds. A fourth, the
+  eight-dimensional axially invariant space behind `TensTI{4,T,8}`, appears in
+  no reference we know of.
+- `test/test_conventions.jl`: pins every convention the documentation asserts —
+  the Walpole identities (the widely repeated `𝕀 = Σᵢ𝕎ᵢ` and `𝕁 = 𝕎₁+𝕎₂` are
+  **false**), the Kelvin–Mandel congruence on a *rotated* frame, the operator
+  index placement, `GRAD(𝐧) = −𝐛`, and the classical operator identities on four
+  charts including a deliberately skew one.
+- `test/test_special_tens.jl` filled out: Levi-Civita, the `𝐞ᵖ/𝐞ᶜ/𝐞ˢ` frames,
+  every `init_*`, `rot2`/`rot3`/`rot6`.
+
 ## v0.2.6 — TensOrtho closed forms, basis-comparison fix, generic-conversion fix
 
 ### Added

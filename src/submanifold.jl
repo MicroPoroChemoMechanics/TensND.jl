@@ -63,22 +63,11 @@ See also [`CoorSystemSym`](@ref), [`normal`](@ref), [`submetric`](@ref),
 [`curvature`](@ref), [`connection`](@ref).
 """
 struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem{dim, Sym}
-    OM::VEC
-    coords::NTuple
-    normalized_basis::BNORM
-    natural_basis::BNAT
-    aᵢ::NTuple{dim}
-    χᵢ::NTuple{dim}
-    aⁱ::NTuple{dim}
-    eᵢ::NTuple{dim}
+    # The geometry shared with every chart lives in `core`; a submanifold adds
+    # only the two fundamental forms. See [`ChartCore`](@ref).
+    core::ChartCore{dim, Sym, VEC, BNORM, BNAT}
     a::TENSA
     b::TENSB
-    Γ::Array{Sym, 3}
-    tmp_coords::NTuple
-    params::NTuple
-    rules::Dict
-    tmp_var::Dict
-    to_coords::Dict
     function SubManifoldSym(
             OM::VEC,
             coords::NTuple{dimm1, Sym},
@@ -133,22 +122,24 @@ struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem
         bc = change_tens(b, (:cov, :cont))
         Γ = cat(Γ₁, reshape(-bc[1:(dim - 1), 1:dim], dim - 1, 1, dim), dims = 2)
         return new{dim, typeof(OM), typeof(normalized_basis), typeof(natural_basis), typeof(a), typeof(b)}(
-            OMc,
-            coords,
-            normalized_basis,
-            natural_basis,
-            aᵢ,
-            χᵢ,
-            aⁱ,
-            eᵢ,
+            ChartCore{dim, Sym, typeof(OM), typeof(normalized_basis), typeof(natural_basis)}(
+                OMc,
+                coords,
+                normalized_basis,
+                natural_basis,
+                aᵢ,
+                χᵢ,
+                aⁱ,
+                eᵢ,
+                Γ,
+                tmp_coords,
+                params,
+                rules,
+                tmp_var,
+                to_coords,
+            ),
             a,
             b,
-            Γ,
-            tmp_coords,
-            params,
-            rules,
-            tmp_var,
-            to_coords,
         )
     end
 end
@@ -239,104 +230,21 @@ and [`submetric`](@ref).
 
 See also [`SubManifoldSym`](@ref), [`Christoffel`](@ref), [`curvature`](@ref).
 """
-connection(SM::SubManifoldSym{dim}) where {dim} = SM.Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
+connection(SM::SubManifoldSym{dim}) where {dim} = core(SM).Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
 
 @deprecate Riemann(SM::SubManifoldSym) connection(SM)
 
-function ∂(
-        t::AbstractTens{order, dim, T},
-        i::Integer,
-        SM::SubManifoldSym{dim},
-    ) where {order, dim, T <: SymType}
-    t = only_coords(SM, t)
-    ℬ = natural_basis(SM)
-    var = ntuple(_ -> :cont, order)
-    t = Array(components(t, ℬ, var))
-    Γ = Christoffel(SM)
-    data = tdiff(t, getcoords(SM, i))
-    for o in 1:order
-        ec1 = ntuple(j -> j == o ? order + 1 : j, order)
-        ec2 = (order + 1, o)
-        ec3 = ntuple(j -> j, order)
-        data += einsum(EinCode((ec1, ec2), ec3), (t, view(Γ, i, :, :)))
-    end
-    return change_tens(Tens(simprules(data, SM), ℬ, var), normalized_basis(SM), var)
-end
-
-∂(t::SymType, i::Integer, SM::SubManifoldSym{dim}) where {dim} =
-    tdiff(only_coords(SM, t), getcoords(SM, i))
-
-function ∂(
-        t::AbstractTens{order, dim, T},
-        x::SymType,
-        SM::SubManifoldSym{dim},
-    ) where {order, dim, T <: SymType}
-    ind = findfirst(i -> i == x, getcoords(SM))
-    return isnothing(ind) ? zero(t) : ∂(t, ind, SM)
-end
-
-function ∂(
-        t::SymType,
-        x::SymType,
-        SM::SubManifoldSym{dim},
-    ) where {dim}
-    ind = findfirst(i -> i == x, getcoords(SM))
-    return isnothing(ind) ? zero(t) : ∂(t, ind, SM)
-end
-
-"""
-    GRAD(T::Union{Sym,AbstractTens{order,dim,Sym}},SM::SubManifoldSym{dim}) where {order,dim}
-
-Calculate the gradient of `T` with respect to the coordinate system `SM`
-"""
-GRAD(
-    t::Union{T, AbstractTens{order, dim, T}},
-    SM::SubManifoldSym{dim},
-) where {order, dim, T <: SymType} =
-    sum([∂(t, i, SM) ⊗ natvec(SM, i, :cont) for i in 1:(dim - 1)])
-
-
-"""
-    SYMGRAD(T::Union{Sym,AbstractTens{order,dim,Sym}},SM::SubManifoldSym{dim}) where {order,dim}
-
-Calculate the symmetrized gradient of `T` with respect to the coordinate system `SM`
-"""
-SYMGRAD(
-    t::Union{T, AbstractTens{order, dim, T}},
-    SM::SubManifoldSym{dim},
-) where {order, dim, T <: SymType} =
-    sum([∂(t, i, SM) ⊗ˢ natvec(SM, i, :cont) for i in 1:(dim - 1)])
-
-"""
-    DIV(T::AbstractTens{order,dim,Sym},SM::SubManifoldSym{dim}) where {order,dim}
-
-Calculate the divergence  of `T` with respect to the coordinate system `SM`
-"""
-DIV(
-    t::AbstractTens{order, dim, T},
-    SM::SubManifoldSym{dim},
-) where {order, dim, T <: SymType} =
-    sum([∂(t, i, SM) ⋅ natvec(SM, i, :cont) for i in 1:(dim - 1)])
-
-"""
-    LAPLACE(T::Union{Sym,AbstractTens{order,dim,Sym}},SM::SubManifoldSym{dim}) where {order,dim}
-
-Calculate the Laplace operator of `T` with respect to the coordinate system `SM`
-"""
-LAPLACE(
-    t::Union{T, AbstractTens{order, dim, T}},
-    SM::SubManifoldSym{dim},
-) where {order, dim, T <: SymType} = DIV(GRAD(t, SM), SM)
-
-"""
-    HESS(T::Union{Sym,AbstractTens{order,dim,Sym}},SM::SubManifoldSym{dim}) where {order,dim}
-
-Calculate the Hessian of `T` with respect to the coordinate system `SM`
-"""
-HESS(
-    t::Union{T, AbstractTens{order, dim, T}},
-    SM::SubManifoldSym{dim},
-) where {order, dim, T <: SymType} = GRAD(GRAD(t, SM), SM)
+# ── Differentiation directions ───────────────────────────────────────────────
+#
+# A submanifold differentiates along its own `dim-1` surface coordinates, not
+# along the `dim` ambient ones. That single number is the *only* difference
+# between the symbolic operators here and those of a chart, so `∂`, `GRAD`,
+# `SYMGRAD`, `DIV`, `LAPLACE` and `HESS` are defined once in `coorsystems.jl`
+# over `AbstractCoorSystem` and parametrized by `nderiv`. They used to be
+# duplicated verbatim in this file — which is how the `∂coord` fix had to be
+# applied twice, and how the covariant/contravariant swap survived here after
+# being fixed for charts.
+nderiv(::SubManifoldSym{dim}) where {dim} = dim - 1
 
 export SubManifoldSym
 export normal, submetric, curvature, connection, Riemann

@@ -24,6 +24,7 @@ normalized_basis
 natural_basis
 Lame
 Christoffel
+nderiv
 coorsys_cartesian
 coorsys_polar
 coorsys_cylindrical
