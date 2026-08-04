@@ -43,18 +43,17 @@ R = symbols("R", positive = true)
 θ = symbols("θ", positive = true)
 ϕ = symbols("ϕ", real = true)
 z = symbols("z", real = true)
-
-polar_rules = Dict(abs(sin(θ)) => sin(θ))
 ````
 
 ## The sphere
 
-The classical umbilical surface: every direction curves identically.
+The classical umbilical surface: every direction curves identically. The
+rewrite `|sinθ| => sinθ` is passed straight to the constructor.
 
 ````@example submanifolds
 Sphere = SubManifoldSym(
     Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,);
-    rules = polar_rules,
+    rules = Dict(abs(sin(θ)) => sin(θ)),
 )
 ````
 
