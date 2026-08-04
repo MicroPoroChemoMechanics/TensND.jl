@@ -557,7 +557,16 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}, frame::OrthonormalBasi
 
     # Compute KM of A and rotate to material frame
     C_KM = _KM_of_array(A)
-    angs = angles(Matrix{T}(vecbasis(frame, :cov)), Val(3))
+    # Recover the Euler angles in the *frame's own* element type, not in `T`.
+    # The material frame is geometry supplied by the caller, not a differentiated
+    # quantity: forcing it to `T` turned a plain `Float64` frame into a `Dual` one
+    # with zero partials, and `angles` then evaluated its inverse trigonometry at
+    # the gimbal-lock point (θ = 0 for the canonical frame), where the derivative
+    # is infinite. The zero partials multiplied that infinity into `NaN`, so every
+    # ForwardDiff pass through an ORTHO projection returned `NaN`. Keeping the
+    # frame's own type leaves the angles exact and lets the promotion happen in the
+    # matrix products below, where it belongs.
+    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
     P₆ = _KM_rotation(angs.θ, angs.ϕ, angs.ψ)
     C_rot = P₆' * C_KM * P₆
 
@@ -599,7 +608,16 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}, frame::OrthonormalBasi
     end
 
     # Rotate to material frame
-    angs = angles(Matrix{T}(vecbasis(frame, :cov)), Val(3))
+    # Recover the Euler angles in the *frame's own* element type, not in `T`.
+    # The material frame is geometry supplied by the caller, not a differentiated
+    # quantity: forcing it to `T` turned a plain `Float64` frame into a `Dual` one
+    # with zero partials, and `angles` then evaluated its inverse trigonometry at
+    # the gimbal-lock point (θ = 0 for the canonical frame), where the derivative
+    # is infinite. The zero partials multiplied that infinity into `NaN`, so every
+    # ForwardDiff pass through an ORTHO projection returned `NaN`. Keeping the
+    # frame's own type leaves the angles exact and lets the promotion happen in the
+    # matrix products below, where it belongs.
+    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
     R = _rot3_raw(angs.θ, angs.ϕ, angs.ψ)
     M_rot = R' * A * R
 
@@ -760,7 +778,7 @@ eigendecomposition of `A` and check the residual.  With
 `optimize_angles=true`, runs the NLopt-backed axis search — requires
 `using NLopt`.
 
-See also [`is_TI(A, n)`](@ref), [`_candidate_TI_axis`](@ref).
+See also [`is_TI(A, n)`](@ref), `_candidate_TI_axis`.
 """
 function is_TI(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
     if optimize_angles

@@ -1,41 +1,6 @@
 abstract type AbstractCoorSystem{dim, T <: Number} <: Any end
 
 
-"""
-    CoorSystemSym(OM::AbstractTens{1,dim,Sym},coords::NTuple{dim,Sym},bnorm::AbstractBasis{dim,Sym},χᵢ::NTuple{dim},
-                  tmp_coords::NTuple = (),params::NTuple = ();rules::Dict = Dict(),tmp_var::Dict = Dict(),to_coords::Dict = Dict()) where {dim}
-    CoorSystemSym(OM::AbstractTens{1,dim,Sym},coords::NTuple{dim,Sym},
-                  tmp_coords::NTuple = (),params::NTuple = ();rules::Dict = Dict(),tmp_var::Dict = Dict(),to_coords::Dict = Dict()) where {dim}
-
-Define a new coordinate system either from
-1. the position vector `OM`, the coordinates `coords`, the basis of unit vectors (`𝐞ᵢ`) `bnorm` and the Lamé coefficients `χᵢ`
-
-    In this case the natural basis is formed by the vectors `𝐚ᵢ = χᵢ 𝐞ᵢ` directly calculated from the input data.
-
-1. or the position vector `OM` and the coordinates `coords`
-
-    In this case the natural basis is formed by the vectors `𝐚ᵢ = ∂ᵢOM` i.e. by the derivative of the position vector with respect to the `iᵗʰ` coordinate
-
-Optional parameters can be provided:
-- `tmp_coords` contains temporary variables depending on coordinates (in order to allow symbolic simplifications)
-- `params` contains possible parameters involved in `OM`
-- `rules` contains a `Dict` with substitution rules to facilitate the simplification of formulas
-- `tmp_var` contains a `Dict` with substitution of coordinates by temporary variables
-- `to_coords` indicates how to eliminate the temporary variables to come back to the actual coordinates before derivation for Examples
-
-# Examples
-```julia
-julia> ϕ, p = symbols("ϕ p", real = true) ;
-
-julia> p̄, q, q̄, c = symbols("p̄ q q̄ c", positive = true) ;
-
-julia> coords = (ϕ, p, q) ; tmp_coords = (p̄, q̄) ; params = (c,) ;
-
-julia> OM = Tens(c * [p̄ * q̄ * cos(ϕ), p̄ * q̄ * sin(ϕ), p * q]) ;
-
-julia> Spheroidal = CoorSystemSym(OM, coords, tmp_coords, params; tmp_var = Dict(1-p^2 => p̄^2, q^2-1 => q̄^2), to_coords = Dict(p̄ => √(1-p^2), q̄ => √(q^2-1))) ;
-```
-"""
 # Build the canonical basis vectors (eᵢ), natural covariant (aᵢ) and
 # contravariant (aⁱ) vectors from the normalized basis and Lamé coefficients.
 function _build_basis_vectors(normalized_basis::AbstractBasis{dim, T}, χᵢ::NTuple{dim}) where {dim, T}
@@ -54,6 +19,49 @@ function _build_basis_vectors(normalized_basis::AbstractBasis{dim, T}, χᵢ::NT
     return eᵢ, aᵢ, aⁱ
 end
 
+"""
+    CoorSystemSym{dim,T,VEC,BNORM,BNAT}
+
+Curvilinear coordinate system with **exact symbolic** derivatives.
+
+Stores the position vector, the coordinate symbols, the natural and normalized
+bases, the Lamé coefficients and the Christoffel symbols as expressions, so the
+differential operators [`GRAD`](@ref), [`SYMGRAD`](@ref), [`DIV`](@ref),
+[`LAPLACE`](@ref) and [`HESS`](@ref) return closed-form results valid
+everywhere, not values at a point.
+
+Predefined systems: [`coorsys_cartesian`](@ref), [`coorsys_polar`](@ref),
+[`coorsys_cylindrical`](@ref), [`coorsys_spherical`](@ref),
+[`coorsys_spheroidal`](@ref). [`@set_coorsys`](@ref) makes one the default so
+the operators take a single argument.
+
+For pointwise evaluation by automatic differentiation, use
+[`CoorSystemNum`](@ref) instead; the operators have the same names and meaning.
+
+# Construction
+
+    CoorSystemSym(OM, coords, tmp_coords = (), params = ();
+                  rules = Dict(), tmp_var = Dict(), to_coords = Dict())
+    CoorSystemSym(OM, coords, bnorm, χᵢ, tmp_coords = (), params = (); ...)
+
+The first form derives the natural basis from `𝐚ᵢ = ∂ᵢOM`; the second takes the
+normalized basis and the Lamé coefficients directly, which is much faster when
+they are known in closed form.
+
+The optional arguments drive symbolic simplification, without which a
+non-trivial chart produces correct but unusable nested radicals:
+
+| Argument | Role |
+|:--|:--|
+| `tmp_coords` | auxiliary symbols standing for compound expressions |
+| `params` | constants appearing in `OM` |
+| `tmp_var` | substitutions replacing expressions by those symbols |
+| `to_coords` | how to eliminate them again before differentiating |
+| `rules` | rewrite rules applied after each simplification |
+
+See [Adding a coordinate system](@ref dev-adding-coorsystem) for the recipe and
+[`coorsys_spheroidal`](@ref) for a worked example.
+"""
 struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{dim, T}
     OM::VEC
     coords::NTuple{dim, T}
@@ -120,7 +128,19 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
         simp(t) = length(rules) > 0 ? tsimplify(tsubs(t, rules...)) : tsimplify(t)
         chvar(t, d) = length(d) > 0 ? tsubs(t, d...) : t
         OMc = chvar(OM, to_coords)
-        aᵢ = ntuple(i -> simp(chvar(∂(OMc, coords[i]), tmp_var)), dim)
+        # Plain componentwise derivative of the position vector — deliberately
+        # NOT the two-argument `∂`.
+        #
+        # `@set_coorsys` installs a method `∂(::AbstractTens, ::Sym)` bound to
+        # whatever system was made the default, and it is more specific than the
+        # variadic fallback, so it wins here. It then looks `coords[i]` up among
+        # *its own* coordinates, does not find it, and returns `zero(t)`: every
+        # natural vector comes out null, the frame matrix is singular, and the
+        # constructor dies with `NonInvertibleMatrixError`. In other words,
+        # building any new coordinate system after a `@set_coorsys` used to
+        # fail. `SubManifoldSym` carries the same fix.
+        ∂coord(t, xᵢ) = change_tens(Tens(tdiff(components_canon(t), xᵢ)), get_basis(t), get_var(t))
+        aᵢ = ntuple(i -> simp(chvar(∂coord(OMc, coords[i]), tmp_var)), dim)
         χᵢ = ntuple(i -> simp(norm(aᵢ[i])), dim)
         eᵢ = ntuple(i -> simp(aᵢ[i] / χᵢ[i]), dim)
         χᵢ = ntuple(i -> simp(chvar(χᵢ[i], to_coords)), dim)
@@ -161,17 +181,62 @@ end
 with_tmp_var(CS::AbstractCoorSystem, t) = length(CS.tmp_var) > 0 ? tsubs(t, CS.tmp_var...) : t
 only_coords(CS::AbstractCoorSystem, t) = length(CS.to_coords) > 0 ? tsubs(t, CS.to_coords...) : t
 
+"""
+    getcoords(CS::AbstractCoorSystem) → NTuple
+    getcoords(CS::AbstractCoorSystem, i::Integer)
+
+Coordinate symbols of `CS`, or the `i`-th one.
+
+Note the ordering of the spherical system, `(θ, ϕ, r)` and not `(r, θ, ϕ)`, so
+that `θ = ϕ = 0` reproduces the canonical basis in the canonical order.
+"""
 getcoords(CS::AbstractCoorSystem) = CS.coords
 getcoords(CS::AbstractCoorSystem, i::Integer) = getcoords(CS)[i]
 
 @pure get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
 
+"""
+    getOM(CS::AbstractCoorSystem) → AbstractTens{1}
+
+Position vector of `CS` as a function of its coordinates — the map the natural
+basis, the Lamé coefficients and the Christoffel symbols are all derived from.
+"""
 getOM(CS::AbstractCoorSystem) = CS.OM
 
 normalized_basis(CS::AbstractCoorSystem) = CS.normalized_basis
 natural_basis(CS::AbstractCoorSystem) = CS.natural_basis
 
+"""
+    Lame(CS::AbstractCoorSystem) → NTuple
+    Lame(CS::CoorSystemNum, x₀::AbstractVector) → Vector
+
+Lamé coefficients `χᵢ = ‖𝐚ᵢ‖`, the norms of the natural basis vectors.
+
+They relate the natural and normalized bases, `𝐞ᵢ = 𝐚ᵢ/χᵢ`, and for an
+orthogonal system give the line element `ds² = Σᵢ χᵢ² (dqⁱ)²`. Symbolic systems
+return expressions; [`CoorSystemNum`](@ref) evaluates them at a point.
+
+`Lame(coorsys_spherical())` is `(r, r sin(θ), 1)`.
+
+See also [Curvilinear differential calculus](@ref th-curvilinear).
+"""
 Lame(CS::AbstractCoorSystem) = CS.χᵢ
+"""
+    Christoffel(CS::AbstractCoorSystem) → Array{T,3}
+    Christoffel(CS::CoorSystemNum, x₀::AbstractVector) → Array{T,3}
+
+Christoffel symbols of `CS`, `Γᵏᵢⱼ = ∂ᵢ𝐚ⱼ ⋅ 𝐚ᵏ`, symmetric in `(i,j)`.
+
+!!! note "Storage convention"
+    The array is indexed `Γ[i,j,k]` `= Γᵏᵢⱼ` — the **contravariant index last**.
+    The same convention is used by the `Γ_func` closure of
+    [`CoorSystemNum`](@ref).
+
+They are what distinguishes a derivative on a curvilinear chart from a plain
+partial derivative; every one of them vanishes exactly for a Cartesian chart.
+
+See also [`Lame`](@ref), [Curvilinear differential calculus](@ref th-curvilinear).
+"""
 Christoffel(CS::AbstractCoorSystem) = CS.Γ
 # simprules(t, CS::AbstractCoorSystem) = length(CS.rules) > 0 ? tsimplify(tsubs(tsimplify(t), CS.rules...)) : tsimplify(t)
 simprules(t, CS::AbstractCoorSystem) = length(CS.rules) > 0 ? tsubs(t, CS.rules...) : t
@@ -267,18 +332,66 @@ function ∂(
 end
 
 """
-    GRAD(t::Union{t,AbstractTens{order,dim,T}},CS::CoorSystemSym{dim}) where {order,dim,T<:Number}
+    GRAD(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
-Calculate the gradient of `t` with respect to the coordinate system `CS`
+Gradient of the scalar or tensor field `t` with respect to the coordinate
+system `CS`, raising the order by one:
+
+    GRAD(t) = Σᵢ ∂ᵢt ⊗ 𝐚ⁱ
+
+!!! note "The derivative index comes last"
+    The dual natural vector `𝐚ⁱ` is appended **on the right**, so for a vector
+    field `𝐯` the components of `GRAD(𝐯)` are `(∇𝐯)ᵢⱼ = ∂ⱼvᵢ`. This is the
+    convention that makes [`DIV`](@ref) the contraction of the *last* index and
+    `LAPLACE = DIV ∘ GRAD` come out right; a library using the opposite
+    convention differs by a transpose.
+
+If `CS` has been made the default with [`@set_coorsys`](@ref), the second
+argument may be omitted.
+
+# Examples
+```julia
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
+
+julia> @set_coorsys Spherical
+
+julia> GRAD(r)          # = 𝐞ʳ
+
+julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; GRAD(𝐞ʳ)   # = (𝐞ᶿ⊗𝐞ᶿ + 𝐞ᵠ⊗𝐞ᵠ)/r
+```
+
+See also [`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref).
 """
 GRAD(t::Union{T, AbstractTens{order, dim, T}}, CS::CoorSystemSym{dim, T}) where {order, dim, T <: SymType} =
     sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:dim])
 
 
 """
-    SYMGRAD(t::Union{T,AbstractTens{order,dim,T}},CS::CoorSystemSym{dim}) where {order,dim,T<:Number}
+    SYMGRAD(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
-Calculate the symmetrized gradient of `T` with respect to the coordinate system `CS`
+Symmetrized gradient of `t` with respect to the coordinate system `CS`:
+
+    SYMGRAD(t) = Σᵢ ∂ᵢt ⊗ˢ 𝐚ⁱ
+
+Applied to a displacement field this is the linearized strain tensor,
+`𝛆 = (∇𝛏 + ᵗ∇𝛏)/2`, which is why it is a primitive rather than a composition of
+[`GRAD`](@ref) and a transpose.
+
+If `CS` has been made the default with [`@set_coorsys`](@ref), the second
+argument may be omitted.
+
+# Examples
+```julia
+julia> Cylindrical = coorsys_cylindrical() ; r, θ, z = getcoords(Cylindrical) ;
+
+julia> 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; @set_coorsys Cylindrical
+
+julia> 𝛏 = SymFunction("ξʳ", real = true)(r, z) * 𝐞ʳ + SymFunction("ξᶻ", real = true)(r, z) * 𝐞ᶻ ;
+
+julia> SYMGRAD(𝛏)       # axisymmetric strain tensor, with εᶿᶿ = ξʳ/r
+```
+
+See also [`GRAD`](@ref), [`DIV`](@ref).
 """
 SYMGRAD(
     t::Union{T, AbstractTens{order, dim, T}},
@@ -287,18 +400,63 @@ SYMGRAD(
 
 
 """
-    DIV(t::AbstractTens{order,dim,Sym},CS::CoorSystemSym{dim}) where {order,dim,T<:Number}
+    DIV(t::AbstractTens{order,dim,T}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
-Calculate the divergence  of `T` with respect to the coordinate system `CS`
+Divergence of the tensor field `t` (of order ≥ 1) with respect to the coordinate
+system `CS`, lowering the order by one:
+
+    DIV(t) = Σᵢ ∂ᵢt ⋅ 𝐚ⁱ
+
+!!! note "The contracted index is the last one"
+    Consistently with [`GRAD`](@ref), the contraction acts on the **last** index
+    of `t`: for an order-2 field, `DIV(𝛔)ᵢ = ∂ⱼσᵢⱼ`. For a symmetric field such
+    as a stress tensor the distinction is immaterial, but it is not for a general
+    order-2 field.
+
+If `CS` has been made the default with [`@set_coorsys`](@ref), the second
+argument may be omitted.
+
+# Examples
+```julia
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
+
+julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; @set_coorsys Spherical
+
+julia> DIV(𝐞ʳ)          # = 2/r
+
+julia> 𝛔 = SymFunction("σʳʳ", real = true)(r) * 𝐞ʳ ⊗ 𝐞ʳ ;
+
+julia> simplify(DIV(𝛔)) # radial equilibrium operator
+```
+
+See also [`GRAD`](@ref), [`LAPLACE`](@ref).
 """
 DIV(t::AbstractTens{order, dim, T}, CS::CoorSystemSym{dim, T}) where {order, dim, T <: SymType} =
     sum([∂(t, i, CS) ⋅ natvec(CS, i, :cont) for i in 1:dim])
 
 
 """
-    LAPLACE(t::Union{Sym,AbstractTens{order,dim,Sym}},CS::CoorSystemSym{dim}) where {order,dim,T<:Number}
+    LAPLACE(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
-Calculate the Laplace operator of `T` with respect to the coordinate system `CS`
+Laplacian of the scalar or tensor field `t`, defined as the composition
+
+    LAPLACE(t) = DIV(GRAD(t))
+
+and therefore preserving the order of `t`.
+
+If `CS` has been made the default with [`@set_coorsys`](@ref), the second
+argument may be omitted.
+
+# Examples
+```julia
+julia> Polar = coorsys_polar() ; r, θ = getcoords(Polar) ; @set_coorsys Polar
+
+julia> LAPLACE(SymFunction("f", real = true)(r, θ))   # the polar Laplacian
+
+julia> n = symbols("n", integer = true) ; simplify(LAPLACE(r^n * cos(n*θ)))   # = 0
+```
+
+See also [`GRAD`](@ref), [`DIV`](@ref), [`HESS`](@ref).
 """
 LAPLACE(
     t::Union{T, AbstractTens{order, dim, T}},
@@ -306,9 +464,28 @@ LAPLACE(
 ) where {order, dim, T <: SymType} = DIV(GRAD(t, CS), CS)
 
 """
-    HESS(t::Union{Sym,AbstractTens{order,dim,Sym}},CS::CoorSystemSym{dim}) where {order,dim,T<:Number}
+    HESS(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
-Calculate the Hessian of `T` with respect to the coordinate system `CS`
+Hessian of `t`, defined as the second gradient
+
+    HESS(t) = GRAD(GRAD(t))
+
+and therefore raising the order of `t` by two. For a scalar field the trace of
+`HESS(t)` is [`LAPLACE`](@ref)`(t)`.
+
+If `CS` has been made the default with [`@set_coorsys`](@ref), the second
+argument may be omitted.
+
+# Examples
+```julia
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
+
+julia> @set_coorsys Spherical
+
+julia> simplify(HESS(1/r))    # the kernel of the 3-D Laplace equation
+```
+
+See also [`GRAD`](@ref), [`LAPLACE`](@ref).
 """
 HESS(t::Union{T, AbstractTens{order, dim, T}}, CS::CoorSystemSym{dim, T}) where {order, dim, T <: SymType} =
     GRAD(GRAD(t, CS), CS)
@@ -316,26 +493,31 @@ HESS(t::Union{T, AbstractTens{order, dim, T}}, CS::CoorSystemSym{dim, T}) where 
 """
     coorsys_cartesian(coords = symbols("x y z", real = true))
 
-Return the cartesian coordinate system
+Return the cartesian coordinate system, in which the natural and normalized
+bases both coincide with the canonical one and all Christoffel symbols vanish.
 
 # Examples
+
+The divergence of a general symmetric order-2 field, which in cartesian
+coordinates reduces to the plain sum of partial derivatives:
+
 ```julia
-julia> Cartesian = coorsys_cartesian() ; 𝐗 = getcoords(Cartesian) ; 𝐄 = unitvec(Cartesian) ; ℬ = get_basis(Cartesian)
+julia> Cartesian = coorsys_cartesian() ; 𝐗 = getcoords(Cartesian) ;
+
+julia> ℬ = normalized_basis(Cartesian) ;
 
 julia> 𝛔 = Tens(SymmetricTensor{2,3}((i, j) -> SymFunction("σ\$i\$j", real = true)(𝐗...))) ;
 
-julia> DIV(𝛔, CScar)
-Tens.TensCanonical{1, 3, Sym, Vec{3, Sym}}
-# data: 3-element Vec{3, Sym}:
+julia> get_array(DIV(𝛔, Cartesian))
  Derivative(σ11(x, y, z), x) + Derivative(σ21(x, y, z), y) + Derivative(σ31(x, y, z), z)
  Derivative(σ21(x, y, z), x) + Derivative(σ22(x, y, z), y) + Derivative(σ32(x, y, z), z)
  Derivative(σ31(x, y, z), x) + Derivative(σ32(x, y, z), y) + Derivative(σ33(x, y, z), z)
-# basis: 3×3 Tens.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# var: (:cont,)
-``` 
+```
+
+which is `DIV(𝛔)ᵢ = ∂ⱼσᵢⱼ`.
+
+See also [`coorsys_polar`](@ref), [`coorsys_cylindrical`](@ref),
+[`coorsys_spherical`](@ref), [`@set_coorsys`](@ref).
 """
 function coorsys_cartesian(coords::NTuple{dim, T} = symbols("x y z", real = true)) where {dim, T <: SymType}
     𝐗, 𝐄, ℬ = init_cartesian(coords)

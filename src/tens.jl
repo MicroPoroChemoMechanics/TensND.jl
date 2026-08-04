@@ -1,6 +1,41 @@
+"""
+    AbstractTens{order,dim,T}
+
+Supertype of every tensor in `TensND`: a tensor of a given `order` and `dim`,
+with element type `T`.
+
+A tensor is **not** an array. It is an array of components *together with* the
+basis those components refer to and the variance of each index, which is what
+lets tensors expressed in different frames be combined, and what makes comparing
+raw component arrays meaningless. See
+[Bases and variance](@ref th-bases-variance).
+
+The concrete subtypes fall in two families:
+
+| Family | Types | Stores |
+|:--|:--|:--|
+| general | [`Tens`](@ref), `TensRotated`, `TensCanonical`, `TensOrthogonal` | a full component array |
+| structured | [`TensISO`](@ref), [`TensTI`](@ref), [`TensOrtho`](@ref) | a few scalars plus an orientation |
+
+The type follows the basis: only the non-orthonormal cases carry a variance
+tuple. Accessors common to all of them are [`get_order`](@ref),
+[`get_dim`](@ref), [`get_basis`](@ref), [`get_var`](@ref), [`get_data`](@ref)
+and [`get_array`](@ref).
+"""
 abstract type AbstractTens{order, dim, T <: Number} <: AbstractArray{T, order} end
 
+"""
+    get_order(t::AbstractTens) → Int
+
+Order (number of indices) of `t`.
+"""
 @pure get_order(::AbstractTens{order, dim, T}) where {order, dim, T} = order
+"""
+    get_dim(t::AbstractTens) → Int
+    get_dim(ℬ::AbstractBasis) → Int
+
+Dimension of the underlying space.
+"""
 @pure get_dim(::AbstractTens{order, dim, T}) where {order, dim, T} = dim
 @pure Base.eltype(::Type{AbstractTens{order, dim, T}}) where {order, dim, T} = T
 
@@ -9,32 +44,37 @@ abstract type AbstractTens{order, dim, T <: Number} <: AbstractArray{T, order} e
     Tens{order,dim,T,A<:AbstractArray}
 
 Tensor type of any order defined by
-- a multidata of components (of any type heriting from `AbstractArray`, e.g. `Tensor` or `SymmetricTensor`)
+- a multidata of components (of any type inheriting from `AbstractArray`, e.g. `Tensor` or `SymmetricTensor`)
 - a basis of `AbstractBasis` type
 - a tuple of variances (covariant `:cov` or contravariant `:cont`) of length equal to the `order` of the tensor
 
+The variance tuple only matters when the basis is not orthonormal; on an
+orthonormal basis the covariant and contravariant components coincide, which is
+why `TensCanonical`, `TensRotated` and `TensOrthonormal` do not carry one. See [Bases and variance](@ref th-bases-variance).
+
 # Examples
+
+Storing the covariant metric of a non-orthogonal basis as a twice-covariant
+tensor, and raising one index — which necessarily returns the identity, since
+`gⁱᵏ gₖⱼ = δⁱⱼ`:
+
 ```julia
 julia> ℬ = Basis(Sym[1 0 0; 0 1 0; 0 1 1]) ;
 
-julia> T = Tens(metric(ℬ,:cov),ℬ,(:cov,:cov))
-Tens{2, 3, Sym, SymmetricTensor{2, 3, Sym, 6}}
-# data: 3×3 SymmetricTensor{2, 3, Sym, 6}:
+julia> T = Tens(metric(ℬ, :cov), ℬ, (:cov, :cov))
+3×3 Tens{2, 3, Sym, SymmetricTensor{2, 3, Sym, 6}}:
  1  0  0
  0  2  1
  0  1  1
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
- 1  0  0
- 0  1  0
- 0  1  1
-# var: (:cov, :cov)
 
-julia> components(T,(:cont,:cov),b)
+julia> components(T, (:cont, :cov))
 3×3 Matrix{Sym}:
  1  0  0
  0  1  0
  0  0  1
 ```
+
+See also [`components`](@ref), [`change_tens`](@ref), [`get_var`](@ref).
 """
 struct Tens{order, dim, T, A <: AbstractArray} <: AbstractTens{order, dim, T}
     data::A
@@ -304,8 +344,25 @@ tensor_or_array(tab::AbstractArray) = tab
 ##############################
 
 get_array(t::TensArray) = t.data
+"""
+    get_basis(t::AbstractTens) → AbstractBasis
+
+Basis the components of `t` refer to. Structured types report the canonical
+basis, their orientation being carried separately by [`axis`](@ref) or
+[`frame`](@ref).
+"""
 get_basis(t::TensBasis) = t.basis
 get_basis(::TensCanonical{order, dim, T}) where {order, dim, T} = CanonicalBasis{dim, T}()
+"""
+    get_var(t::AbstractTens) → NTuple{order,Symbol}
+    get_var(t::AbstractTens, i::Integer) → Symbol
+
+Variance of each index of `t`, `:cov` (covariant) or `:cont` (contravariant).
+
+On an orthonormal basis the two coincide, so tensors stored on one report a
+constant tuple and the distinction may be ignored. See
+[Bases and variance](@ref th-bases-variance).
+"""
 get_var(::TensOrthonormal{order}) where {order} = ntuple(_ -> :cov, Val(order))
 get_var(::TensOrthonormal, i::Integer) = :cov
 get_var(t::TensVar) = t.var
@@ -353,10 +410,36 @@ end
 # Prevent SymPy's ImmutableMatrix from receiving 4D Julia arrays as elements,
 # which triggers a SymPyDeprecationWarning for non-Expr objects in a Matrix.
 # Redirect to the 2D Kelvin-Mandel representation instead.
-function Base.show(io::IO, M::MIME"text/latex", t::AbstractTens{4})
+#
+# Restricted to symbolic element types **on purpose**: the fallback exists only
+# because SymPy supplies a `text/latex` show for its own matrices. For a numeric
+# tensor `KM(t)` is an ordinary `Matrix{Float64}`, which has no such method, so
+# an unrestricted signature turned every numeric order-4 tensor into a
+# `MethodError` in any front-end that asks for `text/latex` — Documenter and
+# Jupyter both do. Numeric tensors now fall through to the plain-text display.
+function Base.show(io::IO, M::MIME"text/latex", t::AbstractTens{4, dim, T}) where {dim, T <: SymType}
     return show(io, M, KM(t))
 end
 
+"""
+    intrinsic(t::AbstractTens; vec = '𝐞', coords = 1:dim)
+    intrinsic(t::AbstractTens, CS::AbstractCoorSystem; vec = '𝐞')
+
+Print `t` in **intrinsic** form — as a combination of basis dyads such as
+`𝐞ʳ⊗𝐞ʳ` — rather than as a component array.
+
+Far more readable than the array for symbolic results, and the natural way to
+report a field computed in a curvilinear frame. Passing a coordinate system
+names the basis vectors after its coordinates; [`@set_coorsys`](@ref) makes that
+the default.
+
+# Examples
+```julia
+julia> Spherical = coorsys_spherical() ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
+
+julia> intrinsic(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ, Spherical)
+```
+"""
 intrinsic(t::T) where {T} = println(t)
 
 function intrinsic(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order, dim, T}
@@ -720,6 +803,17 @@ for OP in (:(tdiff),)
     @eval $OP(t::AbstractTens{order, dim, T}, args...; kwargs...) where {order, dim, T <: Sym} =
         Tens($OP(get_array(t), args...; kwargs...), get_basis(t), get_var(t))
 end
+"""
+    diff_with_basis(t::AbstractTens, args...; kwargs...)
+
+Differentiate `t` **including its basis**, then re-express the result on the
+original basis and variance.
+
+This differs from [`∂`](@ref) applied componentwise: when the basis itself
+depends on the differentiation variable — as a rotated or curvilinear frame does
+— the derivative of the basis vectors contributes, and dropping it is the
+classic way to lose the Christoffel terms.
+"""
 diff_with_basis(t::AbstractTens{order, dim, T}, args...; kwargs...) where {order, dim, T <: Sym} =
     change_tens(Tens(diff(components_canon(t), args...; kwargs...)), get_basis(t), get_var(t))
 
@@ -1504,12 +1598,23 @@ function tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cont}) where 
     t = [T(Int(j == i)) for j in 1:dim]
     return Tens(t, ℬ, (:cov,))
 end
+"""
+    tens_basis(ℬ::AbstractBasis, i::Integer, var = :cov) → AbstractTens{1}
+    tens_basis(ℬ::AbstractBasis, var = :cov) → NTuple
+
+The `i`-th basis vector of `ℬ` as a first-order tensor, or all of them as a
+tuple. `var = :cov` gives the basis vectors `𝐞ᵢ`, `var = :cont` the dual
+vectors `𝐞ⁱ`.
+"""
 tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, var = :cov) where {dim, T} = tens_basis(ℬ, i, Val(var))
 tens_basis(ℬ::AbstractBasis{dim, T}, var = :cov) where {dim, T} = ntuple(i -> tens_basis(ℬ, i, Val(var)), get_dim(ℬ))
 
 export AbstractTens, Tens
 export proj_tens, best_sym_tens
-export get_order, arraytype, get_data, get_array, get_basis, get_var
+# `arraytype` used to be exported here but was never defined anywhere in the
+# package — the export was dead and `using TensND; arraytype` has always been
+# an UndefVarError, so removing it cannot break working code.
+export get_order, get_data, get_array, get_basis, get_var
 export intrinsic
 export components, components_canon, change_tens, change_tens_canon
 export diff_with_basis

@@ -268,7 +268,13 @@ function _grad_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
         end
         val = f_arr(x₀)
         χ = CS.χ_func(x₀)
-        ET = eltype(χ)
+        # The buffer must hold both the geometry (χ, from the coordinate system)
+        # and the field value. Taking `eltype(χ)` alone makes the operators
+        # undifferentiable with respect to a parameter carried by the *field*:
+        # the system is built at a `Float64` point, so a `Dual`-valued field had
+        # nowhere to go and the call failed converting a `Dual` to a `Float64`.
+        # Promoting costs nothing when both are `Float64`.
+        ET = promote_type(eltype(χ), eltype(val))
         if val isa Number
             Jac = ForwardDiff.jacobian(x -> [f_arr(x)], collect(x₀))
             return [Jac[1, i] / χ[i] for i in 1:dim]
@@ -292,7 +298,9 @@ function _div_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
         χ = CS.χ_func(x₀)
         order = ndims(val)
         result_size = size(val)[1:(end - 1)]
-        result = zeros(eltype(χ), result_size...)
+        # Same promotion as in `_grad_raw`: the buffer holds geometry *and*
+        # field, so a field carrying `Dual` numbers stays differentiable.
+        result = zeros(promote_type(eltype(χ), eltype(val)), result_size...)
         for i in 1:dim
             cov_∂ = ∂(f_arr, i, CS, x₀)
             sl = selectdim(cov_∂, order, i)

@@ -1,37 +1,63 @@
 """
-    CoorSystemSym(OM::AbstractTens{1,dim,Sym},coords::NTuple{dim,Sym},bnorm::AbstractBasis{dim,Sym},χᵢ::NTuple{dim},
-                  tmp_coords::NTuple = (),params::NTuple = ();rules::Dict = Dict(),tmp_var::Dict = Dict(),to_coords::Dict = Dict()) where {dim}
-    CoorSystemSym(OM::AbstractTens{1,dim,Sym},coords::NTuple{dim,Sym},
-                  tmp_coords::NTuple = (),params::NTuple = ();rules::Dict = Dict(),tmp_var::Dict = Dict(),to_coords::Dict = Dict()) where {dim}
+    SubManifoldSym(OM::AbstractTens{1,dim,Sym}, coords::NTuple{dim-1,Sym},
+                   tmp_coords::NTuple = (), params::NTuple = ();
+                   rules::Dict = Dict(), tmp_var::Dict = Dict(), to_coords::Dict = Dict())
 
-Define a new coordinate system either from
-1. the position vector `OM`, the coordinates `coords`, the basis of unit vectors (`𝐞ᵢ`) `bnorm` and the Lamé coefficients `χᵢ`
+Hypersurface of dimension `dim-1` embedded in `Rᵈⁱᵐ`, parametrized by the
+position vector `OM` of the `dim-1` surface coordinates `coords`.
 
-    In this case the natural basis is formed by the vectors `𝐚ᵢ = χᵢ 𝐞ᵢ` directly calculated from the input data.
+Unlike [`CoorSystemSym`](@ref), which describes a chart of the whole space, a
+`SubManifoldSym` describes an embedded surface: it carries one coordinate fewer
+than the ambient dimension, and it completes the tangent frame with the **unit
+normal**, so that the stored bases are still `dim`-dimensional.
 
-1. or the position vector `OM` and the coordinates `coords`
+# Construction
 
-    In this case the natural basis is formed by the vectors `𝐚ᵢ = ∂ᵢOM` i.e. by the derivative of the position vector with respect to the `iᵗʰ` coordinate
+The `dim-1` tangent vectors are the derivatives of the position vector,
 
-Optional parameters can be provided:
-- `tmp_coords` contains temporary variables depending on coordinates (in order to allow symbolic simplifications)
-- `params` contains possible parameters involved in `OM`
-- `rules` contains a `Dict` with substitution rules to facilitate the simplification of formulas
-- `tmp_var` contains a `Dict` with substitution of coordinates by temporary variables
-- `to_coords` indicates how to eliminate the temporary variables to come back to the actual coordinates before derivation for Examples
+    𝐚ᵢ = ∂ᵢOM ,  χᵢ = ‖𝐚ᵢ‖ ,  𝐞ᵢ = 𝐚ᵢ / χᵢ    (i = 1 … dim-1)
+
+and the frame is closed by the unit normal `𝐧`, obtained as the generalized
+cross product of the tangent vectors. `𝐧` is stored last, with Lamé coefficient
+`χ_dim = 1`; `normal(SM)` returns it.
+
+# Fundamental forms
+
+Two order-2 tensors describe the surface, both stored with a vanishing
+last row and column so that they live in the tangent block:
+
+- the **first fundamental form** `𝐚` (induced metric), returned by
+  [`submetric`](@ref) — `aᵢⱼ = 𝐚ᵢ ⋅ 𝐚ⱼ`;
+- the **second fundamental form** `𝐛` (curvature tensor), returned by
+  [`curvature`](@ref) — `bᵢⱼ = 𝐧 ⋅ ∂ᵢ𝐚ⱼ`.
+
+The stored connection array `Γ` holds the Gauss–Weingarten equations of the
+embedded frame rather than a plain Christoffel array: `Γ[:,:,dim]` is `𝐛`
+(Gauss formula, the normal component of `∂ᵢ𝐚ⱼ`) and `Γ[:,dim,:]` is `-𝐛` with
+one index raised (Weingarten formula, the tangential derivative of `𝐧`). The
+purely tangential block, i.e. the intrinsic Christoffel symbols of the surface
+metric, is what [`Riemann`](@ref) returns.
+
+The optional `tmp_coords`, `params`, `rules`, `tmp_var` and `to_coords`
+arguments have exactly the meaning they have for [`CoorSystemSym`](@ref): they
+drive the symbolic simplification of intermediate expressions.
 
 # Examples
+
 ```julia
-julia> ϕ, p = symbols("ϕ p", real = true) ;
+julia> θ, ϕ = symbols("θ ϕ", real = true) ; R = symbols("R", positive = true) ;
 
-julia> p̄, q, q̄, c = symbols("p̄ q q̄ c", positive = true) ;
+julia> OM = Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]) ;
 
-julia> coords = (ϕ, p, q) ; tmp_coords = (p̄, q̄) ; params = (c,) ;
+julia> Sphere = SubManifoldSym(OM, (θ, ϕ), (), (R,)) ;
 
-julia> OM = Tens(c * [p̄ * q̄ * cos(ϕ), p̄ * q̄ * sin(ϕ), p * q]) ;
+julia> normal(Sphere)          # outward unit normal 𝐞ʳ
 
-julia> Spheroidal = CoorSystemSym(OM, coords, tmp_coords, params; tmp_var = Dict(1-p^2 => p̄^2, q^2-1 => q̄^2), to_coords = Dict(p̄ => √(1-p^2), q̄ => √(q^2-1))) ;
+julia> curvature(Sphere)       # 𝐛 = -𝐚/R for a sphere of radius R
 ```
+
+See also [`CoorSystemSym`](@ref), [`normal`](@ref), [`submetric`](@ref),
+[`curvature`](@ref), [`Riemann`](@ref).
 """
 struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem{dim, Sym}
     OM::VEC
@@ -63,7 +89,19 @@ struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem
         simp(t) = length(rules) > 0 ? tsimplify(tsubs(tsimplify(t), rules...)) : tsimplify(t)
         chvar(t, d) = length(d) > 0 ? tsubs(t, d...) : t
         OMc = chvar(OM, to_coords)
-        aᵢ = ntuple(i -> simp(chvar(∂(OMc, coords[i]), tmp_var)), dimm1)
+        # Plain componentwise derivative of the position vector.
+        #
+        # This must NOT go through the two-argument `∂`: `@set_coorsys` adds a
+        # method `∂(::AbstractTens, ::Sym)` bound to whatever system was made
+        # the default, and that method is more specific than the variadic
+        # fallback, so it wins. It then looks `coords[i]` up among *its own*
+        # coordinates, fails to find it, and returns `zero(t)` — leaving every
+        # tangent vector null, the frame matrix singular, and the constructor
+        # throwing `NonInvertibleMatrixError`. Calling `∂` with an explicit
+        # `Val` disambiguator would work too; going straight to `tdiff` is
+        # simpler and makes the intent obvious.
+        ∂coord(t, x) = change_tens(Tens(tdiff(components_canon(t), x)), get_basis(t), get_var(t))
+        aᵢ = ntuple(i -> simp(chvar(∂coord(OMc, coords[i]), tmp_var)), dimm1)
         χᵢ = ntuple(i -> simp(norm(aᵢ[i])), dimm1)
         eᵢ = ntuple(i -> simp(aᵢ[i] / χᵢ[i]), dimm1)
         χᵢ = (ntuple(i -> simp(chvar(χᵢ[i], to_coords)), dimm1)..., one(Sym))
@@ -96,7 +134,8 @@ struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem
         natural_basis = Basis(normalized_basis, χᵢ)
         a₀ = metric(natural_basis, :cov)
         a = Tens(SymmetricTensor{2, dim, Sym}((i, j) -> i < dim && j < dim ? a₀[i, j] : zero(Sym)), natural_basis, (:cov, :cov))
-        b = Tens(SymmetricTensor{2, dim, Sym}((i, j) -> i < dim && j < dim ? aᵢ[dim] ⋅ simp(chvar(∂(chvar(aᵢ[j], to_coords), coords[i]), tmp_var)) : zero(Sym)), natural_basis, (:cov, :cov))
+        # Same reason as above: `∂coord`, not the two-argument `∂`.
+        b = Tens(SymmetricTensor{2, dim, Sym}((i, j) -> i < dim && j < dim ? aᵢ[dim] ⋅ simp(chvar(∂coord(chvar(aᵢ[j], to_coords), coords[i]), tmp_var)) : zero(Sym)), natural_basis, (:cov, :cov))
         Γ₀ = compute_Christoffel(
             coords,
             χᵢ,
@@ -127,12 +166,82 @@ struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem
     end
 end
 
+"""
+    normal(SM::SubManifoldSym{dim}) → AbstractTens{1,dim,Sym}
+
+Unit normal `𝐧` of the hypersurface, i.e. the last vector of the natural basis.
+Its orientation is that of the generalized cross product of the tangent vectors
+`∂ᵢOM` taken in the order of `coords`, so reversing two coordinates reverses
+`𝐧` — and with it the sign of [`curvature`](@ref).
+
+# Examples
+```julia
+julia> θ, ϕ = symbols("θ ϕ", real = true) ; R = symbols("R", positive = true) ;
+
+julia> Sphere = SubManifoldSym(Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,)) ;
+
+julia> normal(Sphere)   # the outward radial vector 𝐞ʳ
+```
+
+See also [`SubManifoldSym`](@ref), [`curvature`](@ref).
+"""
 normal(SM::SubManifoldSym{dim}) where {dim} = natvec(SM, :cov)[dim]
 
+"""
+    submetric(SM::SubManifoldSym) → AbstractTens{2,dim,Sym}
+
+First fundamental form `𝐚` of the hypersurface (the metric induced by the
+embedding), `aᵢⱼ = 𝐚ᵢ ⋅ 𝐚ⱼ`.
+
+It is returned as a `dim`-dimensional order-2 tensor whose last row and column
+vanish, so that it can be combined directly with [`curvature`](@ref) and with
+tensors expressed in the full embedded frame.
+
+For a sphere of radius `R` parametrized by `(θ, ϕ)`,
+`𝐚 = diag(R², R² sin²θ, 0)`.
+
+See also [`SubManifoldSym`](@ref), [`curvature`](@ref).
+"""
 submetric(SM::SubManifoldSym) = SM.a
 
+"""
+    curvature(SM::SubManifoldSym) → AbstractTens{2,dim,Sym}
+
+Second fundamental form `𝐛` of the hypersurface, `bᵢⱼ = 𝐧 ⋅ ∂ᵢ𝐚ⱼ`, with `𝐧`
+the unit normal returned by [`normal`](@ref).
+
+Like [`submetric`](@ref) it is stored as a `dim`-dimensional order-2 tensor with
+a vanishing last row and column. **Its sign follows the orientation of `𝐧`**:
+with the outward normal, a sphere of radius `R` gives `𝐛 = -𝐚/R`, hence the
+principal curvatures `-1/R`.
+
+The mixed form `𝐛` with one index raised is the Weingarten (shape) operator; its
+trace is the mean curvature and its determinant, restricted to the tangent
+block, the Gaussian curvature.
+
+See also [`SubManifoldSym`](@ref), [`submetric`](@ref), [`normal`](@ref).
+"""
 curvature(SM::SubManifoldSym) = SM.b
 
+"""
+    Riemann(SM::SubManifoldSym{dim}) → Array{Sym,3}
+
+Intrinsic connection coefficients of the hypersurface: the purely tangential
+block `Γ[1:dim-1, 1:dim-1, 1:dim-1]` of the stored Gauss–Weingarten array, with
+the convention `Γ[i,j,k] = Γᵏᵢⱼ`.
+
+!!! warning "The name is misleading"
+    Despite its name this function returns the **Christoffel symbols** of the
+    induced metric, *not* the Riemann curvature tensor. For a sphere of radius
+    `R` parametrized by `(θ, ϕ)` it returns `Γᶿ_ϕϕ = -sinθ cosθ` and
+    `Γᵠ_θϕ = Γᵠ_ϕθ = cotθ`, which are connection coefficients — they are not
+    tensor components and they vanish in a suitable chart, unlike a curvature.
+    The intrinsic curvature is recovered from these by the Gauss equation, or
+    directly from [`curvature`](@ref) and [`submetric`](@ref). The name is kept
+    for backward compatibility.
+
+See also [`SubManifoldSym`](@ref), [`curvature`](@ref), [`Christoffel`](@ref).
+"""
 Riemann(SM::SubManifoldSym{dim}) where {dim} = SM.Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
 
 function ∂(

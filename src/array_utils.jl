@@ -7,10 +7,102 @@ function Base.replace_in_print_matrix(::Id2, i::Integer, j::Integer, s::Abstract
     return i == j ? s : Base.replace_with_centered_mark(s)
 end
 
+"""
+    isidentity(a::AbstractMatrix) → Bool
+
+Test whether `a` is the identity matrix, within the tolerance of `≈` for
+floating-point element types and exactly for symbolic ones.
+
+# Examples
+```jldoctest
+julia> isidentity([1.0 0.0; 0.0 1.0])
+true
+
+julia> isidentity([1.0 1e-20; 0.0 1.0])
+true
+
+julia> isidentity([1.0 0.5; 0.0 1.0])
+false
+```
+"""
 isidentity(a::AbstractMatrix{T}) where {T} = a ≈ I
 isdiagonal(a::AbstractMatrix{T}) where {T} = norm(a - Diagonal(a)) <= eps(T)
 
-# isapprox(x::Num, y::Num; kwargs...) =
+# ── Symbolic passes ──────────────────────────────────────────────────────────
+#
+# Each of these applies a symbolic operation elementwise and is a **no-op on
+# numeric types**, so generic code may call them unconditionally without paying
+# anything on a `Float64` path. The fallback below is what provides that.
+
+"""
+    tsimplify(x, args...; kwargs...)
+
+Simplify a scalar, an array or a tensor elementwise.
+
+Dispatches to `SymPy.simplify` for `Sym`, to `Symbolics.simplify` for `Num`,
+and is the **identity** on every other type — so a routine written to be
+simplification-aware runs unchanged, and at full speed, on numeric input.
+
+See also [`tfactor`](@ref), [`tsubs`](@ref), [`tdiff`](@ref),
+[`ttrigsimp`](@ref), [`texpand_trig`](@ref).
+
+# Examples
+```jldoctest
+julia> tsimplify(3.0)          # no-op on numbers
+3.0
+
+julia> tsimplify([1.0, 2.0])
+2-element Vector{Float64}:
+ 1.0
+ 2.0
+```
+"""
+function tsimplify end
+
+"""
+    tfactor(x, args...; kwargs...)
+
+Factorize an expression elementwise (`SymPy.factor`); identity on non-symbolic
+types. See [`tsimplify`](@ref).
+"""
+function tfactor end
+
+"""
+    tsubs(x, substitutions...)
+
+Substitute into an expression elementwise (`SymPy.subs` / `Symbolics.substitute`);
+identity on non-symbolic types.
+
+Substitutions are given as `old => new` pairs. See [`tsimplify`](@ref).
+"""
+function tsubs end
+
+"""
+    tdiff(y, x...; kwargs...)
+
+Differentiate an expression elementwise with respect to one or more symbols
+(`SymPy.diff` / `Symbolics.Differential`); identity on non-symbolic types.
+
+Repeated symbols give higher derivatives. See [`tsimplify`](@ref).
+"""
+function tdiff end
+
+"""
+    ttrigsimp(x, args...; kwargs...)
+
+Trigonometric simplification elementwise (`sympy.trigsimp`); identity on
+non-symbolic types. Often succeeds where [`tsimplify`](@ref) does not, on
+expressions built from a rotated basis.
+"""
+function ttrigsimp end
+
+"""
+    texpand_trig(x, args...; kwargs...)
+
+Trigonometric expansion elementwise (`sympy.expand_trig`); identity on
+non-symbolic types. The counterpart of [`ttrigsimp`](@ref).
+"""
+function texpand_trig end
 
 for OP in (:(tsimplify), :(tfactor), :(tsubs), :(ttrigsimp), :(texpand_trig))
     @eval $OP(x, args...; kwargs...) = x
@@ -44,12 +136,25 @@ end
 
 const SymType = Union{Sym, Num}
 
+# Element types whose symmetry predicates should use a *tolerance* rather than
+# exact equality: floating-point numbers, and `ForwardDiff.Dual` numbers built
+# on them.
+#
+# `ForwardDiff.Dual <: Real` but **not** `<: AbstractFloat`, so before this
+# union existed a `Dual`-valued tensor fell through to the exact fallback and a
+# round-off of a few ulp was enough to report it as non-minor-symmetric. The
+# consequence was not local: `_KM_of_array` then built a 9×9 matrix instead of
+# a 6×6 one and every `proj_tens` call on a `Dual` input died with a
+# `DimensionMismatch`, i.e. automatic differentiation through a projection was
+# impossible. Symbolic types keep their own exact methods and are unaffected.
+const ApproxType = Union{AbstractFloat, Complex{<:AbstractFloat}, ForwardDiff.Dual}
+
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
 
-@inline LinearAlgebra.issymmetric(t::Tensor{2, 2, T}) where {T <: Union{AbstractFloat, Complex{AbstractFloat}}} = @inbounds t[1, 2] ≈ t[2, 1]
+@inline LinearAlgebra.issymmetric(t::Tensor{2, 2, T}) where {T <: ApproxType} = @inbounds t[1, 2] ≈ t[2, 1]
 
-@inline function LinearAlgebra.issymmetric(t::Tensor{2, 3, T}) where {T <: Union{AbstractFloat, Complex{AbstractFloat}}}
+@inline function LinearAlgebra.issymmetric(t::Tensor{2, 3, T}) where {T <: ApproxType}
     return @inbounds t[1, 2] ≈ t[2, 1] && t[1, 3] ≈ t[3, 1] && t[2, 3] ≈ t[3, 2]
 end
 
@@ -59,7 +164,7 @@ end
     return @inbounds iszero(t[1, 2] - t[2, 1]) && iszero(t[1, 3] - t[3, 1]) && iszero(t[2, 3] - t[3, 2])
 end
 
-function Tensors.isminorsymmetric(t::Tensor{4, dim, T}) where {dim, T <: Union{AbstractFloat, Complex{AbstractFloat}}}
+function Tensors.isminorsymmetric(t::Tensor{4, dim, T}) where {dim, T <: ApproxType}
     @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
         if !(t[i, j, k, l] ≈ t[j, i, k, l]) || !(t[i, j, k, l] ≈ t[i, j, l, k])
             return false
@@ -77,7 +182,7 @@ function Tensors.isminorsymmetric(t::Tensor{4, dim, Num}) where {dim}
     return true
 end
 
-function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, T}) where {dim, T <: Union{AbstractFloat, Complex{AbstractFloat}}}
+function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, T}) where {dim, T <: ApproxType}
     @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
         if !(t[i, j, k, l] ≈ t[k, l, i, j])
             return false
@@ -113,6 +218,18 @@ function Tensors.otimes(
     return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
 end
 
+"""
+    contract(t::AbstractArray, i::Integer, j::Integer)
+
+Contract (trace over) indices `i` and `j` of a single tensor, lowering its order
+by two. For an order-2 array this is the ordinary trace.
+
+# Examples
+```jldoctest
+julia> contract([1.0 2.0; 3.0 4.0], 1, 2)
+5.0
+```
+"""
 function contract(t::AbstractArray{T, order}, i::Integer, j::Integer) where {T, order}
     m = min(i, j)
     M = max(i, j)
@@ -154,6 +271,30 @@ function Tensors.dotdot(
     return einsum(EinCode((ecv1S, ec2), ec3), (v1S, AbstractArray{T2}(v2)))
 end
 
+"""
+    qcontract(t1::AbstractArray, t2::AbstractArray)
+    t1 ⊙ t2
+
+Quadruple contraction: the last four indices of `t1` against the first four of
+`t2`, lowering the total order by eight.
+
+Between two order-4 tensors it is the **Frobenius scalar product**
+`T ⊙ T' = Tᵢⱼₖₗ T'ᵢⱼₖₗ` — the inner product every projection in
+[`proj_tens`](@ref) minimizes against.
+
+# Examples
+```jldoctest
+julia> 𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64));
+
+julia> (𝕁 ⊙ 𝕁, 𝕂 ⊙ 𝕂, 𝕁 ⊙ 𝕂)
+(1.0, 5.0, 0.0)
+```
+
+`𝕁 ⊙ 𝕁 = 1` and `𝕂 ⊙ 𝕂 = 5` are the dimensions of the spherical and
+deviatoric subspaces in 3-D.
+
+See also `dcontract`, [`contract`](@ref).
+"""
 function qcontract(
         t1::AbstractArray{T1, order1},
         t2::AbstractArray{T2, order2},
@@ -168,6 +309,20 @@ end
 qcontract(t1::AbstractArray{T1, 4}, t2::AbstractArray{T2, 4}) where {T1, T2} =
     dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
 
+"""
+    otimesu(t1::AbstractArray, t2::AbstractArray)
+    t1 ⊠ t2
+
+Modified tensor product, `(a ⊠ b)ᵢⱼₖₗ = aᵢₖ bⱼₗ`.
+
+With the order-2 identity, `𝟙 = 𝟏 ⊠ 𝟏` is the identity of **all** order-2
+tensors, where [`otimesul`](@ref) gives the identity of the *symmetric* ones.
+
+Unlike its symmetrized counterpart it inverts termwise:
+`(a ⊠ b)⁻¹ = a⁻¹ ⊠ b⁻¹`.
+
+See [Tensor algebra](@ref th-tensor-algebra) for the full set of identities.
+"""
 function Tensors.otimesu(
         t1::AbstractArray{T1, order1},
         t2::AbstractArray{T2, order2},
@@ -188,9 +343,39 @@ function Tensors.otimesl(
     return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
 end
 
+"""
+    otimesul(t1::AbstractArray, t2::AbstractArray)
+    sboxtimes(t1, t2)
+    t1 ⊠ˢ t2
+
+Symmetrized modified tensor product,
+`(a ⊠ˢ b)ᵢⱼₖₗ = (aᵢₖ bⱼₗ + aᵢₗ bⱼₖ) / 2`, i.e. the half-sum of
+[`otimesu`](@ref) and `otimesl`.
+
+`𝕀 = 𝟏 ⊠ˢ 𝟏` is the identity of the **symmetric** order-2 tensors, which is
+what [`tens_Id4`](@ref) returns.
+
+!!! warning "It does not invert termwise"
+    `(a ⊠ˢ b)⁻¹ ≠ a⁻¹ ⊠ˢ b⁻¹` unless `a` and `b` are **proportional**.
+    Commuting is not sufficient, and taking `b = 𝟏` does not help. This is why
+    inversion is implemented per symmetry class rather than by a single generic
+    formula.
+"""
 otimesul(t1::AbstractArray{T1}, t2::AbstractArray{T2}) where {T1, T2} =
     (otimesu(t1, t2) + otimesl(t1, t2)) / promote_type(T1, T2)(2)
 
+"""
+    sotimes(t1::AbstractArray, t2::AbstractArray)
+    t1 ⊗ˢ t2
+
+Tensor product symmetrized over the **last** index of `t1` and the **first** of
+`t2`. For two vectors, `u ⊗ˢ v = (u ⊗ v + v ⊗ u) / 2`.
+
+It is the product used by [`SYMGRAD`](@ref), which is why that operator returns
+a linearized strain tensor directly.
+
+See also `otimes`, [`otimesul`](@ref).
+"""
 function sotimes(
         t1::AbstractArray{T1, order1},
         t2::AbstractArray{T2, order2},

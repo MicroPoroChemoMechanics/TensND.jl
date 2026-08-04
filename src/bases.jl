@@ -313,6 +313,21 @@ end
 
 const OrthonormalBasis{dim, T} = Union{CanonicalBasis{dim, T}, RotatedBasis{dim, T}}
 
+"""
+    OrthogonalBasis{dim,T}
+
+Orthogonal but **not** normalized basis: an orthonormal basis scaled by one
+factor `χᵢ` per direction.
+
+Its metric is diagonal, `gᵢⱼ = diag(χᵢ²)`, and its dual vectors are
+`𝐞ⁱ = 𝐞ᵢ/χᵢ²`, so variance still matters but only diagonally. This is exactly
+the situation of the **natural basis** of a curvilinear coordinate system, where
+the `χᵢ` are the Lamé coefficients — see
+[Curvilinear differential calculus](@ref th-curvilinear).
+
+Built by `Basis(ℬ, χᵢ)` from an orthonormal basis and a tuple of scaling
+factors. Normalizing it returns the orthonormal basis it came from.
+"""
 struct OrthogonalBasis{dim, T} <: AbstractBasis{dim, T}
     parent::OrthonormalBasis{dim, T}
     λ::Vector{T}
@@ -337,10 +352,42 @@ relevant_OrthonormalBasis(ℬ::OrthonormalBasis) = ℬ
 relevant_OrthonormalBasis(::Basis{dim, T}) where {dim, T} = CanonicalBasis{dim, T}()
 
 
+"""
+    CylindricalBasis(θ)
+
+Local orthonormal basis `(𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ)` of the cylindrical system at azimuth `θ`,
+i.e. `RotatedBasis(0, θ, 0)`.
+
+Convenience constructor for a one-off local frame; for differential calculus use
+[`coorsys_cylindrical`](@ref), which also carries the Lamé coefficients and the
+Christoffel symbols.
+"""
 @inline CylindricalBasis(θ) = RotatedBasis(0, θ, 0)
 
+"""
+    SphericalBasis(θ, ϕ)
+
+Local orthonormal basis `(𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ)` of the spherical system at polar angle
+`θ` and azimuth `ϕ`, i.e. `RotatedBasis(θ, ϕ, 0)`.
+
+Note the ordering: the radial vector comes **last**, so that `θ = ϕ = 0` returns
+the canonical basis in the canonical order. See
+[Rotations and Euler angles](@ref th-rotations).
+
+Convenience constructor for a one-off local frame; for differential calculus use
+[`coorsys_spherical`](@ref).
+"""
 @inline SphericalBasis(θ, ϕ) = RotatedBasis(θ, ϕ, 0)
 
+"""
+    AllOrthogonalBasis{dim,T}
+
+Union of every basis whose metric is **diagonal**: the orthonormal ones
+([`CanonicalBasis`](@ref), [`RotatedBasis`](@ref)) and the merely orthogonal
+[`OrthogonalBasis`](@ref).
+
+Used to dispatch the component conversions that need no dense metric.
+"""
 const AllOrthogonalBasis{dim, T} = Union{OrthonormalBasis{dim, T}, OrthogonalBasis{dim, T}}
 
 angles(M::AbstractMatrix{T}, ::Val{2}) where {T} =

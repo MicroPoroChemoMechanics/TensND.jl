@@ -1,10 +1,28 @@
 % =============================================================================
 %  TensND.jl — bibliography
 %
-%  All references cited in the package documentation are collected here.
-%  Cited inline via `[Author2020](@cite key)` (DocumenterCitations.jl)
-%  and rendered on the dedicated `references.md` page.
+%  All references cited in the package documentation are collected here and
+%  rendered on the dedicated `references.md` page (DocumenterCitations.jl).
+%  Cited inline through DocumenterCitations.
+%
+%  Every entry below has been checked against Crossref (DOI resolves, authors,
+%  journal, volume, issue, pages and year all match) or, for books without a
+%  DOI, against the publisher record. Do not add an entry that has not been
+%  verified this way: an invented reference is worse than a missing one.
 % =============================================================================
+
+% ── Tensor bases and the Walpole algebra ─────────────────────────────────────
+
+@article{walpole1984,
+  author  = {Walpole, L. J.},
+  title   = {Fourth-rank tensors of the thirty-two crystal classes: multiplication tables},
+  journal = {Proceedings of the Royal Society of London. A. Mathematical and Physical Sciences},
+  volume  = {391},
+  number  = {1800},
+  pages   = {149--179},
+  year    = {1984},
+  doi     = {10.1098/rspa.1984.0008}
+}
 
 @article{walpole1981,
   author  = {Walpole, L. J.},
@@ -16,21 +34,33 @@
   doi     = {10.1016/S0065-2156(08)70332-6}
 }
 
-@article{hoenig1979,
-  author  = {Hoenig, A.},
-  title   = {Elastic moduli of a non-randomly cracked body},
-  journal = {International Journal of Solids and Structures},
-  volume  = {15},
-  number  = {2},
-  pages   = {137--154},
-  year    = {1979},
-  doi     = {10.1016/0020-7683(79)90021-2}
+% ── Kelvin-Mandel notation ───────────────────────────────────────────────────
+
+@article{thomson1856,
+  author  = {Thomson, William},
+  title   = {Elements of a mathematical theory of elasticity},
+  journal = {Philosophical Transactions of the Royal Society of London},
+  volume  = {146},
+  pages   = {481--498},
+  year    = {1856},
+  doi     = {10.1098/rstl.1856.0022}
 }
 
-@article{cowin1990,
-  author  = {Cowin, S. C. and Mehrabadi, M. M.},
+@article{mandel1965,
+  author  = {Mandel, J.},
+  title   = {G{\'e}n{\'e}ralisation de la th{\'e}orie de plasticit{\'e} de {W. T. Koiter}},
+  journal = {International Journal of Solids and Structures},
+  volume  = {1},
+  number  = {3},
+  pages   = {273--295},
+  year    = {1965},
+  doi     = {10.1016/0020-7683(65)90034-X}
+}
+
+@article{mehrabadi1990,
+  author  = {Mehrabadi, Morteza M. and Cowin, Stephen C.},
   title   = {Eigentensors of linear anisotropic elastic materials},
-  journal = {Quarterly Journal of Mechanics and Applied Mathematics},
+  journal = {The Quarterly Journal of Mechanics and Applied Mathematics},
   volume  = {43},
   number  = {1},
   pages   = {15--41},
@@ -38,10 +68,104 @@
   doi     = {10.1093/qjmam/43.1.15}
 }
 
+% ── Symmetry classes, projection and distances ───────────────────────────────
+
+@article{moakher2006,
+  author  = {Moakher, Maher and Norris, Andrew N.},
+  title   = {The closest elastic tensor of arbitrary symmetry to an elasticity tensor of lower symmetry},
+  journal = {Journal of Elasticity},
+  volume  = {85},
+  number  = {3},
+  pages   = {215--263},
+  year    = {2006},
+  doi     = {10.1007/s10659-006-9082-0}
+}
+
+@article{browaeys2004,
+  author  = {Browaeys, Jules T. and Chevrot, S{\'e}bastien},
+  title   = {Decomposition of the elastic tensor and geophysical applications},
+  journal = {Geophysical Journal International},
+  volume  = {159},
+  number  = {2},
+  pages   = {667--678},
+  year    = {2004},
+  doi     = {10.1111/j.1365-246X.2004.02415.x}
+}
+
+@article{morin2020,
+  author  = {Morin, L{\'e}o and Gilormini, Pierre and Derrien, Katell},
+  title   = {Generalized {Euclidean} distances for elasticity tensors},
+  journal = {Journal of Elasticity},
+  volume  = {138},
+  number  = {2},
+  pages   = {221--232},
+  year    = {2020},
+  doi     = {10.1007/s10659-019-09741-z}
+}
+
+@book{bornert2001,
+  author    = {Bornert, Michel and Bretheau, Thierry and Gilormini, Pierre},
+  title     = {Homog{\'e}n{\'e}isation en m{\'e}canique des mat{\'e}riaux},
+  publisher = {Herm{\`e}s Science},
+  address   = {Paris},
+  year      = {2001}
+}
+
+% ── Transversely isotropic parametrizations ──────────────────────────────────
+
+@article{hoenig1978,
+  author  = {Hoenig, Alan},
+  title   = {The behavior of a flat elliptical crack in an anisotropic elastic body},
+  journal = {International Journal of Solids and Structures},
+  volume  = {14},
+  number  = {11},
+  pages   = {925--934},
+  year    = {1978},
+  doi     = {10.1016/0020-7683(78)90068-9}
+}
+
+@article{hoenig1979,
+  author  = {Hoenig, Alan},
+  title   = {Elastic moduli of a non-randomly cracked body},
+  journal = {International Journal of Solids and Structures},
+  volume  = {15},
+  number  = {2},
+  pages   = {137--154},
+  year    = {1979},
+  doi     = {10.1016/0020-7683(79)90018-0}
+}
+
 @book{nye1985,
   author    = {Nye, J. F.},
-  title     = {Physical Properties of Crystals},
-  publisher = {Oxford University Press},
+  title     = {Physical Properties of Crystals: Their Representation by Tensors and Matrices},
+  publisher = {Clarendon Press},
+  address   = {Oxford},
+  year      = {1985},
+  isbn      = {9780198511656},
+  note      = {Reissue of the 1957 edition with corrections}
+}
+
+% ── Tensor analysis in curvilinear coordinates ───────────────────────────────
+
+@book{simmonds1994,
+  author    = {Simmonds, James G.},
+  title     = {A Brief on Tensor Analysis},
+  series    = {Undergraduate Texts in Mathematics},
   edition   = {2nd},
-  year      = {1985}
+  publisher = {Springer},
+  address   = {New York},
+  year      = {1994},
+  doi       = {10.1007/978-1-4419-8522-4}
+}
+
+% ── Micromechanics background (used by the mechanics tutorials) ──────────────
+
+@book{mura1987,
+  author    = {Mura, Toshio},
+  title     = {Micromechanics of Defects in Solids},
+  edition   = {2nd},
+  publisher = {Springer Netherlands},
+  address   = {Dordrecht},
+  year      = {1987},
+  doi       = {10.1007/978-94-009-3489-4}
 }

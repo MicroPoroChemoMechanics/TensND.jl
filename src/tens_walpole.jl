@@ -1383,9 +1383,18 @@ components(t::TensOrtho, ::NTuple{4, Symbol}) = get_array(t)
 #   z₁ = ℓ₆ + i ℓ₇                   → complex product / complex inverse
 #   z₂ = ℓ₅ + i ℓ₈                   → complex product / complex inverse
 #
-# Both W₇ and W₈ annihilate every symmetric 2nd-order tensor under double
-# contraction (their minor-symmetrized structure cancels), so all existing
-# 4th⊡2nd rules based on ℓ₁..ℓ₄ remain valid for N=8.
+# W₇ and W₈ annihilate, under double contraction, exactly those 2nd-order
+# tensors that are themselves axially invariant about n — i.e. of the form
+# a·nT + b·nₙ. (They do NOT annihilate a general symmetric 2nd-order tensor:
+# W₇ maps the (23,13) axial-shear pair onto itself rotated by a quarter turn,
+# and W₈ does the same for the (11-22, 12) in-plane deviatoric pair. Both
+# results are symmetric and generally nonzero.)
+#
+# That weaker statement is all the ℓ₁..ℓ₄-based rules need, since those concern
+# contraction with nT and nₙ; they therefore remain valid for N=8. Contraction
+# with a *general* symmetric 2nd-order tensor does pick up ℓ₇ and ℓ₈, and the
+# N=8 `dcontract` methods account for them — verified against the generic dense
+# route in `test/test_tens_walpole.jl`.
 #
 # Similarly, the space of 2nd-order tensors invariant under rotations about n
 # is THREE-dimensional: a·nT + b·nₙ + c·w (the antisymmetric in-plane part c·w

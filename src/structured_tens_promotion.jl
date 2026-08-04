@@ -123,7 +123,7 @@ Restricted to `N=5` (major-symmetric Walpole): a non-major-symmetric TI
 (`N=6`) has no orthotropic counterpart in `TensOrtho` (which carries only
 9 major-symmetric constants).
 
-See also [`iso_to_ortho`](@ref), [`_axis_on_frame_index`](@ref).
+See also [`iso_to_ortho`](@ref), `_axis_on_frame_index`.
 """
 function walpole_to_ortho(A::TensTI{4, T, 5}, frame::OrthonormalBasis{3}, axis_idx::Int) where {T}
     ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(A)

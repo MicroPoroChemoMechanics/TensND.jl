@@ -1,3 +1,42 @@
+"""
+    TensISO{order,dim,T,N}
+
+Isotropic tensor stored as `N` scalars instead of `dim^order` components, in
+**arbitrary dimension**.
+
+| Order | `N` | Stored | Tensor |
+|:--|:--|:--|:--|
+| 2 | 1 | `λ` | `λ 𝟏` |
+| 4 | 2 | `(α, β)` | `α 𝕁 + β 𝕂` |
+
+with `𝕁 = (𝟏⊗𝟏)/dim` the spherical projector and `𝕂 = 𝕀 − 𝕁` the deviatoric
+one. In 3-D elasticity `α = 3k` and `β = 2μ`.
+
+Because `𝕁` and `𝕂` are complementary orthogonal projectors, the algebra is that
+of a pair of independent scalars: products multiply them termwise and inverses
+take their reciprocals, both in closed form and both staying in the type. An
+isotropic tensor has no orientation, so it needs none stored.
+
+# Constructors
+
+`TensISO{dim}(λ)` and `TensISO{dim}(α, β)`, plus the named ones
+[`tens_Id2`](@ref), [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref),
+[`ISO`](@ref) and [`iso_projectors`](@ref).
+
+# Examples
+```jldoctest
+julia> ℂ = TensISO{3}(3 * 20.0, 2 * 8.0);
+
+julia> get_data(inv(ℂ))
+(0.016666666666666666, 0.0625)
+
+julia> typeof(inv(ℂ)) === typeof(ℂ)
+true
+```
+
+See also [Isotropic tensors](@ref th-isotropic),
+[Structured tensors](@ref man-structured).
+"""
 struct TensISO{order, dim, T, N} <: AbstractTens{order, dim, T}
     data::NTuple{N, T}
     TensISO{dim}(λ::T) where {dim, T} = new{2, dim, T, 1}((λ,))
@@ -148,6 +187,14 @@ for FUNC in (:tens_Id2, :tens_Id4, :tens_J4, :tens_K4, :iso_projectors)
     @eval $FUNC(args...) = $FUNC(Val.(args)...)
 end
 
+"""
+    get_data(t::AbstractTens)
+
+The **stored** data: the coefficient tuple for a structured tensor
+([`TensISO`](@ref), [`TensTI`](@ref), [`TensOrtho`](@ref)), the component array
+otherwise. Use [`get_array`](@ref) when the full component array is wanted in
+every case.
+"""
 get_data(t::TensISO) = t.data
 get_array(t::TensISO) = Array(t)
 get_basis(::TensISO{order, dim, T}) where {order, dim, T} = CanonicalBasis{dim, T}()
@@ -403,6 +450,24 @@ function qcontract(A::AllTensOrthogonal{order, dim}, B::TensISO{4, dim, T}) wher
     return Tens(newm, get_basis(nA))
 end
 
+"""
+    isotropify(A) → TensISO
+
+Closest **isotropic** tensor to `A` for the Frobenius distance, i.e. its
+orthogonal projection onto `span(𝕁, 𝕂)`:
+
+    ISO(𝕋) = (𝕋 ⊙ 𝕁) 𝕁 + (𝕋 ⊙ 𝕂)/(𝕂 ⊙ 𝕂) 𝕂
+
+For an order-2 tensor this reduces to `tr(A)/dim · 𝟏`.
+
+!!! warning "It does not commute with inversion"
+    `isotropify(inv(A)) ≠ inv(isotropify(A))`: the Euclidean distance is not
+    invariant under inversion, so projecting a stiffness and projecting the
+    corresponding compliance give different isotropic materials. State which one
+    was projected whenever a result is reported.
+
+See also [`proj_tens`](@ref), [Isotropic tensors](@ref th-isotropic).
+"""
 isotropify(A::AbstractArray{T, 2}) where {T} = TensISO{size(A)[1]}(tr(A) / size(A)[1])
 
 function isotropify(A::AbstractArray{T, 4}) where {T}

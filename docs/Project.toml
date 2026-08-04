@@ -1,8 +1,20 @@
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 DocumenterCitations = "daee34ce-89f3-4625-b898-19384cb65244"
+DocumenterMermaid = "a078cd44-4d9c-4618-b545-3ab9d77f9177"
+ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
+NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
+Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
+StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SymPy = "24249f21-da20-56a4-8eb1-6a02cf4ae2e6"
+Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 TensND = "474b5345-2588-4284-8a58-2430a1a40cb0"
 Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
+
+[sources]
+TensND = {path = ".."}
