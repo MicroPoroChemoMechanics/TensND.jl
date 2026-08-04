@@ -1,0 +1,117 @@
+/* TensND.jl — Documenter custom stylesheet */
+
+.content {
+    max-width: 900px;
+}
+
+.content p,
+.content li {
+    line-height: 1.7;
+}
+
+.content h2 {
+    margin-top: 2.5rem;
+    padding-bottom: 0.3rem;
+    border-bottom: 2px solid #4a90d9;
+}
+
+.content h3 {
+    margin-top: 1.8rem;
+    color: #2a6496;
+}
+
+pre.documenter-example-output {
+    max-height: 460px;
+    overflow-y: auto;
+    overflow-x: auto;
+    white-space: pre;
+    border-left: 3px solid #4a90d9;
+    padding-left: 0.8rem;
+}
+
+code:not([class]) {
+    background-color: rgba(74, 144, 217, 0.08);
+    border-radius: 3px;
+    padding: 0.1em 0.35em;
+    font-size: 0.92em;
+}
+
+.content table {
+    width: auto;
+    max-width: 100%;
+    border-collapse: collapse;
+    font-size: 0.93rem;
+    margin: 1rem 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.content table thead tr {
+    background-color: #4a90d9;
+    color: #fff;
+}
+
+.content table thead th {
+    padding: 0.5rem 0.9rem;
+    text-align: left;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.content table tbody tr:nth-child(even) {
+    background-color: rgba(74, 144, 217, 0.06);
+}
+
+.content table tbody td {
+    padding: 0.4rem 0.9rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* Tables of 6×6 Kelvin-Mandel matrices and Walpole multiplication tables are
+ * wide; let them scroll inside their own box rather than push the page. */
+.content table {
+    display: block;
+    overflow-x: auto;
+}
+
+@media (prefers-color-scheme: dark) {
+    .content h2 { border-bottom-color: #5ba4e8; }
+    .content h3 { color: #7ec8e3; }
+    pre.documenter-example-output { border-left-color: #5ba4e8; }
+    code:not([class]) { background-color: rgba(91, 164, 232, 0.12); }
+    .content table thead tr { background-color: #2a5a8a; }
+    .content table tbody tr:nth-child(even) { background-color: rgba(91, 164, 232, 0.08); }
+}
+
+/* ── Mermaid diagrams ──────────────────────────────────────────────────────
+ * Mermaid's 16 px label font is whatever survives the scaling the browser
+ * applies to fit the <svg> into the column: a flowchart 2200 px wide in a
+ * 860 px column renders its text at 6 px. So diagrams are drawn top to bottom,
+ * sized to fit the column, and the rule below keeps them at their intrinsic
+ * size — never stretched, only shrunk when they overflow. Each diagram asks
+ * for `useMaxWidth: false` so the <svg> carries a real pixel width for
+ * `max-width` to act on.
+ */
+.mermaid {
+    width: 100%;
+    margin: 1.6rem 0;
+    text-align: center;
+}
+
+.mermaid svg {
+    max-width: 100% !important;
+    height: auto !important;
+}
+
+/* On a narrow screen a diagram may scroll rather than shrink — legibility
+ * beats fitting. */
+@media (max-width: 900px) {
+    .mermaid {
+        overflow-x: auto;
+        text-align: left;
+    }
+    .mermaid svg {
+        max-width: none !important;
+    }
+}

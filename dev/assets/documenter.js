@@ -45,7 +45,6 @@ window.MathJax = {
         "\\)"
       ]
     ],
-    "macros": {},
     "tags": "ams"
   }
 };
