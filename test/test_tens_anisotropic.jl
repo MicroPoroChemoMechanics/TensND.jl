@@ -970,4 +970,47 @@
         @test Tensors.isminorsymmetric(get_array(P))
     end
 
+    @testsection "minor-symmetry storage does not hinge on round-off" begin
+        # Regression. `Tensors.issymmetric` compares components exactly, so the
+        # choice between a 36-component `SymmetricTensor` and an 81-component
+        # `Tensor` used to be decided by the last bit: writing a structured
+        # tensor about a non-canonical axis leaves minor-antisymmetric residue
+        # of order 1e-16, and 8.9e-16 on components of size 30 landed on the
+        # full form where 4.4e-16 landed on the symmetric one.
+        #
+        # The two are not interchangeable. `inv` of the full fourth-order form
+        # solves a 9x9 system whose three minor-antisymmetric directions are
+        # null, so it threw `SingularException` on a well-posed problem — and
+        # which of the two a model got depended on the axis it happened to use.
+        for θ in range(0, π; length = 13), ϕ in (0.0, 0.7, 2.1)
+            ℬ = RotatedBasis(θ, ϕ, 0.0)
+            n = vecbasis(ℬ)[:, 3]
+            for t in (
+                    TensTI{4}(31.0, 39.0, 11.313708498984763, 23.0, 23.0, n),
+                    TensTI{4}(2.0, 3.0, 1.0, 1.5, 4.0, 5.0, n),
+                    TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ),
+                )
+                @test get_array(TensND._generic_tens(t)) isa Tensors.SymmetricTensor
+            end
+        end
+
+        # The failure this came from: a tensor whose VALUES are isotropic but
+        # which carries a tilted transversely isotropic axis. It is bit-for-bit
+        # the same tensor as the one built about e₃, so it must invert the same
+        # way rather than raise.
+        δ(n) = TensTI{4}(-31.0, -39.0, -11.313708498984763, -23.0, -23.0, n)
+        e₃ = (0.0, 0.0, 1.0)
+        tilted = vecbasis(RotatedBasis(0.4, 0.7, 0.0))[:, 3]
+        @test get_array(δ(e₃)) ≈ get_array(δ(tilted)) atol = 1.0e-12
+
+        𝕀 = TensISO{3}(1.0, 1.0)
+        ℙ = TensND._generic_tens(TensISO{3}(0.05, 0.03))
+        for n in (e₃, tilted)
+            S = 𝕀 + ℙ ⊡ δ(n)
+            @test get_array(TensND._generic_tens(S)) isa Tensors.SymmetricTensor
+            A = inv(S)                      # this is what used to throw
+            @test maximum(abs, get_array(A ⊡ S) - get_array(TensND._generic_tens(𝕀))) < 1.0e-10
+        end
+    end
+
 end  # "Walpole & Ortho tensors"
