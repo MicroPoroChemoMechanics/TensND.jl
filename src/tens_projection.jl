@@ -712,7 +712,7 @@ proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
 # ──────────────────────────────────────────────────────────────────────────────
 #
 # These predicates complement the type-level predicates defined in
-# `tens_isotropic.jl` and `tens_walpole.jl`: they answer "do the numerical
+# `tens_isotropic.jl` and `tens_anisotropic.jl`: they answer "do the numerical
 # components satisfy this symmetry to tolerance ε?" rather than "does this
 # container impose this symmetry?".  The default cheap path uses the
 # Kelvin-Mandel eigenstructure to propose a candidate axis/frame without any
@@ -828,7 +828,7 @@ end
 # the analog of echoes' `.paramsym(sym)` attached to the tensor itself.
 # They dispatch below the type-specific `is_ISO(::TensISO)`, `is_ISO(::TensTI)`,
 # `is_ISO(::TensOrtho)`, … predicates already defined in `tens_isotropic.jl` /
-# `tens_walpole.jl` (those remain the more specific, and cheaper, match for
+# `tens_anisotropic.jl` (those remain the more specific, and cheaper, match for
 # structured types) — in practice these wrappers fire for the fully generic
 # `Tens{4,3}` / `Tens{2,3}` (no assumed symmetry), which is exactly the case
 # that needs a best-fit projection rather than a type-level answer.

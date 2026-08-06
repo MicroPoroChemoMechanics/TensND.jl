@@ -5,7 +5,7 @@ well-chosen basis pays off most: in the Walpole basis [walpole1984](@cite) the
 double contraction becomes a ``2\times2`` matrix product plus two scalar
 products, and inversion becomes a ``2\times2`` matrix inverse plus two
 reciprocals. `TensND` stores such tensors as their coefficients on this basis
-([`TensTI`](@ref), `src/tens_walpole.jl`) rather than as 81 components.
+([`TensTI`](@ref), `src/tens_anisotropic.jl`) rather than as 81 components.
 
 ## The six tensors
 

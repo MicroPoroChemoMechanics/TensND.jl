@@ -28,7 +28,7 @@ opequal(x, y) = x == y || x ≈ y
 include("test_bases.jl")
 include("test_tens.jl")
 include("test_tens_isotropic.jl")
-include("test_tens_walpole.jl")
+include("test_tens_anisotropic.jl")
 include("test_tens_projection.jl")
 include("test_special_tens.jl")
 include("test_coorsystems.jl")

@@ -4,7 +4,7 @@ The classical Walpole basis of [The Walpole basis](@ref th-walpole) spans the
 tensors that are transversely isotropic in the usual sense. That space is *not*
 the full space of tensors invariant under rotations about the axis: two
 generators are missing. This page derives the eight-dimensional space `TensND`
-actually implements (`TensTI{4,T,8}`, `src/tens_walpole.jl`), which has no
+actually implements (`TensTI{4,T,8}`, `src/tens_anisotropic.jl`), which has no
 counterpart in the Echoes manual or, as far as we are aware, in the standard
 references.
 

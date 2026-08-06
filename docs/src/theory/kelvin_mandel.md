@@ -88,7 +88,7 @@ so a change of frame is an **orthogonal congruence**
 ```
 
 `TensND` builds it either from Euler angles (`_KM_rotation(θ, ϕ, ψ)`) or
-directly from a frame (`_km_congruence`, in `src/tens_walpole.jl`); the latter
+directly from a frame (`_km_congruence`, in `src/tens_anisotropic.jl`); the latter
 is what relates the two views of an orthotropic tensor,
 
 ```math

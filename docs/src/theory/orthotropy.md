@@ -2,7 +2,7 @@
 
 Orthotropy is invariance under the reflections through three mutually orthogonal
 planes. It is the least constrained class `TensND` gives a dedicated storage
-type ([`TensOrtho`](@ref), `src/tens_walpole.jl`): nine constants plus a material
+type ([`TensOrtho`](@ref), `src/tens_anisotropic.jl`): nine constants plus a material
 frame, against 21 for a general minor- and major-symmetric tensor.
 
 ## The nine constants

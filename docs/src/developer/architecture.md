@@ -12,7 +12,7 @@ flowchart TB
     BA["<b>bases.jl</b><br/>Basis hierarchy,<br/>metric, variance"]
     TE["<b>tens.jl</b><br/>AbstractTens, Tens,<br/>components, KM"]
     ISO["<b>tens_isotropic.jl</b><br/>TensISO"]
-    WAL["<b>tens_walpole.jl</b><br/>TensTI, TensOrtho"]
+    ANI["<b>tens_anisotropic.jl</b><br/>TensTI, TensOrtho"]
     OPS["<b>structured_tens_ops.jl</b><br/>shared metaprogramming"]
     PRO["<b>structured_tens_promotion.jl</b><br/>cross-class promotion"]
     PRJ["<b>tens_projection.jl</b><br/>projection kernels"]
@@ -20,7 +20,7 @@ flowchart TB
     CSS["<b>coorsystems.jl</b><br/>CoorSystemSym"]
     CSN["<b>coorsystems_num.jl</b><br/>CoorSystemNum"]
     SUB["<b>submanifold.jl</b><br/>SubManifoldSym"]
-    AU --> BA --> TE --> ISO --> WAL --> OPS --> PRO --> PRJ --> SPE --> CSS --> CSN --> SUB
+    AU --> BA --> TE --> ISO --> ANI --> OPS --> PRO --> PRJ --> SPE --> CSS --> CSN --> SUB
 ```
 
 ## Layers
@@ -34,7 +34,7 @@ inherits that genericity.
 The tensor type follows the basis type, which is what makes the cost of a
 component conversion a property of the data rather than of the call site.
 
-**Structured types.** `tens_isotropic.jl` and `tens_walpole.jl` store
+**Structured types.** `tens_isotropic.jl` and `tens_anisotropic.jl` store
 coefficients instead of components and override the generic operations with
 closed forms. `structured_tens_ops.jl` holds the metaprogramming they share —
 every structured type exposes `get_data` and a `_rebuild`, and the shared code

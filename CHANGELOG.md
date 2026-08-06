@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.3.2 — minor symmetry is decided by the type, not by round-off
+
+### Bug fixes
+
+- **`inv` could throw `SingularException` on a well-posed problem.** Whether a
+  fourth-order tensor was stored as a 36-component `SymmetricTensor` or an
+  81-component `Tensor` was decided by `Tensors.issymmetric`, an exact
+  comparison. Writing a structured tensor about a non-canonical axis leaves
+  minor-antisymmetric residue of order `1e-16`, so a tensor whose components
+  are of size 30 landed on the full form where the same tensor written about
+  `e₃` landed on the symmetric one — and the full form inverts through a 9×9
+  system whose three minor-antisymmetric directions are null.
+
+  Two stiffnesses that were **equal to the last bit** therefore behaved
+  differently: `inv(𝕀 + ℙ : δℂ)` returned a localization tensor for one and
+  raised for the other. The symmetry test is now relative to the tensor's own
+  scale (`16 eps` of its largest component), and the symmetric branch stores
+  `Tensors.symmetric(t)` rather than a bare `convert`, so the residue is
+  cleaned instead of carried. Non-float element types (symbolic, rational)
+  keep the exact comparison: there is no round-off to absorb there.
+
+  A tensor whose minor antisymmetry is genuine — above that threshold — is
+  stored as before. Code that dispatched on the *storage* of a tensor
+  antisymmetric at round-off level may now see `SymmetricTensor` where it saw
+  `Tensor`; both remain `<: AbstractTens`, and the values agree.
+
+### Internal
+
+- `src/tens_walpole.jl` → **`src/tens_anisotropic.jl`** (and its test file with
+  it). The name had outgrown its contents: the file holds `TensTI` *and*
+  `TensOrtho`, and only the former is expressed in a Walpole basis. It is now
+  the counterpart of `tens_isotropic.jl` — the structured anisotropic types.
+  No code moved; nothing exported changed.
+
 ## v0.3.1 — `print_tensor` renamed to `pprint`
 
 ### Deprecations

@@ -1,6 +1,9 @@
 ##############################################################################
-# TensTI{4} — transversely isotropic 4th-order tensors (Walpole basis)    #
-# TensOrtho  — orthotropic 4th-order tensors                                #
+# tens_anisotropic.jl — the structured ANISOTROPIC tensor types, the           #
+# counterpart of `tens_isotropic.jl`:                                          #
+#                                                                              #
+#   TensTI     transversely isotropic tensors, stored in the Walpole basis     #
+#   TensOrtho  orthotropic tensors, nine constants plus a material frame       #
 ##############################################################################
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -700,7 +703,6 @@ _generic_tens(t::AbstractTens) = Tens(tensor_or_array(get_array(t)))
 @inline _generic_binary(op, A::AbstractTens, B::AbstractTens) =
     Tens(tensor_or_array(broadcast(op, get_array(A), get_array(B))))
 
-
 @inline function Base.:+(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
     axis(A) == axis(B) || return _generic_binary(+, A, B)
     return _rebuild(A, get_data(A) .+ get_data(B))
@@ -1112,7 +1114,7 @@ end
 # `tomandel` orders the pairs (11, 22, 33, 32, 31, 21), and the off-diagonal
 # Kelvin-Mandel basis tensors carry a √2, which is where the three cases below
 # come from.  The identity above is asserted in
-# `test/test_tens_walpole.jl`, on a rotated frame — do not "simplify" the √2
+# `test/test_tens_anisotropic.jl`, on a rotated frame — do not "simplify" the √2
 # bookkeeping without re-running it.
 const _KM_PAIR = ((1, 1), (2, 2), (3, 3), (3, 2), (3, 1), (2, 1))
 
@@ -1395,7 +1397,7 @@ components(t::TensOrtho, ::NTuple{4, Symbol}) = get_array(t)
 # contraction with nT and nₙ; they therefore remain valid for N=8. Contraction
 # with a *general* symmetric 2nd-order tensor does pick up ℓ₇ and ℓ₈, and the
 # N=8 `dcontract` methods account for them — verified against the generic dense
-# route in `test/test_tens_walpole.jl`.
+# route in `test/test_tens_anisotropic.jl`.
 #
 # Similarly, the space of 2nd-order tensors invariant under rotations about n
 # is THREE-dimensional: a·nT + b·nₙ + c·w (the antisymmetric in-plane part c·w
