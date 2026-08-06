@@ -700,6 +700,7 @@ _generic_tens(t::AbstractTens) = Tens(tensor_or_array(get_array(t)))
 @inline _generic_binary(op, A::AbstractTens, B::AbstractTens) =
     Tens(tensor_or_array(broadcast(op, get_array(A), get_array(B))))
 
+
 @inline function Base.:+(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
     axis(A) == axis(B) || return _generic_binary(+, A, B)
     return _rebuild(A, get_data(A) .+ get_data(B))

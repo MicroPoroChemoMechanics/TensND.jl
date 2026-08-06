@@ -319,8 +319,40 @@ tensor_or_array(tab::AbstractArray{T, 1}) where {T} = Vec{size(tab, 1)}(tab)
 # uses; anything else falls back to the previous dynamic path.
 @inline function _to_tensor(tab, ::Val{dim}, ::Val{order}) where {dim, order}
     newtab = Tensor{order, dim}(tab)
-    return Tensors.issymmetric(newtab) ?
-        convert(SymmetricTensor{order, dim}, newtab) : newtab
+    return _store_symmetric(newtab) ? Tensors.symmetric(newtab) : newtab
+end
+
+"""
+    _store_symmetric(t) -> Bool
+
+Whether a freshly built `Tensor` should be kept in its symmetric form.
+
+`Tensors.issymmetric` compares components exactly, which makes the storage
+decision hinge on the last bit. Writing a structured tensor (`TensISO`,
+`TensTI`, `TensOrtho`) about a non-canonical axis leaves minor-antisymmetric
+residue of order `1e-16`: a tensor whose components are of size 30 then lands
+on the 81-component `Tensor` where the very same tensor written about `e₃`
+lands on the 36-component `SymmetricTensor`.
+
+The two are not interchangeable downstream. `inv` of the full fourth-order
+form solves a 9×9 system whose three minor-antisymmetric directions are null,
+so it throws `SingularException` — a dilute localization `inv(𝕀 + ℙ : δℂ)`
+would fail or succeed depending on the last bit of an intermediate. Residue at
+the scale of the tensor's own rounding error is noise, not antisymmetry, and
+is treated as such.
+
+Non-float element types (symbolic, rational, integer) keep the exact
+comparison: there is no round-off to absorb, and no tolerance to define.
+"""
+@inline _store_symmetric(t::Tensors.AbstractTensor) = Tensors.issymmetric(t)
+
+@inline function _store_symmetric(
+        t::Tensors.AbstractTensor{order, dim, T}
+    ) where {order, dim, T <: AbstractFloat}
+    Tensors.issymmetric(t) && return true
+    scale = maximum(abs, t)
+    iszero(scale) && return true
+    return maximum(abs, t - Tensor{order, dim}(Tensors.symmetric(t))) <= 16 * eps(T) * scale
 end
 
 for order in (2, 4)
