@@ -853,7 +853,7 @@ is_ORTHO(t::AbstractTens; kwargs...) = is_ORTHO(get_array(t); kwargs...)
 # conversions (previously private `_project_TI_KM`/`_build_TI_KM`/
 # `_project_ORTHO_KM`/`_build_ORTHO_KM`, used internally by `proj_tens`).
 # Exposed publicly so that callers working directly on 6×6 Kelvin-Mandel
-# blocks (e.g. MeanFieldHom's per-timestep ALV Volterra matrices) can reuse
+# blocks (e.g. MeanFieldHomogenization's per-timestep ALV Volterra matrices) can reuse
 # the same closed-form projection without going through a full `AbstractTens`.
 # ──────────────────────────────────────────────────────────────────────────────
 

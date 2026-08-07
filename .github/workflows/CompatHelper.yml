@@ -8,7 +8,6 @@ permissions:
   pull-requests: write
 jobs:
   CompatHelper:
-    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     steps:
       # The Pkg server intermittently advertises a General tree hash that its

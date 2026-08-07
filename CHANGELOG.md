@@ -50,7 +50,7 @@ still forward, so this is a patch release, not a minor one.
   a domain-specific name.
 
   Note that `pprint` is therefore exported by two MPCM packages with no
-  dependency between them: in a session doing `using MeanFieldHom, ChemistryLab`
+  dependency between them: in a session doing `using MeanFieldHomogenization, ChemistryLab`
   the unqualified `pprint` is ambiguous and must be written `TensND.pprint` or
   `ChemistryLab.pprint`.
 
@@ -149,7 +149,7 @@ aliases) and `@set_coorsys` no longer defines methods, which is observable.
 ### Additions
 
 - `set_coorsys!`, `default_coorsys`, `unset_coorsys!`, `nderiv`.
-- Documentation rebuilt on the MeanFieldHom model: 14 Theory pages, 11 Manual
+- Documentation rebuilt on the MeanFieldHomogenization model: 14 Theory pages, 11 Manual
   pages, 16 Literate tutorials (each also a notebook and a standalone script),
   3 Developer pages and 12 curated API pages, with `checkdocs = :exports` as a
   guard. Bibliography expanded from 4 to 14 entries, every one verified against
@@ -403,8 +403,6 @@ aliases) and `@set_coorsys` no longer defines methods, which is observable.
 - Confirmed each GitHub Release keeps archiving automatically to Zenodo's
   existing concept DOI `10.5281/zenodo.17985768` via the native
   GitHub↔Zenodo integration (no workflow or token needed).
-- Retired the Codeberg return path: removed `.forgejo/` workflows and
-  `docs/deploy_docs.jl`; GitHub is now the sole home.
 
 ## v0.2.0 — API unification & TI type fusion (breaking)
 

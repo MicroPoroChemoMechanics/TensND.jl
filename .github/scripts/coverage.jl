@@ -4,7 +4,7 @@
 # CoverageTools' `amend_coverage_from_src!`, which marks as "executable" every
 # line the *source parser* believes to be code — including lines Julia's
 # instrumentation never emits a count for.  Methods generated inside `@eval`
-# loops are the main offender, and both TensND and MeanFieldHom use that style
+# loops are the main offender, and both TensND and MeanFieldHomogenization use that style
 # heavily.  Such lines can never be covered by any test, yet they sit in the
 # denominator forever: TensND measures 1352/1418 = 95 % of the lines Julia
 # actually instruments, but the amended ratio is 1352/2278 = 59 %.
