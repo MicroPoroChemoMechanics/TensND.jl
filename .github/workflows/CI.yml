@@ -41,6 +41,28 @@ jobs:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v3
+      # The Pkg server intermittently advertises a General tree hash that its
+      # CDN then answers with a 404, which kills the first `Pkg.add` of a cold
+      # depot before any of this repository's code runs.  Install the registry
+      # up front and fall back to a direct clone when that happens; package
+      # tarballs keep going through the Pkg server either way.
+      - name: Install the General registry
+        shell: julia --color=yes {0}
+        run: |
+          using Pkg
+          regdir = joinpath(first(DEPOT_PATH), "registries")
+          if isdir(joinpath(regdir, "General")) || isfile(joinpath(regdir, "General.tar.gz"))
+              @info "General registry already installed"
+          else
+              try
+                  Pkg.Registry.add("General")
+              catch err
+                  @warn "Pkg server could not serve the registry; cloning from GitHub" err
+                  withenv("JULIA_PKG_SERVER" => "") do
+                      Pkg.Registry.add(Pkg.RegistrySpec(url = "https://github.com/JuliaRegistries/General.git"))
+                  end
+              end
+          end
       - name: Install dependencies
         run: |
           julia -e '
