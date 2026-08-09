@@ -1302,7 +1302,13 @@ function contract(t::AbstractTens{order, dim}, i::Integer, j::Integer) where {or
     data = contract(get_array(nt), i, j)
     m = min(i, j)
     M = max(i, j)
-    var = (get_var(nt)[1:(m - 1)]..., get_var(nt)[(m + 1):(M - 1)]..., get_var(nt)[(M + 1):order]...)
+    # `get_var(nt)` once, and the two contracted slots dropped by a predicate
+    # rather than by splatting three ranges: the ranges are not compile-time
+    # constants, so each `...` built a tuple of unknown length and the result
+    # was type-unstable — `ntuple` with `Val(order - 2)` gives the compiler the
+    # length it needs.
+    v = get_var(nt)
+    var = ntuple(k -> v[k < m ? k : (k < M - 1 ? k + 1 : k + 2)], Val(order - 2))
     return Tens(data, get_basis(nt), var)
 end
 
