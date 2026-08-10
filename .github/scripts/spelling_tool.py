@@ -27,7 +27,24 @@ from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 
-DEFAULT_INCLUDE_GLOBS = ["src/**/*.jl", "docs/src/**/*.md", "scripts/*.jl"]
+# What a whole-tree scan covers. This list is the enforcement boundary: a file
+# outside it is never seen by `check .`, hence never by CI. It used to hold only
+# `src`, `docs/src` and `scripts`, which left README.md, CHANGELOG.md, the test
+# suite, weak-dependency extensions and `tools/` unchecked — the README being
+# the most-read file in the repository. It also made the pre-commit hook
+# stricter than CI, since the hook passes the staged files themselves.
+DEFAULT_INCLUDE_GLOBS = [
+    "*.md",                 # README, CHANGELOG, CONTRIBUTING at the root
+    "src/**/*.jl",
+    "ext/**/*.jl",
+    "test/**/*.jl",
+    "docs/**/*.md",
+    "docs/**/*.jl",
+    "scripts/**/*.jl",
+    "tools/**/*.jl",
+    "tools/**/*.py",
+    "tools/**/*.md",
+]
 DEFAULT_EXCLUDE_GLOBS = [
     "**/generated/**",
     "docs/build/**",

@@ -1,5 +1,5 @@
 # Loading NLopt activates TensNDNLoptExt.  This file MUST be included last:
-# `test_tens_projection.jl` asserts the no-NLopt behaviour, and a package
+# `test_tens_projection.jl` asserts the no-NLopt behavior, and a package
 # stays loaded for the rest of the session once `using` has run.
 using NLopt
 
@@ -183,7 +183,7 @@ using NLopt
             results = [proj_tens(sym, A2)[3] for _ in 1:4]
             @test all(==(results[1]), results)
         end
-        # Diagonalising a symmetric 3×3 *is* its orthotropic projection.
+        # Diagonalizing a symmetric 3×3 *is* its orthotropic projection.
         @test proj_tens(:ORTHO, A2)[3] < 1.0e-10
     end
 

@@ -1,5 +1,15 @@
 name: Spelling
 
+# Keeps the tree on the convention declared in `.spelling.json`.
+#
+# Why this runs server-side rather than only in a hook: a git hook lives in
+# `.git/`, which is never cloned, and git deliberately refuses to let a
+# repository install executable hooks on checkout. `core.hooksPath .githooks`
+# is therefore opt-in, per clone, per person — a fresh clone, a collaborator,
+# another machine or the GitHub web editor all bypass it. This job does not
+# care where a commit came from, so it is the only place the rule can actually
+# be guaranteed. The hook remains as fast local feedback, not as the guarantee.
+
 on:
   push:
     branches:
@@ -10,13 +20,59 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
 
+permissions:
+  contents: write
+
 jobs:
   spelling:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # The push below needs the branch, not the detached commit.
+          ref: ${{ github.head_ref || github.ref_name }}
+
       - uses: actions/setup-python@v7
         with:
           python-version: '3.x'
-      - name: Check US/UK spelling consistency
-        run: python3 .github/scripts/spelling_tool.py check .
+
+      - name: Read the configured convention
+        id: cfg
+        run: |
+          conv=$(python3 -c "import json;print(json.load(open('.spelling.json'))['convention'])")
+          echo "convention=$conv" >> "$GITHUB_OUTPUT"
+          echo "Convention: $conv"
+
+      - name: Convert to the configured convention
+        run: python3 .github/scripts/spelling_tool.py convert . --to '${{ steps.cfg.outputs.convention }}'
+
+      # A pull request from a fork hands this job a read-only token, so pushing
+      # a correction is impossible there. Report instead — the contributor
+      # fixes it, or the maintainer does after merging.
+      - name: Report (pull request — cannot push a fix)
+        if: github.event_name == 'pull_request'
+        run: |
+          if ! git diff --quiet; then
+            echo "::error::Spelling deviates from the ${{ steps.cfg.outputs.convention }} convention. Run:"
+            echo "::error::  python3 .github/scripts/spelling_tool.py convert . --to ${{ steps.cfg.outputs.convention }}"
+            git diff --stat
+            exit 1
+          fi
+          echo "Already consistent."
+
+      # On a push to `main` the token can write, so the correction is committed
+      # rather than merely announced. `[skip ci]` stops this job from
+      # retriggering itself on the commit it just made.
+      - name: Commit the correction (push to main)
+        if: github.event_name == 'push'
+        run: |
+          if git diff --quiet; then
+            echo "Already consistent."
+            exit 0
+          fi
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "style: apply ${{ steps.cfg.outputs.convention }} spelling convention [skip ci]"
+          git push
+          echo "Correction pushed — pull before your next commit."
