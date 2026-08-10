@@ -208,14 +208,29 @@ end
     )
 end
 
+"""
+    otimes(t1::AbstractArray, t2::AbstractArray)
+
+Tensor (outer) product: `out[i…, j…] = t1[i…] * t2[j…]`.
+
+No index is summed over, so there is nothing for a contraction engine to do
+here. Going through `einsum` anyway cost 3.5 µs and 4.1 kB for two 3×3 arrays,
+against 65 ns for the outer product written directly — the machinery, not the
+arithmetic.
+
+The broadcast below is exactly the einsum it replaces: with output indices
+`(1…order1, order1+1…order1+order2)` in that order, the column-major linear
+index of `out` is `a + length(t1)·(b−1)` for `t1[a]·t2[b]`, which is what
+`vec(t1) .* transpose(vec(t2))` lays out. Broadcasting also keeps this generic
+over `Dual` and symbolic element types, where BLAS could not be used.
+"""
 function Tensors.otimes(
         t1::AbstractArray{T1, order1},
         t2::AbstractArray{T2, order2},
     ) where {T1, T2, order1, order2}
-    ec1 = ntuple(i -> i, order1)
-    ec2 = ntuple(i -> order1 + i, order2)
-    ec3 = ntuple(i -> i, order1 + order2)
-    return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
+    return reshape(
+        vec(t1) .* transpose(vec(t2)), size(t1)..., size(t2)...
+    )
 end
 
 """
