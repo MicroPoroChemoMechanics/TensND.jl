@@ -112,8 +112,10 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
     end
 
     @testset "against the einsum implementation it replaced" begin
-        for (s1, s2) in (((3, 3), (3, 3)), ((2, 3), (3, 2)), ((3, 3), (3, 3, 3)),
-                         ((3, 3, 3), (3, 3)), ((4, 4), (4, 4)))
+        for (s1, s2) in (
+                ((3, 3), (3, 3)), ((2, 3), (3, 2)), ((3, 3), (3, 3, 3)),
+                ((3, 3, 3), (3, 3)), ((4, 4), (4, 4)),
+            )
             a = rand(s1...)
             b = rand(s2...)
             @test all(otimes(a, b) .=== _old_otimes(a, b))
@@ -134,8 +136,10 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
         s2 = Tensors.SymmetricTensor{2, 3}((i, j) -> 1.0i + 1.0j)
         arr = rand(3, 3)
 
-        for (x, y) in ((v2, v2), (v3, v3), (t2, t2), (s2, s2),
-                       (arr, v3), (v3, arr), (t2, arr))
+        for (x, y) in (
+                (v2, v2), (v3, v3), (t2, t2), (s2, s2),
+                (arr, v3), (v3, arr), (t2, arr),
+            )
             p = otimes(x, y)
             @test size(p) == (size(x)..., size(y)...)
             for I in CartesianIndices(p)
@@ -155,8 +159,8 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
     @testset "exact and generic element types" begin
         # Rational arithmetic is exact, so any misplacement shows as an exact
         # inequality rather than as a tolerance question.
-        a = [1//2 1//3; 1//5 1//7]
-        b = [2//3 3//5; 5//7 7//11]
+        a = [1 // 2 1 // 3; 1 // 5 1 // 7]
+        b = [2 // 3 3 // 5; 5 // 7 7 // 11]
         @test all(otimes(a, b) .== _ref_otimes(a, b))
         @test all(otimesu(a, b) .== _ref_otimesu(a, b))
         @test all(otimesl(a, b) .== _ref_otimesl(a, b))
