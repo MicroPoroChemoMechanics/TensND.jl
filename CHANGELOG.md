@@ -31,7 +31,7 @@
   nine shape combinations per function — including non-square, order-3 and
   mixed-order operands, and a first-order second operand — with `===` element
   equality, the `ForwardDiff.Dual` element type preserved, and the full test
-  suite green. No behaviour changes.
+  suite green. No behavior changes.
 
   Broadcasting also keeps these generic over `Dual` and symbolic element types,
   where BLAS could not have been used. `sotimes` deliberately keeps its
@@ -44,6 +44,50 @@
   of a `Tensors.Vec` is deliberately discontinued upstream. Singleton axes
   transpose nothing and have no such restriction; the slightly slower figure
   above is that correction.
+
+- **`best_sym_tens` derived candidates it never read.** The transversely
+  isotropic axis and the orthotropic frame were both computed on every call —
+  each from its own fresh `Array(get_array(t))`, so the array was materialized
+  three times — even when `proj` asked for neither. Both are now derived only
+  when `proj` names the symmetry that reads them, and from the array already
+  materialized.
+
+  | case | before | after |
+  | :--- | ---: | ---: |
+  | `best_sym_tens(C; proj = (:ISO,))` | 11.3 µs / 14016 B | **7.1 µs / 7568 B** |
+  | `best_sym_tens(C)` (all three) | 17.6 µs / 22640 B | **17.3 µs / 21168 B** |
+
+  The full call gains only the duplicate materializations, since it genuinely
+  needs both candidates; a restricted `proj` gains the eigen-decomposition it
+  was never going to use.
+
+### Tests
+
+- New `test/test_tensor_products.jl` pins the four outer products against three
+  independent references — the definition as explicit loops, the `einsum` form
+  they replaced, and the algebraic identities they must satisfy — across
+  shapes, element types (`Rational`, `Int`, `Dual`, symbolic) and, in
+  particular, the `Tensors` types the callers actually pass.
+
+  Because this is an N-dimensional package, the generic case is covered rather
+  than assumed: **every order pair from 1 ⊗ 1 to 5 ⊗ 3**, together with the
+  property the broadcast rests on — that both index lists are increasing at
+  every order, so neither operand's axes need reordering. **Variance** is
+  checked on a deliberately non-orthonormal basis, where co- and contravariant
+  components differ: the variance tuple must be carried in index order, and
+  `⊠` must interleave it exactly as it interleaves the indices. The invariant
+  used is basis-independent — the canonical components of a product are the
+  product of the canonical components.
+
+  The contraction paths (`contract`, `dcontract`, `dotdot`, `qcontract`) still
+  go through `einsum` and are deliberately unchanged; they are exercised at
+  arbitrary orders too, so a future attempt to give them the same treatment
+  cannot land unnoticed.
+
+  Mutation-checked, three ways: swapping two index lists, reinstating the
+  `transpose` draft, and hard-coding the output order to 4 (correct at 2 ⊗ 2,
+  wrong above) each fail the suite. Also pins that restricting `proj` in
+  `best_sym_tens` does not change the numbers reported for a given symmetry.
 
 ## v0.3.2 — minor symmetry is decided by the type, not by round-off
 
@@ -436,7 +480,7 @@ aliases) and `@set_coorsys` no longer defines methods, which is observable.
   DIFFERENT axes now fall back to a generic `Tens` result instead of throwing
   an axis-mismatch assertion. This enables accumulation of differently-axed TI
   contributions (e.g. multi-orientation self-consistent estimates). Same-axis
-  behaviour is unchanged.
+  behavior is unchanged.
 
 ## v0.2.1 — Maintenance
 

@@ -175,8 +175,23 @@ for order in (2, 4)
             else
                 # Cheap path: reuse structured references when available, otherwise
                 # derive candidates from the Kelvin-Mandel eigendecomposition.
-                n_default = hasmethod(axis, Tuple{typeof(t)}) ? axis(t) : _default_TI_axis(newt)
-                frame_default = hasmethod(frame, Tuple{typeof(t)}) ? frame(t) : _default_ORTHO_frame(newt)
+                #
+                # Computed only if `proj` actually asks for the symmetry that
+                # needs them, and from the `A` already materialized above rather
+                # than re-materializing it: `_default_TI_axis`/`_default_ORTHO_frame`
+                # each call `Array(get_array(newt))` again, so the array was built
+                # three times, and both eigenproblems were solved even for
+                # `proj = (:ISO,)`, where neither answer is ever read.
+                n_default = if :TI in proj
+                    hasmethod(axis, Tuple{typeof(t)}) ? axis(t) : _candidate_TI_axis(A)
+                else
+                    nothing
+                end
+                frame_default = if :ORTHO in proj
+                    hasmethod(frame, Tuple{typeof(t)}) ? frame(t) : _candidate_ORTHO_frame(A)
+                else
+                    nothing
+                end
                 return _best_sym_loop(
                     newt, proj, ε,
                     function (sym)

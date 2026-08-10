@@ -1,0 +1,94 @@
+#!/usr/bin/env bash
+# Pre-commit hook: keep the tree in US English.
+#
+# Enable once, per clone:
+#     git config core.hooksPath .githooks
+#
+# It **fixes** rather than complains. An earlier version ran the same check as
+# CI and refused the commit, which left the contributor to run the converter
+# and start over — and under time pressure that turns into `--no-verify`, which
+# is exactly the red CI run the hook exists to prevent. Converting and
+# re-staging removes the step instead of adding one.
+#
+# Only staged, prose-bearing files are touched, and only their prose:
+# `spelling_tool.py` never rewrites Julia identifiers, keyword arguments or
+# fenced code blocks. What it changed is printed, so nothing happens silently.
+#
+# `Spelling.yml` in CI remains the authority: this hook is a convenience for a
+# configured clone, not a guarantee. Anything committed elsewhere — the GitHub
+# web editor, another machine, a merge — is still caught there.
+#
+# Portability, deliberately: the interpreter is `python3` on Linux and macOS
+# but `python` on Windows, and `py -3` on a Windows install that only has the
+# launcher on PATH. A hook that tests `python3` alone exits silently on
+# Windows — no protection, and no sign of it, which is worse than failing.
+# `mapfile` is likewise avoided: it is bash 4+, and macOS still ships 3.2.
+set -euo pipefail
+
+cd "$(git rev-parse --show-toplevel)"
+
+TOOL=".github/scripts/spelling_tool.py"
+[ -f "$TOOL" ] || exit 0
+
+# ── Find a Python 3, whatever it is called here ─────────────────────────────
+PY=""
+for candidate in python3 python py; do
+    command -v "$candidate" >/dev/null 2>&1 || continue
+    if [ "$candidate" = "py" ]; then
+        # The Windows launcher needs to be told which version to run.
+        if py -3 -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)" >/dev/null 2>&1; then
+            PY="py -3"
+            break
+        fi
+    elif "$candidate" -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)" >/dev/null 2>&1; then
+        # `python` is Python 2 on some older systems; the version test is what
+        # makes accepting that name safe.
+        PY="$candidate"
+        break
+    fi
+done
+
+if [ -z "$PY" ]; then
+    echo "▸ US spelling: no Python 3 found (tried python3, python, py -3)." >&2
+    echo "▸ The commit is allowed, but nothing checked it — CI will." >&2
+    exit 0
+fi
+
+# ── Collect the staged, prose-bearing files ─────────────────────────────────
+FILES=()
+while IFS= read -r f; do
+    [ -n "$f" ] && [ -f "$f" ] && FILES+=("$f")
+done < <(
+    git diff --cached --name-only --diff-filter=ACM \
+        -- '*.jl' '*.md' '*.py' '*.js' '*.css'
+)
+[ ${#FILES[@]} -eq 0 ] && exit 0
+
+if $PY "$TOOL" check "${FILES[@]}" >/dev/null 2>&1; then
+    exit 0
+fi
+
+echo "▸ US spelling: converting staged files…"
+$PY "$TOOL" convert "${FILES[@]}" --to us
+
+# Re-stage only what the converter actually rewrote, so an unrelated unstaged
+# edit in the same file is never swept into the commit.
+CHANGED=0
+for f in "${FILES[@]}"; do
+    if ! git diff --quiet -- "$f"; then
+        git add -- "$f"
+        echo "    fixed and re-staged: $f"
+        CHANGED=1
+    fi
+done
+
+if [ "$CHANGED" -eq 0 ]; then
+    # The checker objected but the converter changed nothing: a word it cannot
+    # resolve on its own. Refuse rather than commit something CI will reject.
+    echo "▸ US spelling: the checker still objects and the converter had no fix." >&2
+    $PY "$TOOL" check "${FILES[@]}" >&2 || true
+    echo "▸ Fix by hand, or add an exception, then commit again." >&2
+    exit 1
+fi
+
+echo "▸ US spelling: done — the commit now contains the corrected text."
