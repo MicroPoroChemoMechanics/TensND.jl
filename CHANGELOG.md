@@ -1,41 +1,49 @@
 # Changelog
 
-## v0.3.3 — `otimes` no longer goes through a contraction engine
+## v0.3.3 — the outer products no longer go through a contraction engine
 
 ### Performance
 
-- **`otimes(::AbstractArray, ::AbstractArray)` was 54× slower than the outer
-  product it computes.** The method built an `EinCode` and called `einsum` — a
-  contraction engine — for an operation that contracts nothing: the output
-  indices of `otimes` are the union of the input indices, one multiplication
-  per element and no summation anywhere.
+- **`otimes`, `otimesu`, `otimesl` and `sotimes` were 20–55× slower than the
+  products they compute.** Each built an `EinCode` and called `einsum` — a
+  contraction engine — for operations that contract nothing: their output
+  indices are the union of the input indices, one multiplication per element
+  and no summation anywhere. `otimesu` and `otimesl` merely *interleave* the
+  two operands' indices; `sotimes` is the average of `otimes` and `otimesu`.
 
-  Measured on two 3×3 arrays: **3517 ns and 4144 bytes**, against 65 ns for the
-  outer product written directly. Two vectors cost 3240 ns. The time was
-  machinery — code selection and dispatch — not arithmetic.
+  The time was machinery — `EinCode` construction, code selection, dispatch —
+  not arithmetic.
 
-  The implementation is now the definition itself,
-  `reshape(vec(t1) .* transpose(vec(t2)), size(t1)..., size(t2)...)`. With
-  output indices `(1…order1, order1+1…order1+order2)` in that order, the
-  column-major linear index of the result is `a + length(t1)·(b−1)` for
-  `t1[a]·t2[b]`, which is exactly what that broadcast lays out. Broadcasting
-  also keeps the method generic over `ForwardDiff.Dual` and symbolic element
-  types, where BLAS could not have been used.
+  All four are now a single broadcast. Both index lists are increasing, so
+  neither operand needs its axes permuted: giving each one singleton axes where
+  the other's indices sit places every element correctly. `sotimes` fuses its
+  two terms into one broadcast, turning three allocations into one.
 
   | case | before | after |
   | :--- | ---: | ---: |
-  | `otimes(3×3, 3×3)` | 3517 ns / 4144 B | **65.4 ns / 800 B** |
-  | `otimes(3, 3)` | 3240 ns / 3200 B | **35.3 ns / 144 B** |
+  | `otimes(3×3, 3×3)` | 3517 ns / 4144 B | **163 ns / 864 B** |
+  | `otimes(3, 3)` | 3240 ns / 3200 B | **50.7 ns / 240 B** |
+  | `otimesu(3×3, 3×3)` | 8337 ns / 7680 B | **158 ns / 864 B** |
+  | `otimesl(3×3, 3×3)` | 8180 ns / 7632 B | **159 ns / 864 B** |
+  | `sotimes(3×3, 3×3)` | 8810 ns / 10016 B | **307 ns / 992 B** |
 
-  Verified bit-for-bit against an explicit-loop oracle on seven shape
-  combinations — `(3,)⊗(3,)`, `(3,3)⊗(3,3)`, `(3,3)⊗(3,)`, `(3,)⊗(3,3)`,
-  `(2,3)⊗(3,2)`, `(3,3)⊗(3,3,3)`, `(2,2,2)⊗(2,2)` — with `===` element
-  equality, and with the `Dual` element type preserved. No behaviour changes.
+  Verified **bit-for-bit against the einsum implementations they replace**, on
+  nine shape combinations per function — including non-square, order-3 and
+  mixed-order operands, and a first-order second operand — with `===` element
+  equality, the `ForwardDiff.Dual` element type preserved, and the full test
+  suite green. No behaviour changes.
 
-  `otimesu`, `otimesl` and the second term of `sotimes` are the same
-  non-summing product with an index permutation on top, and are **not** changed
-  here: at generic order the permutation deserves its own exhaustive check
-  rather than being folded into this release.
+  Broadcasting also keeps these generic over `Dual` and symbolic element types,
+  where BLAS could not have been used. `sotimes` deliberately keeps its
+  division by 2 rather than a multiplication by `0.5`: the two are bit-identical
+  in binary floating point but render differently for symbolic elements.
+
+  Note for anyone reading an intermediate commit: a first draft of `otimes`
+  used `vec(t1) .* transpose(vec(t2))`, which is the same layout and faster on
+  plain arrays, but **raises on a first-order `Tensors` operand** — `transpose`
+  of a `Tensors.Vec` is deliberately discontinued upstream. Singleton axes
+  transpose nothing and have no such restriction; the slightly slower figure
+  above is that correction.
 
 ## v0.3.2 — minor symmetry is decided by the type, not by round-off
 

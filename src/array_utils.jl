@@ -218,18 +218,25 @@ here. Going through `einsum` anyway cost 3.5 µs and 4.1 kB for two 3×3 arrays,
 against 65 ns for the outer product written directly — the machinery, not the
 arithmetic.
 
-The broadcast below is exactly the einsum it replaces: with output indices
-`(1…order1, order1+1…order1+order2)` in that order, the column-major linear
-index of `out` is `a + length(t1)·(b−1)` for `t1[a]·t2[b]`, which is what
-`vec(t1) .* transpose(vec(t2))` lays out. Broadcasting also keeps this generic
-over `Dual` and symbolic element types, where BLAS could not be used.
+It is the identity case of `_interleaved_otimes`: `t1`'s indices go to
+output positions `1…order1` and `t2`'s to `order1+1…order1+order2`, so each
+operand is reshaped with singleton axes where the other's indices sit and the
+product is one broadcast.
+
+An earlier version wrote this as `vec(t1) .* transpose(vec(t2))`, which is the
+same layout but **fails on `Tensors.Vec`**: `transpose` of a first-order
+`Tensors` array is deliberately discontinued upstream, so a first-order operand
+raised instead of multiplying. Singleton axes transpose nothing and have no such
+restriction. Broadcasting also keeps this generic over `Dual` and symbolic
+element types, where BLAS could not be used.
 """
 function Tensors.otimes(
         t1::AbstractArray{T1, order1},
         t2::AbstractArray{T2, order2},
     ) where {T1, T2, order1, order2}
-    return reshape(
-        vec(t1) .* transpose(vec(t2)), size(t1)..., size(t2)...
+    return _interleaved_otimes(
+        t1, t2, ntuple(i -> i, Val(order1)),
+        ntuple(i -> order1 + i, Val(order2)), Val(order1 + order2),
     )
 end
 
@@ -325,6 +332,41 @@ qcontract(t1::AbstractArray{T1, 4}, t2::AbstractArray{T2, 4}) where {T1, T2} =
     dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
 
 """
+    _interleaved_otimes(t1, t2, ec1, ec2, Val(n))
+
+Outer product whose operand indices land at prescribed output positions:
+`out[…] = t1[…] * t2[…]`, with `t1`'s `m`-th index at output position `ec1[m]`
+and `t2`'s at `ec2[m]`.
+
+`otimesu`, `otimesl` and the second term of `sotimes` are all of this shape —
+nothing is summed, the two index lists merely interleave. Both lists are
+**increasing**, so neither operand needs its axes permuted: giving each one
+singleton axes where the other's indices go makes the whole thing a single
+broadcast. One allocation, no contraction engine, no permutation pass, and
+generic over `Dual` and symbolic element types.
+"""
+@inline function _otimes_shapes(
+        t1::AbstractArray, t2::AbstractArray,
+        ec1::NTuple{o1, Int}, ec2::NTuple{o2, Int}, ::Val{n},
+    ) where {o1, o2, n}
+    s1 = ntuple(
+        k -> (m = findfirst(isequal(k), ec1); m === nothing ? 1 : size(t1, m)), Val(n)
+    )
+    s2 = ntuple(
+        k -> (m = findfirst(isequal(k), ec2); m === nothing ? 1 : size(t2, m)), Val(n)
+    )
+    return s1, s2
+end
+
+@inline function _interleaved_otimes(
+        t1::AbstractArray, t2::AbstractArray,
+        ec1::NTuple{o1, Int}, ec2::NTuple{o2, Int}, v::Val{n},
+    ) where {o1, o2, n}
+    s1, s2 = _otimes_shapes(t1, t2, ec1, ec2, v)
+    return reshape(t1, s1) .* reshape(t2, s2)
+end
+
+"""
     otimesu(t1::AbstractArray, t2::AbstractArray)
     t1 ⊠ t2
 
@@ -338,24 +380,23 @@ Unlike its symmetrized counterpart it inverts termwise:
 
 See [Tensor algebra](@ref th-tensor-algebra) for the full set of identities.
 """
+
 function Tensors.otimesu(
         t1::AbstractArray{T1, order1},
         t2::AbstractArray{T2, order2},
     ) where {T1, T2, order1, order2}
-    ec1 = (ntuple(i -> i, order1 - 1)..., order1 + 1)
-    ec2 = (order1, ntuple(i -> order1 + 1 + i, order2 - 1)...)
-    ec3 = ntuple(i -> i, order1 + order2)
-    return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
+    ec1 = (ntuple(i -> i, Val(order1 - 1))..., order1 + 1)
+    ec2 = (order1, ntuple(i -> order1 + 1 + i, Val(order2 - 1))...)
+    return _interleaved_otimes(t1, t2, ec1, ec2, Val(order1 + order2))
 end
 
 function Tensors.otimesl(
         t1::AbstractArray{T1, order1},
         t2::AbstractArray{T2, order2},
     ) where {T1, T2, order1, order2}
-    ec1 = (ntuple(i -> i, order1 - 1)..., order1 + 2)
-    ec2 = (order1, order1 + 1, ntuple(i -> order1 + 2 + i, order2 - 2)...)
-    ec3 = ntuple(i -> i, order1 + order2)
-    return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
+    ec1 = (ntuple(i -> i, Val(order1 - 1))..., order1 + 2)
+    ec2 = (order1, order1 + 1, ntuple(i -> order1 + 2 + i, Val(order2 - 2))...)
+    return _interleaved_otimes(t1, t2, ec1, ec2, Val(order1 + order2))
 end
 
 """
@@ -395,15 +436,25 @@ function sotimes(
         t1::AbstractArray{T1, order1},
         t2::AbstractArray{T2, order2},
     ) where {T1, T2, order1, order2}
-    ec1 = ntuple(i -> i, order1)
-    ec2 = ntuple(i -> order1 + i, order2)
-    ec3 = ntuple(i -> i, order1 + order2)
-    t3 = einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
-    ec1 = (ntuple(i -> i, order1 - 1)..., order1 + 1)
-    ec2 = (order1, ntuple(i -> order1 + 1 + i, order2 - 1)...)
-    ec3 = ntuple(i -> i, order1 + order2)
-    t4 = einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
-    return (t3 + t4) / promote_type(T1, T2)(2)
+    # The symmetrized product is the plain one averaged with its `otimesu`
+    # partner. Both are outer products with singleton axes, so the average is
+    # written as **one** fused broadcast rather than as two arrays plus their
+    # sum: three allocations become one.
+    n = Val(order1 + order2)
+    a1, a2 = _otimes_shapes(
+        t1, t2, ntuple(i -> i, Val(order1)),
+        ntuple(i -> order1 + i, Val(order2)), n,
+    )
+    b1, b2 = _otimes_shapes(
+        t1, t2, (ntuple(i -> i, Val(order1 - 1))..., order1 + 1),
+        (order1, ntuple(i -> order1 + 1 + i, Val(order2 - 1))...), n,
+    )
+    # Kept as a division by 2, not a multiplication by 0.5: the two are
+    # bit-identical in binary floating point but render differently for
+    # symbolic element types, and this function is used symbolically.
+    two = promote_type(T1, T2)(2)
+    return (reshape(t1, a1) .* reshape(t2, a2) .+ reshape(t1, b1) .* reshape(t2, b2)) ./
+        two
 end
 
 @inline function sotimes(S1::Vec{dim}, S2::Vec{dim}) where {dim}
