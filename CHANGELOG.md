@@ -70,9 +70,15 @@
   particular, the `Tensors` types the callers actually pass.
 
   Because this is an N-dimensional package, the generic case is covered rather
-  than assumed: **every order pair from 1 ⊗ 1 to 5 ⊗ 3**, together with the
-  property the broadcast rests on — that both index lists are increasing at
-  every order, so neither operand's axes need reordering. **Variance** is
+  than assumed. **There is no order limit in the code** — `ntuple(…, Val(n))`
+  and singleton axes are generic, and the products were checked by hand up to
+  9 ⊗ 9 (order 18, 262144 elements). What the tests bound is their own run
+  time, not the implementation: every order pair up to 5 ⊗ 3 at dim 3, a few
+  lopsided splits up to 9 ⊗ 1 at dim 2, and — since it costs nothing and is a
+  statement about index arithmetic alone — the property the broadcast rests on
+  checked up to order 20 on each side: that both index lists are increasing, so
+  neither operand's axes need reordering, and that together they cover the
+  output positions exactly once. **Variance** is
   checked on a deliberately non-orthonormal basis, where co- and contravariant
   components differ: the variance tuple must be carried in index order, and
   `⊠` must interleave it exactly as it interleaves the indices. The invariant

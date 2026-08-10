@@ -64,12 +64,31 @@ done < <(
 )
 [ ${#FILES[@]} -eq 0 ] && exit 0
 
-if $PY "$TOOL" check "${FILES[@]}" >/dev/null 2>&1; then
+# The convention lives in `.spelling.json` at the repository root, and it has
+# to be passed explicitly: the tool resolves it from the *directory of each
+# path given*, without walking up, so a staged file in a subdirectory would
+# otherwise fail with "no convention configured". That failure is invisible
+# whenever the converter has something to change — it only surfaces on an
+# already-correct tree, which is to say on almost every ordinary commit.
+CONV=$($PY -c "import json,sys
+try:
+    print(json.load(open('.spelling.json')).get('convention',''))
+except Exception:
+    print('')" 2>/dev/null || echo "")
+# `${CONV^^}` would be bash 4+; macOS still ships 3.2.
+CONV_UC=$(printf '%s' "$CONV" | tr '[:lower:]' '[:upper:]')
+
+if [ -z "$CONV" ]; then
+    echo "▸ US spelling: no .spelling.json at the repository root; nothing checked." >&2
     exit 0
 fi
 
-echo "▸ US spelling: converting staged files…"
-$PY "$TOOL" convert "${FILES[@]}" --to us
+if $PY "$TOOL" check --convention "$CONV" "${FILES[@]}" >/dev/null 2>&1; then
+    exit 0
+fi
+
+echo "▸ ${CONV_UC} spelling: converting staged files…"
+$PY "$TOOL" convert "${FILES[@]}" --to "$CONV"
 
 # Re-stage only what the converter actually rewrote, so an unrelated unstaged
 # edit in the same file is never swept into the commit.
@@ -85,10 +104,10 @@ done
 if [ "$CHANGED" -eq 0 ]; then
     # The checker objected but the converter changed nothing: a word it cannot
     # resolve on its own. Refuse rather than commit something CI will reject.
-    echo "▸ US spelling: the checker still objects and the converter had no fix." >&2
-    $PY "$TOOL" check "${FILES[@]}" >&2 || true
+    echo "▸ ${CONV_UC} spelling: the checker still objects and the converter had no fix." >&2
+    $PY "$TOOL" check --convention "$CONV" "${FILES[@]}" >&2 || true
     echo "▸ Fix by hand, or add an exception, then commit again." >&2
     exit 1
 fi
 
-echo "▸ US spelling: done — the commit now contains the corrected text."
+echo "▸ ${CONV_UC} spelling: done — the commit now contains the corrected text."

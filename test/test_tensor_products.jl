@@ -304,8 +304,9 @@ end
 @testsection "Arbitrary orders and variance" begin
 
     @testset "outer products at every order pair" begin
+        # Dense coverage at dim 3, where the arrays stay small.
         for o1 in 1:5, o2 in 1:5
-            o1 + o2 > 8 && continue          # keeps the arrays a sane size
+            o1 + o2 > 8 && continue
             a = rand(ntuple(_ -> 3, o1)...)
             b = rand(ntuple(_ -> 3, o2)...)
 
@@ -315,12 +316,46 @@ end
             if o2 ≥ 2                         # otimesl needs two indices to displace
                 @test all(otimesl(a, b) .=== _ref_placed(a, b, _ec_otimesl(o1, o2)...))
             end
+        end
+    end
 
-            # The property the implementation rests on: with both index lists
-            # increasing, singleton axes suffice and no permutation is needed.
-            increasing(t) = all(t[i] < t[i + 1] for i in 1:(length(t) - 1))
+    @testset "high orders, and lopsided splits" begin
+        # There is no order limit in the implementation — `ntuple(…, Val(n))`
+        # and singleton axes are generic, and the products were checked by hand
+        # up to 9 ⊗ 9. What bounds this test is array size and run time, not
+        # the code: a handful of representative cases at dim 2, including the
+        # lopsided splits that push the interleaved lists to their extremes,
+        # where an off-by-one in `otimesu`/`otimesl` would show first. Raise
+        # these if you ever need the reassurance; nothing in the code cares.
+        for (o1, o2) in ((1, 9), (9, 1), (2, 8))
+            a = rand(ntuple(_ -> 2, o1)...)
+            b = rand(ntuple(_ -> 2, o2)...)
+
+            @test all(otimes(a, b) .=== _ref_placed(a, b, _ec_otimes(o1, o2)...))
+            @test all(otimesu(a, b) .=== _ref_placed(a, b, _ec_otimesu(o1, o2)...))
+            @test ndims(otimes(a, b)) == o1 + o2
+            o2 ≥ 2 && @test all(otimesl(a, b) .=== _ref_placed(a, b, _ec_otimesl(o1, o2)...))
+        end
+    end
+
+    @testset "the index lists stay increasing at every order" begin
+        # What lets the products be a single broadcast: neither operand needs
+        # its own axes reordered, only singleton axes inserted. This is a
+        # statement about index arithmetic alone, so it is checked well beyond
+        # the orders exercised numerically — sampled rather than exhaustive,
+        # since it costs a test each.
+        increasing(t) = all(t[i] < t[i + 1] for i in 1:(length(t) - 1))
+        for o1 in (1, 2, 3, 5, 8, 13, 20), o2 in (1, 2, 3, 5, 8, 13, 20)
+            @test all(increasing, _ec_otimes(o1, o2))
             @test all(increasing, _ec_otimesu(o1, o2))
-            o2 ≥ 2 && @test all(increasing, _ec_otimesl(o1, o2))
+            # The two lists must also cover the output positions exactly once.
+            u1, u2 = _ec_otimesu(o1, o2)
+            @test sort(collect((u1..., u2...))) == collect(1:(o1 + o2))
+            if o2 ≥ 2
+                @test all(increasing, _ec_otimesl(o1, o2))
+                l1, l2 = _ec_otimesl(o1, o2)
+                @test sort(collect((l1..., l2...))) == collect(1:(o1 + o2))
+            end
         end
     end
 
