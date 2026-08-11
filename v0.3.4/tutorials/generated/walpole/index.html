@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>The Walpole basis end to end · TensND.jl</title><meta name="title" content="The Walpole basis end to end · TensND.jl"/><meta property="og:title" content="The Walpole basis end to end · TensND.jl"/><meta property="twitter:title" content="The Walpole basis end to end · TensND.jl"/><meta name="description" content="Documentation for TensND.jl."/><meta property="og:description" content="Documentation for TensND.jl."/><meta property="twitter:description" content="Documentation for TensND.jl."/><meta property="og:url" content="https://MicroPoroChemoMechanics.github.io/TensND.jl/tutorials/generated/walpole/"/><meta property="twitter:url" content="https://MicroPoroChemoMechanics.github.io/TensND.jl/tutorials/generated/walpole/"/><link rel="canonical" href="https://MicroPoroChemoMechanics.github.io/TensND.jl/tutorials/generated/walpole/"/><script data-outdated-warner src="../../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../../assets/documenter.js"></script><script src="../../../search_index.js"></script><script src="../../../siteinfo.js"></script><script src="../../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../../assets/themeswap.js"></script><link href="../../../assets/favicon.ico" rel="icon" type="image/x-icon"/><link href="../../../assets/custom.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../../"><img src="../../../assets/logo.svg" alt="TensND.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../../">TensND.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../../">Home</a></li><li><input class="collapse-toggle" id="menuitem-2" type="checkbox"/><label class="tocitem" for="menuitem-2"><span class="docs-label">Theory</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../theory/">Theory — reading path</a></li><li><a class="tocitem" href="../../../theory/notation/">Notation and conventions</a></li><li><a class="tocitem" href="../../../theory/tensor_algebra/">Tensor algebra</a></li><li><a class="tocitem" href="../../../theory/bases_variance/">Bases and variance</a></li><li><a class="tocitem" href="../../../theory/kelvin_mandel/">Kelvin–Mandel representation</a></li><li><a class="tocitem" href="../../../theory/rotations/">Rotations and Euler angles</a></li><li><a class="tocitem" href="../../../theory/isotropic/">Isotropic tensors</a></li><li><a class="tocitem" href="../../../theory/walpole/">The Walpole basis</a></li><li><a class="tocitem" href="../../../theory/walpole_extended/">The extended Walpole algebra</a></li><li><a class="tocitem" href="../../../theory/ti_parametrizations/">Transversely isotropic parametrizations</a></li><li><a class="tocitem" href="../../../theory/orthotropy/">Orthotropy</a></li><li><a class="tocitem" href="../../../theory/projection/">Projection onto a symmetry class</a></li><li><a class="tocitem" href="../../../theory/curvilinear/">Curvilinear differential calculus</a></li><li><a class="tocitem" href="../../../theory/submanifolds/">Submanifolds</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox"/><label class="tocitem" for="menuitem-3"><span class="docs-label">Manual</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../manual/installation/">Installation</a></li><li><a class="tocitem" href="../../../manual/getting_started/">Getting started</a></li><li><a class="tocitem" href="../../../manual/bases/">Bases</a></li><li><a class="tocitem" href="../../../manual/tensors/">Tensors</a></li><li><a class="tocitem" href="../../../manual/structured_tensors/">Structured tensors</a></li><li><a class="tocitem" href="../../../manual/parametrizations/">Parametrizations and conversions</a></li><li><a class="tocitem" href="../../../manual/projection/">Projection and symmetry detection</a></li><li><a class="tocitem" href="../../../manual/coorsystems/">Coordinate systems (symbolic)</a></li><li><a class="tocitem" href="../../../manual/coorsystems_num/">Coordinate systems (numerical)</a></li><li><a class="tocitem" href="../../../manual/submanifolds/">Submanifolds</a></li><li><a class="tocitem" href="../../../manual/symbolic_and_numeric/">Symbolic and numeric</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox" checked/><label class="tocitem" for="menuitem-4"><span class="docs-label">Tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../">Tutorials</a></li><li><input class="collapse-toggle" id="menuitem-4-2" type="checkbox" checked/><label class="tocitem" for="menuitem-4-2"><span class="docs-label">Tensor algebra</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../bases_variance/">Bases, variance and the metric</a></li><li><a class="tocitem" href="../tensor_algebra/">Tensor products, contractions and their identities</a></li><li class="is-active"><a class="tocitem" href>The Walpole basis end to end</a><ul class="internal"><li><a class="tocitem" href="#The-six-tensors,-in-Kelvin–Mandel-form"><span>The six tensors, in Kelvin–Mandel form</span></a></li><li><a class="tocitem" href="#The-multiplication-table"><span>The multiplication table</span></a></li><li><a class="tocitem" href="#The-Gram-matrix-is-diagonal"><span>The Gram matrix is diagonal</span></a></li><li><a class="tocitem" href="#The-isotropic-tensors-on-this-basis"><span>The isotropic tensors on this basis</span></a></li><li><a class="tocitem" href="#The-synthetic-algebra"><span>The synthetic algebra</span></a></li><li><a class="tocitem" href="#The-symmetrized-basis"><span>The symmetrized basis</span></a></li><li><a class="tocitem" href="#Three-parametrizations,-one-material"><span>Three parametrizations, one material</span></a></li><li><a class="tocitem" href="#The-Walpole-coefficients-of-the-ply"><span>The Walpole coefficients of the ply</span></a></li></ul></li><li><a class="tocitem" href="../walpole_extended/">The eight-dimensional axially invariant space</a></li><li><a class="tocitem" href="../projection/">Projection and symmetry detection</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-3" type="checkbox"/><label class="tocitem" for="menuitem-4-3"><span class="docs-label">Differential calculus</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../symbolic_operators/">Differential operators, symbolically</a></li><li><a class="tocitem" href="../christoffel/">Christoffel symbols</a></li><li><a class="tocitem" href="../numerical_operators/">Differential operators, numerically</a></li><li><a class="tocitem" href="../submanifolds/">Surfaces: fundamental forms and curvature</a></li><li><a class="tocitem" href="../operator_identities/">Classical identities of the differential operators</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-4" type="checkbox"/><label class="tocitem" for="menuitem-4-4"><span class="docs-label">Applications in mechanics</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../green_function/">Elastic Green&#39;s functions</a></li><li><a class="tocitem" href="../cluster/">A two-point Green tensor between offset frames</a></li><li><a class="tocitem" href="../sphere_problems/">The elastic sphere, solved symbolically</a></li><li><a class="tocitem" href="../hill_tensors/">Acoustic and Hill tensors</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-5" type="checkbox"/><label class="tocitem" for="menuitem-4-5"><span class="docs-label">Types, differentiation and performance</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../ad_interop/">Differentiation and interoperability</a></li><li><a class="tocitem" href="../performance/">Performance of the structured types</a></li></ul></li></ul></li><li><input class="collapse-toggle" id="menuitem-5" type="checkbox"/><label class="tocitem" for="menuitem-5"><span class="docs-label">Developer</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../developer/architecture/">Architecture</a></li><li><a class="tocitem" href="../../../developer/adding_a_coorsystem/">Adding a coordinate system</a></li><li><a class="tocitem" href="../../../developer/testing_conventions/">Testing and conventions</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-6" type="checkbox"/><label class="tocitem" for="menuitem-6"><span class="docs-label">API</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../api/">API overview</a></li><li><a class="tocitem" href="../../../api/bases/">Bases</a></li><li><a class="tocitem" href="../../../api/tensors/">Tensors</a></li><li><a class="tocitem" href="../../../api/structured/">Structured tensors — isotropic</a></li><li><a class="tocitem" href="../../../api/walpole/">Walpole and orthotropy</a></li><li><a class="tocitem" href="../../../api/projection/">Projection</a></li><li><a class="tocitem" href="../../../api/special/">Special tensors and rotations</a></li><li><a class="tocitem" href="../../../api/coorsystems/">Coordinate systems (symbolic)</a></li><li><a class="tocitem" href="../../../api/coorsystems_num/">Coordinate systems (numerical)</a></li><li><a class="tocitem" href="../../../api/submanifold/">Submanifolds</a></li><li><a class="tocitem" href="../../../api/symbolic/">Symbolic helpers and array algebra</a></li><li><a class="tocitem" href="../../../api/full_index/">Full index</a></li></ul></li><li><a class="tocitem" href="../../../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">Tensor algebra</a></li><li class="is-active"><a href>The Walpole basis end to end</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>The Walpole basis end to end</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/MicroPoroChemoMechanics/TensND.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="The-Walpole-basis-end-to-end"><a class="docs-heading-anchor" href="#The-Walpole-basis-end-to-end">The Walpole basis end to end</a><a id="The-Walpole-basis-end-to-end-1"></a><a class="docs-heading-anchor-permalink" href="#The-Walpole-basis-end-to-end" title="Permalink"></a></h1><p>Everything the transversely isotropic machinery rests on, computed rather than quoted: the six <span>$\mathbb{W}_i$</span> as <span>$6\times6$</span> matrices, the multiplication table, the Gram matrix, the correct decomposition of <span>$\mathbb{I},\mathbb{J}, \mathbb{K}$</span>, the synthetic <span>$2\times2$</span> product and inverse rules, and the three parametrizations of a transversely isotropic material compared on the <strong>same</strong> material.</p><p>Theory: <a href="../../../theory/walpole/#th-walpole">The Walpole basis</a> and <a href="../../../theory/ti_parametrizations/#th-ti-parametrizations">TI parametrizations</a>.</p><pre><code class="language-julia hljs">using TensND
+using LinearAlgebra
+using Printf
+
+n = (0.0, 0.0, 1.0)          # symmetry axis
+W = walpole_basis(n)
+arr(x) = get_array(x)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">arr (generic function with 1 method)</code></pre><h2 id="The-six-tensors,-in-Kelvin–Mandel-form"><a class="docs-heading-anchor" href="#The-six-tensors,-in-Kelvin–Mandel-form">The six tensors, in Kelvin–Mandel form</a><a id="The-six-tensors,-in-Kelvin–Mandel-form-1"></a><a class="docs-heading-anchor-permalink" href="#The-six-tensors,-in-Kelvin–Mandel-form" title="Permalink"></a></h2><p>Built from <span>$\boldsymbol{1}_n=\underline{n}\otimes\underline{n}$</span> and <span>$\boldsymbol{1}_T=\boldsymbol{1}-\boldsymbol{1}_n$</span>, in the frame where <span>$\underline{n}=\underline{e}_3$</span>.</p><pre><code class="language-julia hljs">function show_KM(label, t)
+    M = KM(t)
+    println(label)
+    for r in 1:6
+        println(&quot;   &quot;, join([abs(M[r, c]) &lt; 1.0e-12 ? &quot;   .   &quot; : @sprintf(&quot;%7.4f&quot;, M[r, c]) for c in 1:6], &quot; &quot;))
+    end
+    return println()
+end
+
+for i in 1:6
+    show_KM(&quot;𝕎$i =&quot;, W[i])
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">𝕎1 =
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .     1.0000    .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+
+𝕎2 =
+    0.5000  0.5000    .       .       .       .
+    0.5000  0.5000    .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+
+𝕎3 =
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+    0.7071  0.7071    .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+
+𝕎4 =
+      .       .     0.7071    .       .       .
+      .       .     0.7071    .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+
+𝕎5 =
+    0.5000 -0.5000    .       .       .       .
+   -0.5000  0.5000    .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .     1.0000
+
+𝕎6 =
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .       .       .       .
+      .       .       .     1.0000    .       .
+      .       .       .       .     1.0000    .
+      .       .       .       .       .       .</code></pre><p><span>$\mathbb{W}_3$</span> and <span>$\mathbb{W}_4$</span> are transposes of each other — the only two that are not major-symmetric individually:</p><pre><code class="language-julia hljs">norm(arr(W[3]) - permutedims(arr(W[4]), (3, 4, 1, 2)))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.0</code></pre><h2 id="The-multiplication-table"><a class="docs-heading-anchor" href="#The-multiplication-table">The multiplication table</a><a id="The-multiplication-table-1"></a><a class="docs-heading-anchor-permalink" href="#The-multiplication-table" title="Permalink"></a></h2><p>The basis is closed under <code>⊡</code>. Decomposing each product back onto the basis shows the structure: <span>$(\mathbb{W}_1,\mathbb{W}_2,\mathbb{W}_3,\mathbb{W}_4)$</span> behave exactly as the matrix units <span>$(E_{11},E_{22},E_{12},E_{21})$</span> of <span>$2\times2$</span> matrices, while <span>$\mathbb{W}_5$</span> and <span>$\mathbb{W}_6$</span> are orthogonal idempotents.</p><pre><code class="language-julia hljs">gram = [sum(arr(W[i]) .* arr(W[j])) for i in 1:6, j in 1:6]
+coeffs(P) = [sum(P .* arr(W[k])) / gram[k, k] for k in 1:6]
+
+println(&quot;   𝕎ᵢ : 𝕎ⱼ&quot;)
+println(&quot;      &quot;, join([lpad(&quot;𝕎$j&quot;, 5) for j in 1:6]))
+for i in 1:6
+    row = String[]
+    for j in 1:6
+        P = arr(W[i]) ⊡ arr(W[j])
+        if norm(P) &lt; 1.0e-12
+            push!(row, lpad(&quot;0&quot;, 5))
+        else
+            c = coeffs(P)
+            k = argmax(abs.(c))
+            push!(row, lpad(&quot;𝕎$k&quot;, 5))
+        end
+    end
+    println(&quot;  𝕎$i  &quot;, join(row))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">   𝕎ᵢ : 𝕎ⱼ
+         𝕎1   𝕎2   𝕎3   𝕎4   𝕎5   𝕎6
+  𝕎1     𝕎1    0   𝕎3    0    0    0
+  𝕎2      0   𝕎2    0   𝕎4    0    0
+  𝕎3      0   𝕎3    0   𝕎1    0    0
+  𝕎4     𝕎4    0   𝕎2    0    0    0
+  𝕎5      0    0    0    0   𝕎5    0
+  𝕎6      0    0    0    0    0   𝕎6</code></pre><h2 id="The-Gram-matrix-is-diagonal"><a class="docs-heading-anchor" href="#The-Gram-matrix-is-diagonal">The Gram matrix is diagonal</a><a id="The-Gram-matrix-is-diagonal-1"></a><a class="docs-heading-anchor-permalink" href="#The-Gram-matrix-is-diagonal" title="Permalink"></a></h2><p><span>$\langle\mathbb{W}_i,\mathbb{W}_j\rangle=g_i\delta_{ij}$</span> with <span>$(g_i)=(1,1,1,1,2,2)$</span>. This is the single fact that makes every TI projection closed-form: the normal equations decouple.</p><pre><code class="language-julia hljs">round.(gram, digits = 12)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">6×6 Matrix{Float64}:
+ 1.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  2.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  2.0</code></pre><h2 id="The-isotropic-tensors-on-this-basis"><a class="docs-heading-anchor" href="#The-isotropic-tensors-on-this-basis">The isotropic tensors on this basis</a><a id="The-isotropic-tensors-on-this-basis-1"></a><a class="docs-heading-anchor-permalink" href="#The-isotropic-tensors-on-this-basis" title="Permalink"></a></h2><p>Easy to get wrong, so worth computing. <span>$\mathbb{I}$</span> is <strong>not</strong> <span>$\sum_i\mathbb{W}_i$</span>, and <span>$\mathbb{J}$</span> is <strong>not</strong> <span>$\mathbb{W}_1+\mathbb{W}_2$</span>.</p><pre><code class="language-julia hljs">𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
+s2 = sqrt(2)
+
+checks = [
+    &quot;𝕀 = 𝕎₁+𝕎₂+𝕎₅+𝕎₆&quot; =&gt;
+        norm(arr(𝕀) - (arr(W[1]) + arr(W[2]) + arr(W[5]) + arr(W[6]))),
+    &quot;𝕁 = (𝕎₁+2𝕎₂+√2𝕎₃+√2𝕎₄)/3&quot; =&gt;
+        norm(arr(𝕁) - (arr(W[1]) + 2arr(W[2]) + s2 * arr(W[3]) + s2 * arr(W[4])) / 3),
+    &quot;𝕂 = (2𝕎₁+𝕎₂−√2𝕎₃−√2𝕎₄)/3 + 𝕎₅ + 𝕎₆&quot; =&gt;
+        norm(arr(𝕂) - ((2arr(W[1]) + arr(W[2]) - s2 * (arr(W[3]) + arr(W[4]))) / 3 + arr(W[5]) + arr(W[6]))),
+    &quot;— and the WRONG one: 𝕀 = Σᵢ𝕎ᵢ&quot; =&gt;
+        norm(arr(𝕀) - sum(arr(W[i]) for i in 1:6)),
+    &quot;— and the WRONG one: 𝕁 = 𝕎₁+𝕎₂&quot; =&gt;
+        norm(arr(𝕁) - (arr(W[1]) + arr(W[2]))),
+]
+for (name, r) in checks
+    @printf &quot;%-40s residual = %.3e\n&quot; name r
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">𝕀 = 𝕎₁+𝕎₂+𝕎₅+𝕎₆                          residual = 0.000e+00
+𝕁 = (𝕎₁+2𝕎₂+√2𝕎₃+√2𝕎₄)/3                 residual = 0.000e+00
+𝕂 = (2𝕎₁+𝕎₂−√2𝕎₃−√2𝕎₄)/3 + 𝕎₅ + 𝕎₆       residual = 2.077e-16
+— and the WRONG one: 𝕀 = Σᵢ𝕎ᵢ            residual = 1.414e+00
+— and the WRONG one: 𝕁 = 𝕎₁+𝕎₂           residual = 1.000e+00</code></pre><p>The last two are off by <span>$\sqrt2$</span> and <span>$1$</span> respectively — not round-off.</p><p>Reading the Walpole coefficients of the three directly:</p><pre><code class="language-julia hljs">for (name, t) in ((&quot;𝕀&quot;, 𝕀), (&quot;𝕁&quot;, 𝕁), (&quot;𝕂&quot;, 𝕂))
+    B, _, _ = proj_tens(:TI, arr(t), [0.0, 0.0, 1.0])
+    println(rpad(name, 3), &quot; → (ℓ₁,…,ℓ₆) = &quot;, round.(get_ℓ(B), digits = 6))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">𝕀   → (ℓ₁,…,ℓ₆) = (1.0, 1.0, 0.0, 0.0, 1.0, 1.0)
+𝕁   → (ℓ₁,…,ℓ₆) = (0.333333, 0.666667, 0.471405, 0.471405, 0.0, 0.0)
+𝕂   → (ℓ₁,…,ℓ₆) = (0.666667, 0.333333, -0.471405, -0.471405, 1.0, 1.0)</code></pre><h2 id="The-synthetic-algebra"><a class="docs-heading-anchor" href="#The-synthetic-algebra">The synthetic algebra</a><a id="The-synthetic-algebra-1"></a><a class="docs-heading-anchor-permalink" href="#The-synthetic-algebra" title="Permalink"></a></h2><p>With <span>$L=\begin{pmatrix}\ell_1&amp;\ell_3\\\ell_4&amp;\ell_2\end{pmatrix}$</span>, the double contraction is <span>$(L\,M,\ \ell_5m_5,\ \ell_6m_6)$</span> and the inverse is <span>$(L^{-1},\ 1/\ell_5,\ 1/\ell_6)$</span>.</p><pre><code class="language-julia hljs">A = TensTI{4}(2.0, 1.0, 0.5, 0.9, 1.3, n)      # major-symmetric, N=5
+B = TensTI{4}(3.0, 1.5, 0.2, 1.1, 0.4, n)
+P = A ⊡ B
+
+println(&quot;typeof(A)   = &quot;, typeof(A))
+println(&quot;typeof(A⊡B) = &quot;, typeof(P))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">typeof(A)   = TensTI{4, Float64, 5}
+typeof(A⊡B) = TensTI{4, Float64, 6}</code></pre><p>The product of two <strong>major-symmetric</strong> TI tensors is generally not major-symmetric — <span>$L\,M\neq{}^{t}(L\,M)$</span> unless the blocks commute — so the storage widens from <code>N=5</code> to <code>N=6</code>:</p><pre><code class="language-julia hljs">ℓA, ℓB, ℓP = get_ℓ(A), get_ℓ(B), get_ℓ(P)
+LA = [ℓA[1] ℓA[3]; ℓA[4] ℓA[2]]
+LB = [ℓB[1] ℓB[3]; ℓB[4] ℓB[2]]
+
+println(&quot;L_A · L_B   = &quot;, round.(LA * LB, digits = 10))
+println(&quot;block of P  = &quot;, round.([ℓP[1] ℓP[3]; ℓP[4] ℓP[2]], digits = 10))
+println(&quot;ℓ₅ rule     : &quot;, ℓA[5] * ℓB[5], &quot; vs &quot;, ℓP[5])
+println(&quot;ℓ₆ rule     : &quot;, ℓA[6] * ℓB[6], &quot; vs &quot;, ℓP[6])
+println(&quot;ℓ₃ == ℓ₄ ?  &quot;, isapprox(ℓP[3], ℓP[4]))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">L_A · L_B   = [6.1 1.15; 1.7 1.6]
+block of P  = [6.1 1.15; 1.7 1.6]
+ℓ₅ rule     : 0.9900000000000001 vs 0.9900000000000001
+ℓ₆ rule     : 0.52 vs 0.52
+ℓ₃ == ℓ₄ ?  false</code></pre><p>Against the dense 81-component product:</p><pre><code class="language-julia hljs">norm(arr(P) - arr(A) ⊡ arr(B))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">3.597533769998862e-16</code></pre><p>Inversion, likewise closed-form:</p><pre><code class="language-julia hljs">norm(arr(A ⊡ inv(A)) - arr(𝕀))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">0.0</code></pre><h2 id="The-symmetrized-basis"><a class="docs-heading-anchor" href="#The-symmetrized-basis">The symmetrized basis</a><a id="The-symmetrized-basis-1"></a><a class="docs-heading-anchor-permalink" href="#The-symmetrized-basis" title="Permalink"></a></h2><p>Merging the pair, <span>$\mathbb{W}^s_3=\mathbb{W}_3+\mathbb{W}_4$</span>, spans exactly the five-dimensional major-symmetric subspace, with Gram <span>$(1,1,2,2,2)$</span>:</p><pre><code class="language-julia hljs">Ws = walpole_basis_sym(n)
+[
+    norm(arr(Ws[1]) - arr(W[1])),
+    norm(arr(Ws[2]) - arr(W[2])),
+    norm(arr(Ws[3]) - (arr(W[3]) + arr(W[4]))),
+    norm(arr(Ws[4]) - arr(W[5])),
+    norm(arr(Ws[5]) - arr(W[6])),
+]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5-element Vector{Float64}:
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0</code></pre><pre><code class="language-julia hljs">[sum(arr(Ws[i]) .* arr(Ws[i])) for i in 1:5]</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">5-element Vector{Float64}:
+ 1.0
+ 1.0
+ 1.9999999999999996
+ 2.0
+ 2.0</code></pre><h2 id="Three-parametrizations,-one-material"><a class="docs-heading-anchor" href="#Three-parametrizations,-one-material">Three parametrizations, one material</a><a id="Three-parametrizations,-one-material-1"></a><a class="docs-heading-anchor-permalink" href="#Three-parametrizations,-one-material" title="Permalink"></a></h2><p>A unidirectional carbon/epoxy ply — a standard transversely isotropic composite, the fiber direction being the symmetry axis. Engineering constants first (moduli in GPa).</p><pre><code class="language-julia hljs">nv = [0.0, 0.0, 1.0]
+E₁, E₃, ν₁₂, ν₃₁, G₃₁ = 9.0, 140.0, 0.40, 0.30, 4.6
+
+𝕊 = tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, nv)     # compliance
+ℂ = inv(𝕊)                                       # stiffness
+
+println(&quot;engineering → back      : &quot;, round.(arg_TI_eng(𝕊), digits = 8))
+println(&quot;‖ℂ:𝕊 − 𝕀‖               : &quot;, norm(arr(ℂ ⊡ 𝕊) - arr(𝕀)))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">engineering → back      : (9.0, 140.0, 0.4, 0.3, 4.6)
+‖ℂ:𝕊 − 𝕀‖               : 5.551115123125782e-17</code></pre><p>The same compliance read in <strong>component</strong> form, <span>$(S_{1111},S_{1122},S_{1133},S_{3333},S_{2323})$</span>:</p><pre><code class="language-julia hljs">round.(arg_TI(𝕊), sigdigits = 6)</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">(0.111111, -0.0444444, -0.00214286, 0.00714286, 0.0543478)</code></pre><p>and in <strong>Hoenig</strong> form, the dimensionless ratios:</p><pre><code class="language-julia hljs">Eh, ν₁, ν₂, H, Γ = arg_TI_Hoenig(𝕊)
+@printf &quot;E  = %8.4f GPa\nν₁ = %8.4f\nν₂ = %8.4f\nH  = %8.4f   (axial/transverse modulus ratio)\nΓ  = %8.4f   (shear anisotropy)\n&quot; Eh ν₁ ν₂ H Γ</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">E  =   9.0000 GPa
+ν₁ =   0.4000
+ν₂ =   0.0193
+H  =  15.5556   (axial/transverse modulus ratio)
+Γ  =   1.4311   (shear anisotropy)</code></pre><p><span>$H$</span> and <span>$\Gamma$</span> quantify the anisotropy directly and dimensionlessly: here <span>$H\approx15.6$</span>, so the fiber direction is some fifteen times stiffer than the transverse plane, while <span>$\Gamma\approx1.43$</span> says the axial shear modulus departs from its in-plane counterpart by rather less. Rebuilding from the Hoenig parameters returns the same tensor:</p><pre><code class="language-julia hljs">norm(arr(tens_TI_Hoenig(Eh, ν₁, ν₂, H, Γ, nv)) - arr(𝕊))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">1.962615573354719e-17</code></pre><p>An isotropic material sits at the point <span>$H=\Gamma=1$</span> with <span>$\nu_1=\nu_2$</span> — the Hoenig parameters measure departure from isotropy:</p><pre><code class="language-julia hljs">𝕊iso = inv(3 * 20.0 * 𝕁 + 2 * 8.0 * 𝕂)
+Eᵢ, ν₁ᵢ, ν₂ᵢ, Hᵢ, Γᵢ = arg_TI_Hoenig(fromISO(𝕊iso, nv))
+@printf &quot;E = %.6f   ν₁ = %.6f   ν₂ = %.6f   H = %.10f   Γ = %.10f\n&quot; Eᵢ ν₁ᵢ ν₂ᵢ Hᵢ Γᵢ</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">E = 21.176471   ν₁ = 0.323529   ν₂ = 0.323529   H = 1.0000000000   Γ = 1.0000000000</code></pre><h2 id="The-Walpole-coefficients-of-the-ply"><a class="docs-heading-anchor" href="#The-Walpole-coefficients-of-the-ply">The Walpole coefficients of the ply</a><a id="The-Walpole-coefficients-of-the-ply-1"></a><a class="docs-heading-anchor-permalink" href="#The-Walpole-coefficients-of-the-ply" title="Permalink"></a></h2><p>Stiffness and compliance are inverse in the synthetic algebra, so their <span>$2\times2$</span> blocks are inverse matrices and their <span>$\ell_5,\ell_6$</span> are reciprocal:</p><pre><code class="language-julia hljs">ℓC, ℓS = get_ℓ(ℂ), get_ℓ(𝕊)
+LC = [ℓC[1] ℓC[3]; ℓC[4] ℓC[2]]
+LS = [ℓS[1] ℓS[3]; ℓS[4] ℓS[2]]
+
+println(&quot;L_ℂ · L_𝕊 = &quot;, round.(LC * LS, digits = 12))
+println(&quot;ℓ₅ᶜ·ℓ₅ˢ   = &quot;, round(ℓC[5] * ℓS[5], digits = 12))
+println(&quot;ℓ₆ᶜ·ℓ₆ˢ   = &quot;, round(ℓC[6] * ℓS[6], digits = 12))</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">L_ℂ · L_𝕊 = [1.0 0.0; 0.0 1.0]
+ℓ₅ᶜ·ℓ₅ˢ   = 1.0
+ℓ₆ᶜ·ℓ₆ˢ   = 1.0</code></pre><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../tensor_algebra/">« Tensor products, contractions and their identities</a><a class="docs-footer-nextpage" href="../walpole_extended/">The eight-dimensional axially invariant space »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 11 August 2026 20:37">Tuesday 11 August 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Classical identities of the differential operators · TensND.jl</title><meta name="title" content="Classical identities of the differential operators · TensND.jl"/><meta property="og:title" content="Classical identities of the differential operators · TensND.jl"/><meta property="twitter:title" content="Classical identities of the differential operators · TensND.jl"/><meta name="description" content="Documentation for TensND.jl."/><meta property="og:description" content="Documentation for TensND.jl."/><meta property="twitter:description" content="Documentation for TensND.jl."/><meta property="og:url" content="https://MicroPoroChemoMechanics.github.io/TensND.jl/tutorials/generated/operator_identities/"/><meta property="twitter:url" content="https://MicroPoroChemoMechanics.github.io/TensND.jl/tutorials/generated/operator_identities/"/><link rel="canonical" href="https://MicroPoroChemoMechanics.github.io/TensND.jl/tutorials/generated/operator_identities/"/><script data-outdated-warner src="../../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../../assets/documenter.js"></script><script src="../../../search_index.js"></script><script src="../../../siteinfo.js"></script><script src="../../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../../assets/themeswap.js"></script><link href="../../../assets/favicon.ico" rel="icon" type="image/x-icon"/><link href="../../../assets/custom.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../../"><img src="../../../assets/logo.svg" alt="TensND.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../../">TensND.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../../">Home</a></li><li><input class="collapse-toggle" id="menuitem-2" type="checkbox"/><label class="tocitem" for="menuitem-2"><span class="docs-label">Theory</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../theory/">Theory — reading path</a></li><li><a class="tocitem" href="../../../theory/notation/">Notation and conventions</a></li><li><a class="tocitem" href="../../../theory/tensor_algebra/">Tensor algebra</a></li><li><a class="tocitem" href="../../../theory/bases_variance/">Bases and variance</a></li><li><a class="tocitem" href="../../../theory/kelvin_mandel/">Kelvin–Mandel representation</a></li><li><a class="tocitem" href="../../../theory/rotations/">Rotations and Euler angles</a></li><li><a class="tocitem" href="../../../theory/isotropic/">Isotropic tensors</a></li><li><a class="tocitem" href="../../../theory/walpole/">The Walpole basis</a></li><li><a class="tocitem" href="../../../theory/walpole_extended/">The extended Walpole algebra</a></li><li><a class="tocitem" href="../../../theory/ti_parametrizations/">Transversely isotropic parametrizations</a></li><li><a class="tocitem" href="../../../theory/orthotropy/">Orthotropy</a></li><li><a class="tocitem" href="../../../theory/projection/">Projection onto a symmetry class</a></li><li><a class="tocitem" href="../../../theory/curvilinear/">Curvilinear differential calculus</a></li><li><a class="tocitem" href="../../../theory/submanifolds/">Submanifolds</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox"/><label class="tocitem" for="menuitem-3"><span class="docs-label">Manual</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../manual/installation/">Installation</a></li><li><a class="tocitem" href="../../../manual/getting_started/">Getting started</a></li><li><a class="tocitem" href="../../../manual/bases/">Bases</a></li><li><a class="tocitem" href="../../../manual/tensors/">Tensors</a></li><li><a class="tocitem" href="../../../manual/structured_tensors/">Structured tensors</a></li><li><a class="tocitem" href="../../../manual/parametrizations/">Parametrizations and conversions</a></li><li><a class="tocitem" href="../../../manual/projection/">Projection and symmetry detection</a></li><li><a class="tocitem" href="../../../manual/coorsystems/">Coordinate systems (symbolic)</a></li><li><a class="tocitem" href="../../../manual/coorsystems_num/">Coordinate systems (numerical)</a></li><li><a class="tocitem" href="../../../manual/submanifolds/">Submanifolds</a></li><li><a class="tocitem" href="../../../manual/symbolic_and_numeric/">Symbolic and numeric</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox" checked/><label class="tocitem" for="menuitem-4"><span class="docs-label">Tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../">Tutorials</a></li><li><input class="collapse-toggle" id="menuitem-4-2" type="checkbox"/><label class="tocitem" for="menuitem-4-2"><span class="docs-label">Tensor algebra</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../bases_variance/">Bases, variance and the metric</a></li><li><a class="tocitem" href="../tensor_algebra/">Tensor products, contractions and their identities</a></li><li><a class="tocitem" href="../walpole/">The Walpole basis end to end</a></li><li><a class="tocitem" href="../walpole_extended/">The eight-dimensional axially invariant space</a></li><li><a class="tocitem" href="../projection/">Projection and symmetry detection</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-3" type="checkbox" checked/><label class="tocitem" for="menuitem-4-3"><span class="docs-label">Differential calculus</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../symbolic_operators/">Differential operators, symbolically</a></li><li><a class="tocitem" href="../christoffel/">Christoffel symbols</a></li><li><a class="tocitem" href="../numerical_operators/">Differential operators, numerically</a></li><li><a class="tocitem" href="../submanifolds/">Surfaces: fundamental forms and curvature</a></li><li class="is-active"><a class="tocitem" href>Classical identities of the differential operators</a><ul class="internal"><li><a class="tocitem" href="#The-charts-under-test"><span>The charts under test</span></a></li><li><a class="tocitem" href="#A-helper"><span>A helper</span></a></li><li><a class="tocitem" href="#Scalar-identities"><span>Scalar identities</span></a></li><li><a class="tocitem" href="#Vector-identities"><span>Vector identities</span></a></li><li><a class="tocitem" href="#The-Leibniz-rule-for"><span>The Leibniz rule for <code>∂</code></span></a></li><li><a class="tocitem" href="#Order-2-fields"><span>Order-2 fields</span></a></li><li><a class="tocitem" href="#Why-the-skew-chart-matters"><span>Why the skew chart matters</span></a></li><li><a class="tocitem" href="#The-spheroidal-chart"><span>The spheroidal chart</span></a></li><li><a class="tocitem" href="#Summary"><span>Summary</span></a></li></ul></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-4" type="checkbox"/><label class="tocitem" for="menuitem-4-4"><span class="docs-label">Applications in mechanics</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../green_function/">Elastic Green&#39;s functions</a></li><li><a class="tocitem" href="../cluster/">A two-point Green tensor between offset frames</a></li><li><a class="tocitem" href="../sphere_problems/">The elastic sphere, solved symbolically</a></li><li><a class="tocitem" href="../hill_tensors/">Acoustic and Hill tensors</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-5" type="checkbox"/><label class="tocitem" for="menuitem-4-5"><span class="docs-label">Types, differentiation and performance</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../ad_interop/">Differentiation and interoperability</a></li><li><a class="tocitem" href="../performance/">Performance of the structured types</a></li></ul></li></ul></li><li><input class="collapse-toggle" id="menuitem-5" type="checkbox"/><label class="tocitem" for="menuitem-5"><span class="docs-label">Developer</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../developer/architecture/">Architecture</a></li><li><a class="tocitem" href="../../../developer/adding_a_coorsystem/">Adding a coordinate system</a></li><li><a class="tocitem" href="../../../developer/testing_conventions/">Testing and conventions</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-6" type="checkbox"/><label class="tocitem" for="menuitem-6"><span class="docs-label">API</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../../api/">API overview</a></li><li><a class="tocitem" href="../../../api/bases/">Bases</a></li><li><a class="tocitem" href="../../../api/tensors/">Tensors</a></li><li><a class="tocitem" href="../../../api/structured/">Structured tensors — isotropic</a></li><li><a class="tocitem" href="../../../api/walpole/">Walpole and orthotropy</a></li><li><a class="tocitem" href="../../../api/projection/">Projection</a></li><li><a class="tocitem" href="../../../api/special/">Special tensors and rotations</a></li><li><a class="tocitem" href="../../../api/coorsystems/">Coordinate systems (symbolic)</a></li><li><a class="tocitem" href="../../../api/coorsystems_num/">Coordinate systems (numerical)</a></li><li><a class="tocitem" href="../../../api/submanifold/">Submanifolds</a></li><li><a class="tocitem" href="../../../api/symbolic/">Symbolic helpers and array algebra</a></li><li><a class="tocitem" href="../../../api/full_index/">Full index</a></li></ul></li><li><a class="tocitem" href="../../../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">Tutorials</a></li><li><a class="is-disabled">Differential calculus</a></li><li class="is-active"><a href>Classical identities of the differential operators</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Classical identities of the differential operators</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/MicroPoroChemoMechanics/TensND.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="Classical-identities-of-the-differential-operators"><a class="docs-heading-anchor" href="#Classical-identities-of-the-differential-operators">Classical identities of the differential operators</a><a id="Classical-identities-of-the-differential-operators-1"></a><a class="docs-heading-anchor-permalink" href="#Classical-identities-of-the-differential-operators" title="Permalink"></a></h1><p>Every identity below is <strong>checked</strong>, not quoted: each cell computes a residual that must be identically zero. Run on five charts of increasing awkwardness — Cartesian, polar, spherical, prolate spheroidal, and a deliberately <strong>non-orthogonal</strong> one — they exercise the Christoffel symbols, the index placement of each operator, and the covariant/contravariant bookkeeping all at once.</p><p>This is the cheapest possible correctness net for a coordinate system: an identity that holds in Cartesian coordinates by inspection only survives a curvilinear chart if every connection term is right, and only survives a skew chart if the variances are right too.</p><p>Theory: <a href="../../../theory/curvilinear/#th-curvilinear">Curvilinear differential calculus</a>, <a href="../../../theory/tensor_algebra/#th-tensor-algebra">Tensor algebra</a>.</p><pre><code class="language-julia hljs">using TensND
+using LinearAlgebra
+using SymPy
+using Printf</code></pre><h2 id="The-charts-under-test"><a class="docs-heading-anchor" href="#The-charts-under-test">The charts under test</a><a id="The-charts-under-test-1"></a><a class="docs-heading-anchor-permalink" href="#The-charts-under-test" title="Permalink"></a></h2><p>The last one is the important one: every predefined system is <strong>orthogonal</strong>, and on an orthogonal chart the covariant and contravariant natural vectors coincide — so a whole class of mistakes stays invisible until a skew chart is tried.</p><pre><code class="language-julia hljs">u, v, w = symbols(&quot;u v w&quot;, real = true)
+
+charts = [
+    &quot;cartesian&quot; =&gt; coorsys_cartesian(),
+    &quot;polar&quot; =&gt; coorsys_polar(),
+    &quot;spherical&quot; =&gt; coorsys_spherical(),
+    &quot;non-orthogonal&quot; =&gt; CoorSystemSym(Tens([u + v^2, v]), (u, v)),
+]
+
+for (name, CS) in charts
+    ortho = isorthonormal(normalized_basis(CS))
+    @printf &quot;  %-16s dim %d   coords %-14s orthogonal: %s\n&quot; name get_dim(CS) string(getcoords(CS)) ortho
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">  cartesian        dim 3   coords (x, y, z)      orthogonal: true
+  polar            dim 2   coords (r, θ)         orthogonal: true
+  spherical        dim 3   coords (θ, ϕ, r)      orthogonal: true
+  non-orthogonal   dim 2   coords (u, v)         orthogonal: false</code></pre><h2 id="A-helper"><a class="docs-heading-anchor" href="#A-helper">A helper</a><a id="A-helper-1"></a><a class="docs-heading-anchor-permalink" href="#A-helper" title="Permalink"></a></h2><p><code>residual</code> reduces a scalar, an array or a tensor to a single simplified expression that should vanish.</p><pre><code class="language-julia hljs">zeroresidual(x::Number) = tsimplify(x)
+zeroresidual(x::AbstractArray) = tsimplify(maximum(abs, tsimplify.(x)))
+zeroresidual(t::AbstractTens) = zeroresidual(get_array(t))
+
+function check(label, chart, residual)
+    r = zeroresidual(residual)
+    ok = iszero(r)
+    @printf &quot;  %-14s %-42s %s\n&quot; chart label (ok ? &quot;0  ✓&quot; : &quot;→ $r&quot;)
+    return ok
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">check (generic function with 1 method)</code></pre><h2 id="Scalar-identities"><a class="docs-heading-anchor" href="#Scalar-identities">Scalar identities</a><a id="Scalar-identities-1"></a><a class="docs-heading-anchor-permalink" href="#Scalar-identities" title="Permalink"></a></h2><p class="math-container">\[\nabla^{2}f=\mathrm{DIV}\bigl(\mathrm{GRAD}\,f\bigr),
+\qquad
+\nabla^{2}f=\mathrm{tr}\,\mathrm{HESS}\,f,
+\qquad
+\mathrm{HESS}\,f={}^{t}\mathrm{HESS}\,f\]</p><p>A generic function of the coordinates is used, so nothing can accidentally cancel.</p><pre><code class="language-julia hljs">println(&quot;\n── scalar identities ──&quot;)
+for (name, CS) in charts
+    q = getcoords(CS)
+    f = SymFunction(&quot;f&quot;, real = true)(q...)
+    g = SymFunction(&quot;g&quot;, real = true)(q...)
+
+    check(&quot;∇²f = DIV(GRAD f)&quot;, name, LAPLACE(f, CS) - DIV(GRAD(f, CS), CS))
+    check(&quot;∇²f = tr(HESS f)&quot;, name, LAPLACE(f, CS) - tr(HESS(f, CS)))
+    check(&quot;HESS f symmetric&quot;, name, get_array(HESS(f, CS)) - transpose(get_array(HESS(f, CS))))
+    check(&quot;GRAD(fg) = f GRAD g + g GRAD f&quot;, name, GRAD(f * g, CS) - (f * GRAD(g, CS) + g * GRAD(f, CS)))
+    check(&quot;∇²(fg) = f∇²g + 2∇f·∇g + g∇²f&quot;, name,
+        LAPLACE(f * g, CS) - (f * LAPLACE(g, CS) + 2 * (GRAD(f, CS) ⋅ GRAD(g, CS)) + g * LAPLACE(f, CS)))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+── scalar identities ──
+  cartesian      ∇²f = DIV(GRAD f)                          0  ✓
+  cartesian      ∇²f = tr(HESS f)                           0  ✓
+  cartesian      HESS f symmetric                           0  ✓
+  cartesian      GRAD(fg) = f GRAD g + g GRAD f             0  ✓
+  cartesian      ∇²(fg) = f∇²g + 2∇f·∇g + g∇²f              0  ✓
+  polar          ∇²f = DIV(GRAD f)                          0  ✓
+  polar          ∇²f = tr(HESS f)                           0  ✓
+  polar          HESS f symmetric                           0  ✓
+  polar          GRAD(fg) = f GRAD g + g GRAD f             0  ✓
+  polar          ∇²(fg) = f∇²g + 2∇f·∇g + g∇²f              0  ✓
+  spherical      ∇²f = DIV(GRAD f)                          0  ✓
+  spherical      ∇²f = tr(HESS f)                           0  ✓
+  spherical      HESS f symmetric                           0  ✓
+  spherical      GRAD(fg) = f GRAD g + g GRAD f             0  ✓
+  spherical      ∇²(fg) = f∇²g + 2∇f·∇g + g∇²f              0  ✓
+  non-orthogonal ∇²f = DIV(GRAD f)                          0  ✓
+  non-orthogonal ∇²f = tr(HESS f)                           0  ✓
+  non-orthogonal HESS f symmetric                           → 2*Abs(v*(4*v^2*Derivative(f(u, v), (u, 2)) + 2*Derivative(f(u, v), u) + Derivative(f(u, v), (u, 2)) - Derivative(f(u, v), (v, 2))))/sqrt(4*v^2 + 1)
+  non-orthogonal GRAD(fg) = f GRAD g + g GRAD f             0  ✓
+  non-orthogonal ∇²(fg) = f∇²g + 2∇f·∇g + g∇²f              0  ✓</code></pre><p>All zero on every chart, the skew one included — which is what makes these checks worth running.</p><h2 id="Vector-identities"><a class="docs-heading-anchor" href="#Vector-identities">Vector identities</a><a id="Vector-identities-1"></a><a class="docs-heading-anchor-permalink" href="#Vector-identities" title="Permalink"></a></h2><p class="math-container">\[\mathrm{DIV}(f\,\underline{v})
+=\mathrm{GRAD}f\cdot\underline{v}+f\,\mathrm{DIV}\,\underline{v},
+\qquad
+\mathrm{DIV}(f\,\boldsymbol{1})=\mathrm{GRAD}\,f\]</p><p>The vector field is built from arbitrary component functions <strong>on the normalized basis</strong>, so it has no special structure.</p><pre><code class="language-julia hljs">println(&quot;\n── vector identities ──&quot;)
+for (name, CS) in charts
+    d = get_dim(CS)
+    q = getcoords(CS)
+    f = SymFunction(&quot;f&quot;, real = true)(q...)
+    𝐯 = sum(SymFunction(&quot;v$i&quot;, real = true)(q...) * unitvec(CS, i) for i in 1:d)
+    𝟏 = tens_Id2(Val(d), Val(Sym))
+
+    check(&quot;DIV(f𝐯) = GRAD f ⋅ 𝐯 + f DIV 𝐯&quot;, name,
+        DIV(f * 𝐯, CS) - (GRAD(f, CS) ⋅ 𝐯 + f * DIV(𝐯, CS)))
+    check(&quot;DIV(f𝟏) = GRAD f&quot;, name, DIV(f * 𝟏, CS) - GRAD(f, CS))
+    check(&quot;DIV(GRAD 𝐯) = ∇²𝐯&quot;, name, DIV(GRAD(𝐯, CS), CS) - LAPLACE(𝐯, CS))
+    check(&quot;tr(GRAD 𝐯) = DIV 𝐯&quot;, name, tr(GRAD(𝐯, CS)) - DIV(𝐯, CS))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+── vector identities ──
+  cartesian      DIV(f𝐯) = GRAD f ⋅ 𝐯 + f DIV 𝐯             0  ✓
+  cartesian      DIV(f𝟏) = GRAD f                           0  ✓
+  cartesian      DIV(GRAD 𝐯) = ∇²𝐯                          0  ✓
+  cartesian      tr(GRAD 𝐯) = DIV 𝐯                         0  ✓
+  polar          DIV(f𝐯) = GRAD f ⋅ 𝐯 + f DIV 𝐯             0  ✓
+  polar          DIV(f𝟏) = GRAD f                           0  ✓
+  polar          DIV(GRAD 𝐯) = ∇²𝐯                          0  ✓
+  polar          tr(GRAD 𝐯) = DIV 𝐯                         0  ✓
+  spherical      DIV(f𝐯) = GRAD f ⋅ 𝐯 + f DIV 𝐯             0  ✓
+  spherical      DIV(f𝟏) = GRAD f                           0  ✓
+  spherical      DIV(GRAD 𝐯) = ∇²𝐯                          0  ✓
+  spherical      tr(GRAD 𝐯) = DIV 𝐯                         0  ✓
+  non-orthogonal DIV(f𝐯) = GRAD f ⋅ 𝐯 + f DIV 𝐯             0  ✓
+  non-orthogonal DIV(f𝟏) = GRAD f                           0  ✓
+  non-orthogonal DIV(GRAD 𝐯) = ∇²𝐯                          0  ✓
+  non-orthogonal tr(GRAD 𝐯) = DIV 𝐯                         0  ✓</code></pre><h2 id="The-Leibniz-rule-for"><a class="docs-heading-anchor" href="#The-Leibniz-rule-for">The Leibniz rule for <code>∂</code></a><a id="The-Leibniz-rule-for-1"></a><a class="docs-heading-anchor-permalink" href="#The-Leibniz-rule-for" title="Permalink"></a></h2><p>The covariant derivative along one coordinate is a derivation: it satisfies the product rule for every product of the algebra.</p><p class="math-container">\[\partial_i(\mathcal{T}\otimes\mathcal{T}&#39;)
+=\partial_i\mathcal{T}\otimes\mathcal{T}&#39;
++\mathcal{T}\otimes\partial_i\mathcal{T}&#39;\]</p><pre><code class="language-julia hljs">println(&quot;\n── Leibniz rule for ∂ ──&quot;)
+for (name, CS) in charts
+    d = get_dim(CS)
+    q = getcoords(CS)
+    𝐚 = sum(SymFunction(&quot;a$i&quot;, real = true)(q...) * unitvec(CS, i) for i in 1:d)
+    𝐛 = sum(SymFunction(&quot;b$i&quot;, real = true)(q...) * unitvec(CS, i) for i in 1:d)
+    i = 1
+
+    check(&quot;∂(𝐚⊗𝐛) = ∂𝐚⊗𝐛 + 𝐚⊗∂𝐛&quot;, name,
+        ∂(𝐚 ⊗ 𝐛, i, CS) - (∂(𝐚, i, CS) ⊗ 𝐛 + 𝐚 ⊗ ∂(𝐛, i, CS)))
+    check(&quot;∂(𝐚⊗ˢ𝐛) = ∂𝐚⊗ˢ𝐛 + 𝐚⊗ˢ∂𝐛&quot;, name,
+        ∂(𝐚 ⊗ˢ 𝐛, i, CS) - (∂(𝐚, i, CS) ⊗ˢ 𝐛 + 𝐚 ⊗ˢ ∂(𝐛, i, CS)))
+    check(&quot;∂(𝐚⋅𝐛) = ∂𝐚⋅𝐛 + 𝐚⋅∂𝐛&quot;, name,
+        ∂(𝐚 ⋅ 𝐛, i, CS) - (∂(𝐚, i, CS) ⋅ 𝐛 + 𝐚 ⋅ ∂(𝐛, i, CS)))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+── Leibniz rule for ∂ ──
+  cartesian      ∂(𝐚⊗𝐛) = ∂𝐚⊗𝐛 + 𝐚⊗∂𝐛                       0  ✓
+  cartesian      ∂(𝐚⊗ˢ𝐛) = ∂𝐚⊗ˢ𝐛 + 𝐚⊗ˢ∂𝐛                    0  ✓
+  cartesian      ∂(𝐚⋅𝐛) = ∂𝐚⋅𝐛 + 𝐚⋅∂𝐛                       0  ✓
+  polar          ∂(𝐚⊗𝐛) = ∂𝐚⊗𝐛 + 𝐚⊗∂𝐛                       0  ✓
+  polar          ∂(𝐚⊗ˢ𝐛) = ∂𝐚⊗ˢ𝐛 + 𝐚⊗ˢ∂𝐛                    0  ✓
+  polar          ∂(𝐚⋅𝐛) = ∂𝐚⋅𝐛 + 𝐚⋅∂𝐛                       0  ✓
+  spherical      ∂(𝐚⊗𝐛) = ∂𝐚⊗𝐛 + 𝐚⊗∂𝐛                       0  ✓
+  spherical      ∂(𝐚⊗ˢ𝐛) = ∂𝐚⊗ˢ𝐛 + 𝐚⊗ˢ∂𝐛                    0  ✓
+  spherical      ∂(𝐚⋅𝐛) = ∂𝐚⋅𝐛 + 𝐚⋅∂𝐛                       0  ✓
+  non-orthogonal ∂(𝐚⊗𝐛) = ∂𝐚⊗𝐛 + 𝐚⊗∂𝐛                       0  ✓
+  non-orthogonal ∂(𝐚⊗ˢ𝐛) = ∂𝐚⊗ˢ𝐛 + 𝐚⊗ˢ∂𝐛                    0  ✓
+  non-orthogonal ∂(𝐚⋅𝐛) = ∂𝐚⋅𝐛 + 𝐚⋅∂𝐛                       0  ✓</code></pre><h2 id="Order-2-fields"><a class="docs-heading-anchor" href="#Order-2-fields">Order-2 fields</a><a id="Order-2-fields-1"></a><a class="docs-heading-anchor-permalink" href="#Order-2-fields" title="Permalink"></a></h2><p>The equilibrium-type identity, stated for a <strong>symmetric</strong> field to keep the transposes out of the way:</p><p class="math-container">\[\mathrm{DIV}(\boldsymbol{\sigma}\cdot\underline{v})
+=\mathrm{DIV}\,\boldsymbol{\sigma}\cdot\underline{v}
++\boldsymbol{\sigma}:\mathrm{GRAD}\,\underline{v}
+\qquad(\boldsymbol{\sigma}={}^{t}\boldsymbol{\sigma})\]</p><p>and the metric being covariantly constant, <code>∂𝟏 = 0</code> — the statement that the connection is metric-compatible.</p><pre><code class="language-julia hljs">println(&quot;\n── order-2 fields ──&quot;)
+for (name, CS) in charts
+    d = get_dim(CS)
+    q = getcoords(CS)
+    𝟏 = tens_Id2(Val(d), Val(Sym))
+    𝐯 = sum(SymFunction(&quot;v$i&quot;, real = true)(q...) * unitvec(CS, i) for i in 1:d)
+    𝛔 = sum(
+        SymFunction(&quot;s$(min(i, j))$(max(i, j))&quot;, real = true)(q...) *
+            unitvec(CS, i) ⊗ˢ unitvec(CS, j) for i in 1:d, j in 1:d
+    )
+
+    check(&quot;∂𝟏 = 0  (metric compatibility)&quot;, name, ∂(𝟏, 1, CS))
+    check(&quot;DIV(f𝟏) with f=1 ⟹ 0&quot;, name, DIV(𝟏, CS))
+    check(&quot;DIV(𝛔⋅𝐯) = DIV𝛔⋅𝐯 + 𝛔:GRAD𝐯&quot;, name,
+        DIV(𝛔 ⋅ 𝐯, CS) - (DIV(𝛔, CS) ⋅ 𝐯 + 𝛔 ⊡ GRAD(𝐯, CS)))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+── order-2 fields ──
+  cartesian      ∂𝟏 = 0  (metric compatibility)             0  ✓
+  cartesian      DIV(f𝟏) with f=1 ⟹ 0                       0  ✓
+  cartesian      DIV(𝛔⋅𝐯) = DIV𝛔⋅𝐯 + 𝛔:GRAD𝐯                0  ✓
+  polar          ∂𝟏 = 0  (metric compatibility)             0  ✓
+  polar          DIV(f𝟏) with f=1 ⟹ 0                       0  ✓
+  polar          DIV(𝛔⋅𝐯) = DIV𝛔⋅𝐯 + 𝛔:GRAD𝐯                0  ✓
+  spherical      ∂𝟏 = 0  (metric compatibility)             0  ✓
+  spherical      DIV(f𝟏) with f=1 ⟹ 0                       0  ✓
+  spherical      DIV(𝛔⋅𝐯) = DIV𝛔⋅𝐯 + 𝛔:GRAD𝐯                0  ✓
+  non-orthogonal ∂𝟏 = 0  (metric compatibility)             0  ✓
+  non-orthogonal DIV(f𝟏) with f=1 ⟹ 0                       0  ✓
+  non-orthogonal DIV(𝛔⋅𝐯) = DIV𝛔⋅𝐯 + 𝛔:GRAD𝐯                0  ✓</code></pre><h2 id="Why-the-skew-chart-matters"><a class="docs-heading-anchor" href="#Why-the-skew-chart-matters">Why the skew chart matters</a><a id="Why-the-skew-chart-matters-1"></a><a class="docs-heading-anchor-permalink" href="#Why-the-skew-chart-matters" title="Permalink"></a></h2><p>Every identity above holds in Cartesian coordinates for trivial reasons. On an orthogonal curvilinear chart they start to test the Christoffel symbols. Only on a <strong>non-orthogonal</strong> chart do they test the covariant/contravariant bookkeeping as well, because that is the only case where the natural basis and its dual differ.</p><p>A concrete illustration: <code>x²−y²</code> is harmonic, and stays harmonic whatever the chart used to express it.</p><pre><code class="language-julia hljs">println(&quot;\n── harmonic functions survive any chart ──&quot;)
+harmonics = [
+    &quot;cartesian&quot; =&gt; (coorsys_cartesian(), (q -&gt; q[1]^2 - q[2]^2)),
+    &quot;polar&quot; =&gt; (coorsys_polar(), (q -&gt; q[1]^2 * cos(2q[2]))),
+    &quot;spherical&quot; =&gt; (coorsys_spherical(), (q -&gt; 1 / q[3])),
+    &quot;non-orthogonal&quot; =&gt; (charts[4][2], (q -&gt; (q[1] + q[2]^2)^2 - q[2]^2)),
+]
+for (name, (CS, f)) in harmonics
+    check(&quot;∇²(harmonic) = 0&quot;, name, LAPLACE(f(getcoords(CS)), CS))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+── harmonic functions survive any chart ──
+  cartesian      ∇²(harmonic) = 0                           0  ✓
+  polar          ∇²(harmonic) = 0                           0  ✓
+  spherical      ∇²(harmonic) = 0                           0  ✓
+  non-orthogonal ∇²(harmonic) = 0                           0  ✓</code></pre><h2 id="The-spheroidal-chart"><a class="docs-heading-anchor" href="#The-spheroidal-chart">The spheroidal chart</a><a id="The-spheroidal-chart-1"></a><a class="docs-heading-anchor-permalink" href="#The-spheroidal-chart" title="Permalink"></a></h2><p>The hardest symbolic case, kept apart because its expressions are large. The associated Legendre products are harmonic in prolate spheroidal coordinates — a check that fails unless every one of the nine non-vanishing Christoffel symbols is correct.</p><pre><code class="language-julia hljs">Spheroidal = coorsys_spheroidal()
+ϕs, ps, qs = getcoords(Spheroidal)
+P = sympy.assoc_legendre
+
+println(&quot;\n── spheroidal harmonics ──&quot;)
+for (n, m) in ((2, 0), (2, 1))
+    T = P(n, m, ps) * P(n, m, qs) * cos(m * ϕs)
+    check(&quot;∇²[P_$(n)^$(m)(p)P_$(n)^$(m)(q)cos($(m)φ)] = 0&quot;, &quot;spheroidal&quot;,
+        simplify(LAPLACE(T, Spheroidal)))
+end</code></pre><pre class="documenter-example-output"><code class="nohighlight hljs ansi">
+── spheroidal harmonics ──
+  spheroidal     ∇²[P_2^0(p)P_2^0(q)cos(0φ)] = 0            0  ✓
+  spheroidal     ∇²[P_2^1(p)P_2^1(q)cos(1φ)] = 0            0  ✓</code></pre><h2 id="Summary"><a class="docs-heading-anchor" href="#Summary">Summary</a><a id="Summary-1"></a><a class="docs-heading-anchor-permalink" href="#Summary" title="Permalink"></a></h2><table><tr><th style="text-align: left">Family</th><th style="text-align: left">What it exercises</th></tr><tr><td style="text-align: left">scalar identities</td><td style="text-align: left">the Laplacian as <code>DIV∘GRAD</code>, symmetry of the Hessian</td></tr><tr><td style="text-align: left">vector identities</td><td style="text-align: left">the connection terms, <code>tr(GRAD 𝐯) = DIV 𝐯</code></td></tr><tr><td style="text-align: left">Leibniz for <code>∂</code></td><td style="text-align: left">that the covariant derivative really is a derivation</td></tr><tr><td style="text-align: left">order-2 fields</td><td style="text-align: left">metric compatibility <code>∂𝟏 = 0</code>, the equilibrium identity</td></tr><tr><td style="text-align: left">skew chart</td><td style="text-align: left">covariant vs contravariant bookkeeping — invisible otherwise</td></tr></table><p>The same identities are asserted as tests in <code>test/test_conventions.jl</code>, so a regression fails the suite rather than merely printing a nonzero here.</p><hr/><p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../submanifolds/">« Surfaces: fundamental forms and curvature</a><a class="docs-footer-nextpage" href="../green_function/">Elastic Green&#39;s functions »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 11 August 2026 20:37">Tuesday 11 August 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>

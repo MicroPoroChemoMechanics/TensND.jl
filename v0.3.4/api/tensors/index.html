@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Tensors · TensND.jl</title><meta name="title" content="Tensors · TensND.jl"/><meta property="og:title" content="Tensors · TensND.jl"/><meta property="twitter:title" content="Tensors · TensND.jl"/><meta name="description" content="Documentation for TensND.jl."/><meta property="og:description" content="Documentation for TensND.jl."/><meta property="twitter:description" content="Documentation for TensND.jl."/><meta property="og:url" content="https://MicroPoroChemoMechanics.github.io/TensND.jl/api/tensors/"/><meta property="twitter:url" content="https://MicroPoroChemoMechanics.github.io/TensND.jl/api/tensors/"/><link rel="canonical" href="https://MicroPoroChemoMechanics.github.io/TensND.jl/api/tensors/"/><script data-outdated-warner src="../../assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.050/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.8/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="../.."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="../../assets/documenter.js"></script><script src="../../search_index.js"></script><script src="../../siteinfo.js"></script><script src="../../../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-mocha.css" data-theme-name="catppuccin-mocha"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-macchiato.css" data-theme-name="catppuccin-macchiato"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-frappe.css" data-theme-name="catppuccin-frappe"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/catppuccin-latte.css" data-theme-name="catppuccin-latte"/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="../../assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="../../assets/themeswap.js"></script><link href="../../assets/favicon.ico" rel="icon" type="image/x-icon"/><link href="../../assets/custom.css" rel="stylesheet" type="text/css"/></head><body><div id="documenter"><nav class="docs-sidebar"><a class="docs-logo" href="../../"><img src="../../assets/logo.svg" alt="TensND.jl logo"/></a><div class="docs-package-name"><span class="docs-autofit"><a href="../../">TensND.jl</a></span></div><button class="docs-search-query input is-rounded is-small is-clickable my-2 mx-auto py-1 px-2" id="documenter-search-query">Search docs (Ctrl + /)</button><ul class="docs-menu"><li><a class="tocitem" href="../../">Home</a></li><li><input class="collapse-toggle" id="menuitem-2" type="checkbox"/><label class="tocitem" for="menuitem-2"><span class="docs-label">Theory</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../theory/">Theory — reading path</a></li><li><a class="tocitem" href="../../theory/notation/">Notation and conventions</a></li><li><a class="tocitem" href="../../theory/tensor_algebra/">Tensor algebra</a></li><li><a class="tocitem" href="../../theory/bases_variance/">Bases and variance</a></li><li><a class="tocitem" href="../../theory/kelvin_mandel/">Kelvin–Mandel representation</a></li><li><a class="tocitem" href="../../theory/rotations/">Rotations and Euler angles</a></li><li><a class="tocitem" href="../../theory/isotropic/">Isotropic tensors</a></li><li><a class="tocitem" href="../../theory/walpole/">The Walpole basis</a></li><li><a class="tocitem" href="../../theory/walpole_extended/">The extended Walpole algebra</a></li><li><a class="tocitem" href="../../theory/ti_parametrizations/">Transversely isotropic parametrizations</a></li><li><a class="tocitem" href="../../theory/orthotropy/">Orthotropy</a></li><li><a class="tocitem" href="../../theory/projection/">Projection onto a symmetry class</a></li><li><a class="tocitem" href="../../theory/curvilinear/">Curvilinear differential calculus</a></li><li><a class="tocitem" href="../../theory/submanifolds/">Submanifolds</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-3" type="checkbox"/><label class="tocitem" for="menuitem-3"><span class="docs-label">Manual</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../manual/installation/">Installation</a></li><li><a class="tocitem" href="../../manual/getting_started/">Getting started</a></li><li><a class="tocitem" href="../../manual/bases/">Bases</a></li><li><a class="tocitem" href="../../manual/tensors/">Tensors</a></li><li><a class="tocitem" href="../../manual/structured_tensors/">Structured tensors</a></li><li><a class="tocitem" href="../../manual/parametrizations/">Parametrizations and conversions</a></li><li><a class="tocitem" href="../../manual/projection/">Projection and symmetry detection</a></li><li><a class="tocitem" href="../../manual/coorsystems/">Coordinate systems (symbolic)</a></li><li><a class="tocitem" href="../../manual/coorsystems_num/">Coordinate systems (numerical)</a></li><li><a class="tocitem" href="../../manual/submanifolds/">Submanifolds</a></li><li><a class="tocitem" href="../../manual/symbolic_and_numeric/">Symbolic and numeric</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4" type="checkbox"/><label class="tocitem" for="menuitem-4"><span class="docs-label">Tutorials</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../tutorials/">Tutorials</a></li><li><input class="collapse-toggle" id="menuitem-4-2" type="checkbox"/><label class="tocitem" for="menuitem-4-2"><span class="docs-label">Tensor algebra</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../tutorials/generated/bases_variance/">Bases, variance and the metric</a></li><li><a class="tocitem" href="../../tutorials/generated/tensor_algebra/">Tensor products, contractions and their identities</a></li><li><a class="tocitem" href="../../tutorials/generated/walpole/">The Walpole basis end to end</a></li><li><a class="tocitem" href="../../tutorials/generated/walpole_extended/">The eight-dimensional axially invariant space</a></li><li><a class="tocitem" href="../../tutorials/generated/projection/">Projection and symmetry detection</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-3" type="checkbox"/><label class="tocitem" for="menuitem-4-3"><span class="docs-label">Differential calculus</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../tutorials/generated/symbolic_operators/">Differential operators, symbolically</a></li><li><a class="tocitem" href="../../tutorials/generated/christoffel/">Christoffel symbols</a></li><li><a class="tocitem" href="../../tutorials/generated/numerical_operators/">Differential operators, numerically</a></li><li><a class="tocitem" href="../../tutorials/generated/submanifolds/">Surfaces: fundamental forms and curvature</a></li><li><a class="tocitem" href="../../tutorials/generated/operator_identities/">Classical identities of the differential operators</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-4" type="checkbox"/><label class="tocitem" for="menuitem-4-4"><span class="docs-label">Applications in mechanics</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../tutorials/generated/green_function/">Elastic Green&#39;s functions</a></li><li><a class="tocitem" href="../../tutorials/generated/cluster/">A two-point Green tensor between offset frames</a></li><li><a class="tocitem" href="../../tutorials/generated/sphere_problems/">The elastic sphere, solved symbolically</a></li><li><a class="tocitem" href="../../tutorials/generated/hill_tensors/">Acoustic and Hill tensors</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-4-5" type="checkbox"/><label class="tocitem" for="menuitem-4-5"><span class="docs-label">Types, differentiation and performance</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../tutorials/generated/ad_interop/">Differentiation and interoperability</a></li><li><a class="tocitem" href="../../tutorials/generated/performance/">Performance of the structured types</a></li></ul></li></ul></li><li><input class="collapse-toggle" id="menuitem-5" type="checkbox"/><label class="tocitem" for="menuitem-5"><span class="docs-label">Developer</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../../developer/architecture/">Architecture</a></li><li><a class="tocitem" href="../../developer/adding_a_coorsystem/">Adding a coordinate system</a></li><li><a class="tocitem" href="../../developer/testing_conventions/">Testing and conventions</a></li></ul></li><li><input class="collapse-toggle" id="menuitem-6" type="checkbox" checked/><label class="tocitem" for="menuitem-6"><span class="docs-label">API</span><i class="docs-chevron"></i></label><ul class="collapsed"><li><a class="tocitem" href="../">API overview</a></li><li><a class="tocitem" href="../bases/">Bases</a></li><li class="is-active"><a class="tocitem" href>Tensors</a></li><li><a class="tocitem" href="../structured/">Structured tensors — isotropic</a></li><li><a class="tocitem" href="../walpole/">Walpole and orthotropy</a></li><li><a class="tocitem" href="../projection/">Projection</a></li><li><a class="tocitem" href="../special/">Special tensors and rotations</a></li><li><a class="tocitem" href="../coorsystems/">Coordinate systems (symbolic)</a></li><li><a class="tocitem" href="../coorsystems_num/">Coordinate systems (numerical)</a></li><li><a class="tocitem" href="../submanifold/">Submanifolds</a></li><li><a class="tocitem" href="../symbolic/">Symbolic helpers and array algebra</a></li><li><a class="tocitem" href="../full_index/">Full index</a></li></ul></li><li><a class="tocitem" href="../../references/">References</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><a class="docs-sidebar-button docs-navbar-link fa-solid fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a><nav class="breadcrumb"><ul class="is-hidden-mobile"><li><a class="is-disabled">API</a></li><li class="is-active"><a href>Tensors</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Tensors</a></li></ul></nav><div class="docs-right"><a class="docs-navbar-link" href="https://github.com/MicroPoroChemoMechanics/TensND.jl" title="View the repository on GitHub"><span class="docs-icon fa-brands"></span><span class="docs-label is-hidden-touch">GitHub</span></a><a class="docs-settings-button docs-navbar-link fa-solid fa-gear" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-article-toggle-button fa-solid fa-chevron-up" id="documenter-article-toggle-button" href="javascript:;" title="Collapse all docstrings"></a></div></header><article class="content" id="documenter-page"><h1 id="api-tensors"><a class="docs-heading-anchor" href="#api-tensors">Tensors</a><a id="api-tensors-1"></a><a class="docs-heading-anchor-permalink" href="#api-tensors" title="Permalink"></a></h1><p>The tensor hierarchy, component conversion and the Kelvin-Mandel map. Theory: <a href="../../theory/tensor_algebra/#th-tensor-algebra">Tensor algebra</a>; usage: <a href="../../manual/tensors/#man-tensors">Tensors</a>.</p><article><details class="docstring" open="true"><summary id="TensND.AbstractTens"><a class="docstring-binding" href="#TensND.AbstractTens"><code>TensND.AbstractTens</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">AbstractTens{order,dim,T}</code></pre><p>Supertype of every tensor in <code>TensND</code>: a tensor of a given <code>order</code> and <code>dim</code>, with element type <code>T</code>.</p><p>A tensor is <strong>not</strong> an array. It is an array of components <em>together with</em> the basis those components refer to and the variance of each index, which is what lets tensors expressed in different frames be combined, and what makes comparing raw component arrays meaningless. See <a href="../../theory/bases_variance/#th-bases-variance">Bases and variance</a>.</p><p>The concrete subtypes fall in two families:</p><table><tr><th style="text-align: left">Family</th><th style="text-align: left">Types</th><th style="text-align: left">Stores</th></tr><tr><td style="text-align: left">general</td><td style="text-align: left"><a href="#TensND.Tens"><code>Tens</code></a>, <code>TensRotated</code>, <code>TensCanonical</code>, <code>TensOrthogonal</code></td><td style="text-align: left">a full component array</td></tr><tr><td style="text-align: left">structured</td><td style="text-align: left"><a href="../structured/#TensND.TensISO"><code>TensISO</code></a>, <a href="../walpole/#TensND.TensTI"><code>TensTI</code></a>, <a href="../walpole/#TensND.TensOrtho"><code>TensOrtho</code></a></td><td style="text-align: left">a few scalars plus an orientation</td></tr></table><p>The type follows the basis: only the non-orthonormal cases carry a variance tuple. Accessors common to all of them are <a href="#TensND.get_order"><code>get_order</code></a>, <a href="../bases/#TensND.get_dim"><code>get_dim</code></a>, <a href="#TensND.get_basis"><code>get_basis</code></a>, <a href="#TensND.get_var"><code>get_var</code></a>, <a href="#TensND.get_data"><code>get_data</code></a> and <a href="#TensND.get_array"><code>get_array</code></a>.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.Tens"><a class="docstring-binding" href="#TensND.Tens"><code>TensND.Tens</code></a> — <span class="docstring-category">Type</span></summary><section><div><pre><code class="language-julia hljs">Tens{order,dim,T,A&lt;:AbstractArray}</code></pre><p>Tensor type of any order defined by</p><ul><li>a multidata of components (of any type inheriting from <code>AbstractArray</code>, e.g. <code>Tensor</code> or <code>SymmetricTensor</code>)</li><li>a basis of <code>AbstractBasis</code> type</li><li>a tuple of variances (covariant <code>:cov</code> or contravariant <code>:cont</code>) of length equal to the <code>order</code> of the tensor</li></ul><p>The variance tuple only matters when the basis is not orthonormal; on an orthonormal basis the covariant and contravariant components coincide, which is why <code>TensCanonical</code>, <code>TensRotated</code> and <code>TensOrthonormal</code> do not carry one. See <a href="../../theory/bases_variance/#th-bases-variance">Bases and variance</a>.</p><p><strong>Examples</strong></p><p>Storing the covariant metric of a non-orthogonal basis as a twice-covariant tensor, and raising one index — which necessarily returns the identity, since <code>gⁱᵏ gₖⱼ = δⁱⱼ</code>:</p><pre><code class="language-julia hljs">julia&gt; ℬ = Basis(Sym[1 0 0; 0 1 0; 0 1 1]) ;
+
+julia&gt; T = Tens(metric(ℬ, :cov), ℬ, (:cov, :cov))
+3×3 Tens{2, 3, Sym, SymmetricTensor{2, 3, Sym, 6}}:
+ 1  0  0
+ 0  2  1
+ 0  1  1
+
+julia&gt; components(T, (:cont, :cov))
+3×3 Matrix{Sym}:
+ 1  0  0
+ 0  1  0
+ 0  0  1</code></pre><p>See also <a href="#TensND.components"><code>components</code></a>, <a href="#TensND.change_tens"><code>change_tens</code></a>, <a href="#TensND.get_var"><code>get_var</code></a>.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.components"><a class="docstring-binding" href="#TensND.components"><code>TensND.components</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">components(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim},var::NTuple{order,Symbol})
+components(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim})
+components(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})</code></pre><p>Extract the components of a tensor for new variances and/or in a new basis</p><p><strong>Examples</strong></p><pre><code class="language-julia hljs">julia&gt; ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;
+
+julia&gt; TV = Tens(Tensor{1,3}(i-&gt;symbols(&quot;v$i&quot;,real=true)))
+TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
+# data: 3-element Vec{3, Sym}:
+ v₁
+ v₂
+ v₃
+# basis: 3×3 TensND.LazyIdentity{3, Sym}:
+ 1  0  0
+ 0  1  0
+ 0  0  1
+# var: (:cont,)
+
+julia&gt; factor.(components(TV, ℬ, (:cont,)))
+3-element Vector{Sym}:
+ -(v1 - v2 - v3)/2
+  (v1 - v2 + v3)/2
+  (v1 + v2 - v3)/2
+
+julia&gt; components(TV, ℬ, (:cov,))
+3-element Vector{Sym}:
+ v₂ + v₃
+ v₁ + v₃
+ v₁ + v₂
+
+julia&gt; simplify.(components(TV, normalize(ℬ), (:cov,)))
+3-element Vector{Sym}:
+ sqrt(2)*(v2 + v3)/2
+ sqrt(2)*(v1 + v3)/2
+ sqrt(2)*(v1 + v2)/2
+
+julia&gt; TT = Tens(Tensor{2,3}((i,j)-&gt;symbols(&quot;t$i$j&quot;,real=true)))
+TensND.TensCanonical{2, 3, Sym, Tensor{2, 3, Sym, 9}}
+# data: 3×3 Tensor{2, 3, Sym, 9}:
+ t₁₁  t₁₂  t₁₃
+ t₂₁  t₂₂  t₂₃
+ t₃₁  t₃₂  t₃₃
+# basis: 3×3 TensND.LazyIdentity{3, Sym}:
+ 1  0  0
+ 0  1  0
+ 0  0  1
+# var: (:cont, :cont)
+
+julia&gt; components(TT, ℬ, (:cov,:cov))
+3×3 Matrix{Sym}:
+ t₂₂ + t₂₃ + t₃₂ + t₃₃  t₂₁ + t₂₃ + t₃₁ + t₃₃  t₂₁ + t₂₂ + t₃₁ + t₃₂
+ t₁₂ + t₁₃ + t₃₂ + t₃₃  t₁₁ + t₁₃ + t₃₁ + t₃₃  t₁₁ + t₁₂ + t₃₁ + t₃₂
+ t₁₂ + t₁₃ + t₂₂ + t₂₃  t₁₁ + t₁₃ + t₂₁ + t₂₃  t₁₁ + t₁₂ + t₂₁ + t₂₂
+
+julia&gt; factor.(components(TT, ℬ, (:cont,:cov)))
+3×3 Matrix{Sym}:
+ -(t12 + t13 - t22 - t23 - t32 - t33)/2  …  -(t11 + t12 - t21 - t22 - t31 - t32)/2
+  (t12 + t13 - t22 - t23 + t32 + t33)/2      (t11 + t12 - t21 - t22 + t31 + t32)/2
+  (t12 + t13 + t22 + t23 - t32 - t33)/2      (t11 + t12 + t21 + t22 - t31 - t32)/2</code></pre></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.components_canon"><a class="docstring-binding" href="#TensND.components_canon"><code>TensND.components_canon</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">components_canon(t::AbstractTens)</code></pre><p>Extract the components of a tensor in the canonical basis</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.change_tens"><a class="docstring-binding" href="#TensND.change_tens"><code>TensND.change_tens</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">change_tens(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim},var::NTuple{order,Symbol})
+change_tens(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim})
+change_tens(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})</code></pre><p>Rewrite the same tensor with components corresponding to new variances and/or to a new basis</p><pre><code class="language-julia hljs">julia&gt; ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;
+
+julia&gt; TV = Tens(Tensor{1,3}(i-&gt;symbols(&quot;v$i&quot;,real=true)))
+TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
+# data: 3-element Vec{3, Sym}:
+ v₁
+ v₂
+ v₃
+# basis: 3×3 TensND.LazyIdentity{3, Sym}:
+ 1  0  0
+ 0  1  0
+ 0  0  1
+# var: (:cont,)
+
+julia&gt; factor.(components(TV, ℬ, (:cont,)))
+3-element Vector{Sym}:
+ -(v1 - v2 - v3)/2
+  (v1 - v2 + v3)/2
+  (v1 + v2 - v3)/2
+
+julia&gt; ℬ₀ = Basis(Sym[0 1 1; 1 0 1; 1 1 1]) ;
+
+julia&gt; TV0 = change_tens(TV, ℬ₀)
+Tens{1, 3, Sym, Vec{3, Sym}}
+# data: 3-element Vec{3, Sym}:
+     -v₁ + v₃
+     -v₂ + v₃
+ v₁ + v₂ - v₃
+# basis: 3×3 Tensor{2, 3, Sym, 9}:
+ 0  1  1
+ 1  0  1
+ 1  1  1
+# var: (:cont,)</code></pre></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.change_tens_canon"><a class="docstring-binding" href="#TensND.change_tens_canon"><code>TensND.change_tens_canon</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">change_tens_canon(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})</code></pre><p>Rewrite the same tensor with components corresponding to the canonical basis</p><pre><code class="language-julia hljs">julia&gt; ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;
+
+julia&gt; TV = Tens(Tensor{1,3}(i-&gt;symbols(&quot;v$i&quot;,real=true)), ℬ)
+Tens{1, 3, Sym, Vec{3, Sym}}
+# data: 3-element Vec{3, Sym}:
+ v₁
+ v₂
+ v₃
+# basis: 3×3 Tensor{2, 3, Sym, 9}:
+ 0  1  1
+ 1  0  1
+ 1  1  1
+# var: (:cont,)
+
+julia&gt; TV0 = change_tens_canon(TV)
+TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
+# data: 3-element Vec{3, Sym}:
+      v₂ + v₃
+      v₁ + v₃
+ v₁ + v₂ + v₃
+# basis: 3×3 TensND.LazyIdentity{3, Sym}:
+ 1  0  0
+ 0  1  0
+ 0  0  1
+# var: (:cont,)</code></pre></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.get_order"><a class="docstring-binding" href="#TensND.get_order"><code>TensND.get_order</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">get_order(t::AbstractTens) → Int</code></pre><p>Order (number of indices) of <code>t</code>.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.get_basis"><a class="docstring-binding" href="#TensND.get_basis"><code>TensND.get_basis</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">get_basis(t::AbstractTens) → AbstractBasis</code></pre><p>Basis the components of <code>t</code> refer to. Structured types report the canonical basis, their orientation being carried separately by <a href="../walpole/#TensND.axis"><code>axis</code></a> or <a href="../walpole/#TensND.frame"><code>frame</code></a>.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.get_var"><a class="docstring-binding" href="#TensND.get_var"><code>TensND.get_var</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">get_var(t::AbstractTens) → NTuple{order,Symbol}
+get_var(t::AbstractTens, i::Integer) → Symbol</code></pre><p>Variance of each index of <code>t</code>, <code>:cov</code> (covariant) or <code>:cont</code> (contravariant).</p><p>On an orthonormal basis the two coincide, so tensors stored on one report a constant tuple and the distinction may be ignored. See <a href="../../theory/bases_variance/#th-bases-variance">Bases and variance</a>.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.get_data"><a class="docstring-binding" href="#TensND.get_data"><code>TensND.get_data</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">get_data(t::AbstractTens)</code></pre><p>The <strong>stored</strong> data: the coefficient tuple for a structured tensor (<a href="../structured/#TensND.TensISO"><code>TensISO</code></a>, <a href="../walpole/#TensND.TensTI"><code>TensTI</code></a>, <a href="../walpole/#TensND.TensOrtho"><code>TensOrtho</code></a>), the component array otherwise. Use <a href="#TensND.get_array"><code>get_array</code></a> when the full component array is wanted in every case.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.get_array"><a class="docstring-binding" href="#TensND.get_array"><code>TensND.get_array</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">get_array(t::TensTI{4, T}) → Array{T,4}</code></pre><p>Compute the 3×3×3×3 component array from the Walpole coefficients and axis.</p></div></section><section><div><pre><code class="language-julia hljs">get_array(t::TensTI{2,T,2}) → Array{T,2}</code></pre><p>Compute the 3×3 component array: <code>a*(δᵢⱼ − nᵢnⱼ) + b*nᵢnⱼ</code>.</p><p><strong>Examples</strong></p><pre><code class="language-julia hljs">julia&gt; A = TensTI{2}(5.0, 8.0, [0., 0., 1.]);
+
+julia&gt; get_array(A)
+3×3 Matrix{Float64}:
+ 5.0  0.0  0.0
+ 0.0  5.0  0.0
+ 0.0  0.0  8.0</code></pre></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.pprint"><a class="docstring-binding" href="#TensND.pprint"><code>TensND.pprint</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">pprint(t::AbstractTens; vec = &#39;𝐞&#39;, coords = 1:dim)
+pprint(t::AbstractTens, CS::AbstractCoorSystem; vec = &#39;𝐞&#39;)</code></pre><p>Print <code>t</code> <strong>expanded on its basis</strong> — as a sum of basis products such as <code>(σʳʳ)𝐞ʳ⊗𝐞ʳ + (σᶿᶿ)𝐞ᶿ⊗𝐞ᶿ</code> — instead of as an array of components.</p><p>This is a display helper: it writes to <code>stdout</code> and returns <code>nothing</code>. For symbolic results it is far more readable than the component array, and it is the natural way to report a field computed in a curvilinear frame. Zero components are omitted, and a vanishing tensor prints as <code>0</code>.</p><p>Passing a coordinate system names the basis vectors after its coordinates; <a href="../coorsystems/#TensND.@set_coorsys"><code>@set_coorsys</code></a> makes that the default, so <code>pprint(t)</code> alone then prints <code>𝐞ʳ</code>, <code>𝐞ᶿ</code>, … rather than <code>𝐞₁</code>, <code>𝐞₂</code>, ….</p><div class="admonition is-info" id="Formerly-intrinsic,-then-print_tensor-1a66b219b8c523ab"><header class="admonition-header">Formerly `intrinsic`, then `print_tensor`<a class="admonition-anchor" href="#Formerly-intrinsic,-then-print_tensor-1a66b219b8c523ab" title="Permalink"></a></header><div class="admonition-body"><p><code>intrinsic</code> was misleading: what is printed is explicitly <em>basis dependent</em> — it changes with the chart — whereas &quot;intrinsic&quot; denotes the basis-free form. <code>print_tensor</code> was misleading in turn, because the fallback below accepts a <strong>scalar</strong>, and <code>pprint</code> is the name MPCM already uses for a generic pretty-printer (<code>ChemistryLab.pprint</code>). Both former names still work and forward here, with a deprecation warning.</p></div></div><p><strong>Examples</strong></p><pre><code class="language-julia hljs">julia&gt; Spherical = coorsys_spherical() ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
+
+julia&gt; @set_coorsys Spherical
+
+julia&gt; pprint(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ)   # spherical coordinates are ordered (θ, ϕ, r)
+(2)𝐞ᶿ⊗𝐞ᶿ + 𝐞ʳ⊗𝐞ʳ</code></pre><p>Applied to anything that is <strong>not</strong> a tensor — a scalar field, typically, so that <code>LAPLACE(f(r)) |&gt; pprint</code> works in a pipeline — it falls back to the rich <code>text/plain</code> display, which for a symbolic expression is SymPy&#39;s two-dimensional form:</p><pre><code class="language-julia hljs">julia&gt; LAPLACE(SymFunction(&quot;f&quot;, real = true)(r)) |&gt; pprint
+              d
+ 2          2⋅──(f(r))
+d             dr
+───(f(r)) + ──────────
+  2             r
+dr</code></pre><p>Tensor coefficients are deliberately <em>not</em> printed that way: a multi-line coefficient interpolated into <code>(…)𝐞ʳ⊗𝐞ʳ + (…)𝐞ᶿ⊗𝐞ᶿ</code> would destroy the layout that makes the expanded form readable in the first place.</p><p>See also <a href="#TensND.get_array"><code>get_array</code></a>, <a href="#TensND.components"><code>components</code></a>.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.KM"><a class="docstring-binding" href="#TensND.KM"><code>TensND.KM</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">KM(t::AbstractTens{order,dim}; kwargs...)
+KM(t::AbstractTens{order,dim}, var::NTuple{order,Symbol}, b::AbstractBasis{dim}; kwargs...)</code></pre><p>Write the components of a second or fourth order tensor in Kelvin-Mandel notation</p><p><strong>Examples</strong></p><pre><code class="language-julia hljs">julia&gt; σ = Tens(SymmetricTensor{2,3}((i, j) -&gt; symbols(&quot;σ$i$j&quot;, real = true))) ;
+
+julia&gt; KM(σ)
+6-element Vector{Sym}:
+         σ11
+         σ22
+         σ33
+      √2⋅σ32
+      √2⋅σ31
+      √2⋅σ21
+
+julia&gt; C = Tens(SymmetricTensor{4,3}((i, j, k, l) -&gt; symbols(&quot;C$i$j$k$l&quot;, real = true))) ;
+
+julia&gt; KM(C)
+6×6 Matrix{Sym}:
+         C₁₁₁₁     C₁₁₂₂     C₁₁₃₃  √2⋅C₁₁₃₂  √2⋅C₁₁₃₁  √2⋅C₁₁₂₁
+         C₂₂₁₁     C₂₂₂₂     C₂₂₃₃  √2⋅C₂₂₃₂  √2⋅C₂₂₃₁  √2⋅C₂₂₂₁
+         C₃₃₁₁     C₃₃₂₂     C₃₃₃₃  √2⋅C₃₃₃₂  √2⋅C₃₃₃₁  √2⋅C₃₃₂₁
+      √2⋅C₃₂₁₁  √2⋅C₃₂₂₂  √2⋅C₃₂₃₃   2⋅C₃₂₃₂   2⋅C₃₂₃₁   2⋅C₃₂₂₁
+      √2⋅C₃₁₁₁  √2⋅C₃₁₂₂  √2⋅C₃₁₃₃   2⋅C₃₁₃₂   2⋅C₃₁₃₁   2⋅C₃₁₂₁
+      √2⋅C₂₁₁₁  √2⋅C₂₁₂₂  √2⋅C₂₁₃₃   2⋅C₂₁₃₂   2⋅C₂₁₃₁   2⋅C₂₁₂₁</code></pre></div></section><section><div><pre><code class="language-julia hljs">KM(v::AllIsotropic{dim}; kwargs...)</code></pre><p>Kelvin-Mandel vector or matrix representation</p></div></section><section><div><pre><code class="language-julia hljs">KM(t::TensTI{4})</code></pre><p>Kelvin-Mandel (6×6) matrix of the Walpole tensor.</p></div></section><section><div><pre><code class="language-julia hljs">KM(t::TensOrtho)</code></pre><p>Returns the 6×6 Kelvin-Mandel matrix in the <strong>canonical</strong> frame. Use <code>KM_material(t)</code> for the block-diagonal form in the material frame.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.inv_KM"><a class="docstring-binding" href="#TensND.inv_KM"><code>TensND.inv_KM</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">inv_KM(v::AbstractVecOrMat; kwargs...)</code></pre><p>Define a tensor from a Kelvin-Mandel vector or matrix representation</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.diff_with_basis"><a class="docstring-binding" href="#TensND.diff_with_basis"><code>TensND.diff_with_basis</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">diff_with_basis(t::AbstractTens, args...; kwargs...)</code></pre><p>Differentiate <code>t</code> <strong>including its basis</strong>, then re-express the result on the original basis and variance.</p><p>This differs from <a href="../coorsystems/#TensND.∂"><code>∂</code></a> applied componentwise: when the basis itself depends on the differentiation variable — as a rotated or curvilinear frame does — the derivative of the basis vectors contributes, and dropping it is the classic way to lose the Christoffel terms.</p></div></section></details></article><article><details class="docstring" open="true"><summary id="TensND.tens_basis"><a class="docstring-binding" href="#TensND.tens_basis"><code>TensND.tens_basis</code></a> — <span class="docstring-category">Function</span></summary><section><div><pre><code class="language-julia hljs">tens_basis(ℬ::AbstractBasis, i::Integer, var = :cov) → AbstractTens{1}
+tens_basis(ℬ::AbstractBasis, var = :cov) → NTuple</code></pre><p>The <code>i</code>-th basis vector of <code>ℬ</code> as a first-order tensor, or all of them as a tuple. <code>var = :cov</code> gives the basis vectors <code>𝐞ᵢ</code>, <code>var = :cont</code> the dual vectors <code>𝐞ⁱ</code>.</p></div></section></details></article><script type="module">import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+mermaid.initialize({
+    startOnLoad: true,
+    theme: "neutral"
+});
+</script></article><nav class="docs-footer"><a class="docs-footer-prevpage" href="../bases/">« Bases</a><a class="docs-footer-nextpage" href="../structured/">Structured tensors — isotropic »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="auto">Automatic (OS)</option><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option><option value="catppuccin-latte">catppuccin-latte</option><option value="catppuccin-frappe">catppuccin-frappe</option><option value="catppuccin-macchiato">catppuccin-macchiato</option><option value="catppuccin-mocha">catppuccin-mocha</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 1.17.0 on <span class="colophon-date" title="Tuesday 11 August 2026 20:37">Tuesday 11 August 2026</span>. Using Julia version 1.12.6.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
