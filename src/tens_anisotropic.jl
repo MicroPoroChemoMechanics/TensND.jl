@@ -772,11 +772,28 @@ for OP in (:show, :print, :display)
 end
 
 # ── change_tens / components for TensTI ──────────────────────────────────────
+#
+# A structured tensor keeps its Walpole/parametric components in the CANONICAL
+# frame — `get_basis(::TensTI) === CanonicalBasis` — with the symmetry axis
+# stored separately. Re-expressing it in another orthonormal basis therefore
+# needs the very same multi-index rotation as any other tensor. Wrapping the
+# stored components in the new basis *without* rotating them relabels them, and
+# silently returns a DIFFERENT physical tensor: that is only correct when the
+# target basis is canonical, or for `TensISO`, which is genuinely invariant.
+#
+# The rotation itself is not re-derived here: the components are wrapped as a
+# plain `Tens` in the canonical basis and handed to the generic
+# `TensOrthonormal` path, which is the one already exercised by the rest of the
+# package. `change_tens` short-circuits on an equal basis, so the canonical
+# target stays allocation-free apart from the wrapper.
+
+_as_canonical_tens(t::AbstractTens{order, 3, T}) where {order, T} =
+    Tens(tensor_or_array(get_array(t)), CanonicalBasis{3, T}())
 
 change_tens(t::TensTI{2, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    Tens(tensor_or_array(get_array(t)), ℬ)
-components(t::TensTI{2, T}, ::OrthonormalBasis{3, T}, ::NTuple{2, Symbol}) where {T} =
-    get_array(t)
+    change_tens(_as_canonical_tens(t), ℬ)
+components(t::TensTI{2, T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{2, Symbol}) where {T} =
+    components(_as_canonical_tens(t), ℬ, v)
 components(t::TensTI{2}) = get_array(t)
 components(t::TensTI{2}, ::NTuple{2, Symbol}) = get_array(t)
 
@@ -1334,19 +1351,22 @@ end
 # (both are 3D order-4 tensors stored in the canonical frame)
 ##############################################################################
 
-# TensTI{4}: T used to link tensor eltype with basis eltype
+# TensTI{4}: T used to link tensor eltype with basis eltype.
+# See the note above `_as_canonical_tens`: the components must be rotated, not
+# relabeled.
 change_tens(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    Tens(tensor_or_array(get_array(t)), ℬ)
-components(t::TensTI{4, T}, ::OrthonormalBasis{3, T}, ::NTuple{4, Symbol}) where {T} =
-    get_array(t)
+    change_tens(_as_canonical_tens(t), ℬ)
+components(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
+    components(_as_canonical_tens(t), ℬ, v)
 components(t::TensTI{4}) = get_array(t)
 components(t::TensTI{4}, ::NTuple{4, Symbol}) = get_array(t)
 
-# TensOrtho
+# TensOrtho — same reasoning: stored in the canonical frame, so a rotated basis
+# needs a genuine change of components.
 change_tens(t::TensOrtho{T}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    Tens(tensor_or_array(get_array(t)), ℬ)
-components(t::TensOrtho{T}, ::OrthonormalBasis{3, T}, ::NTuple{4, Symbol}) where {T} =
-    get_array(t)
+    change_tens(_as_canonical_tens(t), ℬ)
+components(t::TensOrtho{T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
+    components(_as_canonical_tens(t), ℬ, v)
 components(t::TensOrtho) = get_array(t)
 components(t::TensOrtho, ::NTuple{4, Symbol}) = get_array(t)
 

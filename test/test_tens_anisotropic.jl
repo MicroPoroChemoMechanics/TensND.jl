@@ -1013,4 +1013,63 @@
         end
     end
 
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "change_tens into a rotated basis actually rotates" begin
+        # REGRESSION. `change_tens(::TensTI, ℬ)` and `change_tens(::TensOrtho, ℬ)`
+        # used to wrap the stored components — which live in the CANONICAL frame
+        # — in the target basis without transforming them. For a canonical `ℬ`
+        # that is right; for a rotated one it relabels the components and
+        # silently returns a DIFFERENT physical tensor. Only `TensISO` may skip
+        # the rotation.
+        #
+        # The oracle is the generic path: the very same components wrapped as a
+        # plain `Tens` in the canonical basis, for which the rotation has always
+        # been correct.
+        ℬrot = RotatedBasis(0.4, 0.7, 0.3)
+
+        structured = (
+            "TensTI{4}" => TensTI{4}(20.0, 30.0, 4.0, 5.0, 8.0, (0.0, 0.0, 1.0)),
+            "TensTI{2}" => TensTI{2}(3.0, 7.0, (0.0, 0.0, 1.0)),
+            "TensOrtho" => TensOrtho(
+                20.0, 22.0, 25.0, 8.0, 9.0, 10.0, 6.0, 7.0, 5.0,
+                CanonicalBasis{3, Float64}()
+            ),
+        )
+
+        for (name, t) in structured
+            generic = Tens(get_array(t))                 # same tensor, generic storage
+            @test get_array(generic) ≈ get_array(t) atol = atol_num
+
+            rot_struct = change_tens(t, ℬrot)
+            rot_generic = change_tens(generic, ℬrot)
+
+            # The two storages must agree component by component.
+            @test get_array(rot_struct) ≈ get_array(rot_generic) atol = atol_num
+
+            # …and the rotation must be a real one: a non-trivial basis change
+            # cannot leave the components untouched, which is exactly what the
+            # bug did.
+            @test !isapprox(get_array(rot_struct), get_array(t); atol = 1.0e-8)
+
+            # Round trip back to the canonical basis restores the tensor.
+            back = change_tens(rot_struct, CanonicalBasis{3, Float64}())
+            @test get_array(back) ≈ get_array(t) atol = 1.0e-10
+
+            # A canonical target stays a no-op.
+            @test get_array(change_tens(t, CanonicalBasis{3, Float64}())) ≈
+                get_array(t) atol = atol_num
+
+            # `components(t, ℬ, var)` is the primitive behind `change_tens` and
+            # must tell the same story.
+            v = ntuple(_ -> :cont, Val(length(size(t))))
+            @test components(t, ℬrot, v) ≈ components(generic, ℬrot, v) atol = atol_num
+        end
+
+        # `TensISO` is genuinely invariant — its fast path is legitimate and must
+        # be preserved.
+        for iso in (TensISO{3}(2.0), TensISO{3}(3.0, 4.0))
+            @test get_array(change_tens(iso, ℬrot)) ≈ get_array(iso) atol = atol_num
+        end
+    end
+
 end  # "Walpole & Ortho tensors"
