@@ -353,10 +353,35 @@ Tensors.dcontract(A::TensISO{4, dim}, B::TensISO{4, dim}) where {dim} =
 Tensors.dcontract(A::TensISO{2, dim}, B::AbstractTens{order, dim}) where {order, dim} = get_data(A)[1] * contract(B, 1, 2)
 Tensors.dcontract(A::AbstractTens{order, dim}, B::TensISO{2, dim}) where {order, dim} = contract(A, order - 1, order) * get_data(B)[1]
 
-Tensors.dcontract(A::TensISO{4, dim}, B::TensOrthonormal{2}) where {dim} =
-    get_data(A)[2] * B + (get_data(A)[1] - get_data(A)[2]) * tr(B) * I / dim
-Tensors.dcontract(A::TensOrthonormal{2}, B::TensISO{4, dim}) where {dim} =
-    A * get_data(B)[2] + tr(A) * (get_data(B)[1] - get_data(B)[2]) * I / dim
+"""
+    _id2_like(t::AbstractTens{order,dim}) -> Tens{2,dim}
+
+The 2nd-order identity ``\\boldsymbol\\delta`` expressed **in the basis of
+`t`**.
+
+`LinearAlgebra.I` is a `UniformScaling`, not a tensor. Adding it to a `Tens`
+falls back to plain array arithmetic and returns a bare `Array`: the wrapper is
+lost, and with it the basis — so a result computed in a rotated basis silently
+becomes an unlabeled array that the caller will read as canonical components.
+
+``\\boldsymbol\\delta`` has the same components in every orthonormal basis, so
+it is built directly in `t`'s own basis. Nothing is re-expressed in the
+canonical frame, and the result of an operation stays in the basis its operands
+were given in.
+"""
+_id2_like(t::AbstractTens{order, dim}) where {order, dim} =
+    Tens(Id2{dim, eltype(t)}(), get_basis(t))
+
+# `(α𝕁 + β𝕂) ⊡ 𝐚 = β 𝐚 + ((α−β)/dim) (tr 𝐚) 𝛅`, kept in `𝐚`'s basis.
+function Tensors.dcontract(A::TensISO{4, dim}, B::TensOrthonormal{2}) where {dim}
+    α, β = get_data(A)[1], get_data(A)[2]
+    return β * B + ((α - β) * tr(B) / dim) * _id2_like(B)
+end
+
+function Tensors.dcontract(A::TensOrthonormal{2}, B::TensISO{4, dim}) where {dim}
+    α, β = get_data(B)[1], get_data(B)[2]
+    return β * A + ((α - β) * tr(A) / dim) * _id2_like(A)
+end
 
 function Tensors.dcontract(
         A::TensISO{4, dim, T},
@@ -414,9 +439,15 @@ end
 
 Tensors.dotdot(v1::AbstractTens{1}, S::TensISO{2, dim}, v2::AbstractTens{1}) where {dim} =
     get_data(S)[1] * v1 ⋅ v2
-Tensors.dotdot(v1::AbstractTens{1}, S::TensISO{4, dim}, v2::AbstractTens{1}) where {dim} =
-    (get_data(S)[1] - get_data(S)[2]) * (v1 ⊗ v2) / dim +
-    get_data(S)[2] * (v2 ⊗ v1 + v1 ⋅ v2 * I) / 2
+function Tensors.dotdot(
+        v1::AbstractTens{1}, S::TensISO{4, dim}, v2::AbstractTens{1}
+    ) where {dim}
+    # `_id2_like` rather than `LinearAlgebra.I`: see its docstring — mixing a
+    # `Tens` with a `UniformScaling` returns a bare `Array` and loses the basis.
+    P = v2 ⊗ v1
+    return (get_data(S)[1] - get_data(S)[2]) * (v1 ⊗ v2) / dim +
+        get_data(S)[2] * (P + (v1 ⋅ v2) * _id2_like(P)) / 2
+end
 
 Tensors.dotdot(a1::AbstractTens{2}, S::TensISO{4, dim}, a2::AbstractTens{2}) where {dim} =
     (get_data(S)[1] - get_data(S)[2]) * tr(a1) * tr(a2) / dim + get_data(S)[2] * a1 ⊡ a2

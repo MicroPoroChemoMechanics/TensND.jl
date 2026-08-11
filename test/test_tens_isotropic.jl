@@ -112,4 +112,59 @@
 
         end
     end
+
+    # ══════════════════════════════════════════════════════════════════════════
+    @testsection "TensISO products return a Tens, in the operand's basis" begin
+        # REGRESSION. `dcontract(::TensISO{4}, ::TensOrthonormal{2})` and
+        # `dotdot(::AbstractTens{1}, ::TensISO{4}, ::AbstractTens{1})` used to
+        # add a `Tens` to `LinearAlgebra.I`. A `UniformScaling` is not a tensor,
+        # so the sum fell back to plain array arithmetic and returned a bare
+        # `Array`: the wrapper was lost, and with it the BASIS — a result
+        # computed in a rotated basis came back as an unlabeled array that the
+        # caller would read as canonical components.
+        #
+        # The identity is now built in the operand's own basis (`_id2_like`), so
+        # nothing is re-expressed in the canonical frame either.
+        ℂ = TensISO{3}(3 * 30.0, 2 * 18.0)
+        ℬ = RotatedBasis(0.4, 0.7, 0.3)
+        mk(b) = Tens(SymmetricTensor{2, 3}((i, j) -> 1.0e-3 * (i == j ? i : 0.5)), b)
+
+        for b in (CanonicalBasis{3, Float64}(), ℬ)
+            𝛆 = mk(b)
+            for r in (ℂ ⊡ 𝛆, 𝛆 ⊡ ℂ)
+                @test r isa AbstractTens{2, 3}
+                @test get_basis(r) == b                     # basis preserved
+            end
+            # …and the value matches the dense route.
+            dense = TensND._generic_tens(ℂ) ⊡ 𝛆
+            @test get_array(ℂ ⊡ 𝛆) ≈ get_array(dense) atol = 1.0e-14
+        end
+
+        # Structured × structured keeps the structured type.
+        @test ℂ ⊡ TensISO{3}(1.0e-3) isa TensISO
+
+        # `dotdot` with two vectors goes through the same identity.
+        𝐯₁ = Tens(Vec{3}((1.0, 2.0, 3.0)))
+        𝐯₂ = Tens(Vec{3}((0.5, -1.0, 2.0)))
+        d = dotdot(𝐯₁, ℂ, 𝐯₂)
+        @test d isa AbstractTens{2, 3}
+        @test get_array(d) ≈ get_array(dotdot(𝐯₁, TensND._generic_tens(ℂ), 𝐯₂)) atol = 1.0e-12
+
+        # Symbolic and ForwardDiff element types must survive the same path —
+        # the `UniformScaling` route had its own `SymType` patches, so this is
+        # where a regression would show.
+        k, μ = symbols("k μ", real = true)
+        ℂs = TensISO{3}(3k, 2μ)
+        𝛆s = Tens(SymmetricTensor{2, 3}((i, j) -> symbols("e$(i)$(j)", real = true)))
+        rs = ℂs ⊡ 𝛆s
+        @test rs isa AbstractTens{2, 3}
+        @test eltype(rs) <: Sym
+
+        gd = ForwardDiff.derivative(
+            x -> get_array(TensISO{3}(3x, 2 * 18.0) ⊡ mk(CanonicalBasis{3, Float64}()))[1, 1],
+            30.0,
+        )
+        @test isfinite(gd)
+    end
+
 end
