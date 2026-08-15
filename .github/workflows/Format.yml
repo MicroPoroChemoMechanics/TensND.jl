@@ -1,0 +1,71 @@
+name: Format
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ startsWith(github.ref, 'refs/pull/') }}
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  format:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
+      - uses: julia-actions/cache@v3
+      # The Pkg server intermittently advertises a General tree hash that its
+      # CDN then answers with a 404, which kills the first `Pkg.add` of a cold
+      # depot before any of this repository's code runs.  Install the registry
+      # up front and fall back to a direct clone when that happens; package
+      # tarballs keep going through the Pkg server either way.
+      - name: Install the General registry
+        shell: julia --color=yes {0}
+        run: |
+          using Pkg
+          regdir = joinpath(first(DEPOT_PATH), "registries")
+          if isdir(joinpath(regdir, "General")) || isfile(joinpath(regdir, "General.tar.gz"))
+              @info "General registry already installed"
+          else
+              try
+                  Pkg.Registry.add("General")
+              catch err
+                  @warn "Pkg server could not serve the registry; cloning from GitHub" err
+                  withenv("JULIA_PKG_SERVER" => "") do
+                      Pkg.Registry.add(Pkg.RegistrySpec(url = "https://github.com/JuliaRegistries/General.git"))
+                  end
+              end
+          end
+      - name: Install Runic
+        run: julia -e 'using Pkg; Pkg.activate("runic", shared=true); Pkg.add("Runic")'
+      - name: Check formatting (PR)
+        if: github.event_name == 'pull_request'
+        run: |
+          julia --project=@runic -e '
+            using Runic
+            paths = filter(isdir, ["src", "test", "ext"])
+            exit(Runic.main(["--check"; paths]))'
+      - name: Auto-format (push to main)
+        if: github.event_name == 'push'
+        run: |
+          julia --project=@runic -e '
+            using Runic
+            paths = filter(isdir, ["src", "test", "ext"])
+            Runic.main(["--inplace"; paths])'
+          if [ -n "$(git diff --name-only)" ]; then
+            git config --local user.name "github-actions[bot]"
+            git config --local user.email "github-actions[bot]@users.noreply.github.com"
+            git add -A
+            git commit -m "Style: auto-format with Runic"
+            git push
+          fi

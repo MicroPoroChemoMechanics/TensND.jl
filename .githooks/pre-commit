@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Pre-commit hook: keep the tree in US English.
+# Pre-commit hook: keep the tree Runic-formatted and in US English.
 #
 # Enable once, per clone:
 #     git config core.hooksPath .githooks
@@ -26,6 +26,72 @@
 set -euo pipefail
 
 cd "$(git rev-parse --show-toplevel)"
+
+# ── Runic formatting ────────────────────────────────────────────────────────
+#
+# Same principle as the spelling section below: fix and re-stage rather than
+# refuse. `Format.yml` auto-formats pushes to `main` and commits the result,
+# which leaves the local clone one commit behind every time — formatting here
+# means the Action finds nothing to do and never creates that commit.
+#
+# This block runs *before* the spelling section, which exits early when it has
+# nothing to fix — the common case, and it would skip everything after it.
+#
+# Runic lives in a shared environment so every clone uses the same one:
+#     julia -e 'using Pkg; Pkg.activate("runic", shared=true); Pkg.add("Runic")'
+# If it is missing the commit is allowed: CI remains the authority, and a hook
+# that blocks work over a missing convenience gets bypassed with --no-verify.
+
+JL_FILES=()
+while IFS= read -r f; do
+    [ -n "$f" ] && [ -f "$f" ] && JL_FILES+=("$f")
+done < <(git diff --cached --name-only --diff-filter=ACM -- '*.jl')
+
+if [ ${#JL_FILES[@]} -gt 0 ]; then
+    if ! command -v julia >/dev/null 2>&1; then
+        echo "▸ Runic: julia not on PATH; formatting not checked here — CI will." >&2
+    elif ! julia --project=@runic --startup-file=no -e 'using Runic' >/dev/null 2>&1; then
+        echo "▸ Runic: shared @runic environment not found; skipping." >&2
+        echo "▸   julia -e 'using Pkg; Pkg.activate(\"runic\", shared=true); Pkg.add(\"Runic\")'" >&2
+    else
+        # Format the *staged* content, not the working tree. Formatting the
+        # file on disk and re-staging it would sweep any unstaged edit in the
+        # same file into the commit — verified: it does, which is why this
+        # goes through the index instead.
+        for f in "${JL_FILES[@]}"; do
+            staged=$(mktemp --suffix=.jl) || exit 1
+            formatted=$(mktemp --suffix=.jl) || exit 1
+            git show ":$f" > "$staged"
+            cp "$staged" "$formatted"
+            if ! julia --project=@runic --startup-file=no -e '
+                    using Runic
+                    exit(Runic.main(["--inplace", ARGS[1]]))' "$formatted" >/dev/null 2>&1
+            then
+                rm -f "$staged" "$formatted"
+                echo "▸ Runic: could not format $f; commit refused." >&2
+                exit 1
+            fi
+            if ! cmp -s "$staged" "$formatted"; then
+                # Replace the staged blob.
+                blob=$(git hash-object -w "$formatted")
+                mode=$(git ls-files --stage -- "$f" | awk '{print $1}')
+                git update-index --cacheinfo "${mode:-100644}","$blob","$f"
+                # Mirror it into the working tree only when that file has no
+                # unstaged edits — otherwise the author's in-progress work
+                # would be overwritten.
+                if cmp -s "$staged" "$f"; then
+                    cp "$formatted" "$f"
+                    echo "▸ Runic: formatted $f"
+                else
+                    echo "▸ Runic: formatted the staged copy of $f" \
+                         "(working tree left alone — it has unstaged edits)"
+                fi
+            fi
+            rm -f "$staged" "$formatted"
+        done
+    fi
+fi
+
 
 TOOL=".github/scripts/spelling_tool.py"
 [ -f "$TOOL" ] || exit 0
