@@ -20,6 +20,10 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v7
+        with:
+          # A full history, because the auto-format step below rebases before it
+          # pushes. The default shallow clone has no merge base to rebase onto.
+          fetch-depth: 0
       - uses: julia-actions/setup-julia@v3
         with:
           version: '1'
@@ -67,5 +71,13 @@ jobs:
             git config --local user.email "github-actions[bot]@users.noreply.github.com"
             git add -A
             git commit -m "Style: auto-format with Runic"
-            git push
+            # Rebase before pushing. This job checked the repository out at one
+            # commit and pushes minutes later; anything landing on the branch in
+            # between — a hand push, a version bump, another workflow — makes a
+            # plain `git push` fail with "fetch first", and the formatting is then
+            # lost even though it conflicts with nothing. The commit only
+            # reformats, so replaying it on top of whatever arrived is always the
+            # right resolution.
+            git pull --rebase --autostash origin "${GITHUB_REF_NAME}"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
           fi
