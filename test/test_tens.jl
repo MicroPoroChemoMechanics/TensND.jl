@@ -114,8 +114,12 @@ end
     ℬʳ = RotatedBasis(0.3, 0.4, 0.1)
     d = ForwardDiff.Dual{:tag}(0.8, 1.0)
 
-    for t in (TensISO{3}(3 * 2.0, 2 * d), TensTI{4}(20.0 * d, 25.0, 7.0, 6.0, 5.0,
-                                                    (1, 1, 1) ./ √3))
+    for t in (
+            TensISO{3}(3 * 2.0, 2 * d), TensTI{4}(
+                20.0 * d, 25.0, 7.0, 6.0, 5.0,
+                (1, 1, 1) ./ √3
+            ),
+        )
         @test size(KM(t, ℬʳ)) == (6, 6)
         @test size(KM(t)) == size(KM(t, ℬʳ))          # the frame changes nothing
     end
@@ -144,4 +148,3 @@ end
     rawd = [ForwardDiff.Dual{:tag}(v, 0.0) for v in raw]
     @test !(TensND.tensor_or_array(rawd) isa SymmetricTensor)
 end
-
