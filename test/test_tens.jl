@@ -97,3 +97,51 @@ end
     # display rather than `println`.
     @test pprint(LAPLACE(1 / r, S)) === nothing
 end
+
+@testsection "Storage of a rotated tensor — ForwardDiff.Dual" begin
+    # Writing a structured tensor about a NON-canonical axis leaves minor-
+    # antisymmetric round-off of order 1e-16. `_store_symmetric` absorbs exactly
+    # that residue — but its tolerant method used to be written
+    # `T <: AbstractFloat`, and `ForwardDiff.Dual` is not one, so a `Dual`-valued
+    # tensor fell through to the exact comparison and landed on the
+    # 81-component `Tensor` where the same tensor in `Float64` landed on the
+    # 36-component `SymmetricTensor`.
+    #
+    # The two are NOT interchangeable downstream: `KM` then returns a 9×9 matrix
+    # instead of 6×6, and `inv` of the full form solves a 9×9 system whose three
+    # minor-antisymmetric directions are null. Automatic differentiation through
+    # any rotated structured tensor was therefore impossible.
+    ℬʳ = RotatedBasis(0.3, 0.4, 0.1)
+    d = ForwardDiff.Dual{:tag}(0.8, 1.0)
+
+    for t in (TensISO{3}(3 * 2.0, 2 * d), TensTI{4}(20.0 * d, 25.0, 7.0, 6.0, 5.0,
+                                                    (1, 1, 1) ./ √3))
+        @test size(KM(t, ℬʳ)) == (6, 6)
+        @test size(KM(t)) == size(KM(t, ℬʳ))          # the frame changes nothing
+    end
+    @test size(KM(TensISO{3}(d), ℬʳ)) == (6,)          # order 2
+
+    # `Float64` and `Complex` must be unaffected, and both stay on the tolerant
+    # side (`eps` is defined on a `Dual` type but not on a `Complex` one, which
+    # is why the tolerance goes through `TensND._approx_eps`).
+    @test size(KM(TensISO{3}(6.0, 1.6), ℬʳ)) == (6, 6)
+    z = ComplexF64(1.0, 0.5)
+    @test size(KM(TensISO{3}(3z, 2z), ℬʳ)) == (6, 6)
+    @test TensND._approx_eps(ComplexF64) === eps(Float64)
+    @test TensND._approx_eps(typeof(d)) === eps(Float64)
+
+    # The point of it all: a derivative that reaches through the rotation.
+    f(x) = Matrix(KM(TensISO{3}(6.0, 2x), ℬʳ))[4, 4]
+    h = 1.0e-7
+    @test ForwardDiff.derivative(f, 0.8) ≈ (f(0.8 + h) - f(0.8 - h)) / (2h) rtol = 1.0e-5
+
+    # …and the tolerance still refuses a genuine minor antisymmetry rather than
+    # averaging it away.
+    raw = zeros(3, 3, 3, 3)
+    raw[1, 2, 1, 1] = 1.0
+    raw[2, 1, 1, 1] = -1.0
+    @test !(TensND.tensor_or_array(raw) isa SymmetricTensor)
+    rawd = [ForwardDiff.Dual{:tag}(v, 0.0) for v in raw]
+    @test !(TensND.tensor_or_array(rawd) isa SymmetricTensor)
+end
+

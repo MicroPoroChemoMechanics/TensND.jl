@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.3.6 — the round-off tolerance now covers `ForwardDiff.Dual`
+
+### Bug fixes
+
+- **Automatic differentiation was impossible through any structured tensor
+  written about a non-canonical axis.** `KM` of a `Dual`-valued `TensISO` in a
+  `RotatedBasis` returned a **9×9** matrix where the very same tensor in
+  `Float64` returned a 6×6 one, so every downstream consumer that expects the
+  Kelvin-Mandel form of a minor-symmetric tensor failed with a
+  `DimensionMismatch` — and `inv` of the full form solves a 9×9 system whose
+  three minor-antisymmetric directions are null.
+
+  This is the case v0.3.2 left behind. That release made the storage decision
+  relative to the tensor's own scale instead of exact, precisely because writing
+  a structured tensor about a non-canonical axis leaves minor-antisymmetric
+  residue of order `1e-16` — but it keyed the tolerant method on
+  `AbstractFloat`, and its note justified the exact branch by "there is no
+  round-off to absorb there". That is true of a symbolic or rational element
+  type. It is **false of a `ForwardDiff.Dual`**, which subtypes `Real` without
+  subtyping `AbstractFloat` and carries exactly the round-off of the float it is
+  built on.
+
+  `_store_symmetric` now keys on `ApproxType` — the union this package already
+  defined for this very distinction (`array_utils.jl`), whose own comment
+  describes the symptom — so a `Dual` is treated like the float underneath it.
+  `Complex{<:AbstractFloat}`, also in that union, joins the tolerant side at the
+  same time; its tolerance goes through the new internal `_approx_eps`, since
+  `eps` is defined on a `Dual` type but not on a `Complex` one.
+
+  Concretely, this is what makes `ForwardDiff` reach through a rotation:
+
+  ```julia
+  ℬʳ = RotatedBasis(0.3, 0.4, 0.1)
+  f(x) = Matrix(KM(TensISO{3}(6.0, 2x), ℬʳ))[4, 4]
+  ForwardDiff.derivative(f, 0.8)        # used to throw; now returns 2.0
+  ```
+
+  A tensor whose minor antisymmetry is genuine — above the threshold — is stored
+  as before. Symbolic and rational element types are untouched: they keep the
+  exact comparison, where they belong.
+
 ## v0.3.3 — the outer products no longer go through a contraction engine
 
 ### Performance

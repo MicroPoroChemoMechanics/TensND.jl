@@ -356,19 +356,39 @@ would fail or succeed depending on the last bit of an intermediate. Residue at
 the scale of the tensor's own rounding error is noise, not antisymmetry, and
 is treated as such.
 
-Non-float element types (symbolic, rational, integer) keep the exact
-comparison: there is no round-off to absorb, and no tolerance to define.
+Truly exact element types (symbolic, rational, integer) keep the exact
+comparison: there is no round-off to absorb, and no tolerance to define. The
+split is [`ApproxType`](@ref) — **not** `AbstractFloat`: a `ForwardDiff.Dual`
+subtypes `Real` without subtyping `AbstractFloat`, yet it carries exactly the
+same round-off as the float it is built on, so it belongs on the tolerant side.
+Keying on `AbstractFloat` made automatic differentiation impossible through any
+structured tensor written about a non-canonical axis: `KM` of a `Dual`-valued
+`TensISO` in a `RotatedBasis` returned a 9×9 matrix where the same tensor in
+`Float64` returned a 6×6 one.
 """
 @inline _store_symmetric(t::Tensors.AbstractTensor) = Tensors.issymmetric(t)
 
 @inline function _store_symmetric(
         t::Tensors.AbstractTensor{order, dim, T}
-    ) where {order, dim, T <: AbstractFloat}
+    ) where {order, dim, T <: ApproxType}
     Tensors.issymmetric(t) && return true
     scale = maximum(abs, t)
     iszero(scale) && return true
-    return maximum(abs, t - Tensor{order, dim}(Tensors.symmetric(t))) <= 16 * eps(T) * scale
+    return maximum(abs, t - Tensor{order, dim}(Tensors.symmetric(t))) <= 16 * _approx_eps(T) * scale
 end
+
+"""
+    _approx_eps(::Type{T}) -> AbstractFloat
+
+Machine epsilon of the floating-point type underlying `T`, for the tolerance of
+[`_store_symmetric`](@ref).
+
+`eps` is already defined on a `ForwardDiff.Dual` type (it forwards to the value
+type), but not on a `Complex` one — hence this thin dispatcher rather than a
+bare `eps(T)`.
+"""
+@inline _approx_eps(::Type{T}) where {T <: Complex} = eps(real(T))
+@inline _approx_eps(::Type{T}) where {T} = eps(T)
 
 for order in (2, 4)
     @eval function tensor_or_array(tab::AbstractArray{T, $order}) where {T}
