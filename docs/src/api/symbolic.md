@@ -12,6 +12,8 @@ tsubs
 tdiff
 ttrigsimp
 texpand_trig
+tlimit
+TensND.is_hard_numeric
 contract
 qcontract
 otimesu

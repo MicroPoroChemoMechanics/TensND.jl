@@ -904,7 +904,7 @@ TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
 change_tens_canon(t::AbstractTens) = change_tens(t, CanonicalBasis{get_dim(t), eltype(t)}())
 
 
-for OP in (:(tsimplify), :(tfactor), :(tsubs), :(ttrigsimp), :(texpand_trig))
+for OP in (:(tsimplify), :(tfactor), :(tsubs), :(ttrigsimp), :(texpand_trig), :(tlimit))
     @eval $OP(t::Tensors.AllTensors{dim, T}, args...; kwargs...) where {dim, T <: Sym} =
         Tensors.get_base(typeof(t))($OP.(Tensors.get_data(t), args...; kwargs...))
     @eval $OP(t::AbstractTens{order, dim, T}, args...; kwargs...) where {order, dim, T <: Sym} =

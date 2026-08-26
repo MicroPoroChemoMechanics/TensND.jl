@@ -301,6 +301,26 @@ function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensISO{4, 3})
     return Tensors.dcontract(B, A)
 end
 
+# ── TensISO{2,3} ⊡ TensTI{4} / TensTI{4} ⊡ TensISO{2,3} ─────────────────────
+#
+# `TensISO{2,3}(λ) ≡ λ·𝟏 ≡ TensTI{2}(λ, λ, n)` for any axis, so the whole rule
+# is a conversion onto the axis of the 4th-order operand followed by the
+# TensTI{4} ⊡ TensTI{2} rule below. Without these two methods the contraction
+# of the second-order identity with a transversely isotropic 4th-order tensor
+# — `𝟏 : 𝔸`, the trace of a concentration tensor, i.e. exactly what a Levin or
+# a Biot post-processing forms — fell through to the generic 81-component
+# array path and came back as an unstructured `Tens`.
+
+function Tensors.dcontract(A::TensISO{2, 3}, B::TensTI{4})
+    λ = get_data(A)[1]
+    return Tensors.dcontract(TensTI{2}(λ, λ, axis(B)), B)
+end
+
+function Tensors.dcontract(A::TensTI{4}, B::TensISO{2, 3})
+    λ = get_data(B)[1]
+    return Tensors.dcontract(A, TensTI{2}(λ, λ, axis(A)))
+end
+
 # ── TensTI{4} ⊡ TensTI{2} / TensTI{2} ⊡ TensTI{4} (same axis) ──────────
 
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 2})

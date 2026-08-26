@@ -1,5 +1,124 @@
 # Changelog
 
+## v0.4.0 — the symmetry-average layer moves in, and `tlimit`
+
+Three groups of functions that had grown up inside
+`MeanFieldHomogenization.jl` are pure tensor algebra with nothing
+homogenization-specific about them, and they belong here: the exact
+rotation-group averages, the Kelvin-Mandel helpers they are built on, and the
+best-fit projections. Moving them removes an awkward seam — `MeanFieldHomogenization`
+had to `import TensND: isotropify` to avoid two rival bindings of the same
+name reaching its top level — and puts the *average* and the *projection* side
+by side, where the difference between them can be stated once instead of being
+re-explained at every call site.
+
+### Breaking changes
+
+Nothing in the public API was removed or changed in meaning. The bump is a
+minor one because the exported surface grows substantially, and because under
+1.0 Julia's resolver treats a minor bump as breaking: a downstream package
+pinned to `TensND = "0.3"` must widen its bound to `"0.4"`.
+
+One behavior *does* change, and it is the bug fix below: code that called
+`tsimplify` / `tsubs` / `tdiff` on a `TensISO`, a `TensTI` or a `TensOrtho`
+with symbolic entries used to get its input back unchanged and now gets the
+operation actually applied.
+
+### Bug fixes
+
+- **`tsimplify`, `tfactor`, `tsubs`, `tdiff`, `ttrigsimp` and `texpand_trig`
+  were silent no-ops on every structured tensor type.** `structured_tens_ops.jl`
+  implements the whole family as `_rebuild(A, OP(get_data(A)))`, and `get_data`
+  returns an `NTuple`. A `Tuple` is not an `AbstractArray`, so the elementwise
+  methods never matched and the generic identity fallback `OP(x, args...) = x`
+  caught the call: `tsimplify(::TensISO{4,3,Sym})` returned the tensor
+  untouched and reported success. Only the generic `Tens`, whose data is an
+  `Array`, ever simplified.
+
+  ```julia
+  t = TensISO{3}(sin(a)^2 + cos(a)^2, 2b)
+  get_data(tsimplify(t))     # before: (sin(a)^2 + cos(a)^2, 2b)   after: (1, 2b)
+  ```
+
+  `Tuple` methods are now defined for the whole family.
+
+### Exact rotation-group averages (new here, moved from `MeanFieldHomogenization`)
+
+`isotropify(t)` and `transverse_isotropify(t, n)` are the *exact* averages of a
+minor-symmetric tensor over SO(3) and over the rotations about `n`. They assume
+no major symmetry, which is what makes them the right operators on a
+concentration or contribution tensor: the azimuthal average returns the full
+eight-coefficient `TensTI{4,T,8}`, preserving `ℓ₃ ≠ ℓ₄` and the antisymmetric
+couplings `ℓ₇`, `ℓ₈` that a symmetric TI parametrization drops silently. At
+order 2 the antisymmetric in-plane part is likewise kept (`TensTI{2,T,3}`).
+
+`isotropify` already existed here as a Frobenius projection on a raw array; the
+new `AbstractTens` method coincides with it exactly on minor-symmetric input.
+
+Two closed-form fast paths come with them, both new:
+
+- `isotropify(::TensTI{4})` reads the two invariants off the Walpole
+  coefficients — `T_iijj = ℓ₁ + 2ℓ₂ + √2(ℓ₃+ℓ₄)`, `T_ijij = ℓ₁ + ℓ₂ + 2ℓ₅ + 2ℓ₆`
+  — instead of materializing 81 components. On a symbolic element type that is
+  the difference between an expression one can read and one that fills a
+  screen; on a numeric polycrystal self-consistent iteration it removes an
+  array contraction per phase per iteration.
+- `isotropify(::TensTI{2})` and `isotropify(::TensISO)`, same idea.
+
+Also moved, and now public rather than internal:
+
+| Name | Role |
+| :--- | :--- |
+| `mandel66_minor(arr)` / `array_from_mandel66(M)` | 6×6 Kelvin-Mandel ↔ 3×3×3×3, minor-symmetrizing on read, no major symmetry assumed |
+| `ti8_params_from_KM(M)` / `KM_from_ti8_params(p)` | the eight coefficients of an axially-invariant tensor about `e₃` — the non-major-symmetric counterpart of `ti_params_from_KM`, which *projects* onto the five-coefficient span and would discard `ℓ₃ ≠ ℓ₄` |
+| `ti_average_mandel66(M, n)` / `iso_average_mandel66(M)` | the same averages on a 6×6 block rather than on a tensor |
+
+`ti8_params_from_KM` doubles as an exact **read-off** whenever the matrix is
+already axially invariant, which is how a laminate recovers the symmetry class
+of its localization tensors.
+
+The in-plane reference of `_axis_frame` is now chosen structurally when the
+axis is not comparable, so an azimuthal average about a symbolic axis no longer
+runs into `argmin`.
+
+### Best-fit projections (new here, moved from `MeanFieldHomogenization`)
+
+`best_fit_iso(t)`, `best_fit_ti(t, axis)` and `best_fit_ortho(t, frame)` return
+the projection alone, where `proj_tens` returns `(projection, distance,
+relative distance)`. They sit next to `proj_tens` and the `*_params_from_KM`
+conversions, and their docstrings state the one thing not to get wrong: a
+projection is a least-squares fit and drops whatever does not fit, an average
+is exact and lossless on the invariant subspace. Use the averages inside a
+computation and the fits only to report parameters.
+
+### `tlimit` — the limit passage, keeping the symmetry class
+
+```julia
+tlimit(x, s, v)          # limit as the symbol `s` tends to `v`
+tlimit(x, s, v, "+")     # one-sided
+```
+
+The pass that was missing from the `tsimplify` / `tsubs` / `tdiff` family. Like
+its siblings it is the identity on numeric types — a number has no free symbol
+to send anywhere — and, applied to a structured tensor, it takes the limit of
+the few canonical coefficients and rebuilds the same type rather than going
+through `dim^order` components.
+
+That is what makes a degenerate limit of a closed form practical: a vanishing
+regularization, an incompressible phase (`k => oo`), a flat inclusion. There is
+deliberately no `Symbolics.Num` method — Symbolics has no limit, and returning
+the input unchanged would be a silent wrong answer, so a `Num` raises instead.
+
+### `is_hard_numeric` (new here, moved from `MeanFieldHomogenization.Elliptic`)
+
+Whether comparisons on a scalar type yield an honest `Bool`, so a value may
+drive an `if`, an `&&` or a tolerance test. `T <: Real` is **not** that
+predicate: `Symbolics.Num <: Real` yet answers no comparison, and
+`ForwardDiff.Dual <: Real` and does. It is the companion of `ApproxType`, which
+this package already owned — `ApproxType` says *use a tolerance rather than
+exact equality*, `is_hard_numeric` says *a comparison is allowed at all* — so
+the two now live in the same file.
+
 ## v0.3.6 — the round-off tolerance now covers `ForwardDiff.Dual`
 
 ### Bug fixes

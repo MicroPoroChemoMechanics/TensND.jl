@@ -104,9 +104,62 @@ non-symbolic types. The counterpart of [`ttrigsimp`](@ref).
 """
 function texpand_trig end
 
-for OP in (:(tsimplify), :(tfactor), :(tsubs), :(ttrigsimp), :(texpand_trig))
+"""
+    tlimit(x, s, v)
+    tlimit(x, s, v, dir)
+
+Limit of an expression elementwise as the symbol `s` tends to `v`
+(`sympy.limit`), optionally one-sided with `dir = "+"` or `"-"`; identity on
+non-symbolic types, a numeric value having no free symbol to send anywhere.
+
+This is the pass a degenerate limit of a closed form needs — a vanishing
+regularization, an incompressible phase (`k => oo`), a flat inclusion — and it
+keeps the tensor's structure: applied to a `TensISO`, a `TensTI` or a
+`TensOrtho` it takes the limit of the few canonical coefficients and rebuilds
+the same type, never going through the `dim^order` components.
+
+Unlike its siblings there is no `Symbolics.Num` method: Symbolics has no limit,
+and returning the input unchanged would be a silent wrong answer, so a `Num`
+raises instead.
+
+See also [`tsimplify`](@ref), [`tsubs`](@ref).
+
+# Examples
+```jldoctest
+julia> tlimit(3.0, :whatever, 0)      # no-op on numbers
+3.0
+```
+"""
+function tlimit end
+
+for OP in (:(tsimplify), :(tfactor), :(tsubs), :(ttrigsimp), :(texpand_trig), :(tlimit))
     @eval $OP(x, args...; kwargs...) = x
 end
+
+# Tuples, elementwise.
+#
+# This is not cosmetic. `get_data` of every structured tensor returns an
+# `NTuple` of coefficients, and `structured_tens_ops.jl` implements the whole
+# family as `_rebuild(A, OP(get_data(A)))`. A `Tuple` is not an `AbstractArray`,
+# so without these methods the generic identity fallback above caught it and
+# `tsimplify(::TensISO{4,3,Sym})`, `tsubs(::TensTI{4,Sym,5}, …)` and their
+# siblings were **silent no-ops** — they returned the tensor unchanged and
+# reported success. Only the generic `Tens` path, whose data is an `Array`,
+# ever simplified.
+for OP in (
+        :(tsimplify), :(tfactor), :(tsubs), :(tdiff),
+        :(ttrigsimp), :(texpand_trig), :(tlimit),
+    )
+    @eval $OP(m::Tuple, args...; kwargs...) = map(x -> $OP(x, args...; kwargs...), m)
+end
+
+tlimit(x::T, args...; kwargs...) where {T <: Sym} = sympy.limit(x, args...; kwargs...)
+tlimit(::Num, args...; kwargs...) = throw(
+    ArgumentError(
+        "tlimit: Symbolics.jl provides no limit. Use the SymPy backend " *
+            "(`Sym`) for a limit passage, or substitute an explicit value with `tsubs`."
+    )
+)
 
 for OP in (:(simplify), :(factor), :(subs), :(diff))
     @eval $(Symbol("t", OP))(x::T, args...; kwargs...) where {T <: Sym} = SymPy.$OP(x, args...; kwargs...)
@@ -114,7 +167,7 @@ end
 for OP in (:(trigsimp), :(expand_trig))
     @eval $(Symbol("t", OP))(x::T, args...; kwargs...) where {T <: Sym} = sympy.$OP(x, args...; kwargs...)
 end
-for OP in (:(tsimplify), :(tfactor), :(tsubs), :(tdiff), :(ttrigsimp), :(texpand_trig))
+for OP in (:(tsimplify), :(tfactor), :(tsubs), :(tdiff), :(ttrigsimp), :(texpand_trig), :(tlimit))
     @eval $OP(m::AbstractArray{T}, args...; kwargs...) where {T <: Sym} = $OP.(m, args...; kwargs...)
     @eval $OP(m::Array{T}, args...; kwargs...) where {T <: Sym} = $OP.(m, args...; kwargs...)
     @eval $OP(m::Symmetric{T}, args...; kwargs...) where {T <: Sym} = Symmetric($OP.(m, args...; kwargs...))
@@ -148,6 +201,42 @@ const SymType = Union{Sym, Num}
 # `DimensionMismatch`, i.e. automatic differentiation through a projection was
 # impossible. Symbolic types keep their own exact methods and are unaffected.
 const ApproxType = Union{AbstractFloat, Complex{<:AbstractFloat}, ForwardDiff.Dual}
+
+"""
+    is_hard_numeric(::Type) -> Bool
+    is_hard_numeric(x)      -> Bool
+
+Whether comparisons on that scalar type yield an honest `Bool`, so a value of it
+may drive `if`, `&&` or a tolerance test.
+
+**`T <: Real` is not this predicate.** `Symbolics.Num <: Real`, yet `<`, `≈` and
+`iszero` on a `Num` return *symbolic* expressions, and using one in a boolean
+context throws `TypeError: non-boolean (Num) used in boolean context`.
+`ForwardDiff.Dual` is also `<: Real` and *does* compare to a `Bool`, so the two
+cannot be separated by `<: Real` either way. `SymPy.Sym` is not `<: Real` at
+all, which is why the bug it guards against only ever showed up on the
+Symbolics side.
+
+The list is explicit and closed, and the default is the safe answer: an unknown
+scalar type is assumed *not* comparable, which pushes callers onto their
+structural (`isequal`) branch. Add a type here only after checking that its `<`
+really returns a `Bool`.
+
+This is the companion of [`ApproxType`](@ref): `ApproxType` says *use a
+tolerance rather than exact equality*, `is_hard_numeric` says *a comparison is
+allowed at all*. `Int` and `Rational` are hard numeric but not `ApproxType`.
+
+```jldoctest
+julia> TensND.is_hard_numeric(Float64), TensND.is_hard_numeric(Sym)
+(true, false)
+```
+"""
+is_hard_numeric(::Type{<:AbstractFloat}) = true
+is_hard_numeric(::Type{<:Integer}) = true
+is_hard_numeric(::Type{<:Rational}) = true
+is_hard_numeric(::Type{ForwardDiff.Dual{T, V, N}}) where {T, V, N} = is_hard_numeric(V)
+is_hard_numeric(::Type) = false
+is_hard_numeric(x) = is_hard_numeric(typeof(x))
 
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
@@ -491,5 +580,6 @@ const ⊗ˢ = sotimes
 const sboxtimes = otimesul
 
 export isidentity, contract, qcontract, otimesu, otimesul, sboxtimes, sotimes, ⊙, ⊠, ⊠ˢ, ⊗ˢ
-export tsimplify, tfactor, tsubs, tdiff, ttrigsimp, texpand_trig
+export tsimplify, tfactor, tsubs, tdiff, ttrigsimp, texpand_trig, tlimit
+export is_hard_numeric
 export ⋅, ⊡, ⊗

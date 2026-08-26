@@ -9,7 +9,7 @@
 # A single definition per operation, dispatched via Union, replacing the
 # identical loops previously duplicated in each file.
 
-for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig)
+for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig, :tlimit)
     @eval $OP(A::Union{TensISO, TensTI{4}, TensTI, TensOrtho}, args...; kwargs...) =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
 end

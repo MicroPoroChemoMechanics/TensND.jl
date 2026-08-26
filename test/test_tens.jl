@@ -148,3 +148,55 @@ end
     rawd = [ForwardDiff.Dual{:tag}(v, 0.0) for v in raw]
     @test !(TensND.tensor_or_array(rawd) isa SymmetricTensor)
 end
+
+@testsection "symbolic passes reach structured tensors and tuples" begin
+    # REGRESSION. `structured_tens_ops.jl` implements the whole `tsimplify`
+    # family as `_rebuild(A, OP(get_data(A)))`, and `get_data` returns an
+    # `NTuple`. A `Tuple` is not an `AbstractArray`, so the elementwise methods
+    # never matched and the generic identity fallback caught the call: every
+    # one of these was a SILENT no-op on `TensISO`, `TensTI` and `TensOrtho`.
+    @syms a::positive b::positive w::positive
+
+    t = TensISO{3}(sin(a)^2 + cos(a)^2, 2b)
+    @test isequal(get_data(tsimplify(t))[1], Sym(1))
+
+    ti = TensTI{4}(sin(a)^2 + cos(a)^2, b, a, 2a, 3a, (0, 0, 1))
+    @test isequal(get_data(tsimplify(ti))[1], Sym(1))
+    @test isequal(get_data(tsubs(ti, b => 5))[2], Sym(5))
+
+    # Tuples directly.
+    @test isequal(tsimplify((sin(a)^2 + cos(a)^2, 2b))[1], Sym(1))
+end
+
+@testsection "tlimit — the limit passage keeps the symmetry class" begin
+    @syms a::positive b::positive w::positive
+
+    # Scalars, both sided and one-sided.
+    @test isequal(tlimit(1 / (1 + w), w, 0), Sym(1))
+    @test isequal(tlimit(1 / w, w, 0, "+"), oo)
+    @test isequal(tlimit(a / (a + 1 / w), w, 0), Sym(0))
+
+    # Identity on numeric types — a number has no free symbol.
+    @test tlimit(3.0, :anything, 0) === 3.0
+    @test tlimit([1.0, 2.0], :anything, 0) == [1.0, 2.0]
+
+    # Structured tensors: the class survives, and only the coefficients move.
+    ti = TensTI{4}(1 / (1 + w), b * w, a, 2a, 3a, (0, 0, 1))
+    lim = tlimit(ti, w, 0)
+    @test lim isa TensTI{4}
+    @test axis(lim) == axis(ti)
+    @test all(isequal.(collect(get_data(lim)), Sym[1, 0, a, 2a, 3a]))
+
+    iso = TensISO{3}(3 / (1 + w), 2b * w)
+    @test all(isequal.(collect(get_data(tlimit(iso, w, 0))), Sym[3, 0]))
+
+    # An incompressible limit, the motivating case.
+    @syms k::positive μ::positive
+    @test isequal(tlimit(TensND.get_data(TensISO{3}(3k, 2μ))[2], k, oo), 2μ)
+
+    # Symbolics has no limit and must say so rather than return its input.
+    # `Symbolics` is a hard dependency of TensND, reached here through it since
+    # the test environment does not import it directly.
+    TensND.Symbolics.@variables z
+    @test_throws ArgumentError tlimit(z, z, 0)
+end

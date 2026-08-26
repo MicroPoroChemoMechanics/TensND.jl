@@ -892,7 +892,64 @@ parameters — the reciprocal of [`ortho_params_from_KM`](@ref).
 """
 const KM_from_ortho_params = _build_ORTHO_KM
 
+# ──────────────────────────────────────────────────────────────────────────────
+# Best-fit projections — the "give me the closest tensor of that class" façade
+# ──────────────────────────────────────────────────────────────────────────────
+#
+# `proj_tens` returns the triple `(projection, distance, relative distance)`,
+# which is what a diagnostic wants. These three names return the projection
+# alone, which is what a caller extracting parameters wants, and read as the
+# echoes `.paramsym(sym = …)` they mirror.
+#
+# They are PROJECTIONS, not averages. Whenever the question is "what does this
+# tensor become once its orientation is averaged out", the answer is
+# `isotropify` / `transverse_isotropify`, which are exact and lossless on the
+# invariant subspace. See `tens_rotational_average.jl`.
+
+"""
+    best_fit_iso(t::AbstractTens) -> TensISO
+
+Orthogonal (Frobenius) projection of `t` onto `span(𝕁, 𝕂)` at order 4, onto
+`span(𝟏)` at order 2 — the projection component of
+[`proj_tens`](@ref)`(Val(:ISO), t)`.
+
+For a minor-symmetric tensor this coincides with the exact SO(3) average
+[`isotropify`](@ref); for a general one it does not, and the average is the
+meaningful object.
+"""
+best_fit_iso(t::AbstractTens) = proj_tens(Val(:ISO), t)[1]
+
+"""
+    best_fit_ti(t::AbstractTens{4,3}, axis) -> TensTI{4,T,5}
+    best_fit_ti(t::AbstractTens{2,3}, axis) -> TensTI{2,T,2}
+
+Orthogonal (Frobenius) projection of `t` onto the **major-symmetric** Walpole
+span about `axis` — the projection component of [`proj_tens`](@ref)`(Val(:TI),
+t, axis)`.
+
+!!! warning "A projection, not an orientation average"
+    It forces major symmetry, `(ℓ₃+ℓ₄)/2`, and drops the antisymmetric
+    azimuthal couplings `ℓ₇`, `ℓ₈`. On a concentration tensor that content is
+    physical and its loss is silent. Use [`transverse_isotropify`](@ref) to
+    average, and this only to report parameters.
+"""
+best_fit_ti(t::AbstractTens{4, 3}, axis) = proj_tens(Val(:TI), t, axis)[1]
+best_fit_ti(t::AbstractTens{2, 3}, axis) = proj_tens(Val(:TI), t, axis)[1]
+
+"""
+    best_fit_ortho(t::AbstractTens{4,3}, frame) -> TensOrtho
+    best_fit_ortho(t::AbstractTens{2,3}, frame) -> Matrix
+
+Orthogonal (Frobenius) projection of `t` onto the orthotropic span in the given
+material `frame` — the projection component of [`proj_tens`](@ref)`(
+Val(:ORTHO), t, frame)`. Same caveat as [`best_fit_ti`](@ref): a fit, not an
+average.
+"""
+best_fit_ortho(t::AbstractTens{4, 3}, frame) = proj_tens(Val(:ORTHO), t, frame)[1]
+best_fit_ortho(t::AbstractTens{2, 3}, frame) = proj_tens(Val(:ORTHO), t, frame)[1]
+
 # ── Exports ──────────────────────────────────────────────────────────────────
 
 export proj_tens
 export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params
+export best_fit_iso, best_fit_ti, best_fit_ortho
