@@ -168,3 +168,45 @@
     end
 
 end
+
+
+@testsection "Isotropic tensors — Kelvin-Mandel in closed form, symbolically too" begin
+    # REGRESSION. `KM(::TensISO)` used to go through
+    # `tomandel(SymmetricTensor{order,dim}(A))`, and building a
+    # `SymmetricTensor` from a full component array makes `Tensors` validate the
+    # symmetry. That check cannot be answered on a `Symbolics.Num`, concluded
+    # "not symmetric", and `KM` — hence `show`, which goes through it — threw an
+    # `InexactError` on any symbolic isotropic tensor. It broke a Documenter
+    # `@example` block that merely displayed one.
+    old_KM(A::TensISO{order, dim}) where {order, dim} =
+        tomandel(SymmetricTensor{order, dim}(A))
+
+    for dim in (2, 3), (a, b) in ((3.0, 2.0), (7.5, 0.25), (1.0, 1.0))
+        A4 = TensISO{dim}(a, b)
+        A2 = TensISO{dim}(a)
+        @test KM(A4) ≈ old_KM(A4)
+        @test KM(A2) ≈ old_KM(A2)
+        @test eltype(KM(A4)) === eltype(old_KM(A4))
+        @test size(KM(A4)) == size(old_KM(A4))
+    end
+
+    # ForwardDiff still reaches through, and the round trip closes.
+    @test ForwardDiff.derivative(x -> KM(TensISO{3}(3.0, 2x))[4, 4], 1.5) ≈ 2.0
+    A = TensISO{3}(3.3, 1.7)
+    @test maximum(abs, get_array(inv_KM(KM(A))) .- get_array(A)) < 1.0e-14
+
+    # SymPy and Symbolics both, at both orders, plus `show` — the actual trigger.
+    @syms ka::positive mua::positive
+    @test KM(TensISO{3}(3ka, 2mua)) isa Matrix
+    @test KM(TensISO{3}(ka)) isa Vector
+    @test repr(MIME"text/latex"(), TensISO{3}(3ka, 2mua)) isa String
+
+    TensND.Symbolics.@variables kn mun
+    An = TensISO{3}(3kn, 2mun)
+    @test KM(An) isa Matrix
+    @test KM(TensISO{3}(kn)) isa Vector
+    @test repr(MIME"text/latex"(), An) isa String
+    # `ismajorsymmetric` on a `Num` used to throw rather than answer.
+    @test Tensors.ismajorsymmetric(Tensor{4, 3}(get_array(An)))
+    @test Tensors.isminorsymmetric(Tensor{4, 3}(get_array(An)))
+end

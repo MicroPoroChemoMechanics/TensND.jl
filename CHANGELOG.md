@@ -42,6 +42,42 @@ operation actually applied.
 
   `Tuple` methods are now defined for the whole family.
 
+- **Every symmetry predicate answered `false` on a `Symbolics.Num` tensor**, and
+  `ismajorsymmetric` threw outright. `iszero(a - b)` is not an equality test on
+  a `Num`: Symbolics folds `x - x` to zero only when `x` is an *atom*, so two
+  components built from the same expression — `(3k − 2μ)/3` against
+  `(3k − 2μ)/3` — left an unsimplified sum and `iszero` said `false`.
+  `ismajorsymmetric` was worse still, testing `a - b == zero(Num)`, which builds
+  a symbolic *equation* and made `!(…)` throw `TypeError: non-boolean (Num) used
+  in boolean context`.
+
+  The consequence was not local, and it is the exact Symbolics analog of the
+  `ForwardDiff.Dual` breakage v0.3.6 cured: `_store_symmetric` kept the full 9×9
+  form for a `Num` fourth-order tensor where a `Float64` one gets 6×6, so every
+  consumer expecting the Kelvin-Mandel form of a minor-symmetric tensor was
+  handed the wrong shape.
+
+  The three predicates now go through `_num_equal`, which tries SymbolicUtils'
+  *structural* equality first — exact, cheap, and decisive for the case that
+  matters — and falls back to `iszero`. Neither calls `simplify`: this runs on
+  every tensor construction.
+
+- **`KM` of an isotropic tensor threw on symbolic entries**, and so did
+  displaying one. `KM(::TensISO)` went through
+  `tomandel(SymmetricTensor{order,dim}(A))`, and building a `SymmetricTensor`
+  from a full component array makes `Tensors` validate the symmetry — a check
+  that concluded "not symmetric" for the reason above and raised an
+  `InexactError`. `show` goes through `KM`, so a Documenter `@example` block
+  that merely *displayed* a symbolic isotropic tensor failed the whole
+  documentation build.
+
+  `KM(::TensISO)` is now closed form at both orders — `λ𝟏` is the vector whose
+  first `dim` entries are `λ`, and `α𝕁 + β𝕂` is
+  `β I_m + ((α−β)/dim) E` with `E` the leading `dim × dim` block of ones — so
+  nothing is materialized at order `dim^4` and no symmetry has to be re-proved.
+  Verified identical to the previous path on `Float64` at both orders and both
+  dimensions, and still `ForwardDiff`-traversable.
+
 - The new test suite's rotation oracle built its rotation matrix as
   `I(3) .+ sin(φ) .* K .+ …`. On Julia 1.14-DEV a broadcast against
   `I(3)::Diagonal{Bool}` **preserves the `Diagonal` structure and silently

@@ -247,10 +247,35 @@ isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
     return @inbounds t[1, 2] ≈ t[2, 1] && t[1, 3] ≈ t[3, 1] && t[2, 3] ≈ t[3, 2]
 end
 
-@inline LinearAlgebra.issymmetric(t::Tensor{2, 2, Num}) = @inbounds iszero(t[1, 2] - t[2, 1])
+
+"""
+    _num_equal(a::Num, b::Num) -> Bool
+
+Whether two `Symbolics.Num` are the same value, for the symmetry predicates.
+
+**`iszero(a - b)` alone is not enough**, and assuming it was made every
+symmetry predicate answer `false` on a perfectly symmetric symbolic tensor:
+Symbolics folds `x - x` to zero only when `x` is an *atom*. For anything built
+up, `(3k - 2μ)/3 - (3k - 2μ)/3` stays an unsimplified sum and `iszero` says
+`false`. The consequence was not local — `_store_symmetric` then kept the full
+9×9 form for a `Num` fourth-order tensor where a `Float64` one gets 6×6, which
+is the same breakage the `ApproxType` union was introduced to cure for
+`ForwardDiff.Dual`.
+
+`isequal` is SymbolicUtils' *structural* equality: exact, cheap, and it settles
+the case that matters here, two components built from the same expression.
+`iszero` is kept as the second chance, for expressions that differ
+syntactically but cancel. Neither calls `simplify`: this runs on every tensor
+construction, and a predicate that is conservative (a false `false` costs
+storage, never correctness) must not cost an algebraic simplification.
+"""
+@inline _num_equal(a, b) = isequal(a, b) || iszero(a - b)
+
+@inline LinearAlgebra.issymmetric(t::Tensor{2, 2, Num}) = @inbounds _num_equal(t[1, 2], t[2, 1])
 
 @inline function LinearAlgebra.issymmetric(t::Tensor{2, 3, Num})
-    return @inbounds iszero(t[1, 2] - t[2, 1]) && iszero(t[1, 3] - t[3, 1]) && iszero(t[2, 3] - t[3, 2])
+    return @inbounds _num_equal(t[1, 2], t[2, 1]) && _num_equal(t[1, 3], t[3, 1]) &&
+        _num_equal(t[2, 3], t[3, 2])
 end
 
 function Tensors.isminorsymmetric(t::Tensor{4, dim, T}) where {dim, T <: ApproxType}
@@ -264,7 +289,8 @@ end
 
 function Tensors.isminorsymmetric(t::Tensor{4, dim, Num}) where {dim}
     @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        if !iszero(t[i, j, k, l] - t[j, i, k, l]) || !iszero(t[i, j, k, l] - t[i, j, l, k])
+        if !_num_equal(t[i, j, k, l], t[j, i, k, l]) ||
+                !_num_equal(t[i, j, k, l], t[i, j, l, k])
             return false
         end
     end
@@ -282,7 +308,11 @@ end
 
 function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, Num}) where {dim}
     @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        if !(t[i, j, k, l] - t[k, l, i, j] == zero(Num))
+        # This one used to read `a - b == zero(Num)`, which on a `Num` builds a
+        # symbolic *equation* rather than answering, so `!(…)` threw
+        # `TypeError: non-boolean (Num) used in boolean context` — a hard
+        # failure where its siblings merely returned a wrong `false`.
+        if !_num_equal(t[i, j, k, l], t[k, l, i, j])
             return false
         end
     end

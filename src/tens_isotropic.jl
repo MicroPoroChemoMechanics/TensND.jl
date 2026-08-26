@@ -314,11 +314,53 @@ _rebuild(::TensISO{order, dim}, new_data) where {order, dim} = TensISO{dim}(new_
 
 
 """
-    KM(v::AllIsotropic{dim}; kwargs...)
+    KM(A::TensISO{2,dim}) -> Vector
+    KM(A::TensISO{4,dim}) -> Matrix
 
-Kelvin-Mandel vector or matrix representation
+Kelvin-Mandel vector or matrix representation of an isotropic tensor, in closed
+form.
+
+With `m = dim(dim+1)/2` the Mandel size, `λ𝟏` is the vector whose first `dim`
+entries are `λ`, and `α𝕁 + β𝕂` is
+
+```math
+M = \\beta\\, I_m + \\frac{\\alpha - \\beta}{dim}\\, E ,
+```
+
+`E` being the matrix with ones on the leading `dim × dim` block. Nothing is
+materialized at order `dim^4`.
+
+That is not only cheaper. The previous implementation went through
+`tomandel(SymmetricTensor{order,dim}(A))`, and building a `SymmetricTensor`
+from a full component array makes `Tensors` validate the symmetry — a check
+that cannot be answered on a `Symbolics.Num` and therefore concluded "not
+symmetric", so `KM` of a symbolic isotropic tensor threw an `InexactError`.
+Displaying one did too, `show` going through `KM`.
 """
-KM(A::TensISO{order, dim}) where {order, dim} = tomandel(SymmetricTensor{order, dim}(A))
+function KM(A::TensISO{4, dim}) where {dim}
+    α, β = get_data(A)
+    T = promote_type(typeof(α), typeof(β))
+    m = dim * (dim + 1) ÷ 2
+    sph = (α - β) / dim
+    M = zeros(T, m, m)
+    @inbounds for i in 1:m
+        M[i, i] = T(β)
+    end
+    @inbounds for i in 1:dim, j in 1:dim
+        M[i, j] += sph
+    end
+    return M
+end
+
+function KM(A::TensISO{2, dim}) where {dim}
+    λ = get_data(A)[1]
+    m = dim * (dim + 1) ÷ 2
+    v = zeros(typeof(λ), m)
+    @inbounds for i in 1:dim
+        v[i] = λ
+    end
+    return v
+end
 
 Tensors.otimes(A::TensISO{2, dim}, B::TensISO{2, dim}) where {dim} =
     TensISO{dim}(dim * get_data(A)[1] * get_data(B)[1], zero(eltype(A)))
