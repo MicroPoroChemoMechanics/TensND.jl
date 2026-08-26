@@ -22,7 +22,12 @@ end
 _rot_axis(n, φ) = begin
     nv = collect(n) ./ norm(collect(n))
     K = [0 -nv[3] nv[2]; nv[3] 0 -nv[1]; -nv[2] nv[1] 0]
-    I(3) .+ sin(φ) .* K .+ (1 - cos(φ)) .* (K * K)
+    # `Matrix(1.0I, 3, 3) + …`, NOT `I(3) .+ …`: on Julia 1.14-DEV a broadcast
+    # against `I(3)::Diagonal{Bool}` preserves the `Diagonal` structure and
+    # silently DROPS every off-diagonal entry, so the "rotation" came back
+    # diagonal (det 0.596) and the quadrature oracle was wrong while the code
+    # under test was right. Ordinary `+` on a dense matrix is version-proof.
+    Matrix(1.0I, 3, 3) + sin(φ) * K + (1 - cos(φ)) * (K * K)
 end
 
 _rotate4_ref(arr, R) = begin

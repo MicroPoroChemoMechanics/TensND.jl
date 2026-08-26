@@ -42,6 +42,16 @@ operation actually applied.
 
   `Tuple` methods are now defined for the whole family.
 
+- The new test suite's rotation oracle built its rotation matrix as
+  `I(3) .+ sin(φ) .* K .+ …`. On Julia 1.14-DEV a broadcast against
+  `I(3)::Diagonal{Bool}` **preserves the `Diagonal` structure and silently
+  drops every off-diagonal entry**, so the "rotation" came back diagonal
+  (`det = 0.596`) and the oracle disagreed with a correct answer by 0.6. The
+  library itself was never affected — every intermediate of
+  `transverse_isotropify` is bit-identical across 1.12, 1.13 and 1.14-DEV —
+  but the trap is worth recording: use `Matrix(1.0I, n, n) + …`, not a
+  broadcast against `I(n)`, whenever the result must be dense.
+
 ### Exact rotation-group averages (new here, moved from `MeanFieldHomogenization`)
 
 `isotropify(t)` and `transverse_isotropify(t, n)` are the *exact* averages of a
