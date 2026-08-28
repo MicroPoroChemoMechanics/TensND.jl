@@ -1,5 +1,43 @@
 # [Theory — reading path](@id th-index)
 
+## What the package covers
+
+```mermaid
+%%{init: {"flowchart": {"useMaxWidth": false}}}%%
+flowchart TB
+    subgraph ALG["Algebra"]
+        B["bases and variance<br/>metric, dual basis"]
+        S["structured tensors<br/>ISO · TI · ORTHO"]
+        P["projection<br/>closest symmetry class"]
+        B --> S --> P
+    end
+    subgraph ANA["Analysis"]
+        C["curvilinear charts<br/>Lamé, Christoffel"]
+        O["GRAD SYMGRAD DIV<br/>LAPLACE HESS"]
+        M["submanifolds<br/>fundamental forms"]
+        C --> O --> M
+    end
+    B --> C
+```
+
+- **Bases** — canonical, rotated, orthogonal or fully general, with covariant
+  and contravariant components and the metric that relates them.
+- **Tensor algebra** — ``\otimes``, ``\stackrel{s}{\otimes}``, ``\boxtimes``,
+  ``\stackrel{s}{\boxtimes}``, and contractions of one, two or four indices.
+- **Structured types** — [`TensISO`](@ref), [`TensTI`](@ref),
+  [`TensOrtho`](@ref) store 2, 5 and 9 scalars and compute products and inverses
+  in closed form, one to three orders of magnitude faster than the dense route.
+- **Symmetry projection** — the closest isotropic, transversely isotropic or
+  orthotropic tensor, with the orientation given or optimized.
+- **Differential operators** in curvilinear coordinates, symbolically or by
+  automatic differentiation, plus embedded surfaces.
+- **One generic implementation** for `Float64`, `ForwardDiff.Dual`, `SymPy.Sym`
+  and `Symbolics.Num`.
+
+The design is inspired by the Maple library
+[Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) of Jean
+Garrigues.
+
 `TensND` does two things: it represents tensors of arbitrary order and dimension
 on arbitrary bases, and it differentiates tensor fields on arbitrary coordinate
 charts. This section states the mathematics behind both, in the order in which
@@ -87,3 +125,17 @@ Finally, one claim circulating about the Walpole basis is simply **false** and i
 corrected here: ``\mathbb{I}`` is *not* ``\sum_i\mathbb{W}_i``, and
 ``\mathbb{J}`` is *not* ``\mathbb{W}_1+\mathbb{W}_2``. The correct identities are
 on [The Walpole basis](walpole.md) and are pinned by tests.
+
+## Reading path
+
+| Section | For |
+| :--- | :--- |
+| [Theory](@ref th-index) | the mathematics the library implements, stated once and cited |
+| [Manual](@ref man-getting-started) | how to call it, task by task |
+| [Tutorials](@ref tut-index) | runnable scripts, each also a notebook |
+| [Developer](@ref dev-architecture) | the source layout, and how to extend it |
+| [API](@ref api-index) | every exported name, grouped by theme |
+
+Newcomers should start with [Getting started](@ref man-getting-started), then
+the tutorial [Bases, variance and the metric](@ref) — variance is the one notion
+a Cartesian-only tensor library does without, and everything else rests on it.

@@ -189,17 +189,24 @@ end
 
 const SymType = Union{Sym, Num}
 
-# Element types whose symmetry predicates should use a *tolerance* rather than
-# exact equality: floating-point numbers, and `ForwardDiff.Dual` numbers built
-# on them.
-#
-# `ForwardDiff.Dual <: Real` but **not** `<: AbstractFloat`, so before this
-# union existed a `Dual`-valued tensor fell through to the exact fallback and a
-# round-off of a few ulp was enough to report it as non-minor-symmetric. The
-# consequence was not local: `_KM_of_array` then built a 9×9 matrix instead of
-# a 6×6 one and every `proj_tens` call on a `Dual` input died with a
-# `DimensionMismatch`, i.e. automatic differentiation through a projection was
-# impossible. Symbolic types keep their own exact methods and are unaffected.
+"""
+    ApproxType
+
+Element types whose symmetry predicates use a *tolerance* rather than exact
+equality: floating-point numbers, and `ForwardDiff.Dual` numbers built on them.
+
+`ForwardDiff.Dual <: Real` but **not** `<: AbstractFloat`, so before this union
+existed a `Dual`-valued tensor fell through to the exact fallback, where a
+round-off of a few ulp was enough to report it as non-minor-symmetric. The
+consequence was not local: `_KM_of_array` then built a 9×9 matrix instead of a
+6×6 one, and every `proj_tens` call on a `Dual` input died with a
+`DimensionMismatch` — automatic differentiation through a projection was
+impossible. Symbolic types keep their own exact methods and are unaffected.
+
+Companion of [`is_hard_numeric`](@ref), which answers a different question:
+`ApproxType` says *use a tolerance rather than exact equality*,
+`is_hard_numeric` says *a comparison is allowed at all*.
+"""
 const ApproxType = Union{AbstractFloat, Complex{<:AbstractFloat}, ForwardDiff.Dual}
 
 """
