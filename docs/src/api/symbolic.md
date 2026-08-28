@@ -13,6 +13,7 @@ tdiff
 ttrigsimp
 texpand_trig
 tlimit
+TensND.ApproxType
 TensND.is_hard_numeric
 contract
 qcontract

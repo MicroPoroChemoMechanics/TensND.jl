@@ -1,0 +1,190 @@
+/* TensND.jl — house style on top of the DocumenterVitepress theme.
+ *
+ * Ported from the Documenter stylesheet this site used before the VitePress
+ * migration. Two structural differences to keep in mind when editing:
+ *   - the content wrapper is `.vp-doc` / `.content-container`, not `.content`;
+ *   - dark mode is a `.dark` class on the root, not a `prefers-color-scheme`
+ *     media query, so the toggle in the navbar works in both directions.
+ */
+
+/* The accent, defined once. VitePress derives links, focus rings and custom
+ * blocks from the brand variables, so setting them here keeps the whole theme
+ * on the same blue rather than leaving the default green next to our headings. */
+:root {
+  --tensnd-accent: #4a90d9;
+  --tensnd-accent-strong: #2a6496;
+  --tensnd-accent-wash: rgba(74, 144, 217, 0.08);
+  --tensnd-accent-zebra: rgba(74, 144, 217, 0.06);
+  --tensnd-table-head: #4a90d9;
+
+  --vp-c-brand-1: #2a6496;
+  --vp-c-brand-2: #4a90d9;
+  --vp-c-brand-3: #4a90d9;
+  --vp-c-brand-soft: rgba(74, 144, 217, 0.14);
+}
+
+.dark {
+  --tensnd-accent: #5ba4e8;
+  --tensnd-accent-strong: #7ec8e3;
+  --tensnd-accent-wash: rgba(91, 164, 232, 0.12);
+  --tensnd-accent-zebra: rgba(91, 164, 232, 0.08);
+  --tensnd-table-head: #2a5a8a;
+
+  --vp-c-brand-1: #7ec8e3;
+  --vp-c-brand-2: #5ba4e8;
+  --vp-c-brand-3: #5ba4e8;
+  --vp-c-brand-soft: rgba(91, 164, 232, 0.16);
+}
+
+/* A measure of about 860 px, as before. VitePress defaults to 688 px, which is
+ * too narrow for the 6x6 Walpole matrices and the wider result tables. */
+.VPDoc .content-container {
+  max-width: 900px;
+}
+
+.vp-doc p,
+.vp-doc li {
+  line-height: 1.7;
+}
+
+/* VitePress rules an <h2> off with a neutral grey line; ours is the accent. */
+.vp-doc h2 {
+  margin-top: 2.5rem;
+  padding-bottom: 0.3rem;
+  border-top: none;
+  border-bottom: 2px solid var(--tensnd-accent);
+}
+
+.vp-doc h3 {
+  margin-top: 1.8rem;
+  color: var(--tensnd-accent-strong);
+}
+
+.vp-doc :not(pre) > code {
+  background-color: var(--tensnd-accent-wash);
+  border-radius: 3px;
+  padding: 0.1em 0.35em;
+  font-size: 0.92em;
+}
+
+/* Tables size to their content instead of stretching to the column: a
+ * three-column table of scalars should not be as wide as the prose. */
+.vp-doc table {
+  display: table;
+  width: auto;
+  max-width: 100%;
+  border-collapse: collapse;
+  font-size: 0.93rem;
+  margin: 1rem 0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.vp-doc table thead tr {
+  background-color: var(--tensnd-table-head);
+  color: #fff;
+}
+
+.vp-doc table thead th {
+  padding: 0.5rem 0.9rem;
+  text-align: left;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: transparent;
+}
+
+.vp-doc table tbody tr {
+  background-color: transparent;
+}
+
+.vp-doc table tbody tr:nth-child(even) {
+  background-color: var(--tensnd-accent-zebra);
+}
+
+.vp-doc table tbody td {
+  padding: 0.4rem 0.9rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* A wide table scrolls inside its own box rather than pushing the page sideways. */
+.vp-doc div[class*='table'],
+.vp-doc .table-wrapper {
+  overflow-x: auto;
+}
+
+/* ── Mermaid diagrams ──────────────────────────────────────────────────────
+ * The label font size is whatever mermaid's 16px survives the scaling the
+ * browser applies to fit the <svg> in the column: a flowchart 2200 px wide in a
+ * 860 px column renders its text at 6 px. So the diagrams are drawn top to
+ * bottom, and the rule below keeps them at their intrinsic size — never
+ * stretched, only shrunk when they overflow. `useMaxWidth: false` in
+ * `config.mts` is the other half: it makes the <svg> carry a real pixel width
+ * for `max-width` to act on.
+ */
+.vp-doc .mermaid {
+  width: 100%;
+  margin: 1.6rem 0;
+  text-align: center;
+}
+
+.vp-doc .mermaid svg {
+  max-width: 100% !important;
+  height: auto !important;
+}
+
+/* A diagram is allowed to scroll rather than shrink on a narrow screen —
+ * legibility beats fitting. */
+@media (max-width: 900px) {
+  .vp-doc .mermaid {
+    overflow-x: auto;
+    text-align: left;
+  }
+  .vp-doc .mermaid svg {
+    max-width: none !important;
+  }
+}
+
+
+/* Citation hints: the card that pops when a `[n]` is hovered. Positioned from
+ * the theme's script, so only its appearance is set here. */
+.tensnd-cite-hint {
+  position: absolute;
+  z-index: 100;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  pointer-events: none;
+  padding: 0.7rem 0.9rem;
+  border: 1px solid var(--vp-c-divider);
+  border-left: 3px solid var(--tensnd-accent);
+  border-radius: 6px;
+  background: var(--vp-c-bg-elv);
+  color: var(--vp-c-text-1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.tensnd-cite-hint.is-visible {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* The package name is 26 characters, and VitePress sizes the navbar title slot
+ * from the sidebar width: at the default weight and size it is clipped mid-word.
+ * Shrinking it slightly, and tightening the tracking, fits it without touching
+ * the layout or abbreviating the name. */
+.VPNavBarTitle .title {
+  font-size: 14px;
+  letter-spacing: -0.015em;
+  white-space: nowrap;
+}
+
+@media (min-width: 960px) {
+  .VPNavBarTitle.has-sidebar .title {
+    font-size: 13.5px;
+  }
+}

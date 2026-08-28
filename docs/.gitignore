@@ -1,0 +1,12 @@
+# npm side of the VitePress build. `package.json` is versioned, the lockfile is
+# not: the docs environment is deliberately re-resolved rather than pinned, on
+# both the Julia and the npm side.
+node_modules/
+package-lock.json
+
+# Vite's dev-server cache and the intermediate Markdown/HTML of a build.
+build/
+src/.vitepress/cache/
+src/.vitepress/dist/
+
+Manifest.toml

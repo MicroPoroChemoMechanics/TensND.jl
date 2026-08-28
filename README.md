@@ -19,7 +19,14 @@
 
 ## Introduction
 
-TensND.jl is a Julia package for tensor calculations of any order and dimension in arbitrary coordinate systems (cartesian, polar, cylindrical, spherical, spheroidal, or user-defined). It supports both **symbolic computation** (via [SymPy.jl](https://github.com/JuliaPy/SymPy.jl) and [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl)) and **numerical evaluation** (via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) automatic differentiation).
+`TensND.jl` handles tensors of any order and dimension in arbitrary coordinate
+systems — cartesian, polar, cylindrical, spherical, spheroidal, or user-defined.
+A basis carries its metric, so covariant and contravariant components are
+related rather than assumed, and the differential operators follow from the
+chart. The same code runs **symbolically** (via
+[SymPy.jl](https://github.com/JuliaPy/SymPy.jl) and
+[Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl)) and
+**numerically** (via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)).
 
 ### Key features
 
@@ -33,7 +40,9 @@ TensND.jl is a Julia package for tensor calculations of any order and dimension 
 
 The implementation is inspired by the Maple library [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) developed by Jean Garrigues.
 
-The following example is provided to illustrate the purpose of the library
+The example below illustrates what the library is for; the
+[documentation home page](https://MicroPoroChemoMechanics.github.io/TensND.jl/stable/)
+shows a condensed version of it.
 
 ```julia
 julia> using SymPy, TensND
