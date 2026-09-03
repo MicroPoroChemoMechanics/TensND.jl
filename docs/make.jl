@@ -39,6 +39,20 @@ DocMeta.setdocmeta!(
 )
 
 # ── Stopgap: CitationSiteNode in the Markdown writer ─────────────────────────
+#
+# GUARDED, and the guard is what makes one file serve both versions.
+#
+# `CitationSiteNode` exists only in DocumenterCitations 1.5, while
+# DocumenterVitepress declares a weak dependency `DocumenterCitations = "1 - 1.4"`
+# — an upstream cap, so the docs environment resolves to 1.4 and the name is not
+# there. Referring to it unconditionally is an `UndefVarError` raised before the
+# first page is built, which is exactly how this was found. On 1.4 the citations
+# need no help at all: the node is what 1.5 introduced.
+#
+# When DocumenterVitepress raises its cap, widening the bound in
+# `docs/Project.toml` is the only edit needed — this method starts applying again
+# on its own.
+if isdefined(DocumenterCitations, :CitationSiteNode)
 # DocumenterCitations 1.5 wraps every expanded citation in a `CitationSiteNode`,
 # whose only purpose is to give the citation an HTML anchor so the bibliography
 # can link back to it. Its own docstring calls it "transparent in any output
@@ -53,16 +67,19 @@ DocMeta.setdocmeta!(
 #
 # The same one-line treatment as the other non-HTML writers. Remove this once
 # DocumenterVitepress covers the node upstream.
-function DocumenterVitepress.render(
-        io::IO,
-        mime::MIME"text/plain",
-        node::Documenter.MarkdownAST.Node,
-        ::DocumenterCitations.CitationSiteNode,
-        page,
-        doc;
-        kwargs...,
-    )
-    return DocumenterVitepress.render(io, mime, node, node.children, page, doc; kwargs...)
+    function DocumenterVitepress.render(
+            io::IO,
+            mime::MIME"text/plain",
+            node::Documenter.MarkdownAST.Node,
+            ::DocumenterCitations.CitationSiteNode,
+            page,
+            doc;
+            kwargs...,
+        )
+        return DocumenterVitepress.render(
+            io, mime, node, node.children, page, doc; kwargs...,
+        )
+    end
 end
 
 # ── Stopgap: heading anchors that contain LaTeX ──────────────────────────────
