@@ -389,6 +389,10 @@ function ∂(
     return ind === nothing ? zero(t) : ∂(t, ind, CS)
 end
 
+# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
+# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
+# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
+# `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
     GRAD(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
@@ -420,16 +424,16 @@ julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; GRAD(𝐞ʳ)   # = (𝐞�
 
 See also [`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref).
 """
-# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
-# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
-# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
-# `T` unbound when it is a tensor. Split, each signature binds what it names.
 GRAD(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
     sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 GRAD(t::SymType, CS::AbstractCoorSystem) =
     sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
+# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
+# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
+# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
+# `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
     SYMGRAD(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
@@ -457,10 +461,6 @@ julia> SYMGRAD(𝛏)       # axisymmetric strain tensor, with εᶿᶿ = ξʳ/r
 
 See also [`GRAD`](@ref), [`DIV`](@ref).
 """
-# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
-# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
-# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
-# `T` unbound when it is a tensor. Split, each signature binds what it names.
 SYMGRAD(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
     sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 SYMGRAD(t::SymType, CS::AbstractCoorSystem) =
@@ -503,6 +503,10 @@ DIV(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem{dim}) where {order, d
     sum([∂(t, i, CS) ⋅ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
+# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
+# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
+# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
+# `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
     LAPLACE(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
@@ -526,14 +530,14 @@ julia> n = symbols("n", integer = true) ; simplify(LAPLACE(r^n * cos(n*θ)))   #
 
 See also [`GRAD`](@ref), [`DIV`](@ref), [`HESS`](@ref).
 """
-# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
-# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
-# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
-# `T` unbound when it is a tensor. Split, each signature binds what it names.
 LAPLACE(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
     DIV(GRAD(t, CS), CS)
 LAPLACE(t::SymType, CS::AbstractCoorSystem) = DIV(GRAD(t, CS), CS)
 
+# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
+# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
+# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
+# `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
     HESS(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
@@ -558,14 +562,12 @@ julia> simplify(HESS(1/r))    # the kernel of the 3-D Laplace equation
 
 See also [`GRAD`](@ref), [`LAPLACE`](@ref).
 """
-# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
-# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
-# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
-# `T` unbound when it is a tensor. Split, each signature binds what it names.
 HESS(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
     GRAD(GRAD(t, CS), CS)
 HESS(t::SymType, CS::AbstractCoorSystem) = GRAD(GRAD(t, CS), CS)
 
+# `Tuple{T, Vararg{T, M}}`: at least one coordinate, which also binds `T` —
+# `NTuple{dim, T}` accepts the empty tuple and leaves it bound by nothing.
 """
     coorsys_cartesian(coords = symbols("x y z", real = true))
 
@@ -595,8 +597,6 @@ which is `DIV(𝛔)ᵢ = ∂ⱼσᵢⱼ`.
 See also [`coorsys_polar`](@ref), [`coorsys_cylindrical`](@ref),
 [`coorsys_spherical`](@ref), [`@set_coorsys`](@ref).
 """
-# `Tuple{T, Vararg{T, M}}`: at least one coordinate, which also binds `T` —
-# `NTuple{dim, T}` accepts the empty tuple and leaves it bound by nothing.
 function coorsys_cartesian(
         coords::Tuple{T, Vararg{T, M}} = symbols("x y z", real = true)
     ) where {T <: SymType, M}
@@ -849,6 +849,7 @@ julia> LAPLACE(1/r)
 0
 ``` 
 """
+
 # ── The default coordinate system ────────────────────────────────────────────
 #
 # `@set_coorsys` used to `@eval` single-argument methods for `∂`, `GRAD`, `DIV`,
