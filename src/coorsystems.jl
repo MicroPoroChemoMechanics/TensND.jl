@@ -827,29 +827,6 @@ for cs in (:coorsys_cartesian, :coorsys_polar, :coorsys_cylindrical, :coorsys_sp
 end
 
 
-"""
-    @set_coorsys CS
-    @set_coorsys(CS)
-
-Set a coordinate system in order to avoid precising it in differential operators
-
-# Examples
-```julia
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; vec = ("𝐞ᶿ", "𝐞ᵠ", "𝐞ʳ") ;
-
-julia> @set_coorsys Spherical
-
-julia> pprint(GRAD(𝐞ʳ),vec)
-(1/r)𝐞ᶿ⊗𝐞ᶿ + (1/r)𝐞ᵠ⊗𝐞ᵠ
-
-julia> pprint(DIV(𝐞ʳ ⊗ 𝐞ʳ),vec)
-(2/r)𝐞ʳ
-
-julia> LAPLACE(1/r)
-0
-``` 
-"""
-
 # ── The default coordinate system ────────────────────────────────────────────
 #
 # `@set_coorsys` used to `@eval` single-argument methods for `∂`, `GRAD`, `DIV`,
