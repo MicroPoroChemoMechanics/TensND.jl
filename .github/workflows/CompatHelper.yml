@@ -34,8 +34,15 @@ jobs:
           end
       - name: Pkg.add("CompatHelper")
         run: julia -e 'using Pkg; Pkg.add("CompatHelper")'
+      # `subdirs` defaults to the root `Project.toml` alone, which leaves the
+      # documentation (and, where it exists, the test) environment unwatched.
+      # Those are exactly where a temporary bound on a broken upstream release
+      # gets parked, so without this they would be pinned and then forgotten.
+      # CompatHelper opens a pull request as soon as a version outside the bound
+      # is registered; that pull request's CI is the answer to "is upstream
+      # fixed yet?" — red means keep the bound, green means delete it.
       - name: CompatHelper.main()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMPATHELPER_PRIV: ${{ secrets.DOCUMENTER_KEY }}
-        run: julia -e 'using CompatHelper; CompatHelper.main()'
+        run: julia -e 'using CompatHelper; CompatHelper.main(; subdirs = ["", "docs"])'
