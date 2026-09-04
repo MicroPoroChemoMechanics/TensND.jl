@@ -98,6 +98,21 @@ struct Tens{order, dim, T, A <: AbstractArray} <: AbstractTens{order, dim, T}
     ) where {T} = TensOrthonormal(data, basis)
     Tens(data::AbstractArray, var::NTuple, basis::AbstractBasis = CanonicalBasis{size(data, 1), eltype(data)}()) = Tens(data, basis, var)
     Tens(data::AbstractArray{T, 0}, args...) where {T} = T(data[1])
+    # A zero-dimensional array is a wrapped scalar and unwraps to one whatever
+    # follows it. The method above says so, but it is generic in `args...` while
+    # every constructor above is specific in its second argument: each pair is
+    # more specific on one side and less on the other, which is an ambiguity
+    # rather than a preference. Naming the crossings settles it; all of them
+    # unwrap, exactly as the generic method does.
+    Tens(data::AbstractArray{T, 0}, ::Basis, args...) where {T} = T(data[1])
+    Tens(data::AbstractArray{T, 0}, ::RotatedBasis, args...) where {T} = T(data[1])
+    Tens(data::AbstractArray{T, 0}, ::OrthogonalBasis, args...) where {T} = T(data[1])
+    Tens(data::AbstractArray{T, 0}, ::OrthonormalBasis, args...) where {T} = T(data[1])
+    Tens(data::AbstractArray{T, 0}, ::NTuple, args...) where {T} = T(data[1])
+    # And the two three-argument forms, specific in their third argument where
+    # the ones above are generic.
+    Tens(data::AbstractArray{T, 0}, ::NTuple, ::AbstractBasis) where {T} = T(data[1])
+    Tens(data::AbstractArray{T, 0}, ::Basis, ::NTuple{0, Symbol}) where {T} = T(data[1])
     Tens(data::T, args...) where {T} = data
 end
 

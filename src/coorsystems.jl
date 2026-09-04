@@ -152,15 +152,19 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
             )
         )
     end
+    # `Tuple{T, Vararg{T, M}}` rather than `NTuple{dim, T}`: a coordinate system
+    # with no coordinate is not a thing, and the empty tuple the latter also
+    # accepts leaves `T` bound by nothing.
     function CoorSystemSym(
             OM::VEC,
-            coords::NTuple{dim, T},
+            coords::Tuple{T, Vararg{T, M}},
             tmp_coords::NTuple = (),
             params::NTuple = ();
             rules::Dict = Dict(),
             tmp_var::Dict = Dict(),
             to_coords::Dict = Dict()
-        ) where {dim, T, VEC}
+        ) where {T, M, VEC}
+        dim = M + 1
         simp(t) = length(rules) > 0 ? tsimplify(tsubs(t, rules...)) : tsimplify(t)
         chvar(t, d) = length(d) > 0 ? tsubs(t, d...) : t
         OMc = chvar(OM, to_coords)
@@ -416,7 +420,13 @@ julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; GRAD(𝐞ʳ)   # = (𝐞�
 
 See also [`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref).
 """
-GRAD(t::Union{T, AbstractTens{order, dim}}, CS::AbstractCoorSystem{dim}) where {order, dim, T <: SymType} =
+# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
+# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
+# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
+# `T` unbound when it is a tensor. Split, each signature binds what it names.
+GRAD(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
+    sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
+GRAD(t::SymType, CS::AbstractCoorSystem) =
     sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
@@ -447,10 +457,14 @@ julia> SYMGRAD(𝛏)       # axisymmetric strain tensor, with εᶿᶿ = ξʳ/r
 
 See also [`GRAD`](@ref), [`DIV`](@ref).
 """
-SYMGRAD(
-    t::Union{T, AbstractTens{order, dim}},
-    CS::AbstractCoorSystem{dim},
-) where {order, dim, T <: SymType} = sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
+# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
+# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
+# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
+# `T` unbound when it is a tensor. Split, each signature binds what it names.
+SYMGRAD(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
+    sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
+SYMGRAD(t::SymType, CS::AbstractCoorSystem) =
+    sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
 """
@@ -512,10 +526,13 @@ julia> n = symbols("n", integer = true) ; simplify(LAPLACE(r^n * cos(n*θ)))   #
 
 See also [`GRAD`](@ref), [`DIV`](@ref), [`HESS`](@ref).
 """
-LAPLACE(
-    t::Union{T, AbstractTens{order, dim}},
-    CS::AbstractCoorSystem{dim},
-) where {order, dim, T <: SymType} = DIV(GRAD(t, CS), CS)
+# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
+# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
+# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
+# `T` unbound when it is a tensor. Split, each signature binds what it names.
+LAPLACE(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
+    DIV(GRAD(t, CS), CS)
+LAPLACE(t::SymType, CS::AbstractCoorSystem) = DIV(GRAD(t, CS), CS)
 
 """
     HESS(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
@@ -541,8 +558,13 @@ julia> simplify(HESS(1/r))    # the kernel of the 3-D Laplace equation
 
 See also [`GRAD`](@ref), [`LAPLACE`](@ref).
 """
-HESS(t::Union{T, AbstractTens{order, dim}}, CS::AbstractCoorSystem{dim}) where {order, dim, T <: SymType} =
+# Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
+# `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
+# and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
+# `T` unbound when it is a tensor. Split, each signature binds what it names.
+HESS(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
     GRAD(GRAD(t, CS), CS)
+HESS(t::SymType, CS::AbstractCoorSystem) = GRAD(GRAD(t, CS), CS)
 
 """
     coorsys_cartesian(coords = symbols("x y z", real = true))
@@ -573,7 +595,12 @@ which is `DIV(𝛔)ᵢ = ∂ⱼσᵢⱼ`.
 See also [`coorsys_polar`](@ref), [`coorsys_cylindrical`](@ref),
 [`coorsys_spherical`](@ref), [`@set_coorsys`](@ref).
 """
-function coorsys_cartesian(coords::NTuple{dim, T} = symbols("x y z", real = true)) where {dim, T <: SymType}
+# `Tuple{T, Vararg{T, M}}`: at least one coordinate, which also binds `T` —
+# `NTuple{dim, T}` accepts the empty tuple and leaves it bound by nothing.
+function coorsys_cartesian(
+        coords::Tuple{T, Vararg{T, M}} = symbols("x y z", real = true)
+    ) where {T <: SymType, M}
+    dim = M + 1
     𝐗, 𝐄, ℬ = init_cartesian(coords)
     OM = sum([𝐗[i] * 𝐄[i] for i in 1:dim])
     χᵢ = ntuple(_ -> one(eltype(coords)), dim)
@@ -895,11 +922,16 @@ function unset_coorsys!()
 end
 
 # Single-argument forms, defined once and for all.
-GRAD(t::Union{T, AbstractTens}) where {T <: SymType} = GRAD(t, default_coorsys())
-SYMGRAD(t::Union{T, AbstractTens}) where {T <: SymType} = SYMGRAD(t, default_coorsys())
+#
+# One method per branch of what used to be `Union{T, AbstractTens} where
+# {T <: SymType}`: with an `AbstractTens` argument that union binds `T` to
+# nothing, a signature Julia accepts and can never dispatch on. Same behavior,
+# same two accepted argument types.
+for OP in (:GRAD, :SYMGRAD, :LAPLACE, :HESS)
+    @eval $OP(t::AbstractTens) = $OP(t, default_coorsys())
+    @eval $OP(t::T) where {T <: SymType} = $OP(t, default_coorsys())
+end
 DIV(t::AbstractTens) = DIV(t, default_coorsys())
-LAPLACE(t::Union{T, AbstractTens}) where {T <: SymType} = LAPLACE(t, default_coorsys())
-HESS(t::Union{T, AbstractTens}) where {T <: SymType} = HESS(t, default_coorsys())
 
 """
     @set_coorsys CS [vec] [coords]
