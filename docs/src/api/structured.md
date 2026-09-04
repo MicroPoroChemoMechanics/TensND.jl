@@ -12,5 +12,8 @@ tens_J4
 tens_K4
 ISO
 iso_projectors
-isotropify
 ```
+
+`isotropify` is the exact rotation-group average, not a form of compact
+storage, so it is documented with the other averages under
+[Exact rotation-group averages](@ref api-projection).

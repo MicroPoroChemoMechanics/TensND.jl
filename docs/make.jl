@@ -296,7 +296,9 @@ makedocs(
     # `@autodocs` page, which would document everything a second time and emit a
     # "duplicate docs" warning per symbol.
     checkdocs = :exports,
-    warnonly = true,
+    # No blanket `warnonly = true`: it cancelled the very check the comment
+    # above asks for, so an unplaced export warned and passed. Measured before
+    # removing it — every exported, documented name is on a page.
 )
 
 # DocumenterVitepress writes a real directory per version rather than the
