@@ -49,6 +49,12 @@ DEFAULT_EXCLUDE_GLOBS = [
     "**/generated/**",
     "docs/build/**",
     "**/.git/**",
+    # Vendored third-party sources. `docs/**/*.md` otherwise matches every
+    # README and CHANGELOG under `docs/node_modules/`, which buries a real hit
+    # under hundreds of foreign ones — and, far worse, makes the documented
+    # `convert . --to us` rewrite other people's packages in place. The
+    # directory is git-ignored, so CI never saw them; only local runs did.
+    "**/node_modules/**",
 ]
 
 DOCSTRING_KEYWORD_RE = re.compile(

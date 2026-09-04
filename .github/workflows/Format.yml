@@ -50,8 +50,14 @@ jobs:
                   end
               end
           end
+      # Pinned on purpose. Unpinned, this resolves whatever Runic is newest at
+      # the moment the job runs, so a formatting-rule change upstream reformats
+      # the whole organization's code at once and fails every open PR — which is
+      # how a local Runic 1.7 came to reformat nine files against what CI's
+      # 1.10 expected. Raise this deliberately, in one commit, having re-run
+      # `--inplace` first.
       - name: Install Runic
-        run: julia -e 'using Pkg; Pkg.activate("runic", shared=true); Pkg.add("Runic")'
+        run: julia -e 'using Pkg; Pkg.activate("runic", shared=true); Pkg.add(name="Runic", version="1.10")'
       - name: Check formatting (PR)
         if: github.event_name == 'pull_request'
         run: |
