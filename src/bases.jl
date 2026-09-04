@@ -187,6 +187,17 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
         end
     end
     Basis(v::AbstractMatrix{T}, var::Symbol) where {T} = Basis(v, Val(var))
+    # An `AbstractBasis` is an `AbstractMatrix`, so `Basis(ℬ, χᵢ)` above — which
+    # rescales a basis by a tuple of factors — is weighed against the three
+    # constructors that read a variance marker as their second argument. The
+    # second argument tells them apart: a `Symbol` or a `Val` asks to reinterpret
+    # the matrix, never to rescale a basis. These three say so.
+    Basis(ℬ::AbstractBasis{dim, T}, var::Symbol) where {dim, T} =
+        Basis(Matrix(ℬ), Val(var))
+    Basis(ℬ::AbstractBasis{dim, T}, ::Val{:cov}) where {dim, T} =
+        Basis(Matrix(ℬ), Val(:cov))
+    Basis(ℬ::AbstractBasis{dim, T}, ::Val{:cont}) where {dim, T} =
+        Basis(Matrix(ℬ), Val(:cont))
     Basis(v::AbstractMatrix{T}) where {T} = Basis(v, :cov)
     Basis(θ::T1, ϕ::T2, ψ::T3 = 0) where {T1, T2, T3} = RotatedBasis(θ, ϕ, ψ)
     Basis(θ::T) where {T} = RotatedBasis(θ)

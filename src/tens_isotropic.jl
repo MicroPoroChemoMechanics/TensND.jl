@@ -41,7 +41,7 @@ struct TensISO{order, dim, T, N} <: AbstractTens{order, dim, T}
     data::NTuple{N, T}
     TensISO{dim}(λ::T) where {dim, T} = new{2, dim, T, 1}((λ,))
     TensISO{dim}(α::T1, β::T2) where {dim, T1, T2} = new{4, dim, promote_type(T1, T2), 2}((α, β))
-    TensISO{dim}(data::NTuple{N, T}) where {dim, N, T} = TensISO{dim}(data...)
+    TensISO{dim}(data::Tuple{T, Vararg{T}}) where {dim, T} = TensISO{dim}(data...)
     TensISO{order, dim, T}() where {order, dim, T} =
         new{order, dim, T, order ÷ 2}(ntuple(_ -> one(T), Val(order ÷ 2)))
 end
@@ -378,6 +378,23 @@ scontract(A::TensISO{2, dim}, B::AbstractArray) where {dim} = get_data(A)[1] * B
 scontract(A::AbstractArray, B::TensISO{2, dim}) where {dim} = A * get_data(B)[1]
 
 LinearAlgebra.dot(A::TensISO{2, dim}, B::TensISO{2, dim}) where {dim} = scontract(A, B)
+# Two isotropic tensors of DIFFERENT dimension match neither the method above
+# nor, unambiguously, the mirror pair generated below: each of that pair is more
+# specific on one side and less on the other. Contracting a 2-D tensor with a
+# 3-D one is meaningless anyway, so say which dimensions were given instead of
+# surfacing an ambiguity the caller cannot act on.
+LinearAlgebra.dot(::TensISO{2, d1}, ::TensISO{2, d2}) where {d1, d2} = throw(
+    DimensionMismatch(
+        "cannot contract a $(d1)-dimensional isotropic tensor with a " *
+            "$(d2)-dimensional one"
+    )
+)
+scontract(::TensISO{2, d1}, ::TensISO{2, d2}) where {d1, d2} = throw(
+    DimensionMismatch(
+        "cannot contract a $(d1)-dimensional isotropic tensor with a " *
+            "$(d2)-dimensional one"
+    )
+)
 for T in (AbstractArray, AbstractTens)
     @eval LinearAlgebra.dot(A::TensISO{2, dim}, B::$T) where {dim} = scontract(A, B)
     @eval LinearAlgebra.dot(A::$T, B::TensISO{2, dim}) where {dim} = scontract(A, B)

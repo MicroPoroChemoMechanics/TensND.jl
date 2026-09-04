@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.4.1 — Aqua.jl, and the dispatch defects it found
+
+TensND is now checked by [Aqua.jl](https://github.com/JuliaTesting/Aqua.jl) on
+every run of the test suite. Aqua audits properties no functional test looks
+at: method ambiguities, type parameters bound by nothing, undefined exports,
+dead dependencies, missing `[compat]` bounds, and type piracy. The audit found
+real defects, and this release fixes them. Nothing in the exported API changes
+name or meaning.
+
+### Bug fixes
+
+- **Seventeen method ambiguities.** Each was a pair of signatures where neither
+  is more specific than the other, so the call raised an ambiguity
+  `MethodError` instead of running. They came from `AbstractTens` being an
+  `AbstractMatrix` (`Basis(ℬ, :cov)`, `is_ORTHO(t, frame)`), from
+  zero-dimensional arrays reaching the `Tens` constructors, and from the
+  isotropic contraction pair. Every one of them now dispatches.
+
+- **Contracting two isotropic tensors of different dimension** produced an
+  ambiguity error the caller could do nothing with. It now throws a
+  `DimensionMismatch` naming both dimensions.
+
+- **Five signatures had a type parameter bound by nothing** — `NTuple{N, T}`
+  also matches the empty tuple, which leaves `T` undetermined, and
+  `Union{T, AbstractTens{order, dim}} where {T <: SymType}` leaves `T`
+  undetermined for a tensor argument and `order`/`dim` undetermined for a
+  scalar one. `GRAD`, `SYMGRAD`, `LAPLACE` and `HESS` are now two methods each
+  instead of one union; `CoorSystemSym`, `coorsys_cartesian`, `TensISO` and
+  `eltype_of` now require at least one element, which is what they always
+  meant. Both argument types every one of these accepted before are still
+  accepted.
+
+### Dependencies
+
+- **`TimerOutputs` moved from `[deps]` to `[extras]`.** It was used only by the
+  test suite, never by `src/` or `ext/`, so installing TensND was pulling in a
+  package it never loaded.
+
+- **`[compat]` bounds added for `LinearAlgebra`, `Random` and `Test`.** Standard
+  libraries need a bound like anything else.
+
+
 ## v0.4.0 — the symmetry-average layer moves in, and `tlimit`
 
 Three groups of functions that had grown up inside

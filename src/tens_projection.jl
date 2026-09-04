@@ -846,6 +846,12 @@ is_ISO(t::AbstractTens; kwargs...) = is_ISO(get_array(t); kwargs...)
 is_TI(t::AbstractTens, n; kwargs...) = is_TI(get_array(t), n; kwargs...)
 is_TI(t::AbstractTens; kwargs...) = is_TI(get_array(t); kwargs...)
 is_ORTHO(t::AbstractTens, frame; kwargs...) = is_ORTHO(get_array(t), frame; kwargs...)
+# `AbstractTens <: AbstractArray`, so this wrapper and the closed-form worker
+# taking an `OrthonormalBasis{3}` are each more specific on one argument and
+# less on the other. Unwrapping first is what the wrapper is for; saying it for
+# this combination resolves the pair.
+is_ORTHO(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+    is_ORTHO(get_array(t), frame; kwargs...)
 is_ORTHO(t::AbstractTens; kwargs...) = is_ORTHO(get_array(t); kwargs...)
 
 # ──────────────────────────────────────────────────────────────────────────────

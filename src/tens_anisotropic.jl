@@ -206,7 +206,8 @@ tens_W6(n) = TensTI{4}(
 
 # Helper: get element type from various axis representations
 eltype_of(::AbstractArray{T}) where {T} = T
-eltype_of(::NTuple{N, T}) where {N, T} = T
+# `NTuple{N, T}` also matches the empty tuple, where `T` is bound by nothing.
+eltype_of(::Tuple{T, Vararg{T}}) where {T} = T
 eltype_of(::AbstractTens{1, 3, T}) where {T} = T
 
 """
