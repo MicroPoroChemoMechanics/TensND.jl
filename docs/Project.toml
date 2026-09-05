@@ -16,26 +16,11 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 TensND = "474b5345-2588-4284-8a58-2430a1a40cb0"
 Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 
-[sources]
-TensND = {path = "/home/jfbarthelemy/mpcm/TensND.jl"}
+[sources.TensND]
+path = "/home/jfbarthelemy/mpcm/TensND.jl"
 
 [compat]
 Documenter = "1.17"
-# Bounded on the major only, deliberately: the 1.x ceiling belongs to
-# DocumenterVitepress and is already declared there.
-#
-# Its registry entry carries a weak dependency `DocumenterCitations = "1 - 1.4"`
-# for every version from 0.0.21 on, so 1.5 and 0.3.x cannot be resolved together
-# — Pkg puts it as "restricted by compatibility requirements with
-# DocumenterVitepress to versions 1.0.0 - 1.4.1". Writing `"1.4"` here would
-# repeat that ceiling and then need an edit the day DocumenterVitepress raises
-# it. `"1"` lets the resolver take the newest version both packages accept: 1.4.1
-# today, 1.5 and beyond by itself later, with no change to this file. The
-# `CitationSiteNode` override in `make.jl` is guarded so it starts applying on the
-# same day.
-#
-# For the record, since nothing in this repository caused the breakage: the docs
-# environment is resolved afresh on every CI run, so the release of
-# DocumenterCitations 1.5.0 broke a job that had passed the day before.
 DocumenterCitations = "1"
 DocumenterVitepress = "0.3"
+Rotations = "1"
