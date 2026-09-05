@@ -16,10 +16,17 @@ Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 TensND = "474b5345-2588-4284-8a58-2430a1a40cb0"
 Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 
+# Relative to this file, never absolute: `Pkg.develop` writes the path of the
+# machine it ran on into this section, so a local `Pkg.develop` followed by a
+# commit puts a `/home/...` path here that exists on no runner.  The
+# documentation workflow happens to rewrite it (`Pkg.develop(path = pwd())`
+# before `make.jl`), which is the only reason the absolute path that used to sit
+# here did not turn the job red.
 [sources]
-TensND = {path = "/home/jfbarthelemy/mpcm/TensND.jl"}
+TensND = {path = ".."}
 
 [compat]
+BenchmarkTools = "1"
 Documenter = "1.17"
 # Bounded on the major only, deliberately: the 1.x ceiling belongs to
 # DocumenterVitepress and is already declared there.
@@ -39,3 +46,22 @@ Documenter = "1.17"
 # DocumenterCitations 1.5.0 broke a job that had passed the day before.
 DocumenterCitations = "1"
 DocumenterVitepress = "0.3"
+ForwardDiff = "0.10, 1"
+LinearAlgebra = "1"
+Literate = "2"
+NLopt = "1"
+OMEinsum = "0.9"
+Printf = "1"
+Rotations = "1"
+StaticArrays = "1"
+SymPy = "2"
+Symbolics = "6, 7"
+# The package itself is built from `..`, so this bound is never used to pick a
+# version — it exists only so CompatHelper stops opening a pull request asking
+# for one.  It is deliberately open across the whole 0.x series: pinning the
+# current minor (`"0.4"`) would make this environment fail to resolve the day
+# the package is bumped to 0.5, with "empty intersection between TensND@0.5.0
+# and project compatibility 0.4".  Widen to `"0, 1"` when 1.0 is released.
+TensND = "0"
+Tensors = "1"
+julia = "1.12"
