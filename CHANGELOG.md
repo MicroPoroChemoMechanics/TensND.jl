@@ -71,12 +71,42 @@ carries no anisotropy signal at all, whatever the shape does in elasticity.
   `TensCubic ± TensOrtho` in the orthotropic one. `TensCubic` and `TensTI` are
   **incomparable** — their intersection is the isotropic class — so their sum
   falls through to the unstructured route on purpose.
-- `proj_tens(Val(:CUBIC), …)`, `best_fit_cubic`, and the Kelvin-Mandel block
-  helpers `cubic_params_from_KM` / `KM_from_cubic_params`.
+- `proj_tens(Val(:CUBIC), A, frame)` at a fixed cube frame and
+  `proj_tens(Val(:CUBIC), A)` optimizing the orientation, the second through
+  `TensNDNLoptExt` exactly as the TI and orthotropic searches; `best_fit_cubic`;
+  the value-level predicates `is_CUBIC(A, frame)` and `is_CUBIC(A)` alongside
+  the type-level one; and the Kelvin-Mandel block helpers
+  `cubic_params_from_KM` / `KM_from_cubic_params`.
+- `best_sym_tens` now considers the class: the default cascade is
+  `(:ISO, :CUBIC, :TI, :ORTHO)`, ordered by **number of constants** — 2, 3, 5,
+  9 — and not by inclusion, which it cannot be, `:CUBIC` and `:TI` being
+  incomparable. A tensor satisfying both is reported cubic, having the fewer
+  constants. Its fixed-orientation variant takes one argument for two kinds of
+  orientation, so the classes that argument cannot serve are now **dropped**
+  rather than reaching `proj_tens` and raising a `MethodError` — which is what
+  already happened whenever `:ORTHO` was reached with an axis.
 - A closed-form `isotropify(::TensCubic) = α J + ((2β + 3γ)/5) K`, the weights
   being the dimensions of `Eg` and `T2g`. Exact, and it avoids expanding 81
   components — which on a symbolic element type is the difference between an
   answer and an expression swell.
+
+### The one place cubic is *less* well served, and why
+
+The transversely isotropic and orthotropic searches each start from an
+eigenstructure candidate, exact whenever the tensor really has the symmetry
+sought. Cubic symmetry admits none, and the reason is not numerical:
+**every second-order contraction of a cubic tensor is isotropic.** Measured on
+`tens_cubic(10, 4, 2, frame)`, in any frame, `C_iikl = 18 δ_kl` and
+`C_ikil = 14 δ_kl`, so no eigenframe carries any information about where the
+cube points — the cube axes are a genuinely fourth-order feature. Handing the
+orthotropic candidate a cubic tensor returns an arbitrary frame, at a relative
+residual of 0.099 against 3.5e-16 for the true one.
+
+So the free-orientation search starts from the angular grid alone, which
+contains the canonical frame; and a *rotated* cubic tensor handed over as a bare
+array is not recognized on `best_sym_tens`'s cheap path — it needs
+`optimize_angles = true`, or the frame. Both facts are stated in the theory page
+and pinned by tests rather than left to be discovered.
 
 ### Documentation
 
@@ -94,7 +124,8 @@ carries no anisotropy signal at all, whatever the shape does in elasticity.
 
 ### Tests
 
-139 new assertions, in the shape of the existing ones: construction and traits,
+161 new assertions in `test_tens_cubic.jl` and 27 more in
+`test_nlopt_ext.jl`, in the shape of the existing ones: construction and traits,
 the two Kelvin-Mandel forms and their congruence, automatic major symmetry on
 several frames and coefficient sets, the componentwise algebra with `C ⊡ C⁻¹`
 against the identity, closure of the product and its agreement with the dense

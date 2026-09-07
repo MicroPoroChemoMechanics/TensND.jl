@@ -189,5 +189,35 @@ the unstructured route rather than pretending otherwise.
 
 Pushing an arbitrary tensor *down* the chain is approximation, and is the
 subject of [Projection onto a symmetry class](@ref th-projection);
-[`best_fit_cubic`](@ref) is the entry point, and `proj_tens` reports how much
-was discarded.
+[`best_fit_cubic`](@ref) is the entry point at a **fixed** cube frame,
+`proj_tens(Val(:CUBIC), A)` optimizes the orientation as it does for a TI axis
+or an orthotropic frame, and both report how much was discarded.
+
+That the orientation can be optimized deserves a word, because the group is
+discrete and the conclusion is the opposite of what that suggests. What is
+optimized is not an element of ``O_h`` but the **orientation of the cube**,
+which is an ordinary rotation: the objective is smooth in the Euler angles,
+exactly as for the other two classes. The group leaves one trace, and it is
+harmless — the minimum is 24-fold degenerate, and all 24 frames describe the
+same tensor with the same coefficients.
+
+There is, however, one place where this class is genuinely **less** well served
+than its neighbors, and it is a property of the symmetry rather than of the
+implementation. The transversely isotropic and orthotropic searches each start
+from an eigenstructure candidate, exact whenever the tensor really has the
+symmetry sought. Cubic symmetry admits none, because
+
+```math
+C_{iikl} = \text{const}\times\delta_{kl},
+\qquad
+C_{ikil} = \text{const}\times\delta_{kl} :
+```
+
+**every second-order contraction of a cubic tensor is isotropic.** No eigenframe
+can therefore say where the cube points — the cube axes are a genuinely
+fourth-order feature. Handing the orthotropic candidate a cubic tensor returns
+an arbitrary frame, measured at a relative residual of ``0.099`` against
+``3.5\times10^{-16}`` for the true one. So the search starts from the angular
+grid alone, and a *rotated* cubic tensor handed over as a bare array cannot be
+recognized without it: `best_sym_tens` needs `optimize_angles = true`, or the
+frame.

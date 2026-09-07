@@ -315,6 +315,26 @@ function _build_CUBIC_KM(α, β, γ)
     )
 end
 
+# ── Why cubic has no eigenstructure candidate ────────────────────────────────
+#
+#  `_candidate_TI_axis` and `_candidate_ORTHO_frame` both work by diagonalizing
+#  a second-order contraction of the tensor.  For a cubic tensor that cannot
+#  work, and the reason is not a numerical one: **every second-order
+#  contraction of a cubic tensor is isotropic**.  Measured on
+#  `tens_cubic(10, 4, 2, frame)`, in any frame,
+#
+#      C_iikl = 18 δ_kl ,      C_ikil = 14 δ_kl ,
+#
+#  so no eigenframe carries any information about where the cube points; the
+#  cube axes are a genuinely *fourth-order* feature.  Handing
+#  `_candidate_ORTHO_frame` a cubic tensor returns an arbitrary frame — measured
+#  at a relative residual of 0.099 where the true frame gives 3.5e-16.
+#
+#  So there is no cheap exact candidate to start from, and the free-orientation
+#  cubic projection optimizes from a fixed angular grid alone.  It is the one
+#  place where this class is *less* well served than its neighbors, and it is a
+#  property of the symmetry rather than of the implementation.
+
 # ── Norm helpers ─────────────────────────────────────────────────────────────
 
 _frobenius(A::AbstractArray) = sqrt(sum(x -> x^2, A))
@@ -788,7 +808,8 @@ Internal hook for the rotation-optimized projections.  The fallback throws;
 `TensNDNLoptExt` adds the concrete methods when NLopt is loaded.
 """
 function _proj_tens_opt(::Val{S}, A::AbstractArray) where {S}
-    fixed = S === :ORTHO ? "proj_tens(:ORTHO, A, frame)" : "proj_tens(:TI, A, n)"
+    fixed = S === :ORTHO ? "proj_tens(:ORTHO, A, frame)" :
+        S === :CUBIC ? "proj_tens(:CUBIC, A, frame)" : "proj_tens(:TI, A, n)"
     return error(
         "NLopt.jl is required for rotation-optimized $S projection. " *
             "Run `using NLopt` or add NLopt to your project. " *
@@ -824,6 +845,34 @@ possible material frames. Requires the NLopt package: `using NLopt`.
 """
 proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
     _proj_tens_opt(Val(:ORTHO), A)
+
+"""
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
+
+Find the best cubic approximation of `A` by optimizing over all possible **cube
+orientations**. Requires the NLopt package: `using NLopt`.
+
+The octahedral group is discrete, but the *orientation of the cube* is not: it
+is an ordinary rotation, so the objective is smooth in the Euler angles exactly
+as it is for a TI axis or an orthotropic frame. The only trace the group leaves
+is that the optimum is 24-fold degenerate — the optimizer returns one of the 24
+equivalent frames, and they all describe the same tensor with the same
+coefficients (see `TensCubic`).
+
+See also [`proj_tens(::Val{:CUBIC}, A, frame)`](@ref) for fixed-frame
+projection.
+"""
+proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
+    _proj_tens_opt(Val(:CUBIC), A)
+
+"""
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
+
+At order two the cubic class is the isotropic class, which has no orientation
+to optimize, so this is the isotropic projection and needs no NLopt.
+"""
+proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
+    proj_tens(Val(:ISO), A)
 
 """
     proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
@@ -973,6 +1022,38 @@ proj_tens(v::Val{:CUBIC}, t::AbstractTens{2, dim, T}, frame::OrthonormalBasis{3}
     proj_tens(v, get_array(t), frame)
 proj_tens(sym::Symbol, t::AbstractTens, args...) = proj_tens(Val(sym), t, args...)
 
+"""
+    is_CUBIC(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6) -> Bool
+
+Whether `A` is cubic about `frame` to within `ε`, measured as the relative
+Frobenius distance to the class.
+
+The **value-level** companion of the type-level `is_CUBIC(::TensCubic)`, exactly
+as for [`is_ISO`](@ref), [`is_TI`](@ref) and [`is_ORTHO`](@ref): the first asks
+what the components say, the second what the container guarantees.
+"""
+function is_CUBIC(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+    _, _, drel = proj_tens(Val(:CUBIC), A, frame)
+    return drel ≤ ε
+end
+
+"""
+    is_CUBIC(A::AbstractArray; ε = 1.0e-6) -> Bool
+
+Whether `A` is cubic about **some** cube. **Requires NLopt**, and unlike
+[`is_TI`](@ref) and [`is_ORTHO`](@ref) it has no cheap alternative: every
+second-order contraction of a cubic tensor is isotropic, so no eigenframe
+reveals where the cube points and there is nothing to start from but a search.
+See the note above `_candidate_ORTHO_frame`'s cubic counterpart in this file.
+
+Give the frame — `is_CUBIC(A, frame)` — whenever it is known; that path is exact
+and costs one projection.
+"""
+function is_CUBIC(A::AbstractArray; ε = 1.0e-6)
+    _, _, drel = proj_tens(Val(:CUBIC), A)
+    return drel ≤ ε
+end
+
 is_ISO(t::AbstractTens; kwargs...) = is_ISO(get_array(t); kwargs...)
 is_TI(t::AbstractTens, n; kwargs...) = is_TI(get_array(t), n; kwargs...)
 is_TI(t::AbstractTens; kwargs...) = is_TI(get_array(t); kwargs...)
@@ -984,6 +1065,12 @@ is_ORTHO(t::AbstractTens, frame; kwargs...) = is_ORTHO(get_array(t), frame; kwar
 is_ORTHO(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
     is_ORTHO(get_array(t), frame; kwargs...)
 is_ORTHO(t::AbstractTens; kwargs...) = is_ORTHO(get_array(t); kwargs...)
+is_CUBIC(t::AbstractTens, frame; kwargs...) = is_CUBIC(get_array(t), frame; kwargs...)
+# Same disambiguation as `is_ORTHO` just above: `AbstractTens <: AbstractArray`,
+# so the wrapper and the worker are each more specific on one argument.
+is_CUBIC(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+    is_CUBIC(get_array(t), frame; kwargs...)
+is_CUBIC(t::AbstractTens; kwargs...) = is_CUBIC(get_array(t); kwargs...)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public aliases for the per-block Kelvin-Mandel ↔ symmetry-parameter
@@ -1126,3 +1213,4 @@ export proj_tens
 export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params
 export cubic_params_from_KM, KM_from_cubic_params
 export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic
+export is_CUBIC

@@ -19,7 +19,11 @@
         @test !is_ISO(C)
         @test !is_TI(C)
         @test !is_ORTHO(C)
-        @test !is_CUBIC(TensISO{3}(1.0, 1.0))
+        # `is_CUBIC` on a non-`TensCubic` is the *value*-level question, exactly
+        # as `is_ORTHO` is, so an isotropic tensor answers `true`: it really is
+        # cubic, about every cube.
+        @test is_CUBIC(TensISO{3}(1.0, 1.0), can)
+        @test is_ORTHO(TensISO{3}(1.0, 1.0), can)
 
         # (α, β, γ) = (C₁₁+2C₁₂, C₁₁-C₁₂, 2C₄₄)
         @test get_data(C) == (18.0, 6.0, 4.0)
@@ -239,6 +243,73 @@
         @test all(iszero, get_data(Bz))
         @test dz == 0
         @test drz == 0
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "Value-level predicates, and why cubic has no eigencandidate" begin
+        C = tens_cubic(10.0, 4.0, 2.0, rot)
+        A = get_array(C)
+
+        # With the frame given: exact, and no optimizer involved.
+        @test is_CUBIC(A, rot)
+        @test is_CUBIC(C, rot)
+        @test !is_CUBIC(A, can)                    # not cubic about *that* cube
+        @test is_CUBIC(TensISO{3}(18.0, 6.0), can) # isotropic ⊂ cubic
+        @test !is_CUBIC(get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])), can)
+
+        # The reason there is no cheap free-frame route, pinned rather than
+        # asserted: **every second-order contraction of a cubic tensor is
+        # isotropic**, so no eigenframe carries any information about where the
+        # cube points.
+        for D in (
+                [sum(A[i, i, k, l] for i in 1:3) for k in 1:3, l in 1:3],
+                [sum(A[i, k, i, l] for i in 1:3) for k in 1:3, l in 1:3],
+            )
+            @test norm(D - (tr(D) / 3) * I) < 1.0e-10 * abs(tr(D))
+        end
+        # ...and the consequence: handing the orthotropic eigencandidate a cubic
+        # tensor returns an arbitrary frame. The free-orientation search
+        # therefore starts from the angular grid alone, and lives in
+        # `test_nlopt_ext.jl` because it needs NLopt.
+        @test proj_tens(Val(:CUBIC), A, TensND._candidate_ORTHO_frame(A))[3] > 1.0e-2
+        @test proj_tens(Val(:CUBIC), A, rot)[3] < 1.0e-12
+
+        @test !is_TI(A)
+        @test is_ORTHO(A, rot)          # cubic ⊂ orthotropic, frame given
+        @test !is_ISO(A)
+        @test is_ISO(get_array(TensISO{3}(18.0, 6.0)))
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "best_sym_tens reports the class" begin
+        # The cascade is ordered by number of constants -- 2, 3, 5, 9 -- and not
+        # by inclusion, which it cannot be: CUBIC and TI are incomparable.
+        _, _, _, sym = best_sym_tens(TensISO{3}(18.0, 6.0))
+        @test sym == :ISO
+        _, _, drel, sym = best_sym_tens(Tens(get_array(tens_cubic(10.0, 4.0, 2.0, can))))
+        @test sym == :CUBIC
+        @test drel < 1.0e-8
+        _, _, _, sym = best_sym_tens(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))
+        @test sym == :TI
+        # A structured `TensCubic` is reported from its **own** frame, with no
+        # search: `best_sym_tens` reads `frame(t)` when the container has one.
+        # A rotated cubic tensor handed over as a plain array cannot be detected
+        # on the cheap path -- see the eigencandidate section above -- and needs
+        # `optimize_angles = true`, which is exercised in `test_nlopt_ext.jl`.
+        _, _, drel, sym = best_sym_tens(tens_cubic(10.0, 4.0, 2.0, rot))
+        @test sym == :CUBIC
+        @test drel < 1.0e-8
+
+        # With a fixed orientation, the classes the argument cannot serve are
+        # dropped rather than raising a `MethodError` from inside `proj_tens`:
+        # an axis leaves ISO and TI, a frame leaves ISO, CUBIC and ORTHO.
+        _, _, _, sym = best_sym_tens(
+            Tens(get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))),
+            [0.0, 0.0, 1.0],
+        )
+        @test sym == :TI
+        _, _, _, sym = best_sym_tens(Tens(get_array(tens_cubic(10.0, 4.0, 2.0, can))), can)
+        @test sym == :CUBIC
     end
 
     # ═══════════════════════════════════════════════════════════════════════════

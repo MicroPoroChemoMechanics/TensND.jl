@@ -76,11 +76,15 @@ Tries the classes from the most restrictive to the least and returns the first
 whose relative error falls below `ε`:
 
 ```julia
-B, d, drel, sym = best_sym_tens(t; proj = (:ISO, :TI, :ORTHO), ε = 1e-6,
+B, d, drel, sym = best_sym_tens(t; proj = (:ISO, :CUBIC, :TI, :ORTHO), ε = 1e-6,
                                 optimize_angles = false)
 ```
 
-`sym` is one of `:ISO`, `:TI`, `:ORTHO`, `:ANISO`. The argument must be an
+`sym` is one of `:ISO`, `:CUBIC`, `:TI`, `:ORTHO`, `:ANISO`. The default order
+is by number of constants — 2, 3, 5, 9 — so the tightest class that fits within
+`ε` is the one reported. `:CUBIC` and `:TI` are **incomparable**, neither
+containing the other, so a tensor satisfying both is reported cubic, having the
+fewer constants. The argument must be an
 `AbstractTens`, not a bare array — wrap a raw array with `Tens` first.
 
 ```@example proj
@@ -112,10 +116,12 @@ B, d, drel = proj_tens(:CUBIC, get_array(cub), ℬ)
 drel
 ```
 
-There is **no orientation-optimizing method** for it: unlike a TI axis, a cube
-frame is not a smooth parameter to optimize over — the octahedral group is
-discrete, so the objective is piecewise and the candidate frames come from the
-eigenstructure rather than from a search. Give the frame.
+Omitting the frame optimizes over cube orientations, exactly as for a TI axis
+or an orthotropic frame, and needs NLopt in the same way. The octahedral group
+is discrete but the *orientation* of the cube is not — it is an ordinary
+rotation — so the objective is smooth in the Euler angles; the group shows up
+only as a 24-fold degeneracy of the minimum, and all 24 frames describe the same
+tensor with the same coefficients.
 
 The residual is the number worth reporting. When the morphology and the medium
 leave the octahedral group invariant, the answer belongs to the class **by group
@@ -128,12 +134,7 @@ anisotropy does not.
 
 ## Predicates
 
-[`is_CUBIC`](@ref) is deliberately **not** in this family: it is a type-level
-query only, answering whether the object is stored as a `TensCubic`. To ask
-whether a general tensor *is* cubic about a given cube, project it and read
-`drel`.
-
-[`is_ISO`](@ref), [`is_TI`](@ref) and [`is_ORTHO`](@ref) are the same
+[`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref) and [`is_CUBIC`](@ref) are the same
 computation with a boolean answer, and they respect the hierarchy
 ISO ⊂ TI ⊂ ORTHO:
 

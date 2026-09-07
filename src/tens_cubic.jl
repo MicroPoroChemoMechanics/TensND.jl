@@ -420,4 +420,4 @@ end
 # Exports
 ##############################################################################
 
-export TensCubic, tens_cubic, arg_cubic, cubic_anisotropy, is_CUBIC
+export TensCubic, tens_cubic, arg_cubic, cubic_anisotropy

@@ -132,6 +132,49 @@ using NLopt
         @test all(iszero, B)
     end
 
+    @testsection "proj_tens(:CUBIC, A) — order 4, rotated cube recovered" begin
+        # The one class with no eigenstructure candidate to start from: every
+        # second-order contraction of a cubic tensor is isotropic, so the search
+        # begins from the angular grid alone (`_cubic_starts`). It still
+        # recovers a rotated cube exactly, which is the point.
+        for fr in (
+                CanonicalBasis{3, Float64}(),
+                RotatedBasis(0.3, 0.4, 0.5),
+                RotatedBasis(1.1, -0.7, 0.2),
+            )
+            C = tens_cubic(10.0, 4.0, 2.0, fr)
+            arr = get_array(C)
+            B, d, drel = proj_tens(:CUBIC, arr)
+            @test B isa TensCubic
+            @test drel < 1.0e-6
+            # The coefficients are frame-independent under the octahedral group,
+            # so they come back whichever of the 24 equivalent frames is found.
+            @test all(isapprox.(get_data(B), get_data(C); rtol = 1.0e-5))
+            @test is_CUBIC(arr)
+        end
+
+        # An isotropic tensor is cubic about every cube; a transversely
+        # isotropic one about none.
+        @test is_CUBIC(get_array(TensISO{3}(18.0, 6.0)))
+        @test !is_CUBIC(get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])))
+
+        # Optimizing can only improve on a fixed frame, the grid containing the
+        # canonical one.
+        arr = get_array(tens_cubic(10.0, 4.0, 2.0, RotatedBasis(0.3, 0.4, 0.5)))
+        @test proj_tens(:CUBIC, arr)[3] ≤
+            proj_tens(:CUBIC, arr, CanonicalBasis{3, Float64}())[3] + 1.0e-12
+
+        # And `best_sym_tens` finds it once it is allowed to search, where the
+        # cheap path cannot.
+        _, _, _, sym = best_sym_tens(Tens(arr); optimize_angles = true)
+        @test sym == :CUBIC
+
+        # Zero tensor: the degenerate branch returns zero without dividing by it.
+        B, d, drel = proj_tens(:CUBIC, zeros(3, 3, 3, 3))
+        @test all(iszero, get_data(B))
+        @test d == 0 && drel == 0
+    end
+
     @testsection "proj_tens — determinism and monotonicity" begin
         # Regression guard for the stochastic-optimizer bug: the first pass used
         # to be `GD_MLSL`, whose generator NLopt seeds from the clock.  Repeated

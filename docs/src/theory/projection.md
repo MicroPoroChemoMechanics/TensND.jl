@@ -124,6 +124,12 @@ At order 2 there is nothing to do: the octahedral group leaves no second-order
 tensor invariant but a multiple of the identity, so the cubic projection **is**
 the isotropic one. See [Cubic symmetry](@ref th-cubic).
 
+With a **free** orientation the treatment is the orthotropic one unchanged: the
+cube orientation is an ordinary rotation, so the objective
+``j(\theta,\phi,\psi)`` is smooth and the same optimizer applies, started from
+the same eigenstructure candidate. The discreteness of ``O_h`` shows up only as
+a 24-fold degenerate minimum.
+
 ### Isotropy
 
 The two-dimensional case, already given in [Isotropic tensors](@ref th-isotropic):
@@ -191,8 +197,8 @@ Loading `NLopt` activates `TensNDNLoptExt` and enables the no-orientation
 methods of [`proj_tens`](@ref). The strategy is a **deterministic multi-start**:
 
 1. a candidate from the eigenstructure of ``C`` (`_candidate_TI_axis`,
-   `_candidate_ORTHO_frame`) — exact whenever the tensor genuinely has the
-   symmetry sought;
+   `_candidate_ORTHO_frame`, `_candidate_CUBIC_frame`) — exact whenever the
+   tensor genuinely has the symmetry sought;
 2. a fixed angular grid containing the canonical axes;
 3. `LD_TNEWTON` local refinement from every start, with ForwardDiff gradients;
 4. the best objective over all starts *and* all refined starts.
@@ -220,19 +226,28 @@ Two properties follow, and both matter:
 and returns the first whose *relative* error falls below a tolerance ``\varepsilon``:
 
 ```math
-\text{ISO}\ \longrightarrow\ \text{TI}\ \longrightarrow\ \text{ORTHO}
+\text{ISO}\ \longrightarrow\ \text{CUBIC}\ \longrightarrow\
+\text{TI}\ \longrightarrow\ \text{ORTHO}
 \ \longrightarrow\ \text{ANISO} .
 ```
+
+The chain is ordered by **number of constants** — 2, 3, 5, 9 — and not by
+inclusion, because it cannot be: ``\text{CUBIC}`` and ``\text{TI}`` are
+incomparable, their intersection being ``\text{ISO}`` and neither containing
+the other. A tensor satisfying both is reported cubic, having the fewer
+constants; one satisfying neither falls through to ``\text{ORTHO}``, which
+contains them both.
 
 The relative criterion is what makes the tolerance dimensionless and independent
 of the units of the moduli. Two modes:
 
-| `optimize_angles` | TI axis / ORTHO frame | Needs NLopt |
+| `optimize_angles` | TI axis / ORTHO frame / CUBIC frame | Needs NLopt |
 | :---------------- | :-------------------- | :---------- |
 | `false` (default) | taken from the tensor if it is a structured container, otherwise from the Kelvin–Mandel eigenstructure | no |
 | `true` | found by the multi-start above | yes |
 
-The value-level predicates [`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref)
+The value-level predicates [`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref),
+[`is_CUBIC`](@ref)
 are the same computation with a boolean answer.
 
 ## Projection is not averaging

@@ -15,7 +15,6 @@ TensCubic
 tens_cubic
 arg_cubic
 cubic_anisotropy
-is_CUBIC
 iso_to_cubic
 cubic_to_ortho
 ```
