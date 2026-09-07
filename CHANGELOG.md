@@ -1,5 +1,144 @@
 # Changelog
 
+## v0.5.0 — cubic symmetry as a first-class class
+
+`TensND` could store an isotropic tensor in 2 scalars, a transversely isotropic
+one in 5, an orthotropic one in 9 — and had nothing for the class every
+cube-symmetric object lands in. A cubic crystal, a cubic array of inclusions, a
+supersphere: all have **three** independent constants, and until now went
+through the 21-component generic route.
+
+`TensCubic` fills that gap with the same surface as the other three: storage,
+constructors, accessors, closed-form algebra, mixed-class promotions,
+projection, exact rotation-group average, symbolic and `ForwardDiff` support,
+documentation and tests.
+
+### The class is the one that is *closed*
+
+It is worth stating what is different about it, because it is not merely "one
+more class".
+
+Under the octahedral group the Kelvin-Mandel space splits as
+`A1g + Eg + T2g`, dimensions `1 + 2 + 3`, three inequivalent irreducible
+representations each of **multiplicity one**. The commutant is therefore
+spanned by three mutually orthogonal projectors, and the algebra is
+componentwise:
+
+    C = α J + β E + γ T ,   C⁻¹ = α⁻¹J + β⁻¹E + γ⁻¹T ,
+    A : B = α_A α_B J + β_A β_B E + γ_A γ_B T .
+
+Two consequences no other class here enjoys:
+
+- **the product of two cubic tensors is cubic**, where `TensTI{4,T,5} ⊡
+  TensTI{4,T,5}` widens to `N=6` and `TensOrtho ⊡ TensOrtho` leaves its class
+  entirely. Cubic symmetry is a genuine commutative subalgebra;
+- **major symmetry is automatic**, the three projectors being symmetric. A
+  strain localization tensor, which in general has none, recovers it as soon as
+  the morphology is cube-symmetric.
+
+The geometry, by contrast, is orthotropy's: unlike an isotropic tensor, a cubic
+one is only cubic relative to its cube axes, so the type carries a frame. With
+one difference that is specific to the class and is implemented rather than
+merely noted: the three projectors are invariant under the *whole* octahedral
+group, so two frames related by a **signed permutation** of the axes describe
+the same tensor with the same coefficients, and binary operations accept them.
+Permuting the axes of an orthotropic tensor permutes `C₁₁, C₂₂, C₃₃`; permuting
+those of a cubic one changes nothing. The test is "`ᵗF_A F_B` is a signed
+permutation matrix", nine comparisons rather than enumerating 24 rotations.
+
+### At order two, cubic *is* isotropic
+
+The octahedral group leaves no second-order tensor invariant but a multiple of
+the identity, so there is no `TensCubic` at order 2 and
+`proj_tens(Val(:CUBIC), ::AbstractArray{T,2}, frame)` returns the isotropic
+projection.
+
+Not a technicality: it is why a cube-symmetric pore has a single **scalar**
+resistivity contribution while its compliance contribution needs three
+constants — and therefore why a conduction computation on such a morphology
+carries no anisotropy signal at all, whatever the shape does in elasticity.
+
+### Added
+
+- `TensCubic`, `tens_cubic(C₁₁, C₁₂, C₄₄, frame)`, `arg_cubic`,
+  `cubic_anisotropy` (the Zener-type departure from isotropy), `is_CUBIC`.
+- `KM` and `KM_material`, `get_array` and a closed-form `getindex`, `inv`,
+  `one`, `zero`, `literal_pow`, `transpose`, the symmetry predicates,
+  `symmetry` (`:CUBIC`), `reference`, `show` and `pprint`, and the
+  `change_tens` / `components` trio every structured type carries — the
+  coefficients are stored with a canonical `get_basis` and the cube frame kept
+  separately, so another basis needs the components *rotated*, not relabeled.
+- Exact promotions `iso_to_cubic` and `cubic_to_ortho`, completing the lattice
+  `TensISO ⊂ TensCubic ⊂ TensOrtho`, with the mixed arithmetic that keeps
+  `TensISO ± TensCubic` and `TensISO ⊡ TensCubic` in the cubic class and
+  `TensCubic ± TensOrtho` in the orthotropic one. `TensCubic` and `TensTI` are
+  **incomparable** — their intersection is the isotropic class — so their sum
+  falls through to the unstructured route on purpose.
+- `proj_tens(Val(:CUBIC), A, frame)` at a fixed cube frame and
+  `proj_tens(Val(:CUBIC), A)` optimizing the orientation, the second through
+  `TensNDNLoptExt` exactly as the TI and orthotropic searches; `best_fit_cubic`;
+  the value-level predicates `is_CUBIC(A, frame)` and `is_CUBIC(A)` alongside
+  the type-level one; and the Kelvin-Mandel block helpers
+  `cubic_params_from_KM` / `KM_from_cubic_params`.
+- `best_sym_tens` now considers the class: the default cascade is
+  `(:ISO, :CUBIC, :TI, :ORTHO)`, ordered by **number of constants** — 2, 3, 5,
+  9 — and not by inclusion, which it cannot be, `:CUBIC` and `:TI` being
+  incomparable. A tensor satisfying both is reported cubic, having the fewer
+  constants. Its fixed-orientation variant takes one argument for two kinds of
+  orientation, so the classes that argument cannot serve are now **dropped**
+  rather than reaching `proj_tens` and raising a `MethodError` — which is what
+  already happened whenever `:ORTHO` was reached with an axis.
+- A closed-form `isotropify(::TensCubic) = α J + ((2β + 3γ)/5) K`, the weights
+  being the dimensions of `Eg` and `T2g`. Exact, and it avoids expanding 81
+  components — which on a symbolic element type is the difference between an
+  answer and an expression swell.
+
+### The one place cubic is *less* well served, and why
+
+The transversely isotropic and orthotropic searches each start from an
+eigenstructure candidate, exact whenever the tensor really has the symmetry
+sought. Cubic symmetry admits none, and the reason is not numerical:
+**every second-order contraction of a cubic tensor is isotropic.** Measured on
+`tens_cubic(10, 4, 2, frame)`, in any frame, `C_iikl = 18 δ_kl` and
+`C_ikil = 14 δ_kl`, so no eigenframe carries any information about where the
+cube points — the cube axes are a genuinely fourth-order feature. Handing the
+orthotropic candidate a cubic tensor returns an arbitrary frame, at a relative
+residual of 0.099 against 3.5e-16 for the true one.
+
+So the free-orientation search starts from the angular grid alone, which
+contains the canonical frame; and a *rotated* cubic tensor handed over as a bare
+array is not recognized on `best_sym_tens`'s cheap path — it needs
+`optimize_angles = true`, or the frame. Both facts are stated in the theory page
+and pinned by tests rather than left to be discovered.
+
+### Documentation
+
+- A theory page, `theory/cubic.md`, at the same depth as `theory/orthotropy.md`:
+  where the three constants come from, why the algebra is closed, the frame
+  subtlety, order two, the rotational average, and the class lattice.
+- An API page, `api/cubic.md`; the projection family is listed with its
+  siblings on `api/projection.md`.
+- `manual/structured_tensors.md` extended throughout — storage, constructors,
+  accessors, the closure table (with the `CUBIC ⊡ CUBIC → CUBIC` entry
+  explained), the promotions, the frame rule and the "when to use which" table.
+- `theory/orthotropy.md` now says why *it* loses closure where cubic keeps it,
+  which is the same fact seen from the other side, and its lattice diagram
+  includes the new class.
+
+### Tests
+
+161 new assertions in `test_tens_cubic.jl` and 27 more in
+`test_nlopt_ext.jl`, in the shape of the existing ones: construction and traits,
+the two Kelvin-Mandel forms and their congruence, automatic major symmetry on
+several frames and coefficient sets, the componentwise algebra with `C ⊡ C⁻¹`
+against the identity, closure of the product and its agreement with the dense
+route, frames describing the same cube accepted and a general rotation refused,
+every promotion, an orthogonal and idempotent projection with its residual
+orthogonal to the class, the rotational average against the generic route and
+its invariance under rotating the cube, `ForwardDiff` through the inverse, the
+product, the projection and the average, and a symbolic element type.
+
+
 ## v0.4.1 — Aqua.jl, and the dispatch defects it found
 
 TensND is now checked by [Aqua.jl](https://github.com/JuliaTesting/Aqua.jl) on

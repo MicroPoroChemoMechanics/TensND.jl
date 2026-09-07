@@ -251,6 +251,90 @@ function _build_ORTHO_KM(C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C
     )
 end
 
+# ── CUBIC projection helpers ─────────────────────────────────────────────────
+
+"""
+    _project_CUBIC_KM(C::AbstractMatrix) → NTuple{3}
+
+Extract the three cubic coefficients `(α, β, γ)` on `(𝕁, 𝔼, 𝕋)` from a 6×6
+Kelvin-Mandel matrix expressed **in the cube frame**.
+
+The three projectors being mutually orthogonal and idempotent with traces
+`1, 2, 3`, the orthogonal projection is read off by three traces:
+
+```math
+\\alpha = \\operatorname{tr}(\\mathbb C\\,\\mathbb J), \\qquad
+\\beta  = \\tfrac12\\operatorname{tr}(\\mathbb C\\,\\mathbb E), \\qquad
+\\gamma = \\tfrac13\\operatorname{tr}(\\mathbb C\\,\\mathbb T),
+```
+
+which is what makes this an averaging of the entries rather than a fit: `α` is
+the mean of the whole upper 3×3 block, `β` the mean of its diagonal minus its
+off-diagonal, `γ` the mean of the shear diagonal. A non-major-symmetric input
+is handled by the same traces, which symmetrize it implicitly.
+
+# Examples
+```julia
+julia> C = Float64[10 4 4 0 0 0; 4 10 4 0 0 0; 4 4 10 0 0 0;
+                   0 0 0 4 0 0; 0 0 0 0 4 0; 0 0 0 0 0 4];
+
+julia> _project_CUBIC_KM(C)             # (C₁₁+2C₁₂, C₁₁-C₁₂, 2C₄₄)
+(18.0, 6.0, 4.0)
+```
+"""
+function _project_CUBIC_KM(C)
+    # tr(C 𝕁) with 𝕁 = v vᵀ/3: the sum of the whole upper block over 3.
+    α = (
+        C[1, 1] + C[1, 2] + C[1, 3] + C[2, 1] + C[2, 2] +
+            C[2, 3] + C[3, 1] + C[3, 2] + C[3, 3]
+    ) / 3
+    # tr(C 𝔼)/2 with 𝔼 = upper block minus its own 𝕁 part.
+    β = (C[1, 1] + C[2, 2] + C[3, 3] - α) / 2
+    γ = (C[4, 4] + C[5, 5] + C[6, 6]) / 3
+    return (α, β, γ)
+end
+
+"""
+    _build_CUBIC_KM(α, β, γ) → SMatrix{6,6}
+
+Build the 6×6 Kelvin-Mandel matrix in the cube frame from the three projector
+coefficients — the reciprocal of [`_project_CUBIC_KM`](@ref).
+"""
+function _build_CUBIC_KM(α, β, γ)
+    T = promote_type(typeof(α), typeof(β), typeof(γ))
+    C₁₁ = α / 3 + 2β / 3
+    C₁₂ = α / 3 - β / 3
+    z = zero(T)
+    return SMatrix{6, 6, T}(
+        C₁₁, C₁₂, C₁₂, z, z, z,
+        C₁₂, C₁₁, C₁₂, z, z, z,
+        C₁₂, C₁₂, C₁₁, z, z, z,
+        z, z, z, γ, z, z,
+        z, z, z, z, γ, z,
+        z, z, z, z, z, γ
+    )
+end
+
+# ── Why cubic has no eigenstructure candidate ────────────────────────────────
+#
+#  `_candidate_TI_axis` and `_candidate_ORTHO_frame` both work by diagonalizing
+#  a second-order contraction of the tensor.  For a cubic tensor that cannot
+#  work, and the reason is not a numerical one: **every second-order
+#  contraction of a cubic tensor is isotropic**.  Measured on
+#  `tens_cubic(10, 4, 2, frame)`, in any frame,
+#
+#      C_iikl = 18 δ_kl ,      C_ikil = 14 δ_kl ,
+#
+#  so no eigenframe carries any information about where the cube points; the
+#  cube axes are a genuinely *fourth-order* feature.  Handing
+#  `_candidate_ORTHO_frame` a cubic tensor returns an arbitrary frame — measured
+#  at a relative residual of 0.099 where the true frame gives 3.5e-16.
+#
+#  So there is no cheap exact candidate to start from, and the free-orientation
+#  cubic projection optimizes from a fixed angular grid alone.  It is the one
+#  place where this class is *less* well served than its neighbors, and it is a
+#  property of the symmetry rather than of the implementation.
+
 # ── Norm helpers ─────────────────────────────────────────────────────────────
 
 _frobenius(A::AbstractArray) = sqrt(sum(x -> x^2, A))
@@ -578,6 +662,69 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}, frame::OrthonormalBasi
     return B, d, d / nA
 end
 
+# ── proj_tens : CUBIC, order 4, fixed cube frame ─────────────────────────────
+
+"""
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,4}, frame::OrthonormalBasis{3}) → (TensCubic{T}, d, drel)
+
+Project a 4th-order tensor onto the cubic subspace with cube axes `frame`.
+
+**Read `drel` rather than trusting the projection.** Where the morphology and
+the medium leave the octahedral group invariant, the answer belongs to the
+class by group theory, so its distance to it is discretization error and
+nothing else — an error estimate that costs nothing and involves no reference
+solution. Where they do not, `drel` says how much was discarded, and the
+projection is a fit like any other.
+
+# Examples
+```julia
+julia> frame = CanonicalBasis{3,Float64}();
+
+julia> t = tens_cubic(10.0, 4.0, 2.0, frame);
+
+julia> B, d, drel = proj_tens(:CUBIC, get_array(t), frame);
+
+julia> d < 1e-12
+true
+```
+
+See also [`best_fit_cubic`](@ref), [`cubic_anisotropy`](@ref).
+"""
+function proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 4}, frame::OrthonormalBasis{3}) where {T}
+    nA = _frobenius(A)
+    if nA ≈ zero(T)
+        z = zero(T)
+        return TensCubic{T}((z, z, z), frame), z, z
+    end
+    C_KM = _KM_of_array(A)
+    # The frame's own element type, deliberately — see the long comment on the
+    # ORTHO projection: forcing it to `T` turns a plain frame into a `Dual` one
+    # with zero partials and evaluates the inverse trigonometry at gimbal lock,
+    # which produced `NaN` through every ForwardDiff pass.
+    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
+    P₆ = _KM_rotation(angs.θ, angs.ϕ, angs.ψ)
+    C_rot = P₆' * C_KM * P₆
+    α, β, γ = _project_CUBIC_KM(C_rot)
+    B = TensCubic(α, β, γ, frame)
+    d = _frobenius(get_array(B) - A)
+    return B, d, d / nA
+end
+
+"""
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,2}, frame) → (TensISO{2,3,T}, d, drel)
+
+**At order two the cubic class is the isotropic class**, the octahedral group
+leaving no second-order tensor invariant but a multiple of the identity. The
+frame is accepted and ignored, and the isotropic projection is returned.
+
+That is not a shortcut: it is why a cube-symmetric pore has a single scalar
+resistivity contribution while its compliance contribution needs three
+constants, and why a conduction computation on such a shape carries no
+anisotropy signal whatever the shape does in elasticity.
+"""
+proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 2}, ::OrthonormalBasis{3}) where {T} =
+    proj_tens(Val(:ISO), A)
+
 # ── proj_tens : ORTHO, order 2, fixed frame ──────────────────────────────────
 
 """
@@ -661,7 +808,8 @@ Internal hook for the rotation-optimized projections.  The fallback throws;
 `TensNDNLoptExt` adds the concrete methods when NLopt is loaded.
 """
 function _proj_tens_opt(::Val{S}, A::AbstractArray) where {S}
-    fixed = S === :ORTHO ? "proj_tens(:ORTHO, A, frame)" : "proj_tens(:TI, A, n)"
+    fixed = S === :ORTHO ? "proj_tens(:ORTHO, A, frame)" :
+        S === :CUBIC ? "proj_tens(:CUBIC, A, frame)" : "proj_tens(:TI, A, n)"
     return error(
         "NLopt.jl is required for rotation-optimized $S projection. " *
             "Run `using NLopt` or add NLopt to your project. " *
@@ -697,6 +845,34 @@ possible material frames. Requires the NLopt package: `using NLopt`.
 """
 proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
     _proj_tens_opt(Val(:ORTHO), A)
+
+"""
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
+
+Find the best cubic approximation of `A` by optimizing over all possible **cube
+orientations**. Requires the NLopt package: `using NLopt`.
+
+The octahedral group is discrete, but the *orientation of the cube* is not: it
+is an ordinary rotation, so the objective is smooth in the Euler angles exactly
+as it is for a TI axis or an orthotropic frame. The only trace the group leaves
+is that the optimum is 24-fold degenerate — the optimizer returns one of the 24
+equivalent frames, and they all describe the same tensor with the same
+coefficients (see `TensCubic`).
+
+See also [`proj_tens(::Val{:CUBIC}, A, frame)`](@ref) for fixed-frame
+projection.
+"""
+proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
+    _proj_tens_opt(Val(:CUBIC), A)
+
+"""
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
+
+At order two the cubic class is the isotropic class, which has no orientation
+to optimize, so this is the isotropic projection and needs no NLopt.
+"""
+proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
+    proj_tens(Val(:ISO), A)
 
 """
     proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
@@ -840,7 +1016,43 @@ proj_tens(v::Val{:ORTHO}, t::AbstractTens{4, dim, T}, frame::OrthonormalBasis{3}
     proj_tens(v, get_array(t), frame)
 proj_tens(v::Val{:ORTHO}, t::AbstractTens{2, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
     proj_tens(v, get_array(t), frame)
+proj_tens(v::Val{:CUBIC}, t::AbstractTens{4, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
+    proj_tens(v, get_array(t), frame)
+proj_tens(v::Val{:CUBIC}, t::AbstractTens{2, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
+    proj_tens(v, get_array(t), frame)
 proj_tens(sym::Symbol, t::AbstractTens, args...) = proj_tens(Val(sym), t, args...)
+
+"""
+    is_CUBIC(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6) -> Bool
+
+Whether `A` is cubic about `frame` to within `ε`, measured as the relative
+Frobenius distance to the class.
+
+The **value-level** companion of the type-level `is_CUBIC(::TensCubic)`, exactly
+as for [`is_ISO`](@ref), [`is_TI`](@ref) and [`is_ORTHO`](@ref): the first asks
+what the components say, the second what the container guarantees.
+"""
+function is_CUBIC(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+    _, _, drel = proj_tens(Val(:CUBIC), A, frame)
+    return drel ≤ ε
+end
+
+"""
+    is_CUBIC(A::AbstractArray; ε = 1.0e-6) -> Bool
+
+Whether `A` is cubic about **some** cube. **Requires NLopt**, and unlike
+[`is_TI`](@ref) and [`is_ORTHO`](@ref) it has no cheap alternative: every
+second-order contraction of a cubic tensor is isotropic, so no eigenframe
+reveals where the cube points and there is nothing to start from but a search.
+See the note above `_candidate_ORTHO_frame`'s cubic counterpart in this file.
+
+Give the frame — `is_CUBIC(A, frame)` — whenever it is known; that path is exact
+and costs one projection.
+"""
+function is_CUBIC(A::AbstractArray; ε = 1.0e-6)
+    _, _, drel = proj_tens(Val(:CUBIC), A)
+    return drel ≤ ε
+end
 
 is_ISO(t::AbstractTens; kwargs...) = is_ISO(get_array(t); kwargs...)
 is_TI(t::AbstractTens, n; kwargs...) = is_TI(get_array(t), n; kwargs...)
@@ -853,6 +1065,12 @@ is_ORTHO(t::AbstractTens, frame; kwargs...) = is_ORTHO(get_array(t), frame; kwar
 is_ORTHO(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
     is_ORTHO(get_array(t), frame; kwargs...)
 is_ORTHO(t::AbstractTens; kwargs...) = is_ORTHO(get_array(t); kwargs...)
+is_CUBIC(t::AbstractTens, frame; kwargs...) = is_CUBIC(get_array(t), frame; kwargs...)
+# Same disambiguation as `is_ORTHO` just above: `AbstractTens <: AbstractArray`,
+# so the wrapper and the worker are each more specific on one argument.
+is_CUBIC(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+    is_CUBIC(get_array(t), frame; kwargs...)
+is_CUBIC(t::AbstractTens; kwargs...) = is_CUBIC(get_array(t); kwargs...)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public aliases for the per-block Kelvin-Mandel ↔ symmetry-parameter
@@ -889,6 +1107,23 @@ from a 6×6 Kelvin-Mandel matrix in the material frame. See
 [`proj_tens`](@ref) for the tensor-level equivalent.
 """
 const ortho_params_from_KM = _project_ORTHO_KM
+
+"""
+    cubic_params_from_KM(C::AbstractMatrix) → (α, β, γ)
+
+Extract the three cubic coefficients on `(𝕁, 𝔼, 𝕋)` from a 6×6 Kelvin-Mandel
+matrix in the cube frame. See [`proj_tens`](@ref) for the tensor-level
+equivalent, and [`arg_cubic`](@ref) for the engineering constants.
+"""
+const cubic_params_from_KM = _project_CUBIC_KM
+
+"""
+    KM_from_cubic_params(α, β, γ) → SMatrix{6,6}
+
+Build a 6×6 Kelvin-Mandel matrix in the cube frame from the three cubic
+coefficients — the reciprocal of [`cubic_params_from_KM`](@ref).
+"""
+const KM_from_cubic_params = _build_CUBIC_KM
 
 """
     KM_from_ortho_params(C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆) → SMatrix{6,6}
@@ -954,8 +1189,28 @@ average.
 best_fit_ortho(t::AbstractTens{4, 3}, frame) = proj_tens(Val(:ORTHO), t, frame)[1]
 best_fit_ortho(t::AbstractTens{2, 3}, frame) = proj_tens(Val(:ORTHO), t, frame)[1]
 
+"""
+    best_fit_cubic(t::AbstractTens{4,3}, frame) -> TensCubic
+    best_fit_cubic(t::AbstractTens{2,3}, frame) -> TensISO{2,3}
+
+Orthogonal (Frobenius) projection of `t` onto the cubic span with cube axes
+`frame` — the projection component of [`proj_tens`](@ref)`(Val(:CUBIC), t,
+frame)`.
+
+Unlike [`best_fit_ti`](@ref), this loses nothing that a *major-symmetric*
+result would have kept: the cubic class is automatically major-symmetric, so
+there is no antisymmetric content to drop silently. What it does discard is
+everything outside the class, and `proj_tens` reports how much.
+
+At order two it returns an isotropic tensor, the two classes coinciding there.
+"""
+best_fit_cubic(t::AbstractTens{4, 3}, frame) = proj_tens(Val(:CUBIC), t, frame)[1]
+best_fit_cubic(t::AbstractTens{2, 3}, frame) = proj_tens(Val(:CUBIC), t, frame)[1]
+
 # ── Exports ──────────────────────────────────────────────────────────────────
 
 export proj_tens
 export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params
-export best_fit_iso, best_fit_ti, best_fit_ortho
+export cubic_params_from_KM, KM_from_cubic_params
+export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic
+export is_CUBIC

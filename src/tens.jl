@@ -141,7 +141,7 @@ _default_ORTHO_frame(t) = _candidate_ORTHO_frame(Array(get_array(t)))
 for order in (2, 4)
     @eval begin
         """
-            best_sym_tens(t; proj=(:ISO, :TI, :ORTHO), ε=1e-6, optimize_angles=false)
+            best_sym_tens(t; proj=(:ISO, :CUBIC, :TI, :ORTHO), ε=1e-6, optimize_angles=false)
 
         Find the best (most restrictive) symmetry of tensor `t` by trying each
         symmetry class in `proj` (from most to least symmetric) and accepting the
@@ -155,7 +155,8 @@ for order in (2, 4)
         - `optimize_angles=true`: the `:TI` axis and `:ORTHO` frame are found by
           nonlinear optimization (multistart L-BFGS) — requires `using NLopt`.
 
-        Returns `(projected, d, drel, sym)` where `sym ∈ {:ISO, :TI, :ORTHO, :ANISO}`.
+        Returns `(projected, d, drel, sym)` where
+        `sym ∈ {:ISO, :CUBIC, :TI, :ORTHO, :ANISO}`.
 
         **Behavior change (vs. pre-2026 versions):** the default no-argument call
         no longer throws when NLopt is absent; set `optimize_angles=true` to restore
@@ -178,7 +179,7 @@ for order in (2, 4)
         """
         function best_sym_tens(
                 t::AbstractTens{$order, dim, T};
-                proj = (:ISO, :TI, :ORTHO),
+                proj = (:ISO, :CUBIC, :TI, :ORTHO),
                 ε = 1.0e-6,
                 optimize_angles::Bool = false,
             ) where {dim, T}
@@ -207,6 +208,19 @@ for order in (2, 4)
                 else
                     nothing
                 end
+                # `:CUBIC` cannot use the orthotropic eigencandidate: every
+                # second-order contraction of a cubic tensor is isotropic, so no
+                # eigenframe says where the cube points, and that candidate
+                # returns an arbitrary frame. A structured tensor carries its
+                # own; anything else falls back to the canonical frame, which
+                # finds an axis-aligned cube and nothing else. Detecting a
+                # *rotated* cubic tensor needs `optimize_angles = true`.
+                cube_default = if :CUBIC in proj
+                    hasmethod(frame, Tuple{typeof(t)}) ? frame(t) :
+                        CanonicalBasis{3, eltype(A)}()
+                else
+                    nothing
+                end
                 return _best_sym_loop(
                     newt, proj, ε,
                     function (sym)
@@ -214,6 +228,8 @@ for order in (2, 4)
                             return proj_tens(sym, A)
                         elseif sym === :TI
                             return proj_tens(sym, A, n_default)
+                        elseif sym === :CUBIC
+                            return proj_tens(sym, A, cube_default)
                         else    # :ORTHO
                             return proj_tens(sym, A, frame_default)
                         end
@@ -223,14 +239,19 @@ for order in (2, 4)
         end
 
         """
-            best_sym_tens(t, n_or_frame; proj=(:ISO, :TI, :ORTHO), ε=1e-6)
+            best_sym_tens(t, n_or_frame; proj=(:ISO, :CUBIC, :TI, :ORTHO), ε=1e-6)
 
         Find the best symmetry of tensor `t` with a **fixed** symmetry axis `n`
         (for TI) or material frame `frame` (for ORTHO).  No rotation optimization
         is performed.
 
         - `n_or_frame`: a vector (axis for TI) or `OrthonormalBasis{3}` (frame for
-          ORTHO). For ISO projection the extra argument is ignored.
+          ORTHO and CUBIC). For ISO projection the extra argument is ignored.
+
+        Because there is one argument for two kinds of orientation, the classes
+        it cannot serve are **dropped from `proj`**: an axis leaves `:ISO` and
+        `:TI`, a frame leaves `:ISO`, `:CUBIC` and `:ORTHO`. Pass the kind that
+        matches the classes you mean to test.
 
         Returns `(projected, d, drel, sym)`.
 
@@ -249,14 +270,25 @@ for order in (2, 4)
         function best_sym_tens(
                 t::AbstractTens{$order, dim, T},
                 n_or_frame;
-                proj = (:ISO, :TI, :ORTHO),
+                proj = (:ISO, :CUBIC, :TI, :ORTHO),
                 ε = 1.0e-6,
             ) where {dim, T}
             basis = relevant_OrthonormalBasis(get_basis(t))
             newt = change_tens(t, basis)
             A = Array(get_array(newt))
+            # `:TI` wants an axis, `:ORTHO` and `:CUBIC` a frame, and there is
+            # one argument for both. Rather than let the mismatch surface as a
+            # `MethodError` from deep inside `proj_tens` — which is what
+            # happened before `:CUBIC` existed, whenever `:ORTHO` was reached
+            # with an axis — the classes the argument cannot serve are dropped,
+            # and the docstring says so.
+            usable = if n_or_frame isa OrthonormalBasis{3}
+                filter(!=(:TI), proj)
+            else
+                filter(sym -> sym ∉ (:ORTHO, :CUBIC), proj)
+            end
             return _best_sym_loop(
-                newt, proj, ε,
+                newt, usable, ε,
                 sym -> sym == :ISO ? proj_tens(sym, A) : proj_tens(sym, A, n_or_frame)
             )
         end

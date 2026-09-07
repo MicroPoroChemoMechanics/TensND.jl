@@ -13,14 +13,19 @@ best_sym_tens
 is_ISO
 is_TI
 is_ORTHO
+is_CUBIC
 ti_params_from_KM
 KM_from_ti_params
 ortho_params_from_KM
 KM_from_ortho_params
+cubic_params_from_KM
+KM_from_cubic_params
 best_fit_iso
 best_fit_ti
 best_fit_ortho
+best_fit_cubic
 ```
+
 
 ## Exact rotation-group averages
 

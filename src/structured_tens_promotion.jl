@@ -10,6 +10,11 @@
 # Symmetry lattice at 4th order (major-symmetric):                           #
 #                                                                            #
 #   TensISO{4}  ⊂  TensTI{4,N=5}  ⊂  TensOrtho    (with aligned axis)     #
+#   TensISO{4}  ⊂  TensCubic     ⊂  TensOrtho    (on the same frame)      #
+#                                                                            #
+# TensCubic and TensTI are INCOMPARABLE: their intersection is the isotropic #
+# class and neither contains the other, so a sum of the two is generally     #
+# fully anisotropic and falls through to the unstructured route on purpose.  #
 #                                                                            #
 # At 2nd order:                                                              #
 #                                                                            #
@@ -182,6 +187,86 @@ end
 # structured (unlike products, there is no asymmetry issue).  Promote the
 # lower-symmetry operand to the richer container, then delegate to the
 # existing same-type +/- method.
+
+"""
+    iso_to_cubic(A::TensISO{4,3,T}, frame::OrthonormalBasis{3}) → TensCubic{T}
+
+Convert an isotropic 4th-order tensor `α𝕁 + β𝕂` into a `TensCubic` on `frame`.
+
+Exact and frame-independent: `𝕂 = 𝔼 + 𝕋`, so the cubic coefficients are simply
+`(α, β, β)` — and they are the same whatever frame is chosen, which is the
+formal statement that an isotropic tensor is cubic about *every* cube.
+
+Used by the mixed arithmetic below so that `TensISO + TensCubic` stays a
+`TensCubic` instead of collapsing to the unstructured route.
+
+# Examples
+```julia
+julia> C = iso_to_cubic(TensISO{3}(18.0, 6.0), CanonicalBasis{3,Float64}());
+
+julia> cubic_anisotropy(C)          # isotropic, so exactly zero
+0.0
+```
+"""
+function iso_to_cubic(A::TensISO{4, 3, T}, frame::OrthonormalBasis{3}) where {T}
+    α, β = get_data(A)
+    return TensCubic{T}((α, β, β), frame)
+end
+
+"""
+    cubic_to_ortho(A::TensCubic{T}) → TensOrtho{T}
+
+Widen a cubic tensor to the orthotropic class on its own cube frame:
+`C₁₁ = C₂₂ = C₃₃`, `C₁₂ = C₁₃ = C₂₃`, `C₄₄ = C₅₅ = C₆₆`.
+
+Exact — no projection, no loss. It is the embedding that makes
+`TensCubic ± TensOrtho` well defined on a shared frame.
+"""
+function cubic_to_ortho(A::TensCubic{T}) where {T}
+    C₁₁, C₁₂, C₄₄ = arg_cubic(A)
+    return TensOrtho(C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄, frame(A))
+end
+
+# ── TensISO{4,3} ± TensCubic ────────────────────────────────────────────────
+# An isotropic tensor is cubic about every cube, so no frame check is needed:
+# the iso operand is lifted onto whatever frame the cubic one carries.
+
+for OP in (:+, :-)
+    @eval @inline function Base.$OP(A::TensISO{4, 3}, B::TensCubic)
+        return $OP(iso_to_cubic(A, frame(B)), B)
+    end
+    @eval @inline function Base.$OP(A::TensCubic, B::TensISO{4, 3})
+        return $OP(A, iso_to_cubic(B, frame(A)))
+    end
+end
+
+# ── TensCubic ± TensOrtho (same frame) ──────────────────────────────────────
+# Cubic is orthotropic with the three families equal, so on a shared frame the
+# sum is orthotropic. On different frames it is generally fully anisotropic and
+# the refusal says which frame to align, rather than returning something wrong.
+
+for OP in (:+, :-)
+    @eval function Base.$OP(A::TensCubic, B::TensOrtho)
+        frame(A) == frame(B) || throw(
+            ArgumentError(
+                "TensCubic $($(string(OP))) TensOrtho requires the same frame; " *
+                    "express one of them in the other's frame first, or add their " *
+                    "canonical arrays."
+            )
+        )
+        return $OP(cubic_to_ortho(A), B)
+    end
+    @eval function Base.$OP(A::TensOrtho, B::TensCubic)
+        frame(A) == frame(B) || throw(
+            ArgumentError(
+                "TensOrtho $($(string(OP))) TensCubic requires the same frame; " *
+                    "express one of them in the other's frame first, or add their " *
+                    "canonical arrays."
+            )
+        )
+        return $OP(A, cubic_to_ortho(B))
+    end
+end
 
 # ── TensISO{4,3} ± TensOrtho ────────────────────────────────────────────────
 
@@ -383,6 +468,29 @@ function LinearAlgebra.dot(A::TensISO{2, 3}, B::TensTI{2, <:Any, 2})
     return TensTI{2}(λ * a, λ * b, axis(B))
 end
 
+# ── TensISO{4,3} ⊡ TensCubic / TensCubic ⊡ TensISO{4,3} ─────────────────────
+# Both operands are then cubic on the same cube, so the componentwise rule of
+# `dcontract(::TensCubic, ::TensCubic)` applies and the product stays in the
+# class -- which the dense route would not have preserved.
+
+@inline Tensors.dcontract(A::TensISO{4, 3}, B::TensCubic) =
+    Tensors.dcontract(iso_to_cubic(A, frame(B)), B)
+@inline Tensors.dcontract(A::TensCubic, B::TensISO{4, 3}) =
+    Tensors.dcontract(A, iso_to_cubic(B, frame(A)))
+
+# ── TensCubic ⊡ TensOrtho / TensOrtho ⊡ TensCubic ───────────────────────────
+# Widen to orthotropy and let its block route take over. The result is NOT
+# orthotropic in general -- see `dcontract(::TensOrtho, ::TensOrtho)` -- which
+# is why this returns whatever that method returns rather than promising a
+# class.
+
+@inline Tensors.dcontract(A::TensCubic, B::TensOrtho) =
+    frame(A) == frame(B) ? Tensors.dcontract(cubic_to_ortho(A), B) :
+    Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+@inline Tensors.dcontract(A::TensOrtho, B::TensCubic) =
+    frame(A) == frame(B) ? Tensors.dcontract(A, cubic_to_ortho(B)) :
+    Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+
 # ── TensISO{4,3} ⊡ TensOrtho / TensOrtho ⊡ TensISO{4,3} ─────────────────────
 # An isotropic tensor is orthotropic in *every* frame, so promoting it onto the
 # other operand's material frame is exact and lets the closed form of
@@ -398,4 +506,4 @@ end
 # Exports
 # ──────────────────────────────────────────────────────────────────────────────
 
-export iso_to_ortho, walpole_to_ortho
+export iso_to_ortho, walpole_to_ortho, iso_to_cubic, cubic_to_ortho

@@ -11,7 +11,8 @@ B, d, drel = proj_tens(sym, A)              # orientation optimized — needs NL
 B, d, drel = proj_tens(sym, A, n_or_frame)  # orientation given
 ```
 
-with `sym ∈ (:ISO, :TI, :ORTHO)`, `A` an order-2 or order-4 array or tensor, and
+with `sym ∈ (:ISO, :TI, :ORTHO, :CUBIC)`, `A` an order-2 or order-4 array or
+tensor, and
 
 | Returned | Meaning |
 | :--- | :--- |
@@ -75,11 +76,15 @@ Tries the classes from the most restrictive to the least and returns the first
 whose relative error falls below `ε`:
 
 ```julia
-B, d, drel, sym = best_sym_tens(t; proj = (:ISO, :TI, :ORTHO), ε = 1e-6,
+B, d, drel, sym = best_sym_tens(t; proj = (:ISO, :CUBIC, :TI, :ORTHO), ε = 1e-6,
                                 optimize_angles = false)
 ```
 
-`sym` is one of `:ISO`, `:TI`, `:ORTHO`, `:ANISO`. The argument must be an
+`sym` is one of `:ISO`, `:CUBIC`, `:TI`, `:ORTHO`, `:ANISO`. The default order
+is by number of constants — 2, 3, 5, 9 — so the tightest class that fits within
+`ε` is the one reported. `:CUBIC` and `:TI` are **incomparable**, neither
+containing the other, so a tensor satisfying both is reported cubic, having the
+fewer constants. The argument must be an
 `AbstractTens`, not a bare array — wrap a raw array with `Tens` first.
 
 ```@example proj
@@ -98,9 +103,38 @@ best_sym_tens(Tens(C_tilt))[4]
     Reach for `optimize_angles = true` when the tensor is only *approximately*
     of the class and the best orientation is itself the question.
 
+## Cubic symmetry
+
+`:CUBIC` takes a cube frame, like `:ORTHO`, and returns a
+[`TensCubic`](@ref) — or a [`TensISO`](@ref) at order 2, the two classes
+coinciding there.
+
+```@example proj
+ℬ = CanonicalBasis{3, Float64}()
+cub = tens_cubic(10.0, 4.0, 2.0, ℬ)
+B, d, drel = proj_tens(:CUBIC, get_array(cub), ℬ)
+drel
+```
+
+Omitting the frame optimizes over cube orientations, exactly as for a TI axis
+or an orthotropic frame, and needs NLopt in the same way. The octahedral group
+is discrete but the *orientation* of the cube is not — it is an ordinary
+rotation — so the objective is smooth in the Euler angles; the group shows up
+only as a 24-fold degeneracy of the minimum, and all 24 frames describe the same
+tensor with the same coefficients.
+
+The residual is the number worth reporting. When the morphology and the medium
+leave the octahedral group invariant, the answer belongs to the class **by group
+theory**, so `drel` is bounded by the discretization error and by nothing else —
+an error estimate with no reference solution in it. What lives *inside* the
+class, and is therefore not measured by `drel`, is
+[`cubic_anisotropy`](@ref): the two together separate a real material anisotropy
+from a numerical artifact, since an artifact breaks the symmetry while a real
+anisotropy does not.
+
 ## Predicates
 
-[`is_ISO`](@ref), [`is_TI`](@ref) and [`is_ORTHO`](@ref) are the same
+[`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref) and [`is_CUBIC`](@ref) are the same
 computation with a boolean answer, and they respect the hierarchy
 ISO ⊂ TI ⊂ ORTHO:
 

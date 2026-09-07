@@ -102,6 +102,34 @@ C_{44},C_{55},C_{66}\ \text{halved from the KM diagonal},
 everything outside the two blocks being discarded. For an order-2 tensor the
 same reasoning reduces to *keep the diagonal in the material frame*.
 
+### Cubic symmetry
+
+The cleanest case of all, because the three generators are not merely mutually
+orthogonal but are **projectors** summing to the identity. The normal equations
+degenerate into three traces (`_project_CUBIC_KM`):
+
+```math
+\alpha = \operatorname{tr}(\mathbb{C}\,\mathbb{J}),\qquad
+\beta  = \tfrac12\operatorname{tr}(\mathbb{C}\,\mathbb{E}),\qquad
+\gamma = \tfrac13\operatorname{tr}(\mathbb{C}\,\mathbb{T}),
+```
+
+the divisors being the traces of the projectors themselves. Concretely, ``α`` is
+the mean of the whole upper ``3\times3`` block, ``β`` the mean of its diagonal
+minus its off-diagonal, ``γ`` the mean of the shear diagonal — so the projection
+*averages* rather than discards, and a non-major-symmetric input is symmetrized
+implicitly by the same traces.
+
+At order 2 there is nothing to do: the octahedral group leaves no second-order
+tensor invariant but a multiple of the identity, so the cubic projection **is**
+the isotropic one. See [Cubic symmetry](@ref th-cubic).
+
+With a **free** orientation the treatment is the orthotropic one unchanged: the
+cube orientation is an ordinary rotation, so the objective
+``j(\theta,\phi,\psi)`` is smooth and the same optimizer applies, started from
+the same eigenstructure candidate. The discreteness of ``O_h`` shows up only as
+a 24-fold degenerate minimum.
+
 ### Isotropy
 
 The two-dimensional case, already given in [Isotropic tensors](@ref th-isotropic):
@@ -169,8 +197,8 @@ Loading `NLopt` activates `TensNDNLoptExt` and enables the no-orientation
 methods of [`proj_tens`](@ref). The strategy is a **deterministic multi-start**:
 
 1. a candidate from the eigenstructure of ``C`` (`_candidate_TI_axis`,
-   `_candidate_ORTHO_frame`) — exact whenever the tensor genuinely has the
-   symmetry sought;
+   `_candidate_ORTHO_frame`, `_candidate_CUBIC_frame`) — exact whenever the
+   tensor genuinely has the symmetry sought;
 2. a fixed angular grid containing the canonical axes;
 3. `LD_TNEWTON` local refinement from every start, with ForwardDiff gradients;
 4. the best objective over all starts *and* all refined starts.
@@ -198,19 +226,28 @@ Two properties follow, and both matter:
 and returns the first whose *relative* error falls below a tolerance ``\varepsilon``:
 
 ```math
-\text{ISO}\ \longrightarrow\ \text{TI}\ \longrightarrow\ \text{ORTHO}
+\text{ISO}\ \longrightarrow\ \text{CUBIC}\ \longrightarrow\
+\text{TI}\ \longrightarrow\ \text{ORTHO}
 \ \longrightarrow\ \text{ANISO} .
 ```
+
+The chain is ordered by **number of constants** — 2, 3, 5, 9 — and not by
+inclusion, because it cannot be: ``\text{CUBIC}`` and ``\text{TI}`` are
+incomparable, their intersection being ``\text{ISO}`` and neither containing
+the other. A tensor satisfying both is reported cubic, having the fewer
+constants; one satisfying neither falls through to ``\text{ORTHO}``, which
+contains them both.
 
 The relative criterion is what makes the tolerance dimensionless and independent
 of the units of the moduli. Two modes:
 
-| `optimize_angles` | TI axis / ORTHO frame | Needs NLopt |
+| `optimize_angles` | TI axis / ORTHO frame / CUBIC frame | Needs NLopt |
 | :---------------- | :-------------------- | :---------- |
 | `false` (default) | taken from the tensor if it is a structured container, otherwise from the Kelvin–Mandel eigenstructure | no |
 | `true` | found by the multi-start above | yes |
 
-The value-level predicates [`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref)
+The value-level predicates [`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref),
+[`is_CUBIC`](@ref)
 are the same computation with a boolean answer.
 
 ## Projection is not averaging

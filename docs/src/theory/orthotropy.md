@@ -87,6 +87,14 @@ This is the same widening that makes
 **major-symmetric tensors of a class do not form a subalgebra**, only the class
 itself does.
 
+[Cubic symmetry](@ref th-cubic) is the exception that shows what is really at
+stake. There each irreducible representation of the group appears with
+multiplicity **one**, so the commutant is spanned by three mutually orthogonal
+projectors, any two cubic tensors about the same cube commute, and the product
+stays in the class *and* stays major-symmetric. Orthotropy fails on both counts
+for the same reason: its ``3\times3`` block is a two-dimensional family of
+representations, not three one-dimensional ones.
+
 When the two operands are expressed in *different* material frames the product is
 generally fully anisotropic, and the implementation falls back to the generic
 route bit for bit.
@@ -97,10 +105,13 @@ route bit for bit.
 %%{init: {"flowchart": {"useMaxWidth": false}}}%%
 flowchart TB
     ISO["<b>TensISO</b><br/>2 constants<br/>no orientation"]
+    CUB["<b>TensCubic</b><br/>3 constants + cube frame"]
     TI["<b>TensTI{4}</b><br/>5 constants + axis n<br/>(6 without major symmetry,<br/>8 in the full commutant)"]
     ORT["<b>TensOrtho</b><br/>9 constants + frame<br/>(12 without major symmetry)"]
     ANI["<b>general</b><br/>21 constants"]
     ISO -->|"fromISO(·, n)"| TI
+    ISO -->|"iso_to_cubic(·, frame)"| CUB
+    CUB -->|"cubic_to_ortho(·)"| ORT
     TI -->|"walpole_to_ortho(·, frame, i)"| ORT
     ORT --> ANI
     ISO -->|"iso_to_ortho(·, frame)"| ORT

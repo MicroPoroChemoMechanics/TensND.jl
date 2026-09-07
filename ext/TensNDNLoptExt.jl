@@ -36,7 +36,7 @@ using StaticArrays
 
 import TensND: proj_tens, _proj_tens_opt, _rot3_raw, _KM_rotation, _KM_of_array,
     _project_TI_KM, _build_TI_KM,
-    _project_ORTHO_KM, _build_ORTHO_KM,
+    _project_ORTHO_KM, _build_ORTHO_KM, _project_CUBIC_KM, _build_CUBIC_KM,
     _frobenius, _n_from_angles, _angles_from_n,
     _extract_vec, _candidate_TI_axis, _candidate_ORTHO_frame,
     angles, vecbasis
@@ -71,6 +71,28 @@ function _obj_ORTHO4(x, C_KM, sqnorm_C)
     C_rot = P₆' * C_KM * P₆
     params = _project_ORTHO_KM(C_rot)
     B_KM = _build_ORTHO_KM(params...)
+    return one(eltype(x)) - sum(x -> x^2, B_KM) / sqnorm_C
+end
+
+# ── Objective function: CUBIC, order 4 ──────────────────────────────────────
+
+"""
+    _obj_CUBIC4(x, C_KM, sqnorm_C) → j
+
+Objective for the cubic projection with a free cube orientation:
+`j(θ,ϕ,ψ) = 1 − ‖B‖²_KM / ‖C‖²_KM`, the same form as the TI and orthotropic
+objectives, since all three are orthogonal projections onto a rotated subspace.
+
+Smooth in the angles: the octahedral group is discrete, but the orientation of
+the cube is an ordinary rotation. The group shows up only as a 24-fold
+degeneracy of the minimum, which costs an optimizer nothing — every one of the
+24 frames describes the same tensor with the same coefficients.
+"""
+function _obj_CUBIC4(x, C_KM, sqnorm_C)
+    θ, ϕ, ψ = x[1], x[2], x[3]
+    P₆ = _KM_rotation(θ, ϕ, ψ)
+    C_rot = P₆' * C_KM * P₆
+    B_KM = _build_CUBIC_KM(_project_CUBIC_KM(C_rot)...)
     return one(eltype(x)) - sum(x -> x^2, B_KM) / sqnorm_C
 end
 
@@ -240,6 +262,24 @@ function _ortho_starts(A)
     return vcat([[Float64(a.θ), Float64(a.ϕ), Float64(a.ψ)]], _ORTHO_STARTS)
 end
 
+"""
+    _cubic_starts(A) → Vector{Vector{Float64}}
+
+Start set for the cube orientation: `_ORTHO_STARTS`, the same three-angle sweep
+the orthotropic search uses, and **nothing else**.
+
+There is deliberately no eigenstructure candidate here, where the TI and
+orthotropic searches each begin with one. Every second-order contraction of a
+cubic tensor is isotropic, so no eigenframe carries any information about where
+the cube points — handing `_candidate_ORTHO_frame` a cubic tensor returns an
+arbitrary frame, measured at a relative residual of 0.099 against 3.5e-16 for
+the true one. Starting there would be worse than starting nowhere.
+
+The grid contains the canonical frame, so an axis-aligned cube is still found
+without any search doing real work.
+"""
+_cubic_starts(_A) = _ORTHO_STARTS
+
 # ── proj_tens: TI, order 4, optimized ────────────────────────────────────────
 
 """
@@ -393,6 +433,41 @@ function TensND._proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <
 
     frame = RotatedBasis(x_opt[1], x_opt[2], x_opt[3])
     return proj_tens(Val(:ORTHO), A, frame)
+end
+
+# ── proj_tens: CUBIC, order 4, optimized ─────────────────────────────────────
+
+"""
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
+
+Best cubic approximation of a 4th-order tensor, optimizing the cube
+orientation. Uses NLopt, like the TI and orthotropic searches.
+
+# Examples
+```julia
+julia> using NLopt
+
+julia> t = tens_cubic(10.0, 4.0, 2.0, RotatedBasis(0.3, 0.4, 0.5));
+
+julia> B, d, drel = proj_tens(:CUBIC, get_array(t));
+
+julia> drel < 1e-8
+true
+```
+"""
+function TensND._proj_tens_opt(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+    C_KM = _KM_of_array(A)
+    sqnorm_C = sum(x -> x^2, C_KM)
+    if sqnorm_C ≈ zero(T)
+        z = zero(T)
+        return TensCubic{T}((z, z, z), CanonicalBasis{3, T}()), z, z
+    end
+
+    obj = x -> _obj_CUBIC4(x, C_KM, sqnorm_C)
+    x_opt = _optimize_angles(obj, 3, _cubic_starts(A))
+
+    frame = RotatedBasis(x_opt[1], x_opt[2], x_opt[3])
+    return proj_tens(Val(:CUBIC), A, frame)
 end
 
 end # module TensNDNLoptExt
