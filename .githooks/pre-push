@@ -1,0 +1,178 @@
+#!/usr/bin/env bash
+# Pre-push hook: run the *same* checks CI runs, on the *exact content being
+# pushed*, and refuse the push if either fails.
+#
+# Enable once, per clone (the same setting the pre-commit hook needs):
+#     git config core.hooksPath .githooks
+#
+# ## Why this exists next to the pre-commit hook
+#
+# `pre-commit` looks at **staged files only**, which leaves three ways for a
+# tree to reach GitHub in a state CI will reject:
+#
+#   * a file already in the repository that is never restaged -- the hook never
+#     sees it, `Spelling.yml`'s `check .` does;
+#   * a commit that did not go through `git commit`: a merge, a rebase, a
+#     cherry-pick, a squash;
+#   * commits made before the hook was enabled, or on another clone.
+#
+# ## What it does *not* guarantee, and nothing local can
+#
+# `git push --no-verify` skips it, an unconfigured clone has no hooks at all,
+# and the GitHub web editor and the Actions bots never touch this machine.
+# **The guarantee is CI**: `Spelling.yml` and `Format.yml` fail a pull request
+# and auto-correct a push to `main`, and they do not care where a commit came
+# from. This hook exists so that the bot never has to push a correction you
+# then have to pull -- it is fast local feedback, not the rule's enforcement.
+#
+# ## Why a temporary worktree rather than the files on disk
+#
+# The checks must see what is being **pushed**, which is neither the working
+# tree nor necessarily `HEAD`: an untracked scratch note would fail the spelling
+# scan although it is in no commit, an unstaged edit would be judged although it
+# is not being sent, and `git push origin some-other-branch` does not involve
+# `HEAD` at all. So each pushed tip is checked out detached into a temporary
+# worktree and the checks run there. Measured at 0.3 s and 64 MB on the largest
+# of these repositories, which is nothing next to the round trip it saves.
+#
+# Portability, deliberately: `python3` on Linux and macOS but `python` on
+# Windows and `py -3` on a Windows install with only the launcher on PATH; and
+# no bash 4+ constructs, macOS still shipping 3.2.
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+# Git feeds "<local ref> <local sha> <remote ref> <remote sha>" per ref on
+# stdin. Collect the tips actually being pushed; an all-zero local sha is a
+# branch deletion and has no content to check.
+SHAS=""
+HAD_INPUT=0
+while read -r local_ref local_sha remote_ref remote_sha; do
+    HAD_INPUT=1
+    [ -z "${local_sha:-}" ] && continue
+    case "$local_sha" in
+        *[!0]*) ;;
+        *) continue ;;
+    esac
+    # The documentation branches carry generated output, which is not ours to
+    # format or to spell-check, and is pushed by CI rather than from here.
+    case "$local_ref" in
+        refs/heads/gh-pages | refs/heads/pages) continue ;;
+    esac
+    case " $SHAS " in
+        *" $local_sha "*) ;;
+        *) SHAS="$SHAS $local_sha" ;;
+    esac
+done
+# Invoked by hand, with nothing on stdin: check the current commit. But when
+# git *did* describe refs and none of them carries content -- a branch deletion,
+# or only `gh-pages` -- there is genuinely nothing to check, and falling back to
+# `HEAD` there would judge a commit that is not being pushed. That mistake fails
+# a deletion because of whatever happens to be checked out.
+if [ -z "$SHAS" ]; then
+    if [ "$HAD_INPUT" -eq 1 ]; then
+        exit 0
+    fi
+    SHAS="$(git rev-parse HEAD)"
+fi
+
+FAILED=0
+TMP=""
+cleanup() {
+    if [ -n "$TMP" ] && [ -d "$TMP" ]; then
+        git worktree remove --force "$TMP" >/dev/null 2>&1 || rm -rf "$TMP"
+    fi
+}
+trap cleanup EXIT
+
+check_tree() {
+    # $1 = directory holding the content to check
+    local dir="$1"
+    local failed=0
+
+    # ── Runic, over the paths `Format.yml` formats ──────────────────────────
+    local paths=""
+    for d in src test ext; do
+        [ -d "$dir/$d" ] && paths="$paths $d"
+    done
+    if [ -n "$paths" ]; then
+        if ! command -v julia >/dev/null 2>&1; then
+            echo "▸ Runic: julia not on PATH; formatting not checked here — CI will." >&2
+        elif ! julia --project=@runic --startup-file=no -e 'using Runic' >/dev/null 2>&1; then
+            echo "▸ Runic: shared @runic environment not found; skipping." >&2
+            echo "▸   julia -e 'using Pkg; Pkg.activate(\"runic\", shared=true); Pkg.add(name=\"Runic\", version=\"1.10\")'" >&2
+        elif ! (cd "$dir" && julia --project=@runic --startup-file=no \
+                    -e 'using Runic; exit(Runic.main(["--check"; filter(isdir, ["src", "test", "ext"])]))'); then
+            echo "▸ Runic: this commit is not formatted; the push is refused. Run:" >&2
+            echo "▸   julia --project=@runic -e 'using Runic; Runic.main([\"--inplace\"; filter(isdir, [\"src\", \"test\", \"ext\"])])'" >&2
+            echo "▸ then amend or add a commit." >&2
+            failed=1
+        fi
+    fi
+
+    # ── Spelling, over the whole tree, exactly as `Spelling.yml` does ───────
+    local tool="$dir/.github/scripts/spelling_tool.py"
+    if [ -f "$tool" ] && [ -f "$dir/.spelling.json" ]; then
+        local py=""
+        for candidate in python3 python py; do
+            command -v "$candidate" >/dev/null 2>&1 || continue
+            if [ "$candidate" = "py" ]; then
+                if py -3 -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)" >/dev/null 2>&1; then
+                    py="py -3"
+                    break
+                fi
+            elif "$candidate" -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)" >/dev/null 2>&1; then
+                py="$candidate"
+                break
+            fi
+        done
+
+        if [ -z "$py" ]; then
+            echo "▸ spelling: no Python 3 found (tried python3, python, py -3) — CI will check." >&2
+        else
+            local conv
+            conv=$($py -c "import json
+try:
+    print(json.load(open('$dir/.spelling.json')).get('convention',''))
+except Exception:
+    print('')" 2>/dev/null || echo "")
+            if [ -n "$conv" ]; then
+                local conv_uc
+                conv_uc=$(printf '%s' "$conv" | tr '[:lower:]' '[:upper:]')
+                # A directory, not a file list: that is what makes
+                # `.spelling-ignore` resolve from the repository root, globs
+                # included. CI passes `.` for the same reason.
+                if ! (cd "$dir" && $py "$tool" check . --convention "$conv"); then
+                    echo "▸ ${conv_uc} spelling: the push is refused. Run:" >&2
+                    echo "▸   $py .github/scripts/spelling_tool.py convert . --to $conv" >&2
+                    failed=1
+                fi
+            fi
+        fi
+    fi
+
+    return $failed
+}
+
+for sha in $SHAS; do
+    short=$(git rev-parse --short "$sha")
+    TMP=$(mktemp -d) || exit 1
+    rmdir "$TMP"                      # `git worktree add` wants a fresh path
+    if ! git worktree add --detach -q "$TMP" "$sha" >/dev/null 2>&1; then
+        echo "▸ could not check out $short for checking; skipping — CI will check." >&2
+        TMP=""
+        continue
+    fi
+    check_tree "$TMP" || FAILED=1
+    cleanup
+    TMP=""
+done
+
+if [ "$FAILED" -ne 0 ]; then
+    echo "▸ Nothing was pushed. Fix the above, or bypass with --no-verify and let CI" >&2
+    echo "▸ deal with it: it corrects a push to main and fails a pull request." >&2
+    exit 1
+fi
+
+exit 0
