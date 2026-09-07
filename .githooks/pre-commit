@@ -149,12 +149,37 @@ if [ -z "$CONV" ]; then
     exit 0
 fi
 
-if $PY "$TOOL" check --convention "$CONV" "${FILES[@]}" >/dev/null 2>&1; then
+# `.spelling-ignore` has to be passed explicitly for the same reason, and not
+# doing so is worse than a confusing error. The tool resolves it from the
+# *parent directory of each path given*, so a staged `docs/src/page.md` looks
+# for `docs/src/.spelling-ignore` and never sees the one at the root. The
+# `literal:` lines there exist to protect **quoted titles of third-party
+# work** -- OptimaSolver's shields "… reactive transport modelling" -- so
+# missing them does not merely skip a check: the converter rewrites the
+# citation and re-stages it. Verified both ways, the same file passing at the
+# root and being silently corrupted one directory down. CI is unaffected
+# because it passes `.`, a directory.
+#
+# A function rather than an array: `$PY` may be `py -3`, two words, so it must
+# stay unquoted, and an empty array under `set -u` is an error in bash 3.2,
+# which macOS still ships.
+run_tool() {
+    if [ -f .spelling-ignore ]; then
+        $PY "$TOOL" "$@" --ignore-file .spelling-ignore
+    else
+        $PY "$TOOL" "$@"
+    fi
+}
+
+if CHECK_OUT=$(run_tool check --convention "$CONV" "${FILES[@]}" 2>&1); then
     exit 0
 fi
 
+# Name the words before rewriting them. A step that edits prose and re-stages
+# it must not be the quietest one in the commit.
 echo "▸ ${CONV_UC} spelling: converting staged files…"
-$PY "$TOOL" convert "${FILES[@]}" --to "$CONV"
+printf '%s\n' "$CHECK_OUT" | sed 's/^/    /'
+run_tool convert "${FILES[@]}" --to "$CONV"
 
 # Re-stage only what the converter actually rewrote, so an unrelated unstaged
 # edit in the same file is never swept into the commit.
@@ -171,7 +196,7 @@ if [ "$CHANGED" -eq 0 ]; then
     # The checker objected but the converter changed nothing: a word it cannot
     # resolve on its own. Refuse rather than commit something CI will reject.
     echo "▸ ${CONV_UC} spelling: the checker still objects and the converter had no fix." >&2
-    $PY "$TOOL" check --convention "$CONV" "${FILES[@]}" >&2 || true
+    run_tool check --convention "$CONV" "${FILES[@]}" >&2 || true
     echo "▸ Fix by hand, or add an exception, then commit again." >&2
     exit 1
 fi
