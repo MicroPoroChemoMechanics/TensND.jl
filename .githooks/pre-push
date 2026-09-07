@@ -111,26 +111,47 @@ check_tree() {
         fi
     fi
 
+    # ── A Python 3, for the two checks below ────────────────────────────────
+    local py=""
+    for candidate in python3 python py; do
+        command -v "$candidate" >/dev/null 2>&1 || continue
+        if [ "$candidate" = "py" ]; then
+            if py -3 -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)" >/dev/null 2>&1; then
+                py="py -3"
+                break
+            fi
+        elif "$candidate" -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)" >/dev/null 2>&1; then
+            py="$candidate"
+            break
+        fi
+    done
+    if [ -z "$py" ]; then
+        echo "▸ no Python 3 found (tried python3, python, py -3); spelling and" >&2
+        echo "▸ cross-references not checked here — CI will check the first." >&2
+    fi
+
+    # ── Documenter cross-references ─────────────────────────────────────────
+    #
+    # Not something CI has an equivalent for short of the whole documentation
+    # build, which is why it is worth a second here. Documenter resolves an
+    # `@ref` inside a docstring *in the module that docstring lives in*, so an
+    # unqualified reference to a name from another submodule fails -- and it
+    # fails only when that docstring is listed on an API page, which may be
+    # long after the reference was written. The script's header sets out what
+    # it does and does not model.
+    local refs="$dir/.github/scripts/check_docrefs.py"
+    if [ -n "$py" ] && [ -f "$refs" ] && [ -d "$dir/src" ]; then
+        if ! (cd "$dir" && $py "$refs" src); then
+            echo "▸ cross-references: the push is refused. Qualify them as the" >&2
+            echo "▸ message above says, or use a plain code span." >&2
+            failed=1
+        fi
+    fi
+
     # ── Spelling, over the whole tree, exactly as `Spelling.yml` does ───────
     local tool="$dir/.github/scripts/spelling_tool.py"
     if [ -f "$tool" ] && [ -f "$dir/.spelling.json" ]; then
-        local py=""
-        for candidate in python3 python py; do
-            command -v "$candidate" >/dev/null 2>&1 || continue
-            if [ "$candidate" = "py" ]; then
-                if py -3 -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)" >/dev/null 2>&1; then
-                    py="py -3"
-                    break
-                fi
-            elif "$candidate" -c "import sys; sys.exit(0 if sys.version_info[0] == 3 else 1)" >/dev/null 2>&1; then
-                py="$candidate"
-                break
-            fi
-        done
-
-        if [ -z "$py" ]; then
-            echo "▸ spelling: no Python 3 found (tried python3, python, py -3) — CI will check." >&2
-        else
+        if [ -n "$py" ]; then
             local conv
             conv=$($py -c "import json
 try:
