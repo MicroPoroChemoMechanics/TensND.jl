@@ -400,6 +400,23 @@ is_CUBIC(::Any) = false
 symmetry(::TensCubic) = :CUBIC
 reference(t::TensCubic) = frame(t)
 
+# ── change_tens / components ─────────────────────────────────────────────────
+#
+# Same reasoning as for `TensTI{4}` and `TensOrtho`, and the same three methods.
+# A `TensCubic` stores its coefficients with `get_basis` canonical and the cube
+# frame kept separately, so re-expressing it in another orthonormal basis is a
+# genuine multi-index rotation: wrapping the stored components in the new basis
+# would relabel them and silently return a different physical tensor. The
+# rotation is not re-derived here — the components are handed to the generic
+# `TensOrthonormal` path as a canonical `Tens`.
+
+change_tens(t::TensCubic{T}, ℬ::OrthonormalBasis{3, T}) where {T} =
+    change_tens(_as_canonical_tens(t), ℬ)
+components(t::TensCubic{T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
+    components(_as_canonical_tens(t), ℬ, v)
+components(t::TensCubic) = get_array(t)
+components(t::TensCubic, ::NTuple{4, Symbol}) = get_array(t)
+
 # ── Display ──────────────────────────────────────────────────────────────────
 
 function Base.show(io::IO, A::TensCubic)

@@ -64,7 +64,10 @@ carries no anisotropy signal at all, whatever the shape does in elasticity.
   `cubic_anisotropy` (the Zener-type departure from isotropy), `is_CUBIC`.
 - `KM` and `KM_material`, `get_array` and a closed-form `getindex`, `inv`,
   `one`, `zero`, `literal_pow`, `transpose`, the symmetry predicates,
-  `symmetry` (`:CUBIC`), `reference`, `show` and `pprint`.
+  `symmetry` (`:CUBIC`), `reference`, `show` and `pprint`, and the
+  `change_tens` / `components` trio every structured type carries — the
+  coefficients are stored with a canonical `get_basis` and the cube frame kept
+  separately, so another basis needs the components *rotated*, not relabeled.
 - Exact promotions `iso_to_cubic` and `cubic_to_ortho`, completing the lattice
   `TensISO ⊂ TensCubic ⊂ TensOrtho`, with the mixed arithmetic that keeps
   `TensISO ± TensCubic` and `TensISO ⊡ TensCubic` in the cubic class and

@@ -313,6 +313,32 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
+    @testsection "change_tens / components" begin
+        # Stored with `get_basis` canonical and the cube frame kept separately,
+        # so re-expressing in another basis is a genuine rotation of the
+        # components -- relabeling them would return a different tensor.
+        C = tens_cubic(10.0, 4.0, 2.0, rot)
+        @test components(C) == get_array(C)
+        @test components(C, (:cont, :cont, :cont, :cont)) == get_array(C)
+        # Into a rotated basis: the components change, and they change the way
+        # the generic path changes them.
+        b = RotatedBasis(0.7, -0.2, 0.4)
+        moved = change_tens(C, b)
+        ref = change_tens(Tens(get_array(C)), b)
+        @test Array(get_array(moved)) ≈ Array(get_array(ref)) atol = 1.0e-12
+        @test Array(components(C, b, (:cont, :cont, :cont, :cont))) ≈
+            Array(components(Tens(get_array(C)), b, (:cont, :cont, :cont, :cont))) atol =
+            1.0e-12
+        # The physical tensor is unchanged, which is the point of rotating
+        # rather than relabeling — compared in a common basis, since `KM` of a
+        # tensor stored in a rotated basis returns the components *in that
+        # basis*.
+        @test Matrix(KM(change_tens_canon(moved))) ≈ Matrix(KM(C)) atol = 1.0e-12
+        # And the canonical target is a no-op.
+        @test Array(get_array(change_tens(C, can))) ≈ Array(get_array(C)) atol = 1.0e-12
+    end
+
+    # ═══════════════════════════════════════════════════════════════════════════
     @testsection "Rotational average" begin
         C = tens_cubic(10.0, 4.0, 2.0, can)
         a = isotropify(C)
