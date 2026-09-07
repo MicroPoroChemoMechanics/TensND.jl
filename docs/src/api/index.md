@@ -10,6 +10,7 @@ curated, so a newly exported symbol can never go undocumented.
 | [Tensors](tensors.md) | `AbstractTens`, `Tens`, components, Kelvin-Mandel |
 | [Structured tensors](structured.md) | `TensISO` and the isotropic projectors |
 | [Walpole and orthotropy](walpole.md) | `TensTI`, `TensOrtho`, parametrizations |
+| [Cubic symmetry](cubic.md) | `TensCubic`, three constants and a cube frame |
 | [Projection](projection.md) | `proj_tens`, `best_sym_tens`, predicates |
 | [Special tensors](special.md) | Levi-Civita, rotations, unit vectors |
 | [Coordinate systems](coorsystems.md) | `CoorSystemSym` and the operators |

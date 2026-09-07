@@ -11,7 +11,8 @@ B, d, drel = proj_tens(sym, A)              # orientation optimized — needs NL
 B, d, drel = proj_tens(sym, A, n_or_frame)  # orientation given
 ```
 
-with `sym ∈ (:ISO, :TI, :ORTHO)`, `A` an order-2 or order-4 array or tensor, and
+with `sym ∈ (:ISO, :TI, :ORTHO, :CUBIC)`, `A` an order-2 or order-4 array or
+tensor, and
 
 | Returned | Meaning |
 | :--- | :--- |
@@ -98,7 +99,39 @@ best_sym_tens(Tens(C_tilt))[4]
     Reach for `optimize_angles = true` when the tensor is only *approximately*
     of the class and the best orientation is itself the question.
 
+## Cubic symmetry
+
+`:CUBIC` takes a cube frame, like `:ORTHO`, and returns a
+[`TensCubic`](@ref) — or a [`TensISO`](@ref) at order 2, the two classes
+coinciding there.
+
+```@example proj
+ℬ = CanonicalBasis{3, Float64}()
+cub = tens_cubic(10.0, 4.0, 2.0, ℬ)
+B, d, drel = proj_tens(:CUBIC, get_array(cub), ℬ)
+drel
+```
+
+There is **no orientation-optimizing method** for it: unlike a TI axis, a cube
+frame is not a smooth parameter to optimize over — the octahedral group is
+discrete, so the objective is piecewise and the candidate frames come from the
+eigenstructure rather than from a search. Give the frame.
+
+The residual is the number worth reporting. When the morphology and the medium
+leave the octahedral group invariant, the answer belongs to the class **by group
+theory**, so `drel` is bounded by the discretization error and by nothing else —
+an error estimate with no reference solution in it. What lives *inside* the
+class, and is therefore not measured by `drel`, is
+[`cubic_anisotropy`](@ref): the two together separate a real material anisotropy
+from a numerical artifact, since an artifact breaks the symmetry while a real
+anisotropy does not.
+
 ## Predicates
+
+[`is_CUBIC`](@ref) is deliberately **not** in this family: it is a type-level
+query only, answering whether the object is stored as a `TensCubic`. To ask
+whether a general tensor *is* cubic about a given cube, project it and read
+`drel`.
 
 [`is_ISO`](@ref), [`is_TI`](@ref) and [`is_ORTHO`](@ref) are the same
 computation with a boolean answer, and they respect the hierarchy

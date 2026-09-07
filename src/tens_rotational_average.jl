@@ -284,6 +284,29 @@ function isotropify(t::TensTI{4})
 end
 
 # An isotropic tensor is its own SO(3) average, at either order.
+# Closed form on the cubic coefficients, avoiding `get_array`.
+#
+# The SO(3) average projects onto span(𝕁, 𝕂) with 𝕂 = 𝔼 + 𝕋, and the two
+# invariants read directly off the coefficients:
+#
+#     T_iijj = α          (𝔼 and 𝕋 are traceless on that contraction)
+#     T_ijij = α + 2β + 3γ
+#
+# — the 2 and the 3 being the dimensions of the Eg and T2g subspaces. Hence
+#
+#     isotropify(α𝕁 + β𝔼 + γ𝕋) = α𝕁 + ((2β + 3γ)/5) 𝕂 ,
+#
+# which is the weighted mean of β and γ over the five dimensions they share.
+# It is **exact**, not a fit: 𝕁 is already isotropic and the average of the
+# remaining part is its trace spread over 𝕂.
+#
+# A cubic tensor is therefore isotropic on average whatever its anisotropy —
+# `cubic_anisotropy` measures precisely what this discards.
+function isotropify(t::TensCubic)
+    α, β, γ = get_data(t)
+    return TensISO{3}(α, (2β + 3γ) / 5)
+end
+
 isotropify(t::TensISO{4, 3}) = t
 isotropify(t::TensISO{2, 3}) = t
 

@@ -1,6 +1,6 @@
 # ──────────────────────────────────────────────────────────────────────────────
 # Shared operations for structured tensor types (TensISO, TensTI{4}, TensTI,
-# TensOrtho).  Each type must implement:
+# TensOrtho, TensCubic).  Each type must implement:
 #   • get_data(t)        → NTuple of scalar coefficients
 #   • _rebuild(t, data) → new tensor of the same kind with updated data
 # ──────────────────────────────────────────────────────────────────────────────
@@ -10,7 +10,7 @@
 # identical loops previously duplicated in each file.
 
 for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig, :tlimit)
-    @eval $OP(A::Union{TensISO, TensTI{4}, TensTI, TensOrtho}, args...; kwargs...) =
+    @eval $OP(A::Union{TensISO, TensTI{4}, TensTI, TensOrtho, TensCubic}, args...; kwargs...) =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
 end
 
@@ -28,6 +28,8 @@ for OP in (:tsimplify, :tsubs, :tdiff)
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
     @eval $OP(A::TensOrtho{Num}, args...; kwargs...) =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
+    @eval $OP(A::TensCubic{Num}, args...; kwargs...) =
+        _rebuild(A, $OP(get_data(A), args...; kwargs...))
 end
 
 # ── Scalar arithmetic ────────────────────────────────────────────────────────
@@ -36,7 +38,7 @@ end
 # _rebuild.  Type promotion is handled correctly by _rebuild (which uses
 # eltype(new_data)), supporting generic Number types including ForwardDiff.Dual.
 
-for ST in (TensISO, TensTI{4}, TensTI, TensOrtho)
+for ST in (TensISO, TensTI{4}, TensTI, TensOrtho, TensCubic)
     @eval @inline Base.:-(A::$ST) = _rebuild(A, .-(get_data(A)))
     @eval @inline Base.:*(α::Number, A::$ST) = _rebuild(A, α .* get_data(A))
     @eval @inline Base.:*(A::$ST, α::Number) = _rebuild(A, get_data(A) .* α)
@@ -45,7 +47,9 @@ end
 
 # ── Reference checks for binary operations ───────────────────────────────────
 # TensTI{4} and TensTI carry a symmetry axis (n); TensOrtho carries a material
-# frame.  Binary arithmetic requires the same reference.
+# frame; TensCubic carries a cube frame, and its check is looser than equality
+# for a reason given in `_same_cube_frame`.  Binary arithmetic requires the
+# same reference.
 
 @inline _check_same_reference(A::TensTI{4}, B::TensTI{4}) =
     @assert axis(A) == axis(B) "TensTI{4} operation requires the same axis"

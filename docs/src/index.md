@@ -40,7 +40,7 @@ features:
     link: /tutorials/
   - icon: ⚡
     title: Structured types
-    details: TensISO, TensTI and TensOrtho store 2, 5 and 9 scalars and compute products and inverses in closed form, orders of magnitude faster than the dense route.
+    details: TensISO, TensTI, TensCubic and TensOrtho store 2, 5, 3 and 9 scalars and compute products and inverses in closed form, orders of magnitude faster than the dense route.
     link: /manual/structured_tensors
   - icon: 📖
     title: API reference
@@ -61,7 +61,8 @@ assumed; the differential operators follow from the chart, symbolically or by
 automatic differentiation.
 
 Three structured types — [`TensISO`](@ref), [`TensTI`](@ref) and
-[`TensOrtho`](@ref) — store the 2, 5 and 9 scalars a symmetry class really has,
+[`TensCubic`](@ref), [`TensOrtho`](@ref) — store the 2, 5, 3 and 9 scalars a
+symmetry class really has,
 and compute products and inverses in closed form. The same code runs on
 `Float64`, `ForwardDiff.Dual`, `SymPy.Sym` and `Symbolics.Num`.
 

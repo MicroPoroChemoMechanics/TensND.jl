@@ -17,10 +17,21 @@ ti_params_from_KM
 KM_from_ti_params
 ortho_params_from_KM
 KM_from_ortho_params
+cubic_params_from_KM
+KM_from_cubic_params
 best_fit_iso
 best_fit_ti
 best_fit_ortho
+best_fit_cubic
 ```
+
+!!! note "`is_CUBIC` is a type-level query only"
+    Unlike [`is_ISO`](@ref) and [`is_TI`](@ref), which also have value-level
+    methods that test the components against a tolerance,
+    [`is_CUBIC`](@ref) only answers whether the object is stored as a
+    [`TensCubic`](@ref). To ask whether a general tensor *is* cubic about a
+    given cube, project it and read the residual:
+    `proj_tens(Val(:CUBIC), t, frame)[3]`.
 
 ## Exact rotation-group averages
 

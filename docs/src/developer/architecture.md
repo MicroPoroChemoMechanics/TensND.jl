@@ -13,6 +13,7 @@ flowchart TB
     TE["<b>tens.jl</b><br/>AbstractTens, Tens,<br/>components, KM"]
     ISO["<b>tens_isotropic.jl</b><br/>TensISO"]
     ANI["<b>tens_anisotropic.jl</b><br/>TensTI, TensOrtho"]
+    CUB["<b>tens_cubic.jl</b><br/>TensCubic"]
     OPS["<b>structured_tens_ops.jl</b><br/>shared metaprogramming"]
     PRO["<b>structured_tens_promotion.jl</b><br/>cross-class promotion"]
     PRJ["<b>tens_projection.jl</b><br/>projection kernels"]

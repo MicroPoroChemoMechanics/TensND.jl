@@ -4,8 +4,8 @@ The compact symmetry-class types. Each stores a handful of scalars instead of
 ``d^4`` components and computes products and inverses in closed form. The
 algebra behind each is on [Isotropic tensors](@ref th-isotropic),
 [The Walpole basis](@ref th-walpole),
-[The extended Walpole algebra](@ref th-walpole-extended) and
-[Orthotropy](@ref th-orthotropy).
+[The extended Walpole algebra](@ref th-walpole-extended),
+[Orthotropy](@ref th-orthotropy) and [Cubic symmetry](@ref th-cubic).
 
 ## Storage
 
@@ -18,6 +18,7 @@ algebra behind each is on [Isotropic tensors](@ref th-isotropic),
 | `TensTI{4,T,5}` | ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` | axis ``\underline{n}`` | major-symmetric TI |
 | `TensTI{4,T,6}` | ``(\ell_1,\ldots,\ell_6)`` | axis ``\underline{n}`` | general TI |
 | `TensTI{4,T,8}` | ``(\ell_1,\ldots,\ell_8)`` | axis ``\underline{n}`` | full axially invariant |
+| `TensCubic{T,B}` | 3 scalars ``(\alpha,\beta,\gamma)`` | cube frame `B` | ``\alpha\mathbb{J}+\beta\mathbb{E}+\gamma\mathbb{T}`` |
 | `TensOrtho{T,B}` | 9 constants | frame `B` | orthotropic |
 
 ```@example struct
@@ -38,6 +39,10 @@ ti = TensTI{4}(12.0, 13.0, 3.5, 7.0, 4.0, n)
 ort = TensOrtho(10.0, 8.0, 9.0, 3.0, 2.0, 4.0, 2.5, 3.0, 1.5, ℬ)
 ```
 
+```@example struct
+cub = tens_cubic(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄₄)
+```
+
 ## Constructors
 
 | Class | Constructors |
@@ -45,7 +50,8 @@ ort = TensOrtho(10.0, 8.0, 9.0, 3.0, 2.0, 4.0, 2.5, 3.0, 1.5, ℬ)
 | ISO | [`TensISO`](@ref), [`tens_Id2`](@ref), [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref), [`ISO`](@ref), [`iso_projectors`](@ref) |
 | TI order 4 | [`TensTI`](@ref), [`tens_TI`](@ref), [`tens_TI_eng`](@ref), [`tens_TI_Hoenig`](@ref), [`fromISO`](@ref), [`tens_W1`](@ref)…[`tens_W8`](@ref), [`walpole_basis`](@ref), [`walpole_basis_sym`](@ref) |
 | TI order 2 | [`TensTI`](@ref)`{2}(a, b, n)` and `(a, b, c, n)` |
-| ORTHO | [`TensOrtho`](@ref), [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref) |
+| CUBIC | [`TensCubic`](@ref), [`tens_cubic`](@ref), [`iso_to_cubic`](@ref) |
+| ORTHO | [`TensOrtho`](@ref), [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref), [`cubic_to_ortho`](@ref) |
 
 ## Accessors
 
@@ -55,10 +61,12 @@ ort = TensOrtho(10.0, 8.0, 9.0, 3.0, 2.0, 4.0, 2.5, 3.0, 1.5, ℬ)
 | [`get_ℓ`](@ref) | `TensTI{4}` | the six classical Walpole coefficients |
 | [`get_ℓ8`](@ref) | `TensTI{4}` | all eight, zero-padded |
 | [`axis`](@ref) | `TensTI` | the symmetry axis |
-| [`frame`](@ref) | `TensOrtho` | the material frame |
-| [`reference`](@ref) | `TensTI`, `TensOrtho` | axis or frame, whichever applies |
+| [`frame`](@ref) | `TensOrtho`, `TensCubic` | the material or cube frame |
+| [`reference`](@ref) | `TensTI`, `TensOrtho`, `TensCubic` | axis or frame, whichever applies |
 | [`symmetry`](@ref) | all | the class as a `Symbol` |
-| [`KM_material`](@ref) | `TensOrtho` | the block-diagonal matrix in the material frame |
+| [`KM_material`](@ref) | `TensOrtho`, `TensCubic` | the sparse matrix in the class's own frame |
+| [`arg_cubic`](@ref) | `TensCubic` | the constants ``(C_{11},C_{12},C_{44})`` |
+| [`cubic_anisotropy`](@ref) | `TensCubic` | the Zener-type departure from isotropy |
 
 ```@example struct
 get_ℓ(ti), axis(ti)
@@ -74,13 +82,18 @@ This is the table to know. `⊡` between structured types stays structured
 **only while the result stays in the class**; otherwise it falls back to the
 generic route, exactly and without warning.
 
-| `A ⊡ B` | ISO | TI{4,5} | TI{4,6} | TI{4,8} | ORTHO |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **ISO** | ISO | TI{4,6} | TI{4,6} | TI{4,8} | generic |
-| **TI{4,5}** | TI{4,6} | TI{4,6} | TI{4,6} | TI{4,8} | generic |
-| **TI{4,6}** | TI{4,6} | TI{4,6} | TI{4,6} | TI{4,8} | generic |
-| **TI{4,8}** | TI{4,8} | TI{4,8} | TI{4,8} | TI{4,8} | generic |
-| **ORTHO** | generic | generic | generic | generic | generic |
+| `A ⊡ B` | ISO | CUBIC | TI{4,5} | TI{4,6} | TI{4,8} | ORTHO |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **ISO** | ISO | **CUBIC** | TI{4,6} | TI{4,6} | TI{4,8} | generic |
+| **CUBIC** | **CUBIC** | **CUBIC** | generic | generic | generic | generic |
+| **TI{4,5}** | TI{4,6} | generic | TI{4,6} | TI{4,6} | TI{4,8} | generic |
+| **TI{4,6}** | TI{4,6} | generic | TI{4,6} | TI{4,6} | TI{4,8} | generic |
+| **TI{4,8}** | TI{4,8} | generic | TI{4,8} | TI{4,8} | TI{4,8} | generic |
+| **ORTHO** | generic | generic | generic | generic | generic | generic |
+
+The `CUBIC` row and column need the two frames to describe the same cube, and
+the `ISO`/`TI`/`ORTHO` ones the same axis or frame; otherwise the generic route
+is taken.
 
 Two widenings deserve an explanation, and both have the same cause: **the
 major-symmetric tensors of a class do not form a subalgebra**.
@@ -92,10 +105,20 @@ major-symmetric tensors of a class do not form a subalgebra**.
   major symmetry: twelve independent constants where `TensOrtho` stores nine.
   Rather than add a twelve-parameter container, the generic tensor is returned.
 
+**`CUBIC ⊡ CUBIC → CUBIC` is the one entry that does not widen**, and it is
+worth knowing why: each irreducible representation of the octahedral group
+appears with multiplicity one, so the three projectors are orthogonal, any two
+cubic tensors about the same cube commute, and the product is cubic *and* still
+major-symmetric. Cubic symmetry is the only class here that is a genuine
+commutative subalgebra. See [Cubic symmetry](@ref th-cubic).
+
+`CUBIC ⊡ TI` is generic for the opposite reason: the two classes are
+incomparable, their intersection being the isotropic class.
+
 Inversion, by contrast, **always stays in the class**:
 
 ```@example struct
-typeof(inv(iso)), typeof(inv(ti)), typeof(inv(ort))
+typeof(inv(iso)), typeof(inv(ti)), typeof(inv(ort)), typeof(inv(cub))
 ```
 
 ## Exact promotions
@@ -109,6 +132,10 @@ typeof(fromISO(iso, [0.0, 0.0, 1.0]))
 
 ```@example struct
 typeof(iso_to_ortho(iso, ℬ)), typeof(walpole_to_ortho(ti, ℬ, 3))
+```
+
+```@example struct
+typeof(iso_to_cubic(iso, ℬ)), typeof(cubic_to_ortho(cub))
 ```
 
 Moving *down* is approximation, and is [Projection](@ref man-projection).
@@ -126,6 +153,13 @@ ERROR: AssertionError: TensOrtho operation requires the same material frame
 The assertion is deliberate: silently promoting to a generic tensor would hide a
 modeling error. Convert explicitly if that is what you mean.
 
+`TensCubic` is the one class where the test is looser than equality, and
+legitimately so: the three projectors are invariant under the whole octahedral
+group, so two frames related by a **signed permutation** of the axes describe
+the same tensor with the same coefficients and are accepted. Permuting the axes
+of an orthotropic tensor permutes ``C_{11},C_{22},C_{33}``; permuting those of a
+cubic one changes nothing.
+
 ## When to use which
 
 | Situation | Type |
@@ -133,6 +167,7 @@ modeling error. Convert explicitly if that is what you mean.
 | the physics guarantees isotropy | `TensISO` |
 | a stiffness or compliance with an axis of symmetry | `TensTI{4,T,5}` |
 | an object with an axis but no major symmetry (a concentration tensor) | `TensTI{4,T,6}` or `{4,T,8}` |
+| a cubic crystal, a cubic array, a cube-symmetric shape | `TensCubic` |
 | nine constants and a material frame | `TensOrtho` |
 | anything else | a plain `Tens` |
 

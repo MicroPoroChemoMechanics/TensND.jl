@@ -102,6 +102,28 @@ C_{44},C_{55},C_{66}\ \text{halved from the KM diagonal},
 everything outside the two blocks being discarded. For an order-2 tensor the
 same reasoning reduces to *keep the diagonal in the material frame*.
 
+### Cubic symmetry
+
+The cleanest case of all, because the three generators are not merely mutually
+orthogonal but are **projectors** summing to the identity. The normal equations
+degenerate into three traces (`_project_CUBIC_KM`):
+
+```math
+\alpha = \operatorname{tr}(\mathbb{C}\,\mathbb{J}),\qquad
+\beta  = \tfrac12\operatorname{tr}(\mathbb{C}\,\mathbb{E}),\qquad
+\gamma = \tfrac13\operatorname{tr}(\mathbb{C}\,\mathbb{T}),
+```
+
+the divisors being the traces of the projectors themselves. Concretely, ``α`` is
+the mean of the whole upper ``3\times3`` block, ``β`` the mean of its diagonal
+minus its off-diagonal, ``γ`` the mean of the shear diagonal — so the projection
+*averages* rather than discards, and a non-major-symmetric input is symmetrized
+implicitly by the same traces.
+
+At order 2 there is nothing to do: the octahedral group leaves no second-order
+tensor invariant but a multiple of the identity, so the cubic projection **is**
+the isotropic one. See [Cubic symmetry](@ref th-cubic).
+
 ### Isotropy
 
 The two-dimensional case, already given in [Isotropic tensors](@ref th-isotropic):

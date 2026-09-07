@@ -25,7 +25,8 @@ flowchart TB
 - **Tensor algebra** — ``\otimes``, ``\stackrel{s}{\otimes}``, ``\boxtimes``,
   ``\stackrel{s}{\boxtimes}``, and contractions of one, two or four indices.
 - **Structured types** — [`TensISO`](@ref), [`TensTI`](@ref),
-  [`TensOrtho`](@ref) store 2, 5 and 9 scalars and compute products and inverses
+  [`TensCubic`](@ref) and [`TensOrtho`](@ref) store 2, 5, 3 and 9 scalars and
+  compute products and inverses
   in closed form, one to three orders of magnitude faster than the dense route.
 - **Symmetry projection** — the closest isotropic, transversely isotropic or
   orthotropic tensor, with the orientation given or optimized.
