@@ -42,10 +42,20 @@ cd "$(git rev-parse --show-toplevel)"
 # If it is missing the commit is allowed: CI remains the authority, and a hook
 # that blocks work over a missing convenience gets bypassed with --no-verify.
 
+# The same paths `Format.yml` formats -- `src`, `test`, `ext` -- and no others.
+# Formatting more than CI does is a divergence too: it produces no red run, but
+# it means a local commit differs from what CI would have produced, and it
+# churns files nobody asked about. Observed: staging `docs/make.jl` reformatted
+# fourteen lines of pre-existing comment indentation inside an `if` block, in a
+# commit about something else entirely. The spelling section below is *not*
+# restricted this way, and must not be: `Spelling.yml` runs on `.`.
 JL_FILES=()
 while IFS= read -r f; do
     [ -n "$f" ] && [ -f "$f" ] && JL_FILES+=("$f")
-done < <(git diff --cached --name-only --diff-filter=ACM -- '*.jl')
+done < <(
+    git diff --cached --name-only --diff-filter=ACM \
+        -- 'src/*.jl' 'test/*.jl' 'ext/*.jl'
+)
 
 if [ ${#JL_FILES[@]} -gt 0 ]; then
     if ! command -v julia >/dev/null 2>&1; then
