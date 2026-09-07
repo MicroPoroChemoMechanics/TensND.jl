@@ -159,6 +159,25 @@
         @test !((C ⊡ Cr) isa TensCubic)
         @test Matrix(KM(C ⊡ Cr)) ≈
             Matrix(KM(Tens(get_array(C)) ⊡ Tens(get_array(Cr)))) atol = 1.0e-10
+
+        # The hard case for the test, and the reason it is written with two
+        # thresholds rather than one: a frame that is *almost* a signed
+        # permutation. Rotate by an angle small enough that every large entry
+        # of FᴬᵀFᴮ passes the `≈ 1` test -- cos(10⁻⁶) differs from one by
+        # 5·10⁻¹³, well inside the 10⁻¹⁰ tolerance -- and what is left to
+        # notice is the off-diagonal residue alone. The check must reject it:
+        # two cube frames are the same cube or they are not, and there is no
+        # meaningful sense in which a cube tilted by 10⁻⁶ rad is the first one.
+        θ = 1.0e-6
+        near = Basis([cos(θ) -sin(θ) 0.0; sin(θ) cos(θ) 0.0; 0.0 0.0 1.0])
+        Cn = tens_cubic(10.0, 4.0, 2.0, near)
+        @test !TensND._same_cube_frame(C, Cn)
+        @test_throws AssertionError C + Cn
+        @test !((C ⊡ Cn) isa TensCubic)
+        # And the fallback is not an approximation of the structured route: it
+        # is the dense answer, which differs from `2 .* get_data(C)` here.
+        @test Matrix(KM(C ⊡ Cn)) ≈
+            Matrix(KM(Tens(get_array(C)) ⊡ Tens(get_array(Cn)))) atol = 1.0e-10
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
