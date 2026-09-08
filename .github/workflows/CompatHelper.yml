@@ -42,8 +42,18 @@ jobs:
       # CompatHelper opens a pull request as soon as a version outside the bound
       # is registered; that pull request's CI is the answer to "is upstream
       # fixed yet?" — red means keep the bound, green means delete it.
+      #
+      # `entry_type = DropEntry()` **replaces** the old bound instead of widening
+      # it. The default, `KeepEntry()`, turns `TensND = "0.4"` into
+      # `TensND = "0.4, 0.5"` — which reads as caution and is the opposite. When
+      # a release genuinely requires the new version, as MeanFieldHomogenization
+      # 0.12 requires `TensCubic` from TensND 0.5, the widened bound lets the
+      # resolver pick the old one: the environment resolves and then fails at
+      # *load*, with an `UndefVarError` naming something that simply is not there.
+      # Widening is still the right move when both versions really do work, and
+      # then it is a deliberate edit on the pull request rather than a default.
       - name: CompatHelper.main()
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           COMPATHELPER_PRIV: ${{ secrets.DOCUMENTER_KEY }}
-        run: julia -e 'using CompatHelper; CompatHelper.main(; subdirs = ["", "docs"])'
+        run: julia -e 'using CompatHelper; CompatHelper.main(; subdirs = ["", "docs"], entry_type = DropEntry())'
