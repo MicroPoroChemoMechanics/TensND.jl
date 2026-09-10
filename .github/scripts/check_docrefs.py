@@ -41,6 +41,25 @@ The doc build remains the authority. What this buys is finding the failure in a
 second instead of in a CI run several minutes long, and finding it for
 docstrings that no API page lists *yet* — those are latent, and break the build
 the day someone lists them, far from the change that introduced them.
+
+## The second rule: an `@ref` needs a *docstring*, not just a binding
+
+Reachability is necessary and not sufficient. Documenter links an `@ref` to a
+**docstring**, so a name that exists and is even exported, but that carries no
+docstring at all, fails the same way:
+
+    Cannot resolve @ref for md"[`FunctionRetention`](@ref)"
+    - No docstring found in doc for binding `ChemistryLab.FunctionRetention`.
+
+`checkdocs` does not catch this. It verifies that the docstrings a package
+*has* are all published; a binding with none has nothing to publish and nothing
+to complain about. Only the reference fails, and only at build time.
+
+So this script also collects which names carry a docstring, by taking the first
+code line after each triple-quoted block, and flags an `@ref` whose target is
+defined but undocumented. That sweeps in a second trap for free: Julia detaches
+a docstring silently when a **comment** sits between the closing quotes and the
+definition, so an orphaned docstring reads here as an undocumented name.
 """
 
 import collections
@@ -63,6 +82,89 @@ DEF_PATTERNS = [
 ]
 
 REF = re.compile(r"\[`?([A-Za-z_][\w!.]*)`?\]\(@ref\)")
+
+# A name on a line of its own also takes a docstring: a doc block then `foo`,
+# which is how a const or a function with no method here is documented.
+BARE_NAME = re.compile(r"^\s*([A-Za-z_][\w!]*)\s*$")
+
+# What the line after a doc block documents. Deliberately looser than
+# `DEF_PATTERNS`, which is written to enumerate definitions: here a miss turns
+# into a FAIL on a name that is plainly documented, so over-collecting is the
+# safe direction. `DEF_PATTERNS` cannot be reused as it stands — its
+# assignment-form pattern reads the signature as `[^)]*`, which stops at the
+# first `)` and so misses every signature with a nested call in it, such as
+# `tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} = ...`.
+# That was 14 false positives on TensND alone.
+DOC_TARGETS = [
+    re.compile(
+        r"^\s*(?:@\w[\w.]*\s+)?(?:mutable\s+)?"
+        r"(?:function|struct|abstract\s+type|primitive\s+type|macro|const|"
+        r"module|baremodule)\s+([A-Za-z_][\w!]*)"
+    ),
+    re.compile(r"^\s*(?:@\w[\w.]*\s+)?(?:Base\.)?([A-Za-z_][\w!]*)\s*[({=]"),
+    BARE_NAME,
+]
+
+
+def documented_names(files):
+    """Names carrying a docstring, paired block by block.
+
+    Three shapes have to be told apart, and getting the third one wrong throws
+    the pairing off for the rest of the file — every later closing line then
+    reads as an opener:
+
+        \"\"\"docstring\"\"\"                  the target is the next code line
+        f(x) = ...
+
+        @doc \"\"\"                        the target is on the CLOSING line,
+        docstring                            which is how a type alias or a
+        \"\"\" PhaseQuantities                binding with no definition of its
+                                             own is documented
+
+        \"\"\"docstring\"\"\" name             both on one line
+
+    A **comment** between the closing quotes and the definition detaches the
+    docstring in Julia, silently, so this stops at one and leaves the name out —
+    which is the behavior wanted, since Documenter will not find it either.
+    """
+    q = '"' * 3
+    names = set()
+    for path in files:
+        lines = open(path, encoding="utf-8").read().splitlines()
+        i = 0
+        while i < len(lines):
+            head = lines[i].strip()
+            if head.startswith("@doc"):
+                head = head[4:].lstrip()
+            if head.startswith("raw" + q):
+                head = head[3:]
+            if not head.startswith(q):
+                i += 1
+                continue
+            rest = head[3:]
+            if q in rest:                       # opens and closes on one line
+                close, tail = i, rest.split(q, 1)[1]
+            else:
+                close = i + 1
+                while close < len(lines) and q not in lines[close]:
+                    close += 1
+                tail = lines[close].split(q, 1)[1] if close < len(lines) else ""
+            named = BARE_NAME.match(tail)       # `\"\"\" PhaseQuantities`
+            if named:
+                names.add(named.group(1))
+                i = close + 1
+                continue
+            code = close + 1
+            while code < len(lines) and lines[code].strip() == "":
+                code += 1
+            if code < len(lines):
+                for pat in DOC_TARGETS:
+                    m = pat.match(lines[code])
+                    if m:
+                        names.add(m.group(1))
+                        break
+            i = code + 1
+    return names
 
 
 def defined_names(files):
@@ -137,6 +239,9 @@ def main(root="src"):
     groups = dict(groups)
 
     defs = {name: defined_names(files) for name, files in groups.items()}
+    documented = set()
+    for files in groups.values():
+        documented |= documented_names(files)
 
     reachable = collections.defaultdict(set)
     for name, files in groups.items():
@@ -146,6 +251,7 @@ def main(root="src"):
                 reachable[name].add(m.group(1))
 
     bad = []
+    undocumented = []
     for name, files in groups.items():
         reach = set(defs[name]) | set(defs.get("Core", set()))
         for other in reachable[name]:
@@ -156,18 +262,34 @@ def main(root="src"):
             ):
                 for m in REF.finditer(line):
                     target = m.group(1)
-                    if "." in target or target in reach:
+                    if "." in target:
                         continue
-                    bad.append((path, lineno, name, target))
+                    if target not in reach:
+                        bad.append((path, lineno, name, target))
+                    elif target not in documented:
+                        undocumented.append((path, lineno, name, target))
 
-    if not bad:
-        print(f"OK: every unqualified @ref under {root}/ is reachable from its module")
+    if not bad and not undocumented:
+        print(
+            f"OK: every unqualified @ref under {root}/ is reachable from its "
+            "module and has a docstring"
+        )
         return 0
-    print(f"FAIL: {len(bad)} unqualified @ref out of reach of its own module")
-    for path, lineno, mod, target in bad:
-        print(f"  {path}:{lineno}  in {mod}: `{target}`")
-    print("\nQualify them, e.g. [`RVE`](@ref MeanFieldHomogenization.Schemes.RVE),")
-    print("or make them plain code spans if the target is private.")
+    if bad:
+        print(f"FAIL: {len(bad)} unqualified @ref out of reach of its own module")
+        for path, lineno, mod, target in bad:
+            print(f"  {path}:{lineno}  in {mod}: `{target}`")
+        print("\nQualify them, e.g. [`RVE`](@ref MeanFieldHomogenization.Schemes.RVE),")
+        print("or make them plain code spans if the target is private.")
+    if undocumented:
+        print(f"FAIL: {len(undocumented)} @ref to a name that carries no docstring")
+        for path, lineno, mod, target in undocumented:
+            print(f"  {path}:{lineno}  in {mod}: `{target}`")
+        print("\nDocumenter links an @ref to a docstring, not to a binding, so it")
+        print("cannot resolve these. Give the target a docstring, or make the")
+        print("reference a plain code span. A comment between the closing quotes")
+        print("and the definition detaches a docstring silently and reads here as")
+        print("a missing one.")
     return 1
 
 
