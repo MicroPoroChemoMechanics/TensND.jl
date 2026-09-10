@@ -60,6 +60,24 @@ code line after each triple-quoted block, and flags an `@ref` whose target is
 defined but undocumented. That sweeps in a second trap for free: Julia detaches
 a docstring silently when a **comment** sits between the closing quotes and the
 definition, so an orphaned docstring reads here as an undocumented name.
+
+### Rendered or latent, which is the difference between the two verdicts
+
+Documenter resolves an `@ref` only inside a docstring it **includes in the
+document**. So the same defect is a build failure or nothing at all depending on
+whether any page lists the docstring holding the reference, and this script says
+which:
+
+- inside a docstring some page renders — an `@autodocs` `Pages` entry or a
+  `@docs` block naming it — the build fails today, so the check fails and the
+  `pre-push` hook refuses the push;
+- inside a docstring no page lists, it is **latent**: reported, exit code
+  unchanged. It breaks the build the day someone lists that docstring, which is
+  worth knowing and is not worth refusing a push over.
+
+Getting that distinction wrong is not academic: without it this check refused
+every push in three of the five repositories, over references that could not
+fail anything.
 """
 
 import collections
@@ -99,15 +117,19 @@ DOC_TARGETS = [
     re.compile(
         r"^\s*(?:@\w[\w.]*\s+)?(?:mutable\s+)?"
         r"(?:function|struct|abstract\s+type|primitive\s+type|macro|const|"
-        r"module|baremodule)\s+([A-Za-z_][\w!]*)"
+        r"module|baremodule)\s+(?:[A-Za-z_]\w*\.)*([A-Za-z_][\w!]*)"
     ),
-    re.compile(r"^\s*(?:@\w[\w.]*\s+)?(?:Base\.)?([A-Za-z_][\w!]*)\s*[({=]"),
+    re.compile(r"^\s*(?:@\w[\w.]*\s+)?(?:[A-Za-z_]\w*\.)*([A-Za-z_][\w!]*)\s*[({=]"),
     BARE_NAME,
 ]
 
+# `@doc (@doc voigt_stress) voigt_strain` — two functions sharing one docstring,
+# with no quotes anywhere on the line. The name documented is the last one.
+DOC_ALIAS = re.compile(r"^\s*@doc\s+\S.*?\s([A-Za-z_][\w!]*)\s*$")
 
-def documented_names(files):
-    """Names carrying a docstring, paired block by block.
+
+def doc_blocks(path):
+    """Every docstring in a file as `(first_line, last_line, documented_name)`.
 
     Three shapes have to be told apart, and getting the third one wrong throws
     the pairing off for the rest of the file — every later closing line then
@@ -124,47 +146,129 @@ def documented_names(files):
         \"\"\"docstring\"\"\" name             both on one line
 
     A **comment** between the closing quotes and the definition detaches the
-    docstring in Julia, silently, so this stops at one and leaves the name out —
-    which is the behavior wanted, since Documenter will not find it either.
+    docstring in Julia, silently, so this stops at one and yields `None` for the
+    name — which is the behavior wanted, since Documenter will not find it
+    either.
+
+    Line numbers are 1-based, and the span covers the quotes themselves: it is
+    used to decide which docstring an `@ref` sits in.
     """
     q = '"' * 3
+    lines = open(path, encoding="utf-8").read().splitlines()
+    blocks = []
+    i = 0
+    while i < len(lines):
+        head = lines[i].strip()
+        if head.startswith("@doc") and q not in head:
+            alias = DOC_ALIAS.match(head)
+            if alias:
+                blocks.append((i + 1, i + 1, alias.group(1)))
+            i += 1
+            continue
+        if head.startswith("@doc"):
+            head = head[4:].lstrip()
+        if head.startswith("raw" + q):
+            head = head[3:]
+        if not head.startswith(q):
+            i += 1
+            continue
+        rest = head[3:]
+        if q in rest:                       # opens and closes on one line
+            close, tail = i, rest.split(q, 1)[1]
+        else:
+            close = i + 1
+            while close < len(lines) and q not in lines[close]:
+                close += 1
+            tail = lines[close].split(q, 1)[1] if close < len(lines) else ""
+        named = BARE_NAME.match(tail)       # `\"\"\" PhaseQuantities`
+        if named:
+            blocks.append((i + 1, close + 1, named.group(1)))
+            i = close + 1
+            continue
+        code = close + 1
+        while code < len(lines) and lines[code].strip() == "":
+            code += 1
+        name = None
+        if code < len(lines):
+            for pat in DOC_TARGETS:
+                m = pat.match(lines[code])
+                if m:
+                    name = m.group(1)
+                    break
+        blocks.append((i + 1, close + 1, name))
+        i = code + 1
+    return blocks
+
+
+def documented_names(files):
+    """Names carrying a docstring, across a group of files."""
     names = set()
     for path in files:
-        lines = open(path, encoding="utf-8").read().splitlines()
+        for _, _, name in doc_blocks(path):
+            if name:
+                names.add(name)
+    return names
+
+
+PAGES = re.compile(r"Pages\s*=\s*\[(.*?)\]", re.S)
+QUOTED = re.compile(r"[\"']([^\"']+)[\"']")
+FENCE = re.compile(r"^```\s*@(autodocs|docs)\s*$")
+
+
+def rendered_targets(docs_root="docs/src"):
+    """What the documentation actually renders: `(page patterns, listed names)`.
+
+    This is the difference between a broken reference and a latent one.
+    Documenter resolves an `@ref` only in a docstring it **includes in the
+    document**, so a reference inside a docstring that no page lists cannot fail
+    the build — not until someone lists it.
+
+    Both publication styles in use here are read: an `@autodocs` block with a
+    `Pages` list (the docstrings of those files), and a `@docs` block naming
+    bindings one per line.
+    """
+    pages, names = set(), set()
+    if not os.path.isdir(docs_root):
+        return pages, names
+    for md in glob.glob(os.path.join(docs_root, "**", "*.md"), recursive=True):
+        lines = open(md, encoding="utf-8").read().splitlines()
         i = 0
         while i < len(lines):
-            head = lines[i].strip()
-            if head.startswith("@doc"):
-                head = head[4:].lstrip()
-            if head.startswith("raw" + q):
-                head = head[3:]
-            if not head.startswith(q):
+            m = FENCE.match(lines[i].strip())
+            if not m:
                 i += 1
                 continue
-            rest = head[3:]
-            if q in rest:                       # opens and closes on one line
-                close, tail = i, rest.split(q, 1)[1]
+            kind = m.group(1)
+            body = []
+            i += 1
+            while i < len(lines) and not lines[i].strip().startswith("```"):
+                body.append(lines[i])
+                i += 1
+            text = "\n".join(body)
+            if kind == "autodocs":
+                found = PAGES.search(text)
+                if found:
+                    pages |= set(QUOTED.findall(found.group(1)))
+                else:
+                    # `Modules` with no `Pages` renders every docstring of the
+                    # module, so nothing in it is latent.
+                    pages.add("*")
             else:
-                close = i + 1
-                while close < len(lines) and q not in lines[close]:
-                    close += 1
-                tail = lines[close].split(q, 1)[1] if close < len(lines) else ""
-            named = BARE_NAME.match(tail)       # `\"\"\" PhaseQuantities`
-            if named:
-                names.add(named.group(1))
-                i = close + 1
-                continue
-            code = close + 1
-            while code < len(lines) and lines[code].strip() == "":
-                code += 1
-            if code < len(lines):
-                for pat in DOC_TARGETS:
-                    m = pat.match(lines[code])
-                    if m:
-                        names.add(m.group(1))
-                        break
-            i = code + 1
-    return names
+                for line in body:
+                    entry = line.strip()
+                    if entry and not entry.startswith("#"):
+                        names.add(entry.split("(")[0].strip())
+            i += 1
+    return pages, names
+
+
+def is_rendered(path, name, pages, names):
+    if "*" in pages:
+        return True
+    norm = path.replace(os.sep, "/")
+    if any(norm.endswith(pat.lstrip("./")) for pat in pages if pat != "*"):
+        return True
+    return name is not None and name in names
 
 
 def defined_names(files):
@@ -242,6 +346,7 @@ def main(root="src"):
     documented = set()
     for files in groups.values():
         documented |= documented_names(files)
+    pages, listed = rendered_targets()
 
     reachable = collections.defaultdict(set)
     for name, files in groups.items():
@@ -252,11 +357,13 @@ def main(root="src"):
 
     bad = []
     undocumented = []
+    latent = []
     for name, files in groups.items():
         reach = set(defs[name]) | set(defs.get("Core", set()))
         for other in reachable[name]:
             reach |= defs.get(other, set())
         for path in files:
+            blocks = doc_blocks(path)
             for lineno, line in enumerate(
                 open(path, encoding="utf-8").read().splitlines(), 1
             ):
@@ -266,13 +373,39 @@ def main(root="src"):
                         continue
                     if target not in reach:
                         bad.append((path, lineno, name, target))
-                    elif target not in documented:
+                        continue
+                    if target in documented:
+                        continue
+                    # Which docstring is this reference in, and does any page
+                    # render that docstring? Documenter only resolves the ones
+                    # it renders, so the rest cannot fail a build yet.
+                    holder = next(
+                        (b for b in blocks if b[0] <= lineno <= b[1]), None
+                    )
+                    if holder is None:
+                        continue        # a plain comment: Documenter ignores it
+                    if is_rendered(path, holder[2], pages, listed):
                         undocumented.append((path, lineno, name, target))
+                    else:
+                        latent.append((path, lineno, name, target))
 
+    if latent:
+        print(
+            f"note: {len(latent)} @ref to an undocumented name, in a docstring "
+            "no page renders"
+        )
+        for path, lineno, mod, target in latent:
+            print(f"  {path}:{lineno}  in {mod}: `{target}`")
+        print(
+            "\nThese cannot fail a build as things stand — Documenter resolves an\n"
+            "@ref only in a docstring it renders. They break it the day one of\n"
+            "those docstrings is listed on an API page, so they are worth fixing,\n"
+            "and they do not refuse a push.\n"
+        )
     if not bad and not undocumented:
         print(
             f"OK: every unqualified @ref under {root}/ is reachable from its "
-            "module and has a docstring"
+            "module, and every rendered one has a docstring"
         )
         return 0
     if bad:
@@ -282,7 +415,10 @@ def main(root="src"):
         print("\nQualify them, e.g. [`RVE`](@ref MeanFieldHomogenization.Schemes.RVE),")
         print("or make them plain code spans if the target is private.")
     if undocumented:
-        print(f"FAIL: {len(undocumented)} @ref to a name that carries no docstring")
+        print(
+            f"FAIL: {len(undocumented)} @ref to a name that carries no docstring, "
+            "in a docstring the documentation renders"
+        )
         for path, lineno, mod, target in undocumented:
             print(f"  {path}:{lineno}  in {mod}: `{target}`")
         print("\nDocumenter links an @ref to a docstring, not to a binding, so it")
