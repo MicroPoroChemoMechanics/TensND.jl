@@ -113,15 +113,33 @@ BARE_NAME = re.compile(r"^\s*([A-Za-z_][\w!]*)\s*$")
 # first `)` and so misses every signature with a nested call in it, such as
 # `tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} = ...`.
 # That was 14 false positives on TensND alone.
+# A macro in front of a definition may itself be qualified, and there may be
+# more than one: `Base.@kwdef struct FECellMeshOptions`, `@inline @inbounds f(x)`.
+MACROS = r"(?:(?:[A-Za-z_]\w*\.)*@[\w.]+\s+)*"
+
 DOC_TARGETS = [
     re.compile(
-        r"^\s*(?:@\w[\w.]*\s+)?(?:mutable\s+)?"
+        r"^\s*" + MACROS + r"(?:mutable\s+)?"
         r"(?:function|struct|abstract\s+type|primitive\s+type|macro|const|"
         r"module|baremodule)\s+(?:[A-Za-z_]\w*\.)*([A-Za-z_][\w!]*)"
     ),
-    re.compile(r"^\s*(?:@\w[\w.]*\s+)?(?:[A-Za-z_]\w*\.)*([A-Za-z_][\w!]*)\s*[({=]"),
+    re.compile(
+        r"^\s*" + MACROS + r"(?:[A-Za-z_]\w*\.)*([A-Za-z_][\w!]*)\s*[({=]"
+    ),
     BARE_NAME,
 ]
+
+# `const B_tensor = cod_tensor` — Documenter resolves an `@ref` to a `const`
+# alias through `aliasof`, so the alias inherits the target's docstring and
+# demanding one of its own would be a false positive.
+CONST_ALIAS = re.compile(
+    r"^\s*const\s+([A-Za-z_][\w!]*)\s*=\s*(?:[A-Za-z_]\w*\.)*([A-Za-z_][\w!]*)\s*$"
+)
+
+# A one-line docstring needs no triple quotes: Julia attaches `"3-D sphere."` to
+# the next expression exactly as it attaches a block. Ten of the false positives
+# this check produced on MeanFieldHomogenization.jl were this shape.
+ONE_LINE_DOC = re.compile(r'^\s*(?:raw)?"(?:[^"\\]|\\.)*"\s*$')
 
 # `@doc (@doc voigt_stress) voigt_strain` — two functions sharing one docstring,
 # with no quotes anywhere on the line. The name documented is the last one.
@@ -159,6 +177,25 @@ def doc_blocks(path):
     i = 0
     while i < len(lines):
         head = lines[i].strip()
+        if ONE_LINE_DOC.match(head):
+            code = i + 1
+            while code < len(lines) and not lines[code].strip():
+                code += 1
+            name = None
+            if code < len(lines):
+                for pat in DOC_TARGETS:
+                    m = pat.match(lines[code])
+                    if m:
+                        name = m.group(1)
+                        break
+            # Only a string that really precedes a definition is a docstring; a
+            # bare string statement documents nothing.
+            if name is not None:
+                blocks.append((i + 1, i + 1, name))
+                i = code + 1
+                continue
+            i += 1
+            continue
         if head.startswith("@doc") and q not in head:
             alias = DOC_ALIAS.match(head)
             if alias:
@@ -201,12 +238,28 @@ def doc_blocks(path):
 
 
 def documented_names(files):
-    """Names carrying a docstring, across a group of files."""
+    """Names carrying a docstring, across a group of files.
+
+    A `const` alias is credited with its target's docstring, the way Documenter
+    credits it through `aliasof`: `const B_tensor = cod_tensor` needs no
+    docstring of its own and demanding one is a false positive. Resolved
+    repeatedly so that a chain of aliases settles.
+    """
     names = set()
+    aliases = {}
     for path in files:
         for _, _, name in doc_blocks(path):
             if name:
                 names.add(name)
+        for line in open(path, encoding="utf-8").read().splitlines():
+            m = CONST_ALIAS.match(line)
+            if m:
+                aliases[m.group(1)] = m.group(2)
+    for _ in range(len(aliases) + 1):
+        grown = {a for a, t in aliases.items() if t in names} - names
+        if not grown:
+            break
+        names |= grown
     return names
 
 
@@ -257,7 +310,16 @@ def rendered_targets(docs_root="docs/src"):
                 for line in body:
                     entry = line.strip()
                     if entry and not entry.startswith("#"):
-                        names.add(entry.split("(")[0].strip())
+                        entry = entry.split("(")[0].strip()
+                        names.add(entry)
+                        # A `@docs` block usually writes the binding out in
+                        # full, `MeanFieldHomogenization.Cracks.CrackShape`,
+                        # while a docstring's holder is known here only by its
+                        # bare name. Comparing the two directly means the render
+                        # test never fires in the four repositories that publish
+                        # by name rather than by `Pages`, which leaves the check
+                        # toothless exactly where it is needed.
+                        names.add(entry.rsplit(".", 1)[-1])
             i += 1
     return pages, names
 
