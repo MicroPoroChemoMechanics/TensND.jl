@@ -33,8 +33,8 @@ chart. The same code runs **symbolically** (via
 
 - **Basis types**: canonical, rotated, orthogonal, and fully general non-orthogonal bases, with covariant/contravariant components and the metric that relates them
 - **Tensor algebra**: products (`⊗`, `⊗ˢ`, `⊠`, `⊠ˢ`, `⋅`, `⊡`, `⊙`), change of basis, variance management
-- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI`), orthotropic (`TensOrtho`) — 2, 5 and 9 stored scalars instead of 81 components, with closed-form products and inverses one to three orders of magnitude faster than the dense route
-- **Symmetry projection**: closest ISO, TI or ORTHO tensor, with the orientation given or optimized via [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl)
+- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI`), cubic (`TensCubic`), orthotropic (`TensOrtho`) — 2, 5, 3 and 9 stored scalars instead of 81 components, with closed-form products and inverses one to three orders of magnitude faster than the dense route
+- **Symmetry projection**: closest ISO, TI, CUBIC or ORTHO tensor, with the orientation given or optimized via [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl)
 - **Differential operators**: `GRAD`, `SYMGRAD`, `DIV`, `LAPLACE`, `HESS` in curvilinear coordinates — symbolically (`CoorSystemSym`) or pointwise by automatic differentiation (`CoorSystemNum`), on orthogonal **and genuinely non-orthogonal** charts
 - **Submanifolds**: embedded hypersurfaces (`SubManifoldSym`) with their first and second fundamental forms, connection coefficients and curvatures
 - **Generic type system**: works with `Float64`, symbolic types (`Sym`, `Num`), and `ForwardDiff.Dual` for automatic differentiation

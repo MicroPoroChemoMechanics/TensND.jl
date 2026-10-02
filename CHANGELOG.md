@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased
+
+### Documentation
+
+- The README now lists `TensCubic` among the structured tensors and the cubic
+  class among the symmetry projections, both released in v0.5.0 and until now
+  named only in the manual.
+
 ## v0.5.0 — cubic symmetry as a first-class class
 
 `TensND` could store an isotropic tensor in 2 scalars, a transversely isotropic
