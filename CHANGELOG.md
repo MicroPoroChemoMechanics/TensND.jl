@@ -1,6 +1,15 @@
 # Changelog
 
-## Unreleased
+## v0.5.1 — `dotdot` is exported
+
+### Fixed
+
+- `dotdot` is now exported. Its docstring shows `dotdot(n, ℂ, n)` computing the
+  acoustic tensor after a plain `using TensND`, but the name was only reachable
+  as `Tensors.dotdot`, or after `using Tensors`, so the example failed as
+  written. The test suite loads Tensors itself, which is why nothing noticed.
+  The exported name is the same function as `Tensors.dotdot`, so loading both
+  packages raises no conflict.
 
 ### Documentation
 

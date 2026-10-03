@@ -89,6 +89,10 @@
                 Eᵒᵉᵈᵒ = E * (1 - ν) / ((1 + ν) * (1 - 2ν))
                 Kref = tsimplify.([μ 0 0; 0 μ 0; 0 0 Eᵒᵉᵈᵒ])
                 @test tfactor(n ⋅ ℂ ⋅ n) == tfactor(dotdot(n, ℂ, n)) == Kref
+                # `dotdot` is TensND's own export, not only Tensors': the suite
+                # also loads Tensors, which used to hide that it was missing.
+                @test :dotdot in names(TensND)
+                @test TensND.dotdot === Tensors.dotdot
                 # Hooke law
                 for i in 1:3, j in 1:3
                     @eval $(Symbol("ε$i$j")) = symbols($"ε$i$j", real = true)
