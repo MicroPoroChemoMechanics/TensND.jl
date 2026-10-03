@@ -141,9 +141,9 @@ variance tuple.
 
 ## Normalization
 
-Dividing each vector of a basis by its norm produces an orthogonal basis with
-unit vectors, i.e. an orthonormal one if the original was orthogonal. This is
-`LinearAlgebra.normalize``(ℬ)` and it is what relates the **natural**
+Dividing each vector of a basis by its norm produces a basis of unit vectors,
+an orthonormal one if the original was orthogonal. This is
+`LinearAlgebra.normalize(ℬ)` and it is what relates the **natural**
 basis of a coordinate system to its **normalized** basis — the distinction that
 makes ``\mathrm{d}s = \chi_i\,\mathrm{d}q^i`` rather than ``\mathrm{d}q^i``, and
 the source of every Lamé coefficient in

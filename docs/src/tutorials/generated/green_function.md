@@ -13,7 +13,7 @@ kernel every micromechanical Green operator is built from.
 This exercises the differential operators of
 [Curvilinear differential calculus](@ref th-curvilinear) on a genuinely
 non-trivial field: a closed-form identity that only holds if every Christoffel
-term is right. Background on the elastic Green operator: [mura1987](@cite).
+term is right. Background on the elastic Green operator: [mura1987](@citet).
 
 ````@example green_function
 using TensND

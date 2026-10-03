@@ -5,7 +5,7 @@ the [Echoes manual](https://jfbarthelemy.github.io/echoes/), which works only in
 Cartesian coordinates. Everything below is derived from the definitions and
 matches `src/coorsystems.jl` (symbolic) and `src/coorsystems_num.jl`
 (automatic differentiation). A classical treatment of the underlying tensor
-analysis is [simmonds1994](@cite).
+analysis is [simmonds1994](@citet).
 
 ## Chart, natural basis, metric
 

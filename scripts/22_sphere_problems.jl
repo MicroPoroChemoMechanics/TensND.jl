@@ -9,7 +9,7 @@
 # Everything here is produced by the differential operators of
 # [Curvilinear differential calculus](@ref th-curvilinear): `SYMGRAD` gives the
 # strain, `DIV` the equilibrium equation. Nothing is transcribed from a
-# textbook. Background: [mura1987](@cite).
+# textbook. Background: [mura1987](@citet).
 
 import Pkg                                                          #jl
 Pkg.activate(joinpath(@__DIR__, "..", "docs"); io = devnull)        #jl
@@ -36,7 +36,7 @@ k, μ = symbols("k μ", positive = true)
 
 # ## The hydrostatic problem
 #
-# For a remote strain ``\mathbb{E}^\infty\propto\boldsymbol{1}`` the
+# For a remote strain ``\boldsymbol{E}^\infty\propto\boldsymbol{1}`` the
 # displacement is purely radial, ``\underline{u}=u(r)\,\underline{e}^r``.
 
 u = SymFunction("u", real = true)
@@ -67,7 +67,7 @@ T̂ = tsimplify(tsimplify(subs(𝐓 ⋅ 𝐞ʳ, u(r) => û)))
 
 # ## The deviatoric axisymmetric problem
 #
-# For ``\mathbb{E}^\infty=\boldsymbol{1}-3\,\underline{e}_3\otimes\underline{e}_3``
+# For ``\boldsymbol{E}^\infty=\boldsymbol{1}-3\,\underline{e}_3\otimes\underline{e}_3``
 # the angular dependence is fixed by the loading and only the radial profiles
 # remain unknown. The angular functions are generated from the remote strain
 # itself:
@@ -128,7 +128,7 @@ T̂ʳ = tsimplify(tsimplify(subs(simplify(𝐓ᵈ ⋅ 𝐞ʳ / fʳ), uᶿ(r) => 
 # ## Pure shear gives the same exponents
 #
 # A different deviatoric loading,
-# ``\mathbb{E}^\infty=\underline{e}_1\otimes\underline{e}_1
+# ``\boldsymbol{E}^\infty=\underline{e}_1\otimes\underline{e}_1
 # -\underline{e}_2\otimes\underline{e}_2``, now with an azimuthal component.
 # Isotropy demands that it produce the *same* radial exponents; only the angular
 # functions differ.
