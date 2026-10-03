@@ -394,7 +394,7 @@ end
 # ── Kelvin-Mandel block helpers ─────────────────────────────────────────────
 #
 # For callers working directly on 6×6 blocks rather than on tensors — the
-# ageing-viscoelastic Volterra matrices of MeanFieldHomogenization.jl are the
+# aging-viscoelastic Volterra matrices of MeanFieldHomogenization.jl are the
 # motivating case.
 
 """
