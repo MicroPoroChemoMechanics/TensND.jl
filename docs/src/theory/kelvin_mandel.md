@@ -3,9 +3,9 @@
 Minor-symmetric order-4 tensors and symmetric order-2 tensors form spaces of
 dimension 21 and 6 in 3-D. The Kelvin–Mandel representation makes that explicit
 by mapping them onto ``6\times6`` matrices and ``6``-vectors **isometrically**,
-which turns tensor algebra into matrix algebra. It goes back to Thomson
-[thomson1856](@cite) and Mandel [mandel1965](@cite); its spectral consequences
-are developed in [mehrabadi1990](@cite).
+which turns tensor algebra into matrix algebra. It goes back to
+[thomson1856](@citet) and [mandel1965](@citet); its spectral consequences are
+developed by [mehrabadi1990](@citet).
 
 ## The map
 

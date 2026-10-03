@@ -1,0 +1,1368 @@
+# The symbols of the documentation's formulas: the page `nomenclature.md` lists
+# them, and hovering an equation shows those it holds. Ported from
+# MeanFieldHomogenization, itself ported from ChemistryLab.
+#
+# One entry per meaning of a symbol.
+#
+#   tex       the symbol as the formulas write it, matched in their TeX source
+#             (see `src/.vitepress/nomenclature-match.mjs`: an upright label such
+#             as \mathrm{GRAD} is a symbol of its own, a subscript is not a
+#             superscript, and an index i, j, k stands for any of them);
+#   label     how the page and the hint print it (HTML: <sub>, <sup>, <b>, <u>);
+#   name      what it is;
+#   unit      its SI unit when it has one ("1" for a number without one, "" for
+#             a tensor or a coordinate whose unit depends on what it describes);
+#   pages     where this meaning holds: paths under docs/src, a folder ending
+#             in "/" for all of its pages. An entry without `pages` holds on
+#             every page where no entry of the same `tex` is scoped;
+#   group     the section of the page.
+#
+# A letter that means different things on different pages (R, K, α, ℂ, ...) has
+# no entry that holds everywhere: each meaning is restricted to the pages where
+# it was read, and elsewhere the hint is silent rather than wrong.
+#
+# A symbol has at most one unscoped entry, every page named exists, and two
+# entries never carry the same name: test/test_docs_nomenclature.jl checks it.
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\boldsymbol{1}'
+label = "<b>1</b>"
+name = "order-2 identity tensor"
+unit = "1"
+pages = ["theory/notation.md", "theory/tensor_algebra.md", "theory/bases_variance.md", "theory/isotropic.md", "theory/walpole.md", "manual/structured_tensors.md", "tutorials/generated/bases_variance.md", "tutorials/generated/cluster.md", "tutorials/generated/green_function.md", "tutorials/generated/hill_tensors.md", "tutorials/generated/operator_identities.md", "tutorials/generated/sphere_problems.md", "tutorials/generated/tensor_algebra.md", "tutorials/generated/walpole.md"]
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\boldsymbol{1}'
+label = "<b>1</b>"
+name = "identity matrix (6×6 in Kelvin–Mandel form, or the 3×3 block <b>1</b><sub>3</sub>)"
+unit = "1"
+pages = ["theory/kelvin_mandel.md", "theory/rotations.md", "theory/cubic.md", "developer/testing_conventions.md"]
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\boldsymbol{1}_T'
+label = "<b>1</b><sub>T</sub>"
+name = "transverse projector <b>1</b> − <u>n</u> ⊗ <u>n</u>"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\boldsymbol{1}_n'
+label = "<b>1</b><sub>n</sub>"
+name = "axial projector <u>n</u> ⊗ <u>n</u>"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\mathbb{I}'
+label = "𝕀"
+name = "order-4 identity on symmetric order-2 tensors"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\mathbb{J}'
+label = "𝕁"
+name = "spherical (hydrostatic) projector"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\mathbb{K}'
+label = "𝕂"
+name = "deviatoric projector 𝕀 − 𝕁"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\mathbb{1}'
+label = "𝟙"
+name = "order-4 identity on all order-2 tensors"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\mathbb{E}'
+label = "𝔼"
+name = "cubic projector onto the two-dimensional E<sub>g</sub> subspace"
+unit = "1"
+pages = ["theory/cubic.md", "theory/projection.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\mathbb{T}'
+label = "𝕋"
+name = "cubic projector onto the three-dimensional T<sub>2g</sub> shear subspace"
+unit = "1"
+pages = ["theory/cubic.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\boldsymbol{P}'
+label = "<b>P</b>"
+name = "orthotropic projector <b>P</b><sub>m</sub> = <u>e</u><sub>m</sub> ⊗ <u>e</u><sub>m</sub>"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\delta_{ij}'
+label = "δ<sub>ij</sub>"
+name = "covariant Kronecker symbol"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\delta^i_j'
+label = "δ<sup>i</sup><sub>j</sub>"
+name = "mixed Kronecker symbol"
+unit = "1"
+
+[[symbol]]
+group = "Identities and projectors"
+tex = '\varepsilon_{ijk}'
+label = "ε<sub>ijk</sub>"
+name = "permutation (Levi-Civita) symbol"
+unit = "1"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}_i'
+label = "<u>e</u><sub>i</sub>"
+name = "vector of a general (possibly non-orthonormal) basis"
+unit = ""
+pages = ["theory/notation.md", "theory/bases_variance.md", "theory/tensor_algebra.md", "manual/bases.md", "tutorials/generated/bases_variance.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}_i'
+label = "<u>e</u><sub>i</sub>"
+name = "unit vector of the normalized basis of a chart"
+unit = "1"
+pages = ["theory/curvilinear.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^i'
+label = "<u>e</u><sup>i</sup>"
+name = "dual (reciprocal) basis vector"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}_3'
+label = "<u>e</u><sub>3</sub>"
+name = "third basis vector, reference or symmetry axis"
+unit = "1"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^r'
+label = "<u>e</u><sup>r</sup>"
+name = "radial unit vector of polar or spherical coordinates"
+unit = "1"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{a}_i'
+label = "<u>a</u><sub>i</sub>"
+name = "natural (covariant) basis vector ∂<u>OM</u>/∂q<sup>i</sup> of a chart"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{a}^i'
+label = "<u>a</u><sup>i</sup>"
+name = "dual natural basis vector of a chart"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{OM}'
+label = "<u>OM</u>"
+name = "position vector of the current point"
+unit = "m"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'g_{ij}'
+label = "g<sub>ij</sub>"
+name = "covariant metric components"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'g^{ij}'
+label = "g<sup>ij</sup>"
+name = "contravariant metric components"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\boldsymbol{g}'
+label = "<b>g</b>"
+name = "metric tensor"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_i'
+label = "χ<sub>i</sub>"
+name = "scale factors (Lamé coefficients) of a basis or chart"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'q^i'
+label = "q<sup>i</sup>"
+name = "curvilinear coordinates of a chart"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\mathcal{B}'
+label = "ℬ"
+name = "basis"
+unit = ""
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\mathcal{S}'
+label = "𝒮"
+name = "coordinate system"
+unit = ""
+pages = ["theory/notation.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\mathbb{R}'
+label = "ℝ"
+name = "real coordinate space ℝ<sup>d</sup> (or ℝ<sup>N</sup>, ℝ<sup>6</sup>)"
+unit = ""
+pages = ["theory/bases_variance.md", "theory/curvilinear.md", "theory/cubic.md", "theory/projection.md", "theory/walpole_extended.md", "theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'r'
+label = "r"
+name = "radial coordinate (polar, cylindrical, spherical)"
+unit = "m"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\theta'
+label = "θ"
+name = "polar angle: polar/cylindrical angle, spherical colatitude, Euler angle"
+unit = "rad"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\varphi'
+label = "φ"
+name = "azimuth: spherical coordinate and second Euler angle"
+unit = "rad"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'x'
+label = "x"
+name = "first Cartesian coordinate"
+unit = "m"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'y'
+label = "y"
+name = "second Cartesian coordinate (rotation axis label in R<sub>y</sub>)"
+unit = "m"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'z'
+label = "z"
+name = "third Cartesian coordinate, cylindrical axial coordinate"
+unit = "m"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'u'
+label = "u"
+name = "contravariant or covariant components u<sup>i</sup>, u<sub>i</sub> of a vector"
+unit = ""
+pages = ["theory/bases_variance.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\mu'
+label = "μ"
+name = "first elliptic coordinate"
+unit = ""
+pages = ["tutorials/generated/christoffel.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\nu'
+label = "ν"
+name = "second elliptic coordinate"
+unit = ""
+pages = ["tutorials/generated/christoffel.md", "tutorials/generated/numerical_operators.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = 'L'
+label = "L"
+name = "column index of a Kelvin–Mandel matrix"
+unit = ""
+pages = ["theory/kelvin_mandel.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathbb{T}'
+label = "𝕋"
+name = "arbitrary order-4 tensor"
+unit = ""
+pages = ["theory/notation.md", "theory/tensor_algebra.md", "theory/kelvin_mandel.md", "theory/isotropic.md", "tutorials/generated/tensor_algebra.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathcal{T}'
+label = "𝒯"
+name = "tensor of arbitrary order"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\boldsymbol{a}'
+label = "<b>a</b>"
+name = "generic order-2 tensor (first operand)"
+unit = ""
+pages = ["theory/notation.md", "theory/tensor_algebra.md", "theory/bases_variance.md", "theory/kelvin_mandel.md", "tutorials/generated/tensor_algebra.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = '\boldsymbol{b}'
+label = "<b>b</b>"
+name = "generic order-2 tensor (second operand)"
+unit = ""
+pages = ["theory/notation.md", "theory/tensor_algebra.md", "tutorials/generated/tensor_algebra.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = '\boldsymbol{c}'
+label = "<b>c</b>"
+name = "generic order-2 tensor (third operand)"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\boldsymbol{d}'
+label = "<b>d</b>"
+name = "generic order-2 tensor (fourth operand)"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\underline{u}'
+label = "<u>u</u>"
+name = "generic vector"
+unit = ""
+pages = ["theory/notation.md", "theory/tensor_algebra.md", "theory/bases_variance.md", "tutorials/generated/tensor_algebra.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = '\underline{v}'
+label = "<u>v</u>"
+name = "generic second vector in a product"
+unit = ""
+pages = ["theory/tensor_algebra.md", "tutorials/generated/tensor_algebra.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = 'T'
+label = "T"
+name = "components T<sub>ijkl</sub> of an order-4 tensor 𝕋"
+unit = ""
+pages = ["theory/notation.md", "theory/tensor_algebra.md", "theory/kelvin_mandel.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = 'K'
+label = "K"
+name = "row index of a Kelvin–Mandel matrix"
+unit = ""
+pages = ["theory/kelvin_mandel.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = '\partial_i'
+label = "∂<sub>i</sub>"
+name = "derivative along the coordinate q<sup>i</sup>, variation of the basis included"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathrm{GRAD}'
+label = "GRAD"
+name = "gradient, derivative index appended on the right"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathrm{DIV}'
+label = "DIV"
+name = "divergence, contracting the last index"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathrm{HESS}'
+label = "HESS"
+name = "second gradient (Hessian), GRAD ∘ GRAD"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathrm{tr}'
+label = "tr"
+name = "trace"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathrm{Mat}'
+label = "Mat"
+name = "matrix 6×6 (or 6-vector) of a tensor in Kelvin–Mandel form"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathrm{diag}'
+label = "diag"
+name = "diagonal matrix"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathrm{d}'
+label = "d"
+name = "differential (line element ds, measure dg)"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathbb{A}'
+label = "𝔸"
+name = "generic order-4 tensor (first operand)"
+unit = ""
+pages = ["theory/isotropic.md", "theory/kelvin_mandel.md", "theory/cubic.md", "theory/orthotropy.md", "theory/rotations.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathbb{B}'
+label = "𝔹"
+name = "generic order-4 tensor (second operand)"
+unit = ""
+pages = ["theory/isotropic.md", "theory/kelvin_mandel.md", "theory/cubic.md", "theory/orthotropy.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_i'
+label = "𝕎<sub>i</sub>"
+name = "basis tensors of transverse isotropy (Walpole basis)"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_1'
+label = "𝕎<sub>1</sub>"
+name = "axial tensor <b>1</b><sub>n</sub> ⊗ <b>1</b><sub>n</sub> of the Walpole basis"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_2'
+label = "𝕎<sub>2</sub>"
+name = "transverse spherical tensor ½ <b>1</b><sub>T</sub> ⊗ <b>1</b><sub>T</sub> of the Walpole basis"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_3'
+label = "𝕎<sub>3</sub>"
+name = "axial–transverse coupling tensor <b>1</b><sub>n</sub> ⊗ <b>1</b><sub>T</sub>/√2"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_4'
+label = "𝕎<sub>4</sub>"
+name = "transverse–axial coupling tensor <b>1</b><sub>T</sub> ⊗ <b>1</b><sub>n</sub>/√2"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_5'
+label = "𝕎<sub>5</sub>"
+name = "in-plane deviatoric tensor of the Walpole basis"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_6'
+label = "𝕎<sub>6</sub>"
+name = "axial-shear tensor of the Walpole basis"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_7'
+label = "𝕎<sub>7</sub>"
+name = "major-antisymmetric axial-shear generator of the extended basis"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}_8'
+label = "𝕎<sub>8</sub>"
+name = "major-antisymmetric in-plane deviatoric generator of the extended basis"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{W}^s'
+label = "𝕎<sup>s</sup>"
+name = "symmetrized five-element Walpole basis (𝕎<sup>s</sup><sub>3</sub> = 𝕎<sub>3</sub> + 𝕎<sub>4</sub>)"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_i'
+label = "ℓ<sub>i</sub>"
+name = "coefficients of a TI tensor on the Walpole basis"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_1'
+label = "ℓ<sub>1</sub>"
+name = "coefficient on 𝕎<sub>1</sub> (axial)"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_2'
+label = "ℓ<sub>2</sub>"
+name = "coefficient on 𝕎<sub>2</sub> (transverse spherical)"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_3'
+label = "ℓ<sub>3</sub>"
+name = "coefficient on 𝕎<sub>3</sub> (axial–transverse coupling)"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_4'
+label = "ℓ<sub>4</sub>"
+name = "coefficient on 𝕎<sub>4</sub> (transverse–axial coupling)"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_5'
+label = "ℓ<sub>5</sub>"
+name = "coefficient on 𝕎<sub>5</sub> (real part of z<sub>2</sub>)"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_6'
+label = "ℓ<sub>6</sub>"
+name = "coefficient on 𝕎<sub>6</sub> (real part of z<sub>1</sub>)"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_7'
+label = "ℓ<sub>7</sub>"
+name = "coefficient on 𝕎<sub>7</sub> (imaginary part of z<sub>1</sub>)"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\ell_8'
+label = "ℓ<sub>8</sub>"
+name = "coefficient on 𝕎<sub>8</sub> (imaginary part of z<sub>2</sub>)"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'g_i'
+label = "g<sub>i</sub>"
+name = "squared norms of the Walpole basis tensors (diagonal Gram matrix)"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'L'
+label = "L"
+name = "2×2 matrix block of the Walpole coefficients ℓ<sub>1</sub> to ℓ<sub>4</sub>"
+unit = ""
+pages = ["theory/walpole.md", "theory/walpole_extended.md", "manual/structured_tensors.md", "tutorials/generated/walpole.md", "tutorials/generated/walpole_extended.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'M'
+label = "M"
+name = "matrix block (2×2) of the second Walpole operand 𝕄"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'z_1'
+label = "z<sub>1</sub>"
+name = "complex coefficient ℓ<sub>6</sub> + iℓ<sub>7</sub> of the axial-shear block"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'z_2'
+label = "z<sub>2</sub>"
+name = "complex coefficient ℓ<sub>5</sub> + iℓ<sub>8</sub> of the in-plane deviatoric block"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{L}'
+label = "𝕃"
+name = "generic transversely isotropic tensor in Walpole notation"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\boldsymbol{w}'
+label = "<b>w</b>"
+name = "antisymmetric in-plane rotation generator about the axis"
+unit = "1"
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\underline{p}'
+label = "<u>p</u>"
+name = "arbitrary vector acted on by the rotation generator"
+unit = ""
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'N'
+label = "N"
+name = "number of stored Walpole coefficients (TensTI parameter)"
+unit = ""
+pages = ["theory/cubic.md", "theory/walpole_extended.md", "developer/testing_conventions.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\underline{n}'
+label = "<u>n</u>"
+name = "unit symmetry axis of transverse isotropy"
+unit = "1"
+pages = ["theory/walpole.md", "theory/walpole_extended.md", "theory/ti_parametrizations.md", "theory/rotations.md", "theory/projection.md", "manual/projection.md", "manual/structured_tensors.md", "tutorials/generated/walpole.md", "tutorials/generated/walpole_extended.md", "tutorials/generated/projection.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\boldsymbol{a}'
+label = "<b>a</b>"
+name = "order-2 TI or orthotropic tensor"
+unit = ""
+pages = ["theory/walpole.md", "theory/walpole_extended.md", "theory/orthotropy.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'T_{2g}'
+label = "T<sub>2g</sub>"
+name = "three-dimensional irreducible representation of O<sub>h</sub> (shear block)"
+unit = ""
+pages = ["theory/cubic.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\mathbb{C}'
+label = "ℂ"
+name = "field of complex numbers"
+unit = ""
+pages = ["theory/walpole_extended.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\alpha'
+label = "α"
+name = "coefficient on 𝕁 of an isotropic or cubic tensor"
+unit = ""
+pages = ["theory/isotropic.md", "theory/cubic.md", "theory/tensor_algebra.md", "theory/index.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\beta'
+label = "β"
+name = "coefficient on 𝕂 (isotropic) or on 𝔼 (cubic)"
+unit = ""
+pages = ["theory/isotropic.md", "theory/cubic.md", "theory/tensor_algebra.md", "theory/index.md", "theory/projection.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\gamma'
+label = "γ"
+name = "coefficient on the cubic shear projector 𝕋"
+unit = ""
+pages = ["theory/cubic.md", "theory/projection.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = '\lambda'
+label = "λ"
+name = "scalar of an isotropic order-2 tensor λ<b>1</b>"
+unit = ""
+pages = ["theory/isotropic.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'E_{11}'
+label = "E<sub>11</sub>"
+name = "matrix units E<sub>11</sub>, E<sub>22</sub>, E<sub>12</sub>, E<sub>21</sub> of 2×2 matrices"
+unit = ""
+pages = ["theory/walpole.md", "tutorials/generated/walpole.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'E_g'
+label = "E<sub>g</sub>"
+name = "two-dimensional irreducible representation of O<sub>h</sub>"
+unit = ""
+pages = ["theory/cubic.md"]
+
+[[symbol]]
+group = "Structured tensors"
+tex = 'O_h'
+label = "O<sub>h</sub>"
+name = "octahedral group of the cube"
+unit = ""
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'N'
+label = "N"
+name = "number of concentric layers of the sphere"
+unit = ""
+pages = ["tutorials/generated/sphere_problems.md", "tutorials/index.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\boldsymbol{E}^{\infty}'
+label = "<b>E</b><sup>∞</sup>"
+name = "remote uniform strain applied to the sphere"
+unit = "1"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\varepsilon_{ij}'
+label = "ε<sub>ij</sub>"
+name = "linearized strain components (ε<sub>23</sub>, ε<sub>θθ</sub>, …)"
+unit = "1"
+pages = ["theory/walpole_extended.md", "tutorials/generated/symbolic_operators.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\underline{n}'
+label = "<u>n</u>"
+name = "unit separation direction between the two points"
+unit = "1"
+pages = ["tutorials/generated/cluster.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\underline{u}'
+label = "<u>u</u>"
+name = "displacement field of the elastic sphere"
+unit = "m"
+pages = ["tutorials/generated/sphere_problems.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'u'
+label = "u"
+name = "radial displacement profile u(r), u<sub>r</sub>"
+unit = "m"
+pages = ["tutorials/generated/sphere_problems.md", "tutorials/generated/numerical_operators.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{A}'
+label = "𝔸"
+name = "strain-concentration tensor"
+unit = "1"
+pages = ["theory/walpole_extended.md", "tutorials/generated/ad_interop.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{C}'
+label = "ℂ"
+name = "elastic stiffness tensor"
+unit = "Pa"
+pages = ["theory/isotropic.md", "theory/kelvin_mandel.md", "theory/cubic.md", "theory/orthotropy.md", "theory/ti_parametrizations.md", "theory/projection.md", "manual/parametrizations.md", "tutorials/index.md", "tutorials/generated/ad_interop.md", "tutorials/generated/green_function.md", "tutorials/generated/hill_tensors.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{S}'
+label = "𝕊"
+name = "elastic compliance tensor"
+unit = "Pa<sup>−1</sup>"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{P}'
+label = "ℙ"
+name = "polarization (Hill) tensor of the inclusion"
+unit = "Pa<sup>−1</sup>"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\boldsymbol{G}'
+label = "<b>G</b>"
+name = "elastic Green tensor (Kelvin point-force solution)"
+unit = ""
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{\Gamma}'
+label = "ℾ"
+name = "real-space Green operator, symmetrized −HESS(G)"
+unit = ""
+pages = ["tutorials/generated/green_function.md", "tutorials/generated/cluster.md", "tutorials/index.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{\Gamma}'
+label = "ℾ"
+name = "wave-vector form of the Green operator <u>ξ</u> ⊗<sup>s</sup> <b>K</b><sup>−1</sup> ⊗<sup>s</sup> <u>ξ</u>"
+unit = ""
+pages = ["tutorials/generated/hill_tensors.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{\Lambda}'
+label = "Λ"
+name = "kernel ℂ : 𝚪 : ℂ of Hill-type integrals"
+unit = ""
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\boldsymbol{K}'
+label = "<b>K</b>"
+name = "acoustic tensor <u>ξ</u> · ℂ · <u>ξ</u>"
+unit = ""
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\underline{\xi}'
+label = "<u>ξ</u>"
+name = "direction (wave) vector of the acoustic tensor"
+unit = "1"
+pages = ["tutorials/generated/hill_tensors.md", "tutorials/index.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\underline{\xi}'
+label = "<u>ξ</u>"
+name = "axisymmetric displacement field <u>ξ</u>(r, z)"
+unit = "m"
+pages = ["tutorials/generated/symbolic_operators.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\boldsymbol{\sigma}'
+label = "<b>σ</b>"
+name = "order-2 (stress) tensor field in divergence formulas"
+unit = ""
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\alpha'
+label = "α"
+name = "exponent of the radial power ansatz r<sup>α</sup>"
+unit = "1"
+pages = ["tutorials/generated/sphere_problems.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\lambda'
+label = "λ"
+name = "first Lamé parameter"
+unit = "Pa"
+pages = ["tutorials/generated/hill_tensors.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mu'
+label = "μ"
+name = "shear modulus"
+unit = "Pa"
+pages = ["theory/isotropic.md", "theory/cubic.md", "tutorials/generated/ad_interop.md", "tutorials/generated/cluster.md", "tutorials/generated/green_function.md", "tutorials/generated/hill_tensors.md", "tutorials/generated/numerical_operators.md", "tutorials/generated/sphere_problems.md", "tutorials/generated/tensor_algebra.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\nu'
+label = "ν"
+name = "isotropic Poisson's ratio"
+unit = "1"
+pages = ["tutorials/generated/cluster.md", "tutorials/generated/green_function.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\nu_{12}'
+label = "ν<sub>12</sub>"
+name = "in-plane Poisson's ratio (engineering TI form)"
+unit = "1"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\nu_{31}'
+label = "ν<sub>31</sub>"
+name = "axial–transverse Poisson's ratio (engineering TI form)"
+unit = "1"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\nu_1'
+label = "ν<sub>1</sub>"
+name = "in-plane Poisson's ratio (Hoenig form)"
+unit = "1"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\nu_2'
+label = "ν<sub>2</sub>"
+name = "axial–transverse Poisson's ratio (Hoenig form)"
+unit = "1"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'E'
+label = "E"
+name = "transverse Young's modulus (Hoenig form)"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'E_1'
+label = "E<sub>1</sub>"
+name = "transverse Young's modulus (engineering TI form)"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'E_3'
+label = "E<sub>3</sub>"
+name = "axial Young's modulus (engineering TI form)"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'G_{31}'
+label = "G<sub>31</sub>"
+name = "axial shear modulus (engineering TI form)"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{11}'
+label = "C<sub>11</sub>"
+name = "constant C<sub>11</sub> = C<sub>1111</sub> of a cubic or orthotropic tensor"
+unit = "Pa"
+pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{12}'
+label = "C<sub>12</sub>"
+name = "constant C<sub>12</sub> = C<sub>1122</sub> of a cubic or orthotropic tensor"
+unit = "Pa"
+pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{44}'
+label = "C<sub>44</sub>"
+name = "shear constant C<sub>44</sub> = C<sub>2323</sub> of a cubic or orthotropic tensor"
+unit = "Pa"
+pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{1111}'
+label = "C<sub>1111</sub>"
+name = "in-plane normal component of a TI stiffness"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{1122}'
+label = "C<sub>1122</sub>"
+name = "in-plane coupling component of a TI stiffness"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{1133}'
+label = "C<sub>1133</sub>"
+name = "axial–transverse coupling component of a TI stiffness"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{3333}'
+label = "C<sub>3333</sub>"
+name = "axial normal (longitudinal) component of a TI stiffness"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{2323}'
+label = "C<sub>2323</sub>"
+name = "axial shear component of a TI stiffness"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'S'
+label = "S"
+name = "components S<sub>ijkl</sub> of a TI compliance"
+unit = "Pa<sup>−1</sup>"
+pages = ["theory/ti_parametrizations.md", "tutorials/generated/walpole.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'H'
+label = "H"
+name = "axial-to-transverse modulus ratio (Hoenig form)"
+unit = "1"
+pages = ["theory/ti_parametrizations.md", "manual/parametrizations.md", "tutorials/generated/walpole.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'K'
+label = "K"
+name = "bulk modulus"
+unit = "Pa"
+pages = ["theory/cubic.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\Gamma'
+label = "Γ"
+name = "shear anisotropy ratio (Hoenig form)"
+unit = "1"
+pages = ["theory/ti_parametrizations.md", "manual/parametrizations.md", "tutorials/generated/walpole.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'R'
+label = "R"
+name = "offset of the source frame along <u>e</u><sub>3</sub>"
+unit = "m"
+pages = ["tutorials/generated/cluster.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'R'
+label = "R"
+name = "outer radius R<sub>i</sub> of layer i"
+unit = "m"
+pages = ["tutorials/generated/sphere_problems.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'f'
+label = "f"
+name = "angular functions f<sup>θ</sup>, f<sup>r</sup> of the remote loading"
+unit = "1"
+pages = ["tutorials/generated/sphere_problems.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{C}_0'
+label = "ℂ<sub>0</sub>"
+name = "elastic stiffness of the matrix"
+unit = "Pa"
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\mathbb{C}_1'
+label = "ℂ<sub>1</sub>"
+name = "elastic stiffness of the inclusion"
+unit = "Pa"
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\underline{n}'
+label = "<u>n</u>"
+name = "unit normal to a hypersurface"
+unit = "1"
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md", "developer/testing_conventions.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\underline{a}_\beta'
+label = "<u>a</u><sub>β</sub>"
+name = "tangent vector ∂<sub>β</sub><u>OM</u> of a surface"
+unit = ""
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\boldsymbol{a}'
+label = "<b>a</b>"
+name = "first fundamental form (induced metric) of a surface"
+unit = ""
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\boldsymbol{b}'
+label = "<b>b</b>"
+name = "second fundamental form of a surface"
+unit = ""
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md", "developer/testing_conventions.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\underline{v}'
+label = "<u>v</u>"
+name = "vector field acted on by differential operators"
+unit = ""
+pages = ["theory/curvilinear.md", "tutorials/generated/operator_identities.md", "tutorials/generated/symbolic_operators.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\alpha'
+label = "α"
+name = "first surface (tangential) index, from 1 to d−1"
+unit = ""
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\beta'
+label = "β"
+name = "second surface (tangential) index"
+unit = ""
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\gamma'
+label = "γ"
+name = "third surface (tangential) index, summed"
+unit = ""
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = 'H'
+label = "H"
+name = "mean curvature of a surface"
+unit = "m<sup>−1</sup>"
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = 'K'
+label = "K"
+name = "total (Gaussian) curvature of a surface"
+unit = "m<sup>−2</sup>"
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\Gamma'
+label = "Γ"
+name = "array of connection coefficients Γ[i,j,k] = Γ<sup>k</sup><sub>ij</sub>"
+unit = ""
+pages = ["theory/curvilinear.md", "theory/submanifolds.md", "manual/coorsystems.md", "manual/coorsystems_num.md", "tutorials/generated/christoffel.md", "developer/testing_conventions.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\Gamma^k_{ij}'
+label = "Γ<sup>k</sup><sub>ij</sub>"
+name = "connection (Christoffel) symbols of the second kind of a chart"
+unit = ""
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\Gamma^\gamma_{\alpha\beta}'
+label = "Γ<sup>γ</sup><sub>αβ</sub>"
+name = "intrinsic connection symbols of the induced surface metric"
+unit = ""
+
+[[symbol]]
+group = "Differential geometry"
+tex = 'b_\alpha^\beta'
+label = "b<sub>α</sub><sup>β</sup>"
+name = "shape operator (second form with one index raised)"
+unit = "m<sup>−1</sup>"
+
+[[symbol]]
+group = "Differential geometry"
+tex = 'R'
+label = "R"
+name = "radius of the sphere, cylinder or osculating sphere"
+unit = "m"
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = 'f'
+label = "f"
+name = "generic scalar field in operator examples"
+unit = ""
+pages = ["tutorials/generated/symbolic_operators.md", "tutorials/generated/operator_identities.md", "tutorials/generated/numerical_operators.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'N'
+label = "N"
+name = "dimension of the symmetry-class subspace"
+unit = ""
+pages = ["theory/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\mathbb{T}'
+label = "𝕋"
+name = "basis tensors 𝕋<sub>i</sub> spanning a symmetry class"
+unit = ""
+pages = ["theory/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\varepsilon'
+label = "ε"
+name = "relative tolerance of the symmetry-detection cascade"
+unit = "1"
+pages = ["theory/projection.md", "tutorials/generated/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\mathcal{S}'
+label = "𝒮"
+name = "symmetry class, a linear subspace at fixed orientation"
+unit = ""
+pages = ["theory/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\mathbb{R}'
+label = "ℝ"
+name = "order-4 rotation tensor R ⊠ˢ R"
+unit = "1"
+pages = ["theory/rotations.md", "theory/kelvin_mandel.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\psi'
+label = "ψ"
+name = "third Euler angle (spin about the axis)"
+unit = "rad"
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\Theta'
+label = "Θ"
+name = "orientation (rotation in SO(3)) optimized in the projection"
+unit = ""
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\mathrm{ISO}'
+label = "ISO"
+name = "closest isotropic tensor (isotropization)"
+unit = ""
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\mathbb{A}'
+label = "𝔸"
+name = "tensor to be projected onto a symmetry class"
+unit = ""
+pages = ["theory/projection.md", "theory/walpole.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\mathbb{B}'
+label = "𝔹"
+name = "closest tensor of the symmetry class (projection result)"
+unit = ""
+pages = ["theory/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\alpha'
+label = "α"
+name = "coefficients α<sub>i</sub> of a tensor on the basis of a symmetry class"
+unit = ""
+pages = ["theory/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'G'
+label = "G"
+name = "rotation group integrated over in a group average"
+unit = ""
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'C_{11}'
+label = "C<sub>11</sub>"
+name = "entry (1,1) of the Kelvin–Mandel matrix C = Mat(𝔸)"
+unit = ""
+pages = ["theory/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'C_{12}'
+label = "C<sub>12</sub>"
+name = "entry (1,2) of the Kelvin–Mandel matrix C = Mat(𝔸)"
+unit = ""
+pages = ["theory/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'C_{44}'
+label = "C<sub>44</sub>"
+name = "entry (4,4) of the Kelvin–Mandel matrix C = Mat(𝔸)"
+unit = ""
+pages = ["theory/projection.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'SO(3)'
+label = "SO(3)"
+name = "special orthogonal (rotation) group; SO(2) about the axis"
+unit = ""
+pages = ["theory/rotations.md", "theory/kelvin_mandel.md", "theory/cubic.md", "theory/projection.md", "theory/walpole_extended.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'R'
+label = "R"
+name = "rotation matrix 3×3 (Z–Y–Z Euler angles)"
+unit = "1"
+pages = ["theory/rotations.md", "theory/kelvin_mandel.md", "theory/index.md", "theory/curvilinear.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'Q'
+label = "Q"
+name = "rotation (Bond) matrix 6×6 in Kelvin–Mandel form"
+unit = "1"

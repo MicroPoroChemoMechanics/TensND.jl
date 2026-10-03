@@ -128,8 +128,8 @@ S_{2323}=\frac{1+\nu_1}{2E\,\Gamma}.
 
 Isotropy is the point ``H=\Gamma=1`` with ``\nu_1=\nu_2``: ``H`` measures the
 departure of the axial stiffness from the transverse one, and ``\Gamma`` that of
-the axial shear modulus from the in-plane one. The same author's companion paper
-[hoenig1979](@cite) applies the parametrization to the effective moduli of a
+the axial shear modulus from the in-plane one. The companion paper
+[hoenig1979](@citet) applies the parametrization to the effective moduli of a
 non-randomly cracked body.
 
 ## Choosing between them

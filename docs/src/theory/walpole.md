@@ -17,7 +17,7 @@ From the axial and transverse projectors
 \boldsymbol{1}_T=\boldsymbol{1}-\boldsymbol{1}_n ,
 ```
 
-build [walpole1984](@cite), [walpole1981](@cite):
+build [walpole1981, walpole1984](@cite):
 
 ```math
 \begin{aligned}
@@ -77,7 +77,7 @@ L=\begin{pmatrix}\ell_1&\ell_3\\ \ell_4&\ell_2\end{pmatrix}.
 ```
 
 The Walpole basis is closed under double contraction, and in this notation the
-algebra is [walpole1984](@cite)
+algebra reads [walpole1984](@cite)
 
 ```math
 \mathbb{L}:\mathbb{M}\equiv\bigl(L\,M,\ \ell_5 m_5,\ \ell_6 m_6\bigr),

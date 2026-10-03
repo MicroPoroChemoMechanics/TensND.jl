@@ -113,6 +113,8 @@ include("test_submanifold.jl")
 # the code cannot drift away from the docs unnoticed. See
 # `docs/src/developer/testing_conventions.md`.
 include("test_conventions.jl")
+# The nomenclature of the documentation and the typography of its formulas.
+include("test_docs_nomenclature.jl")
 # Must stay last: it loads NLopt, which `test_tens_projection.jl` requires to
 # be absent.
 include("test_nlopt_ext.jl")

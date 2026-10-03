@@ -18,7 +18,7 @@
 # The point of this tutorial is that the construction is written **once** and
 # runs unchanged on an isotropic and on a transversely isotropic stiffness — the
 # structured types of [The Walpole basis](@ref th-walpole) doing the work.
-# Background: [mura1987](@cite), [hoenig1978](@cite).
+# Background: [mura1987](@citet), [hoenig1978](@citet).
 
 import Pkg                                                          #jl
 Pkg.activate(joinpath(@__DIR__, "..", "docs"); io = devnull)        #jl

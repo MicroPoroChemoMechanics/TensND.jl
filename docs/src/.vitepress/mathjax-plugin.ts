@@ -5,6 +5,10 @@ import MathJax from '@mathjax/src'
 import type { Plugin as VitePlugin } from 'vite'
 import type MarkdownIt from 'markdown-it'
 import { tex as mdTex } from '@mdit/plugin-tex'
+// The symbols of the nomenclature, written by make.jl from docs/nomenclature.toml.
+import nomenclature from './nomenclature.json'
+// @ts-ignore
+import { symbolsOf } from './nomenclature-match.mjs'
 
 const mathjaxStyleModuleID = 'virtual:mathjax-styles.css'
 
@@ -49,6 +53,10 @@ async function initializeMathJax(options: MathJaxOptions = {}) {
 export function mathjaxPlugin(options: MathJaxOptions = {}) {
   let adaptor: any
   let initialized = false
+  // The page being rendered, a path under docs/src such as
+  // "theory/hill_tensors.md", from the environment VitePress passes to
+  // `md.render`: a symbol's meaning can depend on the page.
+  let currentPage = ''
 
   async function ensureInitialized() {
     if (!initialized) {
@@ -67,6 +75,14 @@ export function mathjaxPlugin(options: MathJaxOptions = {}) {
 
     // Prevent Vue from touching MathJax output
     adaptor.setAttribute(node, 'v-pre', '')
+
+    // The symbols of the nomenclature this formula holds, with their meaning on
+    // the page being rendered; the theme shows them when the formula is hovered.
+    // The nomenclature page itself lists them already.
+    if (currentPage !== 'nomenclature.md') {
+      const ids = symbolsOf(content, currentPage, nomenclature)
+      if (ids.length > 0) adaptor.setAttribute(node, 'data-nomen', ids.join(' '))
+    }
 
     let html = adaptor.outerHTML(node)
 
@@ -126,6 +142,8 @@ export function mathjaxPlugin(options: MathJaxOptions = {}) {
 
     const orig = md.render
     md.render = function (...args) {
+      const env: any = args[1]
+      currentPage = (env && env.relativePath) || ''
       resetMathJax()
       return orig.apply(this, args)
     }

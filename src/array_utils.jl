@@ -619,4 +619,6 @@ const sboxtimes = otimesul
 export isidentity, contract, qcontract, otimesu, otimesul, sboxtimes, sotimes, ⊙, ⊠, ⊠ˢ, ⊗ˢ
 export tsimplify, tfactor, tsubs, tdiff, ttrigsimp, texpand_trig, tlimit
 export is_hard_numeric
-export ⋅, ⊡, ⊗
+# `dotdot` belongs here too: its docstring offers `dotdot(n, ℂ, n)` as the
+# acoustic tensor, which a `using TensND` alone could not reach.
+export ⋅, ⊡, ⊗, dotdot

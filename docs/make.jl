@@ -26,10 +26,19 @@ using SymPy
 # markdown exists when the `pages` list below references it.
 include("literate.jl")
 
+# Author-year citations, as in MeanFieldHomogenization and ChemistryLab: a
+# `[3]` tells the reader nothing without a trip to the References page, and
+# hovering a citation shows the full entry (`theme/index.ts`).
 bib = CitationBibliography(
     joinpath(@__DIR__, "src", "references.bib");
-    style = :numeric,
+    style = :authoryear,
 )
+
+# The nomenclature, as the JSON that the plugin typesetting the formulas and the
+# hints of the theme read: the entries of `nomenclature.toml`. Written before any
+# page is built, and not versioned (see `.gitignore`).
+include("nomenclature.jl")
+write_nomenclature_json(joinpath(@__DIR__, "src", ".vitepress", "nomenclature.json"))
 
 DocMeta.setdocmeta!(
     TensND,
@@ -289,6 +298,7 @@ makedocs(
             "api/symbolic.md",
             "api/full_index.md",
         ],
+        "Nomenclature" => "nomenclature.md",
         "References" => "references.md",
     ],
     # Reports any *exported* symbol whose docstring is not included anywhere in

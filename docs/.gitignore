@@ -10,3 +10,6 @@ src/.vitepress/cache/
 src/.vitepress/dist/
 
 Manifest.toml
+
+# Written by make.jl from nomenclature.toml at every build.
+src/.vitepress/nomenclature.json

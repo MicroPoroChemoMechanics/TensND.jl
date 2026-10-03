@@ -1,6 +1,6 @@
 name = "TensND"
 uuid = "474b5345-2588-4284-8a58-2430a1a40cb0"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Jean-François Barthélémy"]
 
 [deps]
@@ -30,6 +30,7 @@ Rotations = "1"
 StaticArrays = "1"
 SymPy = "2"
 Symbolics = "6, 7"
+TOML = "1"
 Tensors = "1"
 Test = "1"
 TimerOutputs = "0.5, 1"
@@ -39,8 +40,9 @@ julia = "1.12"
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [targets]
-test = ["Aqua", "NLopt", "Random", "Test", "TimerOutputs"]
+test = ["Aqua", "NLopt", "Random", "TOML", "Test", "TimerOutputs"]

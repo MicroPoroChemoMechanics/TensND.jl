@@ -188,3 +188,53 @@
     font-size: 13.5px;
   }
 }
+
+/* Symbol hints: the card that lists the symbols of a hovered equation, with
+ * their meaning on the page (see docs/nomenclature.toml). Positioned from the
+ * theme's script, like the citation hints. */
+.tensnd-nomen-hint {
+  position: absolute;
+  z-index: 100;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  pointer-events: none;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid var(--vp-c-divider);
+  border-left: 3px solid var(--tensnd-accent);
+  border-radius: 6px;
+  background: var(--vp-c-bg-elv);
+  color: var(--vp-c-text-1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.16);
+  font-size: 0.84rem;
+  line-height: 1.45;
+}
+
+.tensnd-nomen-hint.is-visible {
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.tensnd-nomen-hint .row {
+  display: grid;
+  grid-template-columns: 4.4em 1fr;
+  gap: 0.5em;
+  padding: 0.12rem 0;
+}
+
+.tensnd-nomen-hint .sym {
+  font-family: var(--vp-font-family-mono);
+  font-style: italic;
+  text-align: right;
+}
+
+.tensnd-nomen-hint .unit {
+  color: var(--vp-c-text-2);
+}
+
+/* An equation that has a hint shows it can be hovered. */
+mjx-container[data-nomen] {
+  cursor: help;
+}

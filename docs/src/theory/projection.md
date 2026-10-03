@@ -8,8 +8,8 @@ describes the optimizer used when the orientation is free.
 Implementation: `src/tens_projection.jl` and, for the orientation search, the
 weak-dependency extension `ext/TensNDNLoptExt.jl`. The formulation follows the
 one of the Echoes C++ library; the general theory of closest tensors of
-prescribed symmetry is [moakher2006](@cite), and the harmonic-decomposition
-alternative is [browaeys2004](@cite).
+prescribed symmetry is due to [moakher2006](@citet), and the
+harmonic-decomposition alternative to [browaeys2004](@citet).
 
 ## The problem
 
@@ -114,9 +114,9 @@ degenerate into three traces (`_project_CUBIC_KM`):
 \gamma = \tfrac13\operatorname{tr}(\mathbb{C}\,\mathbb{T}),
 ```
 
-the divisors being the traces of the projectors themselves. Concretely, ``α`` is
-the mean of the whole upper ``3\times3`` block, ``β`` the mean of its diagonal
-minus its off-diagonal, ``γ`` the mean of the shear diagonal — so the projection
+the divisors being the traces of the projectors themselves. Concretely, ``\alpha`` is
+the mean of the whole upper ``3\times3`` block, ``\beta`` the mean of its diagonal
+minus its off-diagonal, ``\gamma`` the mean of the shear diagonal — so the projection
 *averages* rather than discards, and a non-major-symmetric input is symmetrized
 implicitly by the same traces.
 
@@ -275,7 +275,7 @@ Everything above minimizes the **Euclidean** (Frobenius) distance. That choice i
 not neutral: it is not invariant under inversion, so projecting a stiffness and
 projecting its compliance give different materials
 ([Isotropic tensors](@ref th-isotropic)). Distances that repair this —
-log-Euclidean, power-Euclidean, arctan-Euclidean — are constructed in
-[morin2020](@cite). `TensND` implements the Euclidean one only, so a reported
+log-Euclidean, power-Euclidean, arctan-Euclidean — are constructed by
+[morin2020](@citet). `TensND` implements the Euclidean one only, so a reported
 projection should always state which of ``\mathbb{C}`` or ``\mathbb{S}`` was
 projected.

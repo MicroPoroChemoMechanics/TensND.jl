@@ -17,6 +17,7 @@ TensND.ApproxType
 TensND.is_hard_numeric
 contract
 qcontract
+dotdot
 otimesu
 otimesul
 sotimes

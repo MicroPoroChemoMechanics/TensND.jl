@@ -98,7 +98,7 @@ optimize, because an isotropic tensor has none.
     *different* isotropic materials. This is not a defect of the
     implementation but of the Euclidean distance itself, which is not invariant
     under inversion. Distances that are — log-Euclidean, power-Euclidean,
-    arctan-Euclidean — are constructed and compared in [morin2020](@cite);
+    arctan-Euclidean — are constructed and compared by [morin2020](@citet);
     `TensND` implements the Euclidean one, so the choice of which of
     ``\mathbb{C}`` or ``\mathbb{S}`` to project is the user's and must be
     stated when a result is reported.

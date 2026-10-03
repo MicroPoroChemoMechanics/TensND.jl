@@ -1,12 +1,37 @@
 # Changelog
 
-## Unreleased
+## v0.5.1 — `dotdot` is exported
+
+### Fixed
+
+- `dotdot` is now exported. Its docstring shows `dotdot(n, ℂ, n)` computing the
+  acoustic tensor after a plain `using TensND`, but the name was only reachable
+  as `Tensors.dotdot`, or after `using Tensors`, so the example failed as
+  written. The test suite loads Tensors itself, which is why nothing noticed.
+  The exported name is the same function as `Tensors.dotdot`, so loading both
+  packages raises no conflict. Its docstring is now on the API page of the
+  symbolic helpers and array algebra, which the documentation build requires
+  of every exported name.
 
 ### Documentation
 
 - The README now lists `TensCubic` among the structured tensors and the cubic
   class among the symmetry projections, both released in v0.5.0 and until now
   named only in the manual.
+- Citations are author-year, as in MeanFieldHomogenization and ChemistryLab: a
+  `[3]` told the reader nothing without a trip to the References page. A
+  citation that is the subject of a sentence or follows a preposition reads
+  "Walpole (1984)", the others "(Walpole, 1984)". Hovering a citation shows the
+  full entry.
+- A **Nomenclature** page lists the symbols that recur in the formulas, grouped
+  by subject, and hovering an equation shows the symbols it holds with their
+  meaning on that page. Both read `docs/nomenclature.toml`; a symbol with
+  several meanings is explained only on the pages where each holds. The test
+  suite checks the nomenclature and the typography of the formulas of the pages
+  and of the docstrings.
+- Two pages wrote `LinearAlgebra.normalize(ℬ)` as a broken code span, and one
+  said that normalizing a basis makes it orthogonal; it makes its vectors unit
+  vectors, and the basis orthonormal only if it was orthogonal.
 
 ## v0.5.0 — cubic symmetry as a first-class class
 

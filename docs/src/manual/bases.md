@@ -63,7 +63,7 @@ check that a basis is consistent.
 
 ## Normalization
 
-`LinearAlgebra.normalize``(ℬ)` divides each vector by its norm. It
+`LinearAlgebra.normalize(ℬ)` divides each vector by its norm. It
 removes the scaling but **not** the obliquity: the metric acquires a unit
 diagonal while the off-diagonal terms, which measure the angles between the
 vectors, survive.
