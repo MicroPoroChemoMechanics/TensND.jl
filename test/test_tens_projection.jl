@@ -350,4 +350,47 @@
         @test res[end] === :ANISO
     end
 
+    @testsection "best_sym_tens — the candidate axis and frame carry derivatives" begin
+        # The candidates came from LAPACK, for `AbstractFloat` only: a `Dual`
+        # tensor fell back to the axis e₃ and the canonical frame, so a TI or
+        # orthotropic tensor about any other axis was reported `:ANISO` under
+        # automatic differentiation, and returned unprojected. The candidates
+        # now carry the derivative of the eigenvectors they are built from.
+        n(p) = [sin(p), 0.0, cos(p)]
+        ti(p) = TensTI{4}(30.0 * (1 + p), 9.0, 7.0, 6.0, 4.0, n(p))
+        ortho(p) = TensOrtho(30.0 * (1 + p), 25.0, 20.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, RotatedBasis(p, 0.7, 1.1))
+        for (mk, sym) in ((ti, :TI), (ortho, :ORTHO))
+            plain(p) = Tens(Array(components_canon(mk(p))))
+            p = 0.4
+            @test best_sym_tens(plain(p))[4] === sym
+            @test best_sym_tens(plain(ForwardDiff.Dual(p, 1.0)))[4] === sym
+            # The projection of a tensor of the class is the tensor itself, so
+            # the derivative of the projection is that of the structured
+            # tensor, which owes nothing to the eigenvectors.
+            proj(p) = Array(components_canon(best_sym_tens(plain(p))[1]))
+            ref(p) = Array(components_canon(mk(p)))
+            @test ForwardDiff.derivative(proj, p) ≈ ForwardDiff.derivative(ref, p) atol = 1.0e-9
+            d2(f) = ForwardDiff.derivative(q -> ForwardDiff.derivative(f, q), p)
+            @test d2(proj) ≈ d2(ref) atol = 1.0e-8
+        end
+
+        # The decomposition itself: d·V = V·Λ holds in the derivatives too.
+        D(x) = [4.0 + x 1.0 0.5; 1.0 3.0 0.2 * x; 0.5 0.2 * x 1.0]
+        d = D(ForwardDiff.Dual(0.3, 1.0))
+        λ, V = TensND._sym_eigen(d)
+        r = d * V - V * Diagonal(λ)
+        @test maximum(abs ∘ ForwardDiff.value, r) < 1.0e-12
+        @test maximum(x -> abs(ForwardDiff.partials(x, 1)), r) < 1.0e-12
+        @test maximum(x -> abs(ForwardDiff.partials(x, 1)), V' * V - I) < 1.0e-12
+
+        # The optimized projections refuse duals by name rather than with a
+        # `MethodError`: the orientation they find carries no derivative.
+        Ad = Array(components_canon(ti(ForwardDiff.Dual(0.4, 1.0))))
+        for S in (:TI, :ORTHO, :CUBIC)
+            @test_throws ArgumentError proj_tens(Val(S), Ad)
+        end
+        @test_throws ArgumentError proj_tens(Val(:TI), Ad[:, :, 1, 1])
+        @test proj_tens(Val(:CUBIC), Ad[:, :, 1, 1])[1] isa TensISO   # no orientation at order 2
+    end
+
 end

@@ -411,6 +411,49 @@ function _trace_tensor(C::AbstractArray{T, 4}) where {T}
 end
 
 """
+    _sym_eigen(d::AbstractMatrix; rtol = 1e-8) -> (λ, V)
+
+Eigenvalues, ascending, and orthonormal eigenvectors of the real symmetric
+matrix `d`, as `eigen(Symmetric(d))` returns them.
+
+`eigen` goes through LAPACK and stops at `AbstractFloat`. For
+`ForwardDiff.Dual` entries the values are those of the value matrix, and each
+derivative comes from first-order perturbation theory, one nesting level at a
+time:
+
+    λ̇ᵢ = vᵢ·ḋ·vᵢ,    v̇ᵢ = Σⱼ≠ᵢ (vⱼ·ḋ·vᵢ) / (λᵢ − λⱼ) vⱼ.
+
+Two eigenvalues closer than `rtol · max(λₙ − λ₁, 1)` — the closeness by which
+`_candidate_TI_axis` recognizes a double eigenvalue — are treated as one:
+within their plane no direction is preferred, so neither contributes to the
+derivative of the other's vector.
+"""
+_sym_eigen(d::AbstractMatrix{<:AbstractFloat}; rtol = 1.0e-8) =
+    (e = eigen(Symmetric(Matrix(d))); (e.values, e.vectors))
+
+function _sym_eigen(d::AbstractMatrix{D}; rtol = 1.0e-8) where {D <: ForwardDiff.Dual}
+    λ₀, V₀ = _sym_eigen(ForwardDiff.value.(d); rtol)
+    n = length(λ₀)
+    span = max(λ₀[n] - λ₀[1], one(eltype(λ₀)))
+    # Each derivative of `d` in the eigenbasis: entry (j, i) is vⱼ·ḋ·vᵢ.
+    ḋ = ntuple(k -> V₀' * ForwardDiff.partials.(d, k) * V₀, Val(ForwardDiff.npartials(D)))
+    function v̇(m, a, i)
+        s = zero(eltype(m))
+        for j in 1:n
+            (j == i || abs(λ₀[i] - λ₀[j]) < rtol * span) && continue
+            s += m[j, i] / (λ₀[i] - λ₀[j]) * V₀[a, j]
+        end
+        return s
+    end
+    λ = [D(λ₀[i], ForwardDiff.Partials(map(m -> m[i, i], ḋ))) for i in 1:n]
+    V = [D(V₀[a, i], ForwardDiff.Partials(map(m -> v̇(m, a, i), ḋ))) for a in 1:n, i in 1:n]
+    return λ, V
+end
+
+# The element types whose candidates come from an eigendecomposition.
+const _EigenType = Union{AbstractFloat, ForwardDiff.Dual}
+
+"""
     _candidate_TI_axis(C::AbstractArray{T,4}; rtol=1e-8) → NTuple{3,T}
 
 Propose a candidate TI symmetry axis for a 4th-order tensor `C` by looking
@@ -421,11 +464,8 @@ back to `e₃ = (0, 0, 1)`.
 
 Only meaningful for numeric element types: for symbolic `T`, the eigendecomposition is skipped and `e₃` is returned.
 """
-function _candidate_TI_axis(C::AbstractArray{T, 4}; rtol = 1.0e-8) where {T <: AbstractFloat}
-    d = _trace_tensor(C)
-    eig = eigen(Symmetric(Matrix(d)))
-    λ = eig.values
-    V = eig.vectors
+function _candidate_TI_axis(C::AbstractArray{T, 4}; rtol = 1.0e-8) where {T <: _EigenType}
+    λ, V = _sym_eigen(_trace_tensor(C); rtol)
     span = max(abs(λ[3] - λ[1]), one(T))
     close12 = abs(λ[1] - λ[2]) < rtol * span
     close23 = abs(λ[2] - λ[3]) < rtol * span
@@ -440,7 +480,7 @@ function _candidate_TI_axis(C::AbstractArray{T, 4}; rtol = 1.0e-8) where {T <: A
     return (T(v[1]), T(v[2]), T(v[3]))
 end
 
-# Non-floating-point fallback (symbolic, Int, etc.): return canonical e₃.
+# Fallback for the other element types (symbolic, integer…): the canonical e₃.
 _candidate_TI_axis(::AbstractArray{T, 4}; kwargs...) where {T} = (zero(T), zero(T), one(T))
 
 """
@@ -450,10 +490,8 @@ For a 2nd-order tensor `M`, propose its unique/isolated eigenvector as the
 candidate TI axis.  Falls back to `e₃` when the three eigenvalues are
 indistinguishable.
 """
-function _candidate_TI_axis(M::AbstractArray{T, 2}; rtol = 1.0e-8) where {T <: AbstractFloat}
-    eig = eigen(Symmetric((M + M') / 2))
-    λ = eig.values
-    V = eig.vectors
+function _candidate_TI_axis(M::AbstractArray{T, 2}; rtol = 1.0e-8) where {T <: _EigenType}
+    λ, V = _sym_eigen((M + M') / 2; rtol)
     span = max(abs(λ[3] - λ[1]), one(T))
     close12 = abs(λ[1] - λ[2]) < rtol * span
     close23 = abs(λ[2] - λ[3]) < rtol * span
@@ -480,10 +518,8 @@ with the canonical frame).
 Only meaningful for numeric element types: for symbolic `T`, the canonical
 frame is returned.
 """
-function _candidate_ORTHO_frame(C::AbstractArray{T, 4}) where {T <: AbstractFloat}
-    d = _trace_tensor(C)
-    eig = eigen(Symmetric(Matrix(d)))
-    R = Matrix{T}(eig.vectors)
+function _candidate_ORTHO_frame(C::AbstractArray{T, 4}) where {T <: _EigenType}
+    R = Matrix{T}(last(_sym_eigen(_trace_tensor(C))))
     # Ensure a right-handed basis (det = +1, not −1)
     if det(R) < 0
         R[:, 1] = -R[:, 1]
@@ -499,9 +535,8 @@ _candidate_ORTHO_frame(::AbstractArray{T, 4}) where {T} = CanonicalBasis{3, T}()
 For a 2nd-order tensor, the ORTHO frame candidate is directly built from its
 eigenvectors.
 """
-function _candidate_ORTHO_frame(M::AbstractArray{T, 2}) where {T <: AbstractFloat}
-    eig = eigen(Symmetric((M + M') / 2))
-    R = Matrix{T}(eig.vectors)
+function _candidate_ORTHO_frame(M::AbstractArray{T, 2}) where {T <: _EigenType}
+    R = Matrix{T}(last(_sym_eigen((M + M') / 2)))
     if det(R) < 0
         R[:, 1] = -R[:, 1]
     end
@@ -817,6 +852,17 @@ function _proj_tens_opt(::Val{S}, A::AbstractArray) where {S}
     )
 end
 
+# The orientation found by the optimizer carries no derivative: it would take
+# the implicit function theorem on its optimality condition. Refused, rather
+# than a projection whose derivative ignores how the orientation moves.
+for (S, N) in ((:TI, 4), (:TI, 2), (:ORTHO, 4), (:ORTHO, 2), (:CUBIC, 4))
+    msg = "the rotation-optimized :$S projection does not differentiate the " *
+        "orientation it finds; project on a given axis or frame, or call " *
+        "best_sym_tens with optimize_angles = false, whose candidates carry derivatives."
+    @eval proj_tens(::Val{$(QuoteNode(S))}, ::AbstractArray{<:ForwardDiff.Dual, $N}) =
+        throw(ArgumentError($msg))
+end
+
 """
     proj_tens(::Val{:TI}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
 
@@ -866,13 +912,13 @@ proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
     _proj_tens_opt(Val(:CUBIC), A)
 
 """
-    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,2})
 
 At order two the cubic class is the isotropic class, which has no orientation
-to optimize, so this is the isotropic projection and needs no NLopt.
+to optimize, so this is the isotropic projection: it needs no NLopt and takes
+any element type the isotropic one does.
 """
-proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
-    proj_tens(Val(:ISO), A)
+proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 2}) where {T} = proj_tens(Val(:ISO), A)
 
 """
     proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
