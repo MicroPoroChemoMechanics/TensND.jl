@@ -115,6 +115,8 @@ include("test_submanifold.jl")
 include("test_conventions.jl")
 # The nomenclature of the documentation and the typography of its formulas.
 include("test_docs_nomenclature.jl")
+# The bitwise lock of the tensor algebra; see `golden/cases.jl`.
+include("test_golden.jl")
 # Must stay last: it loads NLopt, which `test_tens_projection.jl` requires to
 # be absent.
 include("test_nlopt_ext.jl")
