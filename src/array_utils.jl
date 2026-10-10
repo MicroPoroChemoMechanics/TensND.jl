@@ -11,7 +11,8 @@ end
     isidentity(a::AbstractMatrix) → Bool
 
 Test whether `a` is the identity matrix, within the tolerance of `≈` for
-floating-point element types and exactly for symbolic ones.
+floating-point element types and exactly for symbolic ones. A matrix of
+`ForwardDiff.Dual` numbers is the identity only if its derivatives vanish too.
 
 # Examples
 ```jldoctest
@@ -25,8 +26,7 @@ julia> isidentity([1.0 0.5; 0.0 1.0])
 false
 ```
 """
-isidentity(a::AbstractMatrix{T}) where {T} = a ≈ I
-isdiagonal(a::AbstractMatrix{T}) where {T} = norm(a - Diagonal(a)) <= eps(T)
+isidentity(a::AbstractMatrix) = a ≈ I && !any(_carries_partials, a)
 
 # ── Symbolic passes ──────────────────────────────────────────────────────────
 #
@@ -244,6 +244,32 @@ is_hard_numeric(::Type{<:Rational}) = true
 is_hard_numeric(::Type{ForwardDiff.Dual{T, V, N}}) where {T, V, N} = is_hard_numeric(V)
 is_hard_numeric(::Type) = false
 is_hard_numeric(x) = is_hard_numeric(typeof(x))
+
+# Exact element types (integers, rationals) compare exactly: `eps` is not
+# defined on them. The tolerance is that of the floating-point type underneath.
+isdiagonal(a::AbstractMatrix) = isdiag(a)
+function isdiagonal(a::AbstractMatrix{T}) where {T <: ApproxType}
+    off = a - Diagonal(a)
+    return norm(off) <= _approx_eps(T) && !any(_carries_partials, off)
+end
+
+"""
+    _carries_partials(x) -> Bool
+
+Whether `x` carries a nonzero derivative, at any nesting level of
+`ForwardDiff.Dual`.
+
+The structural predicates [`isidentity`](@ref) and `isdiagonal` decide whether
+a basis collapses to a simpler one, and they compare **values** — `≈` and
+`norm` see only the value of a `Dual`. A rotation by a dual angle at zero is the
+identity in value, yet its derivative is the generator of the rotation:
+collapsing it to the canonical basis returned zero derivatives. The predicates
+therefore also require the derivatives to vanish.
+"""
+_carries_partials(::Number) = false
+_carries_partials(x::ForwardDiff.Dual) =
+    any(p -> !iszero(p) || _carries_partials(p), ForwardDiff.partials(x)) ||
+    _carries_partials(ForwardDiff.value(x))
 
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)

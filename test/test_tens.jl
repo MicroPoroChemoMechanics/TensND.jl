@@ -149,6 +149,55 @@ end
     @test !(TensND.tensor_or_array(rawd) isa SymmetricTensor)
 end
 
+@testsection "A rotation by a dual angle keeps its derivatives at zero" begin
+    # A rotation by a dual angle θ = 0 is the identity in value, but its
+    # derivative is the generator of the rotation. `isidentity` compared values
+    # only, so `RotatedBasis` collapsed to `CanonicalBasis` and every derivative
+    # with respect to the angle came out zero — for any |θ| below about 1e-8,
+    # the tolerance of `≈`.
+    @test RotatedBasis(ForwardDiff.Dual(0.0, 1.0), 0.0, 0.0) isa RotatedBasis
+    @test RotatedBasis(ForwardDiff.Dual(0.0, 1.0)) isa RotatedBasis
+    @test RotatedBasis(0.0, 0.0, 0.0) isa CanonicalBasis           # unchanged
+    @test RotatedBasis(ForwardDiff.Dual(0.0, 0.0), 0.0, 0.0) isa CanonicalBasis
+
+    # References in closed form: with ϕ = ψ = 0, the ZYZ rotation is a rotation
+    # by θ about e₂, and a vector of components v in it has the canonical
+    # components R(θ)·v.
+    v = [1.0, 2.0, 3.0]
+    f(θ) = components_canon(Tens(v .* one(θ), RotatedBasis(θ, zero(θ), zero(θ))))
+    dR(θ) = [-sin(θ) 0 cos(θ); 0 0 0; -cos(θ) 0 -sin(θ)]
+    d2R(θ) = [-cos(θ) 0 -sin(θ); 0 0 0; sin(θ) 0 -cos(θ)]
+    for θ in (0.0, 0.7)
+        @test ForwardDiff.derivative(f, θ) ≈ dR(θ) * v
+        @test ForwardDiff.derivative(θ -> ForwardDiff.derivative(f, θ), θ) ≈ d2R(θ) * v
+    end
+    g(θ) = components_canon(Tens([1.0, 2.0] .* one(θ), RotatedBasis(θ)))
+    @test ForwardDiff.derivative(g, 0.0) ≈ [0.0 -1.0; 1.0 0.0] * [1.0, 2.0]
+
+    # A structured tensor in that frame: dℂ/dθ at 0 is the generator W acting
+    # on each index, Σ W_ia ℂ_ajkl + W_jb ℂ_ibkl + W_kc ℂ_ijcl + W_ld ℂ_ijkd.
+    C(θ) = TensOrtho(30.0, 25.0, 20.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, RotatedBasis(θ, zero(θ), zero(θ)))
+    c = components_canon(C(0.0))
+    W = dR(0.0)
+    dc = [
+        sum(W[i, a] * c[a, j, k, l] + W[j, a] * c[i, a, k, l] + W[k, a] * c[i, j, a, l] + W[l, a] * c[i, j, k, a] for a in 1:3)
+            for i in 1:3, j in 1:3, k in 1:3, l in 1:3
+    ]
+    @test ForwardDiff.derivative(θ -> Matrix(KM(C(θ))), 0.0) ≈ Matrix(KM(Tens(dc))) atol = 1.0e-12
+    @test maximum(abs, Matrix(KM(Tens(dc)))) > 1                    # not vacuous
+
+    # The diagonal test, for the same reason, and on exact element types, where
+    # its absolute `eps(T)` tolerance threw: an integer or rational basis could
+    # not be built.
+    z = ForwardDiff.Dual(0.0, 1.0)
+    @test !TensND.isdiagonal([1.0 z; 0.0 2.0])
+    @test !isidentity([1.0 z; 0.0 1.0])
+    @test TensND.isdiagonal([1 0; 0 2]) && !TensND.isdiagonal([1 1; 0 2])
+    @test TensND.isdiagonal([1 // 2 0; 0 2]) && !TensND.isdiagonal([1 // 2 1; 0 2])
+    @test Basis([2 0 0; 0 1 0; 0 0 1]) isa OrthogonalBasis
+    @test Basis([2 // 1 0 0; 0 1 0; 0 0 1]) isa OrthogonalBasis
+end
+
 @testsection "symbolic passes reach structured tensors and tuples" begin
     # REGRESSION. `structured_tens_ops.jl` implements the whole `tsimplify`
     # family as `_rebuild(A, OP(get_data(A)))`, and `get_data` returns an
