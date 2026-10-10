@@ -339,9 +339,11 @@ Displaying one did too, `show` going through `KM`.
 """
 function KM(A::TensISO{4, dim}) where {dim}
     α, β = get_data(A)
-    T = promote_type(typeof(α), typeof(β))
     m = dim * (dim + 1) ÷ 2
     sph = (α - β) / dim
+    # The type of the spherical part too: `(α - β) / dim` of integer moduli is
+    # not an integer.
+    T = promote_type(typeof(α), typeof(β), typeof(sph))
     M = zeros(T, m, m)
     @inbounds for i in 1:m
         M[i, i] = T(β)
@@ -563,8 +565,9 @@ isotropify(A::AbstractArray{T, 2}) where {T} = TensISO{size(A)[1]}(tr(A) / size(
 function isotropify(A::AbstractArray{T, 4}) where {T}
     dim = size(A)[1]
     α = tens_J4(dim, T) ⊙ A
-    # 5 = dim(deviatoric space) = dim(𝕂) for 3D; generalizes to dim*(dim+1)/2 - 1
-    dimK = dim * (dim + 1) / 2 - 1
+    # 5 = dim(deviatoric space) = dim(𝕂) for 3D; generalizes to dim*(dim+1)/2 - 1.
+    # An integer, so that exact and symbolic element types stay exact.
+    dimK = dim * (dim + 1) ÷ 2 - 1
     β = (tens_K4(dim, T) ⊙ A) / dimK
     return TensISO{dim}(α, β)
 end

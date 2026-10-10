@@ -163,4 +163,14 @@ end
         @test !(ℓ[3] ≈ ℓ[4])                      # the average keeps ℓ₃ ≠ ℓ₄
         @test length(get_data(best_fit_ti(t, nax))) == 5   # the fit cannot
     end
+
+    @testset "an integer axis" begin
+        # The normalized axis was converted back to the type of `n`, which
+        # threw `InexactError` for an integer axis such as (1, 1, 1).
+        t = TensISO{3}(3.0, 2.0)
+        @test get_data(transverse_isotropify(t, (1, 1, 1))) ==
+            get_data(transverse_isotropify(t, (1.0, 1.0, 1.0)))
+        M = Matrix(KM(t))
+        @test TensND.ti_average_mandel66(M, (1, 1, 1)) == TensND.ti_average_mandel66(M, (1.0, 1.0, 1.0))
+    end
 end

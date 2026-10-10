@@ -96,9 +96,12 @@ structurally, by the first canonical axis whose cross product with `n` is not
 *identically* zero — no `argmin`, no tolerance.
 """
 function _axis_frame(n)
-    T = promote_type(typeof(n[1]), typeof(n[2]), typeof(n[3]))
     nn = sqrt(n[1]^2 + n[2]^2 + n[3]^2)
-    n̂ = (T(n[1] / nn), T(n[2] / nn), T(n[3] / nn))
+    # The type of the normalized axis, not of `n`: an integer axis normalizes
+    # to floating-point components.
+    q = (n[1] / nn, n[2] / nn, n[3] / nn)
+    T = promote_type(map(typeof, q)...)
+    n̂ = map(T, q)
     h = _inplane_reference(n̂, T)
     # u = h × n̂ (in-plane), v = n̂ × u  →  (u, v, n̂) right-handed
     u1 = h[2] * n̂[3] - h[3] * n̂[2]
