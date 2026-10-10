@@ -79,11 +79,11 @@ jobs:
         with:
           # Instrument only the primary job: coverage disables precompilation
           # caching and would slow down every other matrix entry for nothing.
-          coverage: ${{ matrix.os == 'ubuntu-latest' && matrix.version == '1' }}
+          coverage: ${{ matrix.os == 'ubuntu-latest' && matrix.version == '1.12' }}
       # Not julia-actions/julia-processcoverage: see the header of the script
       # for why its `amend_coverage_from_src!` step misreports this package.
       - name: Process coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1.12'
         shell: julia --color=yes {0}
         run: |
           using Pkg
@@ -94,7 +94,7 @@ jobs:
           # resolves relative to THAT file's directory, not the cwd.
           include(joinpath(pwd(), ".github", "scripts", "coverage.jl"))
       - uses: codecov/codecov-action@v7
-        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1.12'
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
