@@ -347,8 +347,8 @@ TensOrthonormal(data::AbstractArray, ::CanonicalBasis) = TensCanonical(data)
 
 TensOrthonormal(t::TensOrthonormal) = t
 function TensOrthonormal(t::TensOrthogonal{order, dim, T}) where {order, dim, T}
-    m = Array(get_array(t))
     ℬ = get_basis(t)
+    m = Array{_components_eltype(T, ℬ)}(get_array(t))
     onℬ = relevant_OrthonormalBasis(ℬ)
     Λ = Dict(:cov => inv.(ℬ.λ), :cont => ℬ.λ)
     for ind in CartesianIndices(m)
@@ -739,11 +739,31 @@ for B in (AbstractBasis, OrthogonalBasis, OrthonormalBasis)
     end
 end
 
+"""
+    _components_eltype(T, bases...) -> Type
+
+Element type of the components of a tensor of element type `T` written through
+the given bases: wide enough for a `Float64` tensor in a basis of duals or
+symbols, which converting back to `T` cannot hold. The conversion that follows
+each contraction narrows the output of `einsum` to this type.
+
+The canonical basis imposes no type: its entries are exact zeros and ones,
+which every number type represents. Without that exception, the default
+`CanonicalBasis()` — of element type `Sym` — would turn every `Float64`
+tensor written in it into a symbolic one.
+"""
+_components_eltype(::Type{T}, bases::AbstractBasis...) where {T} =
+    promote_type(T, map(_entry_type, bases)...)
+
+_entry_type(::CanonicalBasis) = Union{}
+_entry_type(::AbstractBasis{dim, T}) where {dim, T} = T
+
 function components(t::Tens{order, dim, T}, var::NTuple{order, Symbol}) where {order, dim, T}
     if isequal(var, get_var(t))
         return get_array(t)
     else
-        m = Array(get_array(t))
+        Tc = _components_eltype(T, get_basis(t))
+        m = Array{Tc}(get_array(t))
         ec1 = ntuple(i -> i, Val(order))
         newcp = order + 1
         for i in 1:order
@@ -751,7 +771,7 @@ function components(t::Tens{order, dim, T}, var::NTuple{order, Symbol}) where {o
                 g_or_G = metric(get_basis(t), var[i])
                 ec2 = (i, newcp)
                 ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
-                m = T.(einsum(EinCode((ec1, ec2), ec3), (m, g_or_G)))
+                m = Tc.(einsum(EinCode((ec1, ec2), ec3), (m, g_or_G)))
             end
         end
         return m
@@ -772,7 +792,8 @@ function components(
                 bb[v1, v2] = vecbasis(get_basis(t), invvar(v1))' * vecbasis(ℬ, v2)
             end
         end
-        m = Array(get_array(t))
+        Tc = _components_eltype(T, get_basis(t), ℬ)
+        m = Array{Tc}(get_array(t))
         ec1 = ntuple(i -> i, Val(order))
         newcp = order + 1
         for i in 1:order
@@ -780,7 +801,7 @@ function components(
             if c ≠ 1I
                 ec2 = (i, newcp)
                 ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
-                m = T.(einsum(EinCode((ec1, ec2), ec3), (m, c)))
+                m = Tc.(einsum(EinCode((ec1, ec2), ec3), (m, c)))
             end
         end
         return m
@@ -795,7 +816,8 @@ function components(
     if isequal(ℬ, get_basis(t))
         return components(t, var)
     else
-        m = Array(components(t, relevant_OrthonormalBasis(ℬ)))
+        m0 = components(t, relevant_OrthonormalBasis(ℬ))
+        m = Array{_components_eltype(eltype(m0), ℬ)}(m0)
         Λ = Dict(:cont => inv.(ℬ.λ), :cov => ℬ.λ)
         for ind in CartesianIndices(m)
             m[ind] *= prod([Λ[var[i]][ind[i]] for i in 1:order])
@@ -818,14 +840,15 @@ function components(
         return get_array(t)
     else
         bb = vecbasis(get_basis(t))' * vecbasis(ℬ)
-        m = Array(get_array(t))
+        Tc = _components_eltype(T, get_basis(t), ℬ)
+        m = Array{Tc}(get_array(t))
         ec1 = ntuple(i -> i, Val(order))
         newcp = order + 1
         for i in 1:order
             if bb ≠ 1I
                 ec2 = (i, newcp)
                 ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
-                m = T.(einsum(EinCode((ec1, ec2), ec3), (m, bb)))
+                m = Tc.(einsum(EinCode((ec1, ec2), ec3), (m, bb)))
             end
         end
         return m
@@ -1277,7 +1300,8 @@ function scontract(
     ec1 = ntuple(i -> i, order1)
     ec2 = ntuple(i -> order1 - 1 + i, order2)
     ec3 = (ec1[begin:(end - 1)]..., ec2[(begin + 1):end]...)
-    return T1.(einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2))))
+    T = promote_type(T1, T2)
+    return T.(einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2))))
 end
 
 scontract(t1::AbstractArray{T1, 1}, t2::AbstractArray{T2, 1}) where {T1, T2} =

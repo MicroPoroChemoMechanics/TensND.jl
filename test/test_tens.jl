@@ -198,6 +198,52 @@ end
     @test Basis([2 // 1 0 0; 0 1 0; 0 0 1]) isa OrthogonalBasis
 end
 
+@testsection "Plain-number tensors in a basis of duals or symbols" begin
+    # The components of a tensor written in another basis were converted back
+    # to the element type of the tensor. For a `Float64` tensor in a basis of
+    # duals or symbols that conversion throws (`Float64(::Dual)`,
+    # `Float64(::Sym)`): they now take the type that holds both. The canonical
+    # basis imposes no type of its own — its entries are exact zeros and ones.
+    v = [1.0, 2.0, 3.0]
+    R(θ) = [cos(θ) 0 sin(θ); 0 1 0; -sin(θ) 0 cos(θ)]
+    dR(θ) = [-sin(θ) 0 cos(θ); 0 0 0; -cos(θ) 0 -sin(θ)]
+    f(θ) = components_canon(Tens(v, RotatedBasis(θ, zero(θ), zero(θ))))
+    for θ in (0.0, 0.7)
+        @test ForwardDiff.derivative(f, θ) ≈ dR(θ) * v
+    end
+
+    # Into a rotated basis, for an order-2 tensor: components Rᵀ·A·R.
+    A = [2.0 0.5 0.1; 0.5 3.0 0.2; 0.1 0.2 4.0]
+    h(θ) = Matrix(components(Tens(A), RotatedBasis(θ, zero(θ), zero(θ)), (:cont, :cont)))
+    θ = 0.7
+    @test ForwardDiff.derivative(h, θ) ≈ dR(θ)' * A * R(θ) + R(θ)' * A * dR(θ)
+
+    # A contraction of a plain tensor with a dual one, through the generic
+    # array route (a fourth-order operand is no Tensors.jl `dot` pair).
+    𝔸 = Tens([0.1 * i + 0.2 * j + 0.3 * k + 0.05 * l for i in 1:3, j in 1:3, k in 1:3, l in 1:3])
+    n(x) = [sin(x), 0.0, cos(x)]
+    a(x) = Array(components_canon(𝔸 ⋅ Tens(n(x))))
+    dn = [cos(0.4), 0.0, -sin(0.4)]
+    @test ForwardDiff.derivative(a, 0.4) ≈ [sum(get_array(𝔸)[i, j, k, l] * dn[l] for l in 1:3) for i in 1:3, j in 1:3, k in 1:3]
+
+    # An orthogonal basis whose scale factors are duals: x = Σ vⁱ χᵢ 𝐫ᵢ, so
+    # ∂x/∂χ₁ = v¹ 𝐫₁.
+    ℬʳ = RotatedBasis(0.3, 0.2, 0.1)
+    s(χ) = components_canon(Tens(v, Basis(ℬʳ, [χ, 1.0, 1.0])))
+    @test Basis(ℬʳ, [ForwardDiff.Dual(2.0, 1.0), 1.0, 1.0]) isa OrthogonalBasis
+    @test ForwardDiff.derivative(s, 2.0) ≈ v[1] * Array(vecbasis(ℬʳ, :cov))[:, 1]
+
+    # Symbolic: a plain vector in a basis rotated by a symbolic angle.
+    @syms ϑ::real
+    c = components_canon(Tens([1.0, 0.0], RotatedBasis(ϑ)))
+    @test eltype(c) <: Sym
+    @test simplify(c[1] - cos(ϑ)) == 0 && simplify(c[2] - sin(ϑ)) == 0
+
+    # Plain tensors in plain bases keep their element type.
+    @test eltype(components(Tens(A), RotatedBasis(0.3, 0.2, 0.1), (:cont, :cont))) == Float64
+    @test eltype(components(Tens(A, RotatedBasis(0.3, 0.2, 0.1)), CanonicalBasis(), (:cont, :cont))) == Float64
+end
+
 @testsection "symbolic passes reach structured tensors and tuples" begin
     # REGRESSION. `structured_tens_ops.jl` implements the whole `tsimplify`
     # family as `_rebuild(A, OP(get_data(A)))`, and `get_data` returns an

@@ -134,7 +134,7 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
                 eⁱ = vecbasis(ℬ, :cont) .* transpose(invΧ)
                 gᵢⱼ = Symmetric(Χ .* metric(ℬ, :cov) .* transpose(Χ))
                 gⁱʲ = Symmetric(invΧ .* metric(ℬ, :cont) .* transpose(invΧ))
-                new{dim, T}(eᵢ, eⁱ, gᵢⱼ, gⁱʲ)
+                new{dim, promote_type(T, eltype(Χ))}(eᵢ, eⁱ, gᵢⱼ, gⁱʲ)
             end
         end
     end
@@ -346,7 +346,11 @@ struct OrthogonalBasis{dim, T} <: AbstractBasis{dim, T}
     eⁱ::Matrix{T}
     gᵢⱼ::Diagonal{T, Vector{T}}
     gⁱʲ::Diagonal{T, Vector{T}}
-    function OrthogonalBasis(parent::OrthonormalBasis{dim, T}, λ::Vector) where {dim, T}
+    function OrthogonalBasis(parent::OrthonormalBasis{dim, T0}, λ::Vector) where {dim, T0}
+        # Scale factors of a wider type than the frame (duals on a `Float64`
+        # frame) widen the basis rather than being converted to the frame's.
+        T = promote_type(T0, eltype(λ))
+        parent = _with_eltype(T, parent)
         λ = T.(λ)
         if all(isone.(λ))
             return parent
@@ -357,6 +361,11 @@ struct OrthogonalBasis{dim, T} <: AbstractBasis{dim, T}
         end
     end
 end
+
+# The same orthonormal basis with entries of type `T`.
+_with_eltype(::Type{T}, ::CanonicalBasis{dim}) where {dim, T} = CanonicalBasis{dim, T}()
+_with_eltype(::Type{T}, ℬ::RotatedBasis{dim, T}) where {dim, T} = ℬ
+_with_eltype(::Type{T}, ℬ::RotatedBasis) where {T} = RotatedBasis(Matrix{T}(vecbasis(ℬ, :cov)))
 
 relevant_OrthonormalBasis(ℬ::OrthogonalBasis) = ℬ.parent
 relevant_OrthonormalBasis(ℬ::OrthonormalBasis) = ℬ
