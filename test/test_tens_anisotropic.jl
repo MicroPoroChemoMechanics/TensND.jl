@@ -613,10 +613,10 @@
         @test opequal(get_array(W + O), get_array(W) + get_array(O))
         @test opequal(get_array(O - W), get_array(O) - get_array(W))
 
-        # Reference mismatch → assertion
+        # Reference mismatch → ArgumentError
         n_mis = (1.0, 1.0, 1.0) ./ sqrt(3.0)
         Wmis = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_mis)
-        @test_throws AssertionError Wmis + O
+        @test_throws ArgumentError Wmis + O
 
         # ── TensTI{4} N=5 + N=6 (same axis) → N=6 ─────────────────────────
         W5 = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n)          # N=5

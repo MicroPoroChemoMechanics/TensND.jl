@@ -154,7 +154,7 @@
         # A general rotation is not, and the sum is refused rather than wrong.
         Cr = tens_cubic(10.0, 4.0, 2.0, rot)
         @test !TensND._same_cube_frame(C, Cr)
-        @test_throws AssertionError C + Cr
+        @test_throws ArgumentError C + Cr
         # The product falls back to the dense route instead of pretending.
         @test !((C ⊡ Cr) isa TensCubic)
         @test Matrix(KM(C ⊡ Cr)) ≈
@@ -172,7 +172,7 @@
         near = Basis([cos(θ) -sin(θ) 0.0; sin(θ) cos(θ) 0.0; 0.0 0.0 1.0])
         Cn = tens_cubic(10.0, 4.0, 2.0, near)
         @test !TensND._same_cube_frame(C, Cn)
-        @test_throws AssertionError C + Cn
+        @test_throws ArgumentError C + Cn
         @test !((C ⊡ Cn) isa TensCubic)
         # And the fallback is not an approximation of the structured route: it
         # is the dense answer, which differs from `2 .* get_data(C)` here.

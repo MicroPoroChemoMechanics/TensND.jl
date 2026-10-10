@@ -297,7 +297,8 @@ function _same_cube_frame(A::TensCubic, B::TensCubic)
 end
 
 @inline _check_same_reference(A::TensCubic, B::TensCubic) =
-    @assert _same_cube_frame(A, B) "TensCubic operation requires frames describing the same cube"
+    _same_cube_frame(A, B) ||
+    throw(ArgumentError("TensCubic operation requires frames describing the same cube"))
 
 # ── Arithmetic ───────────────────────────────────────────────────────────────
 # Scalar operations (-, α*A, A*α, A/α) come from structured_tens_ops.jl.

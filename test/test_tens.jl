@@ -244,6 +244,41 @@ end
     @test eltype(components(Tens(A, RotatedBasis(0.3, 0.2, 0.1)), CanonicalBasis(), (:cont, :cont))) == Float64
 end
 
+@testsection "Equality, hashing, Kelvin-Mandel signature, display" begin
+    # `==` compares tensors as mathematical objects, in whatever basis. The
+    # same comparison stood for `isequal`, whose contract with `hash` it broke:
+    # the same vector written in a permuted basis was `isequal` to itself in
+    # the canonical one, with different components and so a different hash.
+    P = Basis([0.0 1.0 0.0; 0.0 0.0 1.0; 1.0 0.0 0.0])
+    t = Tens([1.0, 2.0, 3.0])
+    tp = change_tens(t, P)
+    @test t == tp
+    tensors = (
+        t, tp, Tens([1.0, 2.0, 3.0]), TensISO{3}(3.0, 2.0),
+        Tens(get_array(TensISO{3}(3.0, 2.0))), Tens([1.0, 2.0, 3.0], (:cov,), P),
+    )
+    for a in tensors, b in tensors
+        isequal(a, b) && @test hash(a) == hash(b)
+    end
+    @test isequal(t, Tens([1.0, 2.0, 3.0]))                          # structural
+    @test isequal(TensISO{3}(3.0, 2.0), Tens(get_array(TensISO{3}(3.0, 2.0))))
+    @test Dict(t => 1)[Tens([1.0, 2.0, 3.0])] == 1
+    @test length(Set((t, tp, Tens([1.0, 2.0, 3.0])))) == 2
+
+    # `KM(t, b, var)` took its keywords as trailing positional arguments, so
+    # none could be passed.
+    C = TensISO{3}(3.0, 2.0)
+    ℬʳ = RotatedBasis(0.3, 0.2, 0.1)
+    @test KM(C, ℬʳ, (:cont, :cont, :cont, :cont); order = nothing) == KM(C, ℬʳ, (:cont, :cont, :cont, :cont))
+
+    # Displaying a Tensors.jl fourth-order tensor is left to Tensors.jl.
+    @test parentmodule(which(show, Tuple{Tensors.SymmetricTensor{4, 3, Float64, 36}})) !== TensND
+
+    # A basis is built from a square matrix, checked by an exception that
+    # cannot be compiled out.
+    @test_throws DimensionMismatch Basis([1.0 0.0 0.0; 0.0 1.0 0.0])
+end
+
 @testsection "symbolic passes reach structured tensors and tuples" begin
     # REGRESSION. `structured_tens_ops.jl` implements the whole `tsimplify`
     # family as `_rebuild(A, OP(get_data(A)))`, and `get_data` returns an

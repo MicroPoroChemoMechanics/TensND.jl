@@ -285,7 +285,7 @@ for OP in (:+, :-)
     @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensOrtho)
         k = _axis_on_frame_index(axis(A), frame(B))
         k == 0 && throw(
-            AssertionError(
+            ArgumentError(
                 "TensTI{4,N=5} $($(string(OP))) TensOrtho requires the Walpole axis " *
                     "to be aligned with one of the frame axes",
             ),
@@ -295,7 +295,7 @@ for OP in (:+, :-)
     @eval function Base.$OP(A::TensOrtho, B::TensTI{4, <:Any, 5})
         k = _axis_on_frame_index(axis(B), frame(A))
         k == 0 && throw(
-            AssertionError(
+            ArgumentError(
                 "TensOrtho $($(string(OP))) TensTI{4,N=5} requires the Walpole axis " *
                     "to be aligned with one of the frame axes",
             ),

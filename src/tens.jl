@@ -488,8 +488,6 @@ get_var(t::TensVar, i::Integer) = t.var[i]
 #####################
 for OP in (:show, :print, :display)
     @eval begin
-        Base.$OP(U::FourthOrderTensor) = $OP(tomandel(U))
-
         function Base.$OP(t::AbstractTens)
             $OP(typeof(t))
             if ndims(t) == 4
@@ -1066,7 +1064,12 @@ end
 # ) where {order1,order2,dim} = t1, change_tens(t2, basis(t1), get_var(t1))
 
 
-for OP in (:(==), :(!=), :(isequal))
+# `==` compares tensors as mathematical objects, whatever the basis and the
+# variances they are written in. `isequal` is structural — same variances, same
+# basis, same components — so that it agrees with `hash`, as `Dict` and `Set`
+# require: the basis-independent `isequal` held two tensors equal whose hashes,
+# those of their components, differed.
+for OP in (:(==), :(!=))
     @eval @inline function Base.$OP(
             t1::AbstractTens{order, dim},
             t2::AbstractTens{order, dim},
@@ -1075,6 +1078,19 @@ for OP in (:(==), :(!=), :(isequal))
         return $OP(get_array(nt1), get_array(nt2))
     end
 end
+
+Base.isequal(t1::AbstractTens, t2::AbstractTens) =
+    isequal(_var_key(t1), _var_key(t2)) && isequal(get_basis(t1), get_basis(t2)) &&
+    isequal(get_array(t1), get_array(t2))
+
+Base.hash(t::AbstractTens, h::UInt) =
+    hash(get_array(t), hash(get_basis(t), hash(_var_key(t), hash(0x5d3c2b7e1a4f6089, h))))
+
+# In an orthonormal basis covariant and contravariant components coincide: the
+# variances are then no part of what the tensor is.
+_var_key(t::AbstractTens) = _var_key(get_basis(t), get_var(t))
+_var_key(::OrthonormalBasis, var) = nothing
+_var_key(::AbstractBasis, var) = var
 
 for OP in (:+, :-)
     @eval @inline function Base.$OP(
@@ -1120,9 +1136,12 @@ end
 
 """
     KM(t::AbstractTens{order,dim}; kwargs...)
-    KM(t::AbstractTens{order,dim}, var::NTuple{order,Symbol}, b::AbstractBasis{dim}; kwargs...)
+    KM(t::AbstractTens{order,dim}, b::AbstractBasis{dim}; kwargs...)
+    KM(t::AbstractTens{order,dim}, b::AbstractBasis{dim}, var::NTuple{order,Symbol}; kwargs...)
 
-Write the components of a second or fourth order tensor in Kelvin-Mandel notation
+Write the components of a second or fourth order tensor in Kelvin-Mandel notation,
+in its own basis or in the basis `b` (with the variances `var`, in the order of
+[`components`](@ref)). The keyword arguments go to `Tensors.tomandel`.
 
 # Examples
 ```julia
@@ -1155,7 +1174,7 @@ KM(t::AbstractTens; kwargs...) = tomandel(get_array(t); kwargs...)
 KM(
     t::AbstractTens{order, dim},
     b::AbstractBasis{dim},
-    var::NTuple{order, Symbol},
+    var::NTuple{order, Symbol};
     kwargs...,
 ) where {order, dim} = tomandel(tensor_or_array(components(t, b, var)); kwargs...)
 

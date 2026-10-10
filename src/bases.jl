@@ -105,7 +105,7 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
             gⁱʲ::AbstractMatrix{T},
         ) where {T}
         dim = size(eᵢ, 1)
-        @assert dim == size(eᵢ, 2) "v should be a square matrix"
+        dim == size(eᵢ, 2) || throw(DimensionMismatch("a basis is built from a square matrix"))
         if isidentity(eᵢ)
             return CanonicalBasis{dim, T}()
         elseif isidentity(gᵢⱼ)
@@ -140,7 +140,7 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
     end
     function Basis(eᵢ::AbstractMatrix{T}, ::Val{:cov}) where {T}
         dim = size(eᵢ, 1)
-        @assert dim == size(eᵢ, 2) "v should be a square matrix"
+        dim == size(eᵢ, 2) || throw(DimensionMismatch("a basis is built from a square matrix"))
         if isidentity(eᵢ)
             return CanonicalBasis{dim, T}()
         else
@@ -164,7 +164,7 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
     end
     function Basis(eⁱ::AbstractMatrix{T}, ::Val{:cont}) where {T}
         dim = size(eⁱ, 1)
-        @assert dim == size(eⁱ, 2) "v should be a square matrix"
+        dim == size(eⁱ, 2) || throw(DimensionMismatch("a basis is built from a square matrix"))
         if isidentity(eⁱ)
             return CanonicalBasis{dim, T}()
         else
