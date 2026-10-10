@@ -154,6 +154,22 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
             @test otimesu(x, y) ≈ _ref_otimesu(collect(x), collect(y))
             @test otimesl(x, y) ≈ _ref_otimesl(collect(x), collect(y))
         end
+
+        # `sotimes` of two second-order Tensors arrays has a method of its own,
+        # which raised `UndefVarError` until 0.6.0 — and every order-2 `Tens`
+        # stores such an array, so `S ⊗ˢ S` raised as well. The result of two
+        # symmetric operands is not minor-symmetric in general, hence a full
+        # `Tensor`, with the same products in the same order as the array
+        # method: equal to the bit.
+        for (x, y) in ((t2, t2), (s2, s2), (t2, s2), (s2, t2))
+            p = TensND.sotimes(x, y)
+            @test p isa Tensors.Tensor{4, 3}
+            @test all(collect(p) .=== TensND.sotimes(collect(x), collect(y)))
+            @test collect(p) ≈ _ref_sotimes(collect(x), collect(y))
+        end
+        S = Tens(collect(s2))
+        @test get_array(S) isa Tensors.SymmetricTensor{2, 3}
+        @test all(collect(get_array(S ⊗ˢ S)) .=== TensND.sotimes(collect(s2), collect(s2)))
     end
 
     @testset "exact and generic element types" begin

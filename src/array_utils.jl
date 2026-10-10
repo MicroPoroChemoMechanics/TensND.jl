@@ -591,13 +591,11 @@ end
     )
 end
 
+# A full `Tensor` even for two symmetric operands: symmetrizing the middle pair
+# of indices breaks the minor symmetry `i ↔ j`. Same products, same order as
+# the array method above, hence the same bits.
 @inline function sotimes(S1::SecondOrderTensor{dim}, S2::SecondOrderTensor{dim}) where {dim}
-    TensorType = Tensors.getreturntype(
-        otimes,
-        Tensors.get_base(typeof(S1)),
-        Tensors.get_base(typeof(S2)),
-    )
-    return TensorType(
+    return Tensor{4, dim}(
         @inline function (i, j, k, l)
             return @inbounds (S1[i, j] * S2[k, l] + S1[i, k] * S2[j, l]) / 2
         end
