@@ -845,9 +845,10 @@ end
 # once, below. `∂` deliberately gets **no** default-chart method: it keeps its
 # one unambiguous meaning.
 
-const _DEFAULT_COORSYS = Ref{Any}(nothing)
-const _DEFAULT_COORSYS_VEC = Ref{Char}('𝐞')
-const _DEFAULT_COORSYS_COORDS = Ref{Any}(nothing)
+# One reference holds the whole default — the chart, the letter of its vectors
+# and the names of its coordinates — so that a reader never sees parts of two
+# different `set_coorsys!` calls, as three separate references allowed.
+const _DEFAULT_COORSYS = Ref{Any}(nothing)      # `nothing` or `(; CS, vec, coords)`
 
 """
     set_coorsys!(CS; vec = '𝐞', coords = nothing) → CS
@@ -867,9 +868,7 @@ The macro [`@set_coorsys`](@ref) is a thin wrapper over this function.
 See also [`default_coorsys`](@ref), [`unset_coorsys!`](@ref).
 """
 function set_coorsys!(CS::AbstractCoorSystem; vec::Char = '𝐞', coords = nothing)
-    _DEFAULT_COORSYS[] = CS
-    _DEFAULT_COORSYS_VEC[] = vec
-    _DEFAULT_COORSYS_COORDS[] = coords
+    _DEFAULT_COORSYS[] = (; CS, vec, coords)
     return CS
 end
 
@@ -880,22 +879,22 @@ The coordinate system installed by [`set_coorsys!`](@ref) or
 [`@set_coorsys`](@ref). Throws if none has been set.
 """
 function default_coorsys()
-    CS = _DEFAULT_COORSYS[]
-    CS === nothing && error(
+    d = _DEFAULT_COORSYS[]
+    d === nothing && error(
         "no default coordinate system is set: call `set_coorsys!(CS)` " *
             "(or `@set_coorsys CS`), or pass the system explicitly as the last argument."
     )
-    return CS
+    return d.CS
 end
 
 """
     unset_coorsys!()
 
-Forget the default coordinate system installed by [`set_coorsys!`](@ref).
+Forget the default coordinate system installed by [`set_coorsys!`](@ref), with
+the letter and the coordinate names it gave [`pprint`](@ref).
 """
 function unset_coorsys!()
     _DEFAULT_COORSYS[] = nothing
-    _DEFAULT_COORSYS_COORDS[] = nothing
     return nothing
 end
 
@@ -946,13 +945,12 @@ end
 # than with numbered basis vectors. Without a default it falls through to the
 # generic method in `tens.jl`.
 function pprint(t::AbstractTens{order, dim, T}) where {order, dim, T <: SymType}
-    CS = _DEFAULT_COORSYS[]
-    (CS === nothing || get_dim(CS) != dim) &&
-        return pprint(t; vec = _DEFAULT_COORSYS_VEC[], coords = ntuple(i -> i, dim))
-    coords = _DEFAULT_COORSYS_COORDS[]
-    coords === nothing && (coords = string.(getcoords(CS)))
+    d = _DEFAULT_COORSYS[]
+    d === nothing && return pprint(t; vec = '𝐞', coords = ntuple(i -> i, dim))
+    get_dim(d.CS) != dim && return pprint(t; vec = d.vec, coords = ntuple(i -> i, dim))
+    coords = d.coords === nothing ? string.(getcoords(d.CS)) : d.coords
     length(coords) == dim - 1 && (coords = (coords..., dim))
-    return pprint(change_tens(t, normalized_basis(CS)); vec = _DEFAULT_COORSYS_VEC[], coords = coords)
+    return pprint(change_tens(t, normalized_basis(d.CS)); vec = d.vec, coords = coords)
 end
 
 function pprint(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '𝐞') where {order, dim, T}
