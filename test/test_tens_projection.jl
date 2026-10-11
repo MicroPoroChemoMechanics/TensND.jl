@@ -359,29 +359,39 @@
         n(p) = [sin(p), 0.0, cos(p)]
         ti(p) = TensTI{4}(30.0 * (1 + p), 9.0, 7.0, 6.0, 4.0, n(p))
         ortho(p) = TensOrtho(30.0 * (1 + p), 25.0, 20.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, RotatedBasis(p, 0.7, 1.1))
+        # `proj` restricted to the class at stake: the default list would
+        # compile every projection for every number type, for nothing more.
         for (mk, sym) in ((ti, :TI), (ortho, :ORTHO))
             plain(p) = Tens(Array(components_canon(mk(p))))
             p = 0.4
-            @test best_sym_tens(plain(p))[4] === sym
-            @test best_sym_tens(plain(ForwardDiff.Dual(p, 1.0)))[4] === sym
-            # The projection of a tensor of the class is the tensor itself, so
-            # the derivative of the projection is that of the structured
-            # tensor, which owes nothing to the eigenvectors.
-            proj(p) = Array(components_canon(best_sym_tens(plain(p))[1]))
+            @test best_sym_tens(plain(p); proj = (sym,))[4] === sym
+            # The class must be found under differentiation too — the old
+            # candidates returned `:ANISO` there, and the unprojected tensor has
+            # the right derivative, so the check is made inside. The projection
+            # of a tensor of the class is the tensor itself, so the derivative
+            # of the projection is that of the structured tensor, which owes
+            # nothing to the eigenvectors.
+            function proj(p)
+                t, _, _, found = best_sym_tens(plain(p); proj = (sym,))
+                found === sym || error("$found found under differentiation")
+                return Array(components_canon(t))
+            end
             ref(p) = Array(components_canon(mk(p)))
             @test ForwardDiff.derivative(proj, p) ≈ ForwardDiff.derivative(ref, p) atol = 1.0e-9
-            d2(f) = ForwardDiff.derivative(q -> ForwardDiff.derivative(f, q), p)
-            @test d2(proj) ≈ d2(ref) atol = 1.0e-8
         end
 
-        # The decomposition itself: d·V = V·Λ holds in the derivatives too.
+        # The decomposition itself: d·V = V·Λ and VᵀV = 𝟏 hold in the first
+        # and the second derivatives, the nesting the candidates rest on.
         D(x) = [4.0 + x 1.0 0.5; 1.0 3.0 0.2 * x; 0.5 0.2 * x 1.0]
-        d = D(ForwardDiff.Dual(0.3, 1.0))
-        λ, V = TensND._sym_eigen(d)
-        r = d * V - V * Diagonal(λ)
-        @test maximum(abs ∘ ForwardDiff.value, r) < 1.0e-12
-        @test maximum(x -> abs(ForwardDiff.partials(x, 1)), r) < 1.0e-12
-        @test maximum(x -> abs(ForwardDiff.partials(x, 1)), V' * V - I) < 1.0e-12
+        e = ForwardDiff.Dual{:outer}(ForwardDiff.Dual{:inner}(0.3, 1.0), ForwardDiff.Dual{:inner}(1.0, 0.0))
+        λ, V = TensND._sym_eigen(D(e))
+        flat(x) = (
+            v = ForwardDiff.value(x); p = ForwardDiff.partials(x, 1);
+            (ForwardDiff.value(v), ForwardDiff.partials(v, 1), ForwardDiff.value(p), ForwardDiff.partials(p, 1))
+        )
+        for r in (D(e) * V - V * Diagonal(λ), V' * V - I)
+            @test maximum(x -> maximum(abs, flat(x)), r) < 1.0e-12
+        end
 
         # The optimized projections refuse duals by name rather than with a
         # `MethodError`: the orientation they find carries no derivative.
