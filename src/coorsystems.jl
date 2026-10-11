@@ -356,10 +356,7 @@ function ∂(
     Γ = Christoffel(CS)
     data = tdiff(t, getcoords(CS, i))
     for o in 1:order
-        ec1 = ntuple(j -> j == o ? order + 1 : j, order)
-        ec2 = (order + 1, o)
-        ec3 = ntuple(j -> j, order)
-        data += einsum(EinCode((ec1, ec2), ec3), (t, view(Γ, i, :, :)))
+        data += _contract_index(t, view(Γ, i, :, :), o)
     end
     return change_tens(Tens(simprules(data, CS), ℬ, var), normalized_basis(CS), var)
 end

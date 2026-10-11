@@ -1306,16 +1306,7 @@ Tensors.otimes(t::TensOrthonormal{2, dim}) where {dim} =
     Tens(otimes(get_array(t)), get_basis(t))
 
 
-function scontract(
-        t1::AbstractArray{T1, order1},
-        t2::AbstractArray{T2, order2},
-    ) where {T1, T2, order1, order2}
-    ec1 = ntuple(i -> i, order1)
-    ec2 = ntuple(i -> order1 - 1 + i, order2)
-    ec3 = (ec1[begin:(end - 1)]..., ec2[(begin + 1):end]...)
-    T = promote_type(T1, T2)
-    return T.(einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2))))
-end
+scontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(1))
 
 scontract(t1::AbstractArray{T1, 1}, t2::AbstractArray{T2, 1}) where {T1, T2} =
     dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))

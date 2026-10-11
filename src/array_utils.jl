@@ -405,45 +405,33 @@ julia> contract([1.0 2.0; 3.0 4.0], 1, 2)
 ```
 """
 function contract(t::AbstractArray{T, order}, i::Integer, j::Integer) where {T, order}
-    m = min(i, j)
-    M = max(i, j)
-    ec1 = ntuple(k -> k == j ? i : k, order)
-    ec2 = (Tuple(1:(m - 1))..., Tuple((m + 1):(M - 1))..., Tuple((M + 1):order)...)
-    return einsum(EinCode((ec1,), ec2), (AbstractArray{T}(t),))
+    m, M = minmax(i, j)
+    n = size(t, m)
+    (m != M && size(t, M) == n) ||
+        throw(DimensionMismatch("cannot trace index $i against index $j of an array of size $(size(t))"))
+    # Position, in `t`, of each index of the result: all but `m` and `M`.
+    kept = ntuple(q -> q < m ? q : (q < M - 1 ? q + 1 : q + 2), Val(order - 2))
+    out = Array{T}(undef, map(q -> size(t, q), kept))
+    @inbounds for I in CartesianIndices(out)
+        s = zero(T)
+        for x in 1:n
+            idx = ntuple(q -> q == m || q == M ? x : I[q < m ? q : (q < M ? q - 1 : q - 2)], Val(order))
+            s += t[idx...]
+        end
+        out[I] = s
+    end
+    return out
 end
 
 contract(t::AbstractArray{T, 2}, ::Integer, ::Integer) where {T} = tr(t)
 
-function Tensors.dcontract(
-        t1::AbstractArray{T1, order1},
-        t2::AbstractArray{T2, order2},
-    ) where {T1, T2, order1, order2}
-    newc = order1 + order2
-    ec1 = (ntuple(i -> i, order1 - 2)..., newc, newc + 1)
-    ec2 = (newc, newc + 1, ntuple(i -> order1 - 2 + i, order2 - 2)...)
-    ec3 = ntuple(i -> i, order1 + order2 - 4)
-    return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
-end
+Tensors.dcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(2))
 
 Tensors.dcontract(t1::AbstractArray{T1, 2}, t2::AbstractArray{T2, 2}) where {T1, T2} =
     dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
 
-function Tensors.dotdot(
-        v1::AbstractArray{T1, order1},
-        S::AbstractArray{TS, orderS},
-        v2::AbstractArray{T2, order2},
-    ) where {T1, TS, T2, order1, orderS, order2}
-    newc = order1 + orderS
-    ec1 = (ntuple(i -> i, order1 - 1)..., newc)
-    ecS = (newc, ntuple(i -> order1 - 1 + i, orderS - 1)...)
-    ec3 = ntuple(i -> i, order1 + orderS - 2)
-    v1S = einsum(EinCode((ec1, ecS), ec3), (AbstractArray{T1}(v1), AbstractArray{TS}(S)))
-    newc += order2
-    ecv1S = (ntuple(i -> i, order1 + orderS - 3)..., newc)
-    ec2 = (newc, ntuple(i -> order1 + orderS - 3 + i, order2 - 1)...)
-    ec3 = ntuple(i -> i, newc - 4)
-    return einsum(EinCode((ecv1S, ec2), ec3), (v1S, AbstractArray{T2}(v2)))
-end
+Tensors.dotdot(v1::AbstractArray, S::AbstractArray, v2::AbstractArray) =
+    _contract_trailing(_contract_trailing(v1, S, Val(1)), v2, Val(1))
 
 """
     qcontract(t1::AbstractArray, t2::AbstractArray)
@@ -469,16 +457,7 @@ deviatoric subspaces in 3-D.
 
 See also `dcontract`, [`contract`](@ref).
 """
-function qcontract(
-        t1::AbstractArray{T1, order1},
-        t2::AbstractArray{T2, order2},
-    ) where {T1, T2, order1, order2}
-    newc = order1 + order2
-    ec1 = (ntuple(i -> i, order1 - 4)..., newc, newc + 1, newc + 2, newc + 3)
-    ec2 = (newc, newc + 1, newc + 2, newc + 3, ntuple(i -> order1 - 4 + i, order2 - 4)...)
-    ec3 = ntuple(i -> i, order1 + order2 - 8)
-    return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
-end
+qcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(4))
 
 qcontract(t1::AbstractArray{T1, 4}, t2::AbstractArray{T2, 4}) where {T1, T2} =
     dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
