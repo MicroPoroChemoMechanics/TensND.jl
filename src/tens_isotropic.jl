@@ -560,14 +560,30 @@ See also [`proj_tens`](@ref), [Isotropic tensors](@ref th-isotropic).
 """
 isotropify(A::AbstractArray{T, 2}) where {T} = TensISO{size(A)[1]}(tr(A) / size(A)[1])
 
+# The dimension of a plain array is known at run time only: one branch per
+# dimension in use turns it into a type parameter, so that the `TensISO` built
+# below has a concrete type instead of being constructed dynamically.
 function isotropify(A::AbstractArray{T, 4}) where {T}
-    dim = size(A)[1]
-    α = tens_J4(dim, T) ⊙ A
-    # 5 = dim(deviatoric space) = dim(𝕂) for 3D; generalizes to dim*(dim+1)/2 - 1.
-    # An integer, so that exact and symbolic element types stay exact.
-    dimK = dim * (dim + 1) ÷ 2 - 1
-    β = (tens_K4(dim, T) ⊙ A) / dimK
-    return TensISO{dim}(α, β)
+    d = _dim_of(A)
+    d == 3 && return _isotropify4(A, Val(3))
+    d == 2 && return _isotropify4(A, Val(2))
+    return _isotropify4(A, Val(d))
+end
+
+function _isotropify4(A::AbstractArray{T, 4}, ::Val{d}) where {T, d}
+    # 𝔸 ⊙ 𝕁 = Aᵢᵢⱼⱼ/d and 𝔸 ⊙ 𝕂 = (Aᵢⱼᵢⱼ + Aᵢⱼⱼᵢ)/2 − 𝔸 ⊙ 𝕁, summed directly: d²
+    # terms, where contracting with 𝕁 and 𝕂 built for the purpose read 2·3⁴.
+    sJ = zero(T)    # Aᵢᵢⱼⱼ
+    sI = zero(T)    # Aᵢⱼᵢⱼ + Aᵢⱼⱼᵢ
+    @inbounds for j in 1:d, i in 1:d
+        sJ += A[i, i, j, j]
+        sI += A[i, j, i, j] + A[i, j, j, i]
+    end
+    α = sJ / d
+    # 𝕂 ⊙ 𝕂 = d(d+1)/2 − 1, the dimension of the deviatoric space (5 in 3D): an
+    # integer, so that exact and symbolic element types stay exact.
+    β = (sI / 2 - α) / (d * (d + 1) ÷ 2 - 1)
+    return TensISO{d}(α, β)
 end
 
 TensISO(A::AbstractArray) = isotropify(Tens(A))
