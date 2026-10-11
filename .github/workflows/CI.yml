@@ -75,6 +75,27 @@ jobs:
             using PyCall
             pyimport_conda("sympy", "sympy")'
       - uses: julia-actions/julia-buildpkg@v1
+      # IrrationalConstants, a dependency of ForwardDiff, calls MPFR under the
+      # bare name `:libmpfr`, and the Windows builds of Julia master no longer
+      # install the unversioned `libmpfr.dll` (JuliaLang/julia#63686): the
+      # package fails to precompile there, and TensND with it. Its fix is the
+      # versioned name `Base.MPFR.libmpfr`, which Base's own `@irrational`
+      # reads; it is applied to the copy installed here until a release of
+      # IrrationalConstants carries it, after which this step changes nothing.
+      - name: Load MPFR by its versioned name in IrrationalConstants
+        if: runner.os == 'Windows' && matrix.version == 'nightly'
+        shell: julia --color=yes {0}
+        run: |
+          root = joinpath(first(DEPOT_PATH), "packages", "IrrationalConstants")
+          for dir in (isdir(root) ? readdir(root; join = true) : String[])
+              file = joinpath(dir, "src", "macro.jl")
+              isfile(file) || continue
+              src = read(file, String)
+              occursin(":libmpfr),", src) || continue
+              chmod(file, 0o644)
+              write(file, replace(src, ":libmpfr)," => "Base.MPFR.libmpfr),"))
+              @info "IrrationalConstants now loads MPFR by its versioned name" file
+          end
       - uses: julia-actions/julia-runtest@v1
         with:
           # Instrument only the primary job: coverage disables precompilation
