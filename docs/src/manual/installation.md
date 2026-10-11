@@ -90,7 +90,6 @@ machine-readable form. Works cited by this documentation are collected on the
 | Package | Role here |
 | :--- | :--- |
 | [Tensors.jl](https://github.com/Ferrite-FEM/Tensors.jl) | low-level storage for small tensors |
-| [OMEinsum.jl](https://github.com/under-Peter/OMEinsum.jl) | the contraction engine |
 | [SymPy.jl](https://github.com/JuliaPy/SymPy.jl) | symbolic backend |
 | [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl) | native Julia CAS backend |
 | [Rotations.jl](https://github.com/JuliaGeometry/Rotations.jl) | rotation representations |

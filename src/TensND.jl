@@ -3,7 +3,7 @@ module TensND
 import Base: eltype
 import LinearAlgebra: normalize, dot, tr
 
-using LinearAlgebra, Tensors, OMEinsum, Rotations
+using LinearAlgebra, Tensors, Rotations
 using ForwardDiff, StaticArrays
 using SymPy
 using Symbolics

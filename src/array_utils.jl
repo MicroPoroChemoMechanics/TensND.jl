@@ -365,21 +365,18 @@ end
 
 Tensor (outer) product: `out[i…, j…] = t1[i…] * t2[j…]`.
 
-No index is summed over, so there is nothing for a contraction engine to do
-here. Going through `einsum` anyway cost 3.5 µs and 4.1 kB for two 3×3 arrays,
-against 65 ns for the outer product written directly — the machinery, not the
-arithmetic.
+No index is summed over, so there is nothing to contract: the product is
+written directly.
 
 It is the identity case of `_interleaved_otimes`: `t1`'s indices go to
 output positions `1…order1` and `t2`'s to `order1+1…order1+order2`, so each
 operand is reshaped with singleton axes where the other's indices sit and the
 product is one broadcast.
 
-An earlier version wrote this as `vec(t1) .* transpose(vec(t2))`, which is the
-same layout but **fails on `Tensors.Vec`**: `transpose` of a first-order
-`Tensors` array is deliberately discontinued upstream, so a first-order operand
-raised instead of multiplying. Singleton axes transpose nothing and have no such
-restriction. Broadcasting also keeps this generic over `Dual` and symbolic
+It is not written `vec(t1) .* transpose(vec(t2))`, the same layout: `transpose`
+of a first-order `Tensors` array is deliberately discontinued upstream, so a
+`Tensors.Vec` operand would raise instead of multiplying. Singleton axes
+transpose nothing and have no such restriction. Broadcasting also keeps this generic over `Dual` and symbolic
 element types, where BLAS could not be used.
 """
 function Tensors.otimes(

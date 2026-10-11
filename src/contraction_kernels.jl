@@ -12,9 +12,9 @@
 # In column-major order the last `k` indices of an array vary slowest and the
 # first `k` fastest, so the second shape is one matrix product of two reshapes
 # (BLAS for floating-point arrays, the generic product otherwise), and the first
-# is a loop over the two blocks of indices the changed one separates. `einsum`
-# did the same arithmetic through an `EinCode` built anew, and dispatched at run
-# time, on every call.
+# is a loop over the two blocks of indices the changed one separates. Written
+# for these three shapes, nothing is decided at run time: a general contraction
+# engine builds and dispatches its contraction code on every call.
 
 """
     _contract_index(m::AbstractArray, c::AbstractMatrix, k::Integer) -> Array

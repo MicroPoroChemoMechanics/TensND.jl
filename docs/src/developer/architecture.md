@@ -8,7 +8,8 @@ How the source is organized, and why. Files are listed in the order
 ```mermaid
 %%{init: {"flowchart": {"useMaxWidth": false}}}%%
 flowchart TB
-    AU["<b>array_utils.jl</b><br/>products and contractions<br/>on raw arrays (OMEinsum)"]
+    CK["<b>contraction_kernels.jl</b><br/>the three contraction shapes"]
+    AU["<b>array_utils.jl</b><br/>products and contractions<br/>on raw arrays"]
     BA["<b>bases.jl</b><br/>Basis hierarchy,<br/>metric, variance"]
     TE["<b>tens.jl</b><br/>AbstractTens, Tens,<br/>components, KM"]
     ISO["<b>tens_isotropic.jl</b><br/>TensISO"]
@@ -21,14 +22,17 @@ flowchart TB
     CSS["<b>coorsystems.jl</b><br/>CoorSystemSym"]
     CSN["<b>coorsystems_num.jl</b><br/>CoorSystemNum"]
     SUB["<b>submanifold.jl</b><br/>SubManifoldSym"]
-    AU --> BA --> TE --> ISO --> ANI --> OPS --> PRO --> PRJ --> SPE --> CSS --> CSN --> SUB
+    CK --> AU --> BA --> TE --> ISO --> ANI --> OPS --> PRO --> PRJ --> SPE --> CSS --> CSN --> SUB
 ```
 
 ## Layers
 
-**Raw arrays.** `array_utils.jl` implements every product as an OMEinsum
-contraction code on `AbstractArray`s. It knows nothing about bases, and is
-therefore generic in the element type by construction. Everything above it
+**Raw arrays.** `contraction_kernels.jl` writes the three shapes every
+contraction takes — one index changed by a matrix, the last indices of one
+array against the first of another, two indices traced together — for any
+order, and `array_utils.jl` builds every product on them and on broadcasts. It
+knows nothing about bases, and is therefore generic in the element type by
+construction. Everything above it
 inherits that genericity.
 
 **Bases and tensors.** `bases.jl` and `tens.jl` add the basis and the variance.

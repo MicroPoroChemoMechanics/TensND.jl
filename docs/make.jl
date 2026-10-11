@@ -43,7 +43,7 @@ write_nomenclature_json(joinpath(@__DIR__, "src", ".vitepress", "nomenclature.js
 DocMeta.setdocmeta!(
     TensND,
     :DocTestSetup,
-    :(using TensND, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations);
+    :(using TensND, LinearAlgebra, SymPy, Tensors, Rotations);
     recursive = true,
 )
 

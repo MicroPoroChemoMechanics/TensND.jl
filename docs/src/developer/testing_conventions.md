@@ -80,9 +80,9 @@ integers, exact tuples — are written as `jldoctest` and run by
 
 ```bash
 julia --project=docs -e '
-  using TensND, Documenter, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations
+  using TensND, Documenter, LinearAlgebra, SymPy, Tensors, Rotations
   DocMeta.setdocmeta!(TensND, :DocTestSetup,
-      :(using TensND, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations); recursive = true)
+      :(using TensND, LinearAlgebra, SymPy, Tensors, Rotations); recursive = true)
   doctest(TensND)'
 ```
 

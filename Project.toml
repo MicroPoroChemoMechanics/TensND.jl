@@ -6,7 +6,6 @@ authors = ["Jean-François Barthélémy"]
 [deps]
 ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
-OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
 SymPy = "24249f21-da20-56a4-8eb1-6a02cf4ae2e6"
@@ -39,10 +38,11 @@ julia = "1.12"
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 NLopt = "76087f3c-5699-56af-9a33-bf431cd00edd"
+OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [targets]
-test = ["Aqua", "NLopt", "Random", "TOML", "Test", "TimerOutputs"]
+test = ["Aqua", "NLopt", "OMEinsum", "Random", "TOML", "Test", "TimerOutputs"]

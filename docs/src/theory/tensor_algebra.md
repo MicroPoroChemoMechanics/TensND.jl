@@ -1,7 +1,8 @@
 # [Tensor algebra](@id th-tensor-algebra)
 
 Definitions and identities of the products `TensND` implements. Index formulas
-are those of the OMEinsum contraction codes in `src/array_utils.jl`; the
+are those of the contractions in `src/contraction_kernels.jl` and
+`src/array_utils.jl`; the
 algebraic identities follow the
 [Echoes manual](https://jfbarthelemy.github.io/echoes/) appendix on tensor
 algebra.
@@ -165,8 +166,8 @@ for every ``\boldsymbol{a}``.
 
 ## Symbolic and numerical evaluation
 
-All of the above is implemented once, generically, on `AbstractArray`s through
-OMEinsum contraction codes, and therefore applies unchanged to `Float64`,
+All of the above is implemented once, generically, on `AbstractArray`s of any
+order, and therefore applies unchanged to `Float64`,
 `ForwardDiff.Dual`, `SymPy.Sym` and `Symbolics.Num` element types. The
 structured types ([`TensISO`](@ref), [`TensTI`](@ref), [`TensOrtho`](@ref))
 override the generic route with closed forms whenever the result stays in the

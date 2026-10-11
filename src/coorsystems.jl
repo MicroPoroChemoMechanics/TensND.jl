@@ -310,7 +310,8 @@ function compute_Christoffel(coords, χ, γ, invγ)
     ∂g = [tdiff(gᵢⱼ[i, j], coords[k]) for i in 1:dim, j in 1:dim, k in 1:dim]
     Γᵢⱼₖ =
         [(∂g[i, k, j] + ∂g[j, k, i] - ∂g[i, j, k]) / 2 for i in 1:dim, j in 1:dim, k in 1:dim]
-    return ein"ijl,lk->ijk"(Γᵢⱼₖ, gⁱʲ)
+    # Γᵢⱼᵏ = Γᵢⱼₗ gˡᵏ: the last index raised by the inverse metric.
+    return _contract_trailing(Γᵢⱼₖ, gⁱʲ, Val(1))
 end
 
 """

@@ -450,9 +450,8 @@ function Tensors.dcontract(
     ) where {order, dim, T}
     nB = TensOrthonormal(B)
     m = get_array(nB)
-    # `ec1` is the identity permutation, so this is a plain index swap of the
-    # first two axes — `permutedims` does the same thing without OMEinsum's
-    # `EinCode` dispatch/allocation overhead.
+    # The symmetrized product needs the first two axes swapped: a plain
+    # `permutedims`.
     ec2 = (2, 1, ntuple(i -> i + 2, order - 2)...)
     m2 = permutedims(m, ec2)
     newm =
@@ -467,8 +466,7 @@ function Tensors.dcontract(
     ) where {order, dim, T}
     nA = TensOrthonormal(A)
     m = get_array(nA)
-    # Plain index swap of the last two axes — see the mirror-image method
-    # above for why `permutedims` replaces the OMEinsum call.
+    # The last two axes swapped, as in the mirror-image method above.
     ec2 = (ntuple(i -> i, order - 2)..., order, order - 1)
     m2 = permutedims(m, ec2)
     newm =

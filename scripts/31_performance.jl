@@ -43,8 +43,7 @@ end
 # ## Double contraction
 #
 # Each structured type has a closed-form `⊡` that stays in the stored
-# representation; the dense route expands all 81 components through an
-# `einsum`.
+# representation; the dense route contracts all 81 components.
 
 function bench_dcontract()
     rows = Any[]
@@ -167,7 +166,7 @@ end
 # | [`TensISO`](@ref) | 2 | two scalar products | two reciprocals |
 # | [`TensTI`](@ref) `{4,5}` | 5 | ``2\times2`` product + 2 scalars | ``2\times2`` inverse + 2 reciprocals |
 # | [`TensOrtho`](@ref) | 9 | ``3\times3`` product + 3 scalars | ``3\times3`` inverse + 3 reciprocals |
-# | dense | 81 | `einsum` over 81 components | ``6\times6`` inverse |
+# | dense | 81 | contraction over 81 components | ``6\times6`` inverse |
 #
 # Use a structured type whenever the physics guarantees the symmetry. Convert to
 # a dense array once, with [`get_array`](@ref), when component-by-component
