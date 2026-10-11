@@ -87,3 +87,14 @@
         end
     end
 end
+
+@testsection "Bases from integer angles" begin
+    # A rotated basis took the element type of its angles, which integer
+    # angles cannot hold — their cosines are floating-point — so building one
+    # threw `InexactError`. It now takes the type of the rotation.
+    @test RotatedBasis(1, 0, 0) isa RotatedBasis{3, Float64}
+    @test vecbasis(RotatedBasis(1, 2, 3), :cov) == vecbasis(RotatedBasis(1.0, 2.0, 3.0), :cov)
+    @test RotatedBasis(1) isa RotatedBasis{2, Float64}
+    @test vecbasis(RotatedBasis(1), :cov) == vecbasis(RotatedBasis(1.0), :cov)
+    @test RotatedBasis(0, 0, 0) isa CanonicalBasis
+end

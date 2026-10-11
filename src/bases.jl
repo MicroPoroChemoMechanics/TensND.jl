@@ -279,45 +279,31 @@ struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
     angles::NamedTuple
     function RotatedBasis(R::AbstractMatrix{T}) where {T <: Number}
         dim = size(R, 1)
-        if isidentity(R)
-            return CanonicalBasis{dim, T}()
-        else
-            eᵢ = eⁱ = Matrix(R)
-            return new{dim, T}(eᵢ, eⁱ, angles(R))
-        end
+        isidentity(R) && return CanonicalBasis{dim, T}()
+        eᵢ = eⁱ = Matrix(R)
+        return new{dim, T}(eᵢ, eⁱ, angles(R))
     end
     function RotatedBasis(θ::T1, ϕ::T2, ψ::T3 = 0) where {T1 <: Number, T2 <: Number, T3 <: Number}
-        T = promote_type(T1, T2, T3)
-        dim = 3
-        R = RotZYZ(ϕ, θ, ψ)
-        if isidentity(R)
-            return CanonicalBasis{dim, T}()
-        else
-            eᵢ = eⁱ = Matrix(R)
-            return new{dim, T}(eᵢ, eⁱ, angles(R))
-        end
+        Rz = RotZYZ(ϕ, θ, ψ)
+        R = Matrix(Rz)
+        isidentity(R) && return CanonicalBasis{3, promote_type(T1, T2, T3)}()
+        # The type of the rotation, not of the angles: integer angles give
+        # floating-point cosines.
+        return new{3, eltype(R)}(R, R, angles(Rz))
     end
     function RotatedBasis(θ::T) where {T <: Number}
-        dim = 2
         cθ = cos(θ)
         sθ = sin(θ)
-        eᵢ = eⁱ = [cθ -sθ; sθ cθ]
-        if isidentity(eᵢ)
-            return CanonicalBasis{dim, T}()
-        else
-            return new{dim, T}(eᵢ, eⁱ, angles(eᵢ))
-        end
+        eᵢ = [cθ -sθ; sθ cθ]
+        isidentity(eᵢ) && return CanonicalBasis{2, T}()
+        return new{2, eltype(eᵢ)}(eᵢ, eᵢ, angles(eᵢ))
     end
     function RotatedBasis(θ::T) where {T <: SymType}
-        dim = 2
         cθ = cos(θ)
         sθ = sin(θ)
-        eᵢ = eⁱ = [cθ -sθ; sθ cθ]
-        if isidentity(eᵢ)
-            return CanonicalBasis{dim, T}()
-        else
-            return new{dim, T}(eᵢ, eⁱ, (θ = θ,))
-        end
+        eᵢ = [cθ -sθ; sθ cθ]
+        isidentity(eᵢ) && return CanonicalBasis{2, T}()
+        return new{2, eltype(eᵢ)}(eᵢ, eᵢ, (θ = θ,))
     end
 end
 
