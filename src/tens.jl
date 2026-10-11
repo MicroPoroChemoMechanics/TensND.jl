@@ -76,10 +76,11 @@ julia> components(T, (:cont, :cov))
 
 See also [`components`](@ref), [`change_tens`](@ref), [`get_var`](@ref).
 """
-# The basis is a type parameter, not an abstract field: every `get_basis` and
-# everything dispatched on its result would otherwise be resolved at run time.
 struct Tens{order, dim, T, A <: AbstractArray, B <: Basis} <: AbstractTens{order, dim, T}
     data::A
+    # A type parameter rather than an abstract field: every `get_basis`, and
+    # everything dispatched on its result, would otherwise be resolved at run
+    # time.
     basis::B
     var::NTuple{order, Symbol}
     function Tens(
