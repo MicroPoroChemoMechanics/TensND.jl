@@ -6,8 +6,8 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 # ── Symbolic helpers (generic T) ─────────────────────────────────────────────
-# A single definition per operation, dispatched via Union, replacing the
-# identical loops previously duplicated in each file.
+# A single definition per operation, dispatched on the union of the
+# structured types.
 
 for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig, :tlimit)
     @eval $OP(A::Union{TensISO, TensTI{4}, TensTI, TensOrtho, TensCubic}, args...; kwargs...) =

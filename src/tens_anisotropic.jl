@@ -111,11 +111,6 @@ get_ℓ(t::TensTI{4, T, 5}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[3], t.data[4], t.data[5])
 get_ℓ(t::TensTI{4, T, 6}) where {T} = t.data
 
-# Helper: 2×2 Walpole matrix [[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]]
-function _walpole_mat(t::TensTI{4})
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄ = get_ℓ(t)[1:4]
-    return SMatrix{2, 2}(ℓ₁, ℓ₄, ℓ₃, ℓ₂)   # column-major: [col1, col2] = [[ℓ₁,ℓ₄],[ℓ₃,ℓ₂]]
-end
 
 # ── Constructors ──────────────────────────────────────────────────────────────
 
@@ -1069,14 +1064,10 @@ end
 """
     getindex(t::TensOrtho, i, j, k, l)
 
-Single component in closed form.
-
-This used to be `get_array(t)[i,j,k,l]`, i.e. an `Array{T,4}` allocation plus
-an 81-iteration loop **per scalar access**.  Since `TensOrtho <: AbstractArray`,
-every generic algorithm (`Array(t)`, `norm`, broadcasting, `show`, `tomandel`,
-…) walks the tensor element by element, so an O(81) traversal cost O(81²) and
-81 allocations.  `TensOrtho` was the last structured type still on that dense
-path — `TensISO` and `TensTI` had already been given closed forms.
+Single component in closed form, without building the 81 components:
+`TensOrtho <: AbstractArray`, so every generic algorithm (`Array(t)`, `norm`,
+broadcasting, `show`, `tomandel`, …) walks it element by element, and a dense
+access per element would make an O(81) traversal cost O(81²).
 """
 Base.@propagate_inbounds function Base.getindex(
         t::TensOrtho, i::Integer, j::Integer, k::Integer, l::Integer
@@ -1223,8 +1214,8 @@ not symmetric unless they commute, so `A ⊡ B` is orthotropic *without major
 symmetry* — 12 independent constants where `TensOrtho` stores 9. This is the
 same widening that makes `dcontract(::TensTI{4}, ::TensTI{4})` return N=6
 rather than N=5. Rather than introduce a 12-parameter container, this method
-returns the very `TensCanonical` the generic route used to produce, bitwise
-compatible with it up to floating-point reassociation.
+returns the `TensCanonical` the generic route returns, equal to it up to
+floating-point reassociation.
 
 If the two material frames differ the product is generally fully anisotropic
 and the generic route is taken instead.
@@ -1354,7 +1345,6 @@ end
 # (both are 3D order-4 tensors stored in the canonical frame)
 ##############################################################################
 
-# TensTI{4}: T used to link tensor eltype with basis eltype.
 # See the note above `_as_canonical_tens`: the components must be rotated, not
 # relabeled.
 change_tens(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}) where {T} =

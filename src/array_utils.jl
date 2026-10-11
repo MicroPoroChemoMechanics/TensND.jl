@@ -341,10 +341,9 @@ end
 
 function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, Num}) where {dim}
     @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        # This one used to read `a - b == zero(Num)`, which on a `Num` builds a
-        # symbolic *equation* rather than answering, so `!(…)` threw
-        # `TypeError: non-boolean (Num) used in boolean context` — a hard
-        # failure where its siblings merely returned a wrong `false`.
+        # Not `a - b == zero(Num)`: on a `Num` that builds a symbolic
+        # *equation* rather than answering, and `!(…)` of it throws
+        # `TypeError: non-boolean (Num) used in boolean context`.
         if !_num_equal(t[i, j, k, l], t[k, l, i, j])
             return false
         end

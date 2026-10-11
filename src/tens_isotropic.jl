@@ -50,7 +50,6 @@ get_order(::TensISO{order}) where {order} = order
 get_dim(::TensISO{order, dim}) where {order, dim} = dim
 Base.eltype(::Type{TensISO{order, dim, T}}) where {order, dim, T} = T
 Base.length(::TensISO{order, dim, T, N}) where {order, dim, T, N} = dim^order
-datanumber(::TensISO{order, dim, T, N}) where {order, dim, T, N} = N
 Base.size(::TensISO{order, dim}) where {order, dim} = ntuple(_ -> dim, Val(order))
 Base.getindex(t::TensISO{2}, i::Integer, j::Integer) = t.data[1] * I[i, j]
 Base.getindex(

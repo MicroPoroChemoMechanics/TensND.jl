@@ -133,14 +133,6 @@ function _best_sym_loop(newt::AbstractTens{order, dim, T}, proj, ε, proj_fn) wh
     return newt, zero(T), zero(T), :ANISO
 end
 
-# ── Structured-tensor reference extraction for the cheap path ────────────────
-# If `t` is a structured container that already knows its axis/frame, reuse it
-# directly; otherwise derive a candidate from the Kelvin-Mandel eigenstructure
-# (or fall back to `e₃` / the canonical frame for non-numeric element types).
-
-_default_TI_axis(t) = _candidate_TI_axis(Array(get_array(t)))
-_default_ORTHO_frame(t) = _candidate_ORTHO_frame(Array(get_array(t)))
-
 for order in (2, 4)
     @eval begin
         """
@@ -161,9 +153,7 @@ for order in (2, 4)
         Returns `(projected, d, drel, sym)` where
         `sym ∈ {:ISO, :CUBIC, :TI, :ORTHO, :ANISO}`.
 
-        **Behavior change (vs. pre-2026 versions):** the default no-argument call
-        no longer throws when NLopt is absent; set `optimize_angles=true` to restore
-        the previous angle-optimized behavior.
+        The default call needs no NLopt; `optimize_angles=true` does.
 
         # Examples
         ```julia
@@ -192,15 +182,10 @@ for order in (2, 4)
             if optimize_angles
                 return _best_sym_loop(newt, proj, ε, sym -> proj_tens(sym, A))
             else
-                # Cheap path: reuse structured references when available, otherwise
-                # derive candidates from the Kelvin-Mandel eigendecomposition.
-                #
-                # Computed only if `proj` actually asks for the symmetry that
-                # needs them, and from the `A` already materialized above rather
-                # than re-materializing it: `_default_TI_axis`/`_default_ORTHO_frame`
-                # each call `Array(get_array(newt))` again, so the array was built
-                # three times, and both eigenproblems were solved even for
-                # `proj = (:ISO,)`, where neither answer is ever read.
+                # Cheap path: the axis or frame a structured container carries,
+                # otherwise a candidate from the eigendecomposition of the trace
+                # tensor of `A`, the array already materialized above — each
+                # computed only if `proj` asks for the symmetry that reads it.
                 n_default = if :TI in proj
                     hasmethod(axis, Tuple{typeof(t)}) ? axis(t) : _candidate_TI_axis(A)
                 else
@@ -368,7 +353,6 @@ end
 
 @inline Base.size(t::TensArray) = size(get_array(t))
 @inline Base.getindex(t::TensArray, ind...) = getindex(get_array(t), ind...)
-datatype(::TensArray{order, dim, T, A}) where {order, dim, T, A} = A
 
 @inline Base.zero(t::AbstractTens) = Tens(zero.(get_array(t)), get_basis(t), get_var(t))
 
@@ -1179,17 +1163,6 @@ KM(t::AbstractTens{order, dim}, b::AbstractBasis{dim}; kwargs...) where {order, 
 KM(t::AbstractArray; kwargs...) = KM(Tens(t); kwargs...)
 KM(t::AbstractArray, b::AbstractBasis; kwargs...) = KM(Tens(t), b; kwargs...)
 
-const select_type_KM = Dict(
-    (6, 6) => SymmetricTensor{4, 3},
-    (9, 9) => Tensor{4, 3},
-    (3, 3) => SymmetricTensor{4, 2},
-    (4, 4) => Tensor{4, 2},
-    (6,) => SymmetricTensor{2, 3},
-    (9,) => Tensor{2, 3},
-    (3,) => SymmetricTensor{2, 2},
-    (4,) => Tensor{2, 2},
-)
-
 
 """
     inv_KM(v::AbstractVecOrMat; kwargs...)
@@ -1200,19 +1173,13 @@ inv_KM(TT::Type{<:Tensors.AllTensors}, v::AbstractVecOrMat; kwargs...) =
     Tens(frommandel(TT, v; kwargs...))
 inv_KM(TT::Type{<:Tensors.AllTensors}, v::AbstractVecOrMat, b::AbstractBasis; kwargs...) =
     Tens(frommandel(TT, v; kwargs...), b)
-# The shape-to-type mapping used to go through `select_type_KM[size(v)]`.
-# Indexing a `Dict{…, UnionAll}` yields a type as a *runtime value*, so
-# `frommandel` was reached by dynamic dispatch and the whole of `inv_KM`
-# inferred as `Any` — on every call, including the ones inside the structured
-# contraction kernels.
-#
-# Each branch below instead names its tensor type *literally at its own call
-# site*, so each is inferred concretely and the method's return type is a union
-# of four concrete types, which Julia splits.  Returning the type from a helper
-# would NOT work: the union would then be over `UnionAll` values, which carries
-# no type information at all.
-#
-# `select_type_KM` is kept as the documented table of the same mapping.
+# The shape of `v` gives the tensor type: 6×6 → SymmetricTensor{4,3},
+# 9×9 → Tensor{4,3}, 3×3 → SymmetricTensor{4,2}, 4×4 → Tensor{4,2}, and the
+# vectors of the same lengths → the order-2 types. Each branch names its type
+# literally at its own call site, so that each is inferred concretely and the
+# return type is a union of four concrete types, which Julia splits; a type
+# returned by a helper, or read from a table, would be a run-time value and
+# `frommandel` would be reached by dynamic dispatch.
 
 function inv_KM(v::AbstractMatrix; kwargs...)
     m, n = size(v)
@@ -1805,9 +1772,6 @@ tens_basis(ℬ::AbstractBasis{dim, T}, var = :cov) where {dim, T} = ntuple(i -> 
 
 export AbstractTens, Tens
 export proj_tens, best_sym_tens
-# `arraytype` used to be exported here but was never defined anywhere in the
-# package — the export was dead and `using TensND; arraytype` has always been
-# an UndefVarError, so removing it cannot break working code.
 export get_order, get_data, get_array, get_basis, get_var
 @deprecate intrinsic(t; kwargs...) pprint(t; kwargs...)
 @deprecate intrinsic(t, CS; kwargs...) pprint(t, CS; kwargs...)

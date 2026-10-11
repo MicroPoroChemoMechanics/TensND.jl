@@ -62,9 +62,8 @@ Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = _KM_rotation(…)`;
 
 Built entirely with `SMatrix` / `ntuple`, so it is compatible with
 `ForwardDiff.Dual` **and** with non-`isbits` element types such as
-`SymPy.Sym` or `Symbolics.Num`. (It used to fill an `MMatrix{6,6,T}(undef)`,
-which cannot even be constructed for a symbolic `T` — that made every
-`proj_tens` / `best_sym_tens` call fail on a symbolic tensor.)
+`SymPy.Sym` or `Symbolics.Num`, for which an `MMatrix{6,6,T}(undef)` cannot
+even be constructed.
 
 # Examples
 ```julia
@@ -1120,11 +1119,11 @@ is_CUBIC(t::AbstractTens; kwargs...) = is_CUBIC(get_array(t); kwargs...)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public aliases for the per-block Kelvin-Mandel ↔ symmetry-parameter
-# conversions (previously private `_project_TI_KM`/`_build_TI_KM`/
-# `_project_ORTHO_KM`/`_build_ORTHO_KM`, used internally by `proj_tens`).
-# Exposed publicly so that callers working directly on 6×6 Kelvin-Mandel
-# blocks (e.g. MeanFieldHomogenization's per-timestep ALV Volterra matrices) can reuse
-# the same closed-form projection without going through a full `AbstractTens`.
+# conversions `proj_tens` uses internally (`_project_TI_KM`, `_build_TI_KM`,
+# `_project_ORTHO_KM`, `_build_ORTHO_KM`), so that callers working directly on
+# 6×6 Kelvin-Mandel blocks (e.g. MeanFieldHomogenization's per-timestep ALV
+# Volterra matrices) can reuse the same closed-form projection without going
+# through a full `AbstractTens`.
 # ──────────────────────────────────────────────────────────────────────────────
 
 """

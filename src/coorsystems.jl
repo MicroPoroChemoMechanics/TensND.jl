@@ -35,9 +35,8 @@ coefficients, the connection array, and the symbolic-simplification settings.
 Held by both [`CoorSystemSym`](@ref) and [`SubManifoldSym`](@ref) — which
 differ only in what they *add* to it (a submanifold adds the two fundamental
 forms) and in how many directions they differentiate along ([`nderiv`](@ref)).
-Declaring the block once is what keeps the two in step: it was previously
-duplicated field for field, and every fix to one had to be repeated in the
-other.
+Declaring the block once keeps the two in step: a fix to one is a fix to
+the other.
 
 Reached through [`core`](@ref); user code should go through the accessors
 ([`getcoords`](@ref), [`Lame`](@ref), [`Christoffel`](@ref), …) instead.
@@ -171,14 +170,10 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
         # Plain componentwise derivative of the position vector — deliberately
         # NOT the two-argument `∂`.
         #
-        # `@set_coorsys` installs a method `∂(::AbstractTens, ::Sym)` bound to
-        # whatever system was made the default, and it is more specific than the
-        # variadic fallback, so it wins here. It then looks `coords[i]` up among
-        # *its own* coordinates, does not find it, and returns `zero(t)`: every
-        # natural vector comes out null, the frame matrix is singular, and the
-        # constructor dies with `NonInvertibleMatrixError`. In other words,
-        # building any new coordinate system after a `@set_coorsys` used to
-        # fail. `SubManifoldSym` carries the same fix.
+        # The natural vectors are the derivatives of the canonical components
+        # of the position vector, taken here directly: what they are must not
+        # depend on any method a chart adds to `∂`. `SubManifoldSym` does the
+        # same.
         ∂coord(t, xᵢ) = change_tens(Tens(tdiff(components_canon(t), xᵢ)), get_basis(t), get_var(t))
         aᵢ = ntuple(i -> simp(chvar(∂coord(OMc, coords[i]), tmp_var)), dim)
         χᵢ = ntuple(i -> simp(norm(aᵢ[i])), dim)
@@ -215,12 +210,9 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
     end
 end
 
-# These four were restricted to `CoorSystemSym` while every neighboring
-# accessor below dispatches on `AbstractCoorSystem`.  `SubManifoldSym` is also
-# an `AbstractCoorSystem` and carries the very same fields, so the restriction
-# made `∂`/`GRAD`/`DIV`/`LAPLACE`/`HESS` on a submanifold fail with a
-# `MethodError` on `only_coords`.
-with_tmp_var(CS::AbstractCoorSystem, t) = length(core(CS).tmp_var) > 0 ? tsubs(t, core(CS).tmp_var...) : t
+# On `AbstractCoorSystem`, like every accessor below: `SubManifoldSym` carries
+# the same fields, and `∂`/`GRAD`/`DIV`/`LAPLACE`/`HESS` on a submanifold reach
+# `only_coords`.
 only_coords(CS::AbstractCoorSystem, t) = length(core(CS).to_coords) > 0 ? tsubs(t, core(CS).to_coords...) : t
 
 """
@@ -827,25 +819,17 @@ end
 
 # ── The default coordinate system ────────────────────────────────────────────
 #
-# `@set_coorsys` used to `@eval` single-argument methods for `∂`, `GRAD`, `DIV`,
-# … straight into this module. That is global mutation of the method table from
-# a macro, and it caused two concrete failures:
-#
-#   * `∂(t, x)` already means "plain derivative with respect to the symbol `x`"
-#     (see the `∂` docstring). The generated method was *more specific* than
-#     that fallback, so after any `@set_coorsys` the same call silently became a
-#     covariant derivative in the default chart — which then failed to find `x`
-#     among its own coordinates and returned `zero(t)`. Every constructor that
-#     differentiates a position vector was broken by it.
-#   * it invalidates compiled code and is invisible at the call site.
-#
-# The default is now a plain `Ref`, and the single-argument methods are defined
-# once, below. `∂` deliberately gets **no** default-chart method: it keeps its
-# one unambiguous meaning.
+# The default chart is data held in a reference, and the single-argument forms
+# of `GRAD`, `DIV`, … are ordinary methods defined once, below. Methods
+# evaluated into the module by `@set_coorsys` would mutate the method table
+# globally — invalidating compiled code, invisibly at the call site — and a
+# default-chart `∂(t, x)` would be more specific than the plain derivative with
+# respect to the symbol `x` and silently turn it into a covariant derivative.
+# `∂` therefore has **no** default-chart method: it keeps its one meaning.
 
 # One reference holds the whole default — the chart, the letter of its vectors
 # and the names of its coordinates — so that a reader never sees parts of two
-# different `set_coorsys!` calls, as three separate references allowed.
+# different `set_coorsys!` calls.
 const _DEFAULT_COORSYS = Ref{Any}(nothing)      # `nothing` or `(; CS, vec, coords)`
 
 """
@@ -898,10 +882,9 @@ end
 
 # Single-argument forms, defined once and for all.
 #
-# One method per branch of what used to be `Union{T, AbstractTens} where
-# {T <: SymType}`: with an `AbstractTens` argument that union binds `T` to
-# nothing, a signature Julia accepts and can never dispatch on. Same behavior,
-# same two accepted argument types.
+# One method per kind of argument: a single `Union{T, AbstractTens} where
+# {T <: SymType}` would bind `T` to nothing for an `AbstractTens`, a signature
+# Julia accepts and can never dispatch on.
 for OP in (:GRAD, :SYMGRAD, :LAPLACE, :HESS)
     @eval $OP(t::AbstractTens) = $OP(t, default_coorsys())
     @eval $OP(t::T) where {T <: SymType} = $OP(t, default_coorsys())
