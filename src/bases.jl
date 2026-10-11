@@ -273,16 +273,17 @@ julia> θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true) ; ℬʳ = RotatedBasis(θ
                         -sin(θ)⋅cos(ψ)                          sin(θ)⋅sin(ψ)         cos(θ)
 ```
 """
-struct RotatedBasis{dim, T, A <: NamedTuple} <: AbstractBasis{dim, T}
+struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
     eᵢ::Matrix{T} # Primal basis `eᵢ=e[:,i]`
     eⁱ::Matrix{T} # Dual basis `eⁱ=E[:,i]`
-    angles::A
+    # Read by `angles(ℬ)` only, never on a computation's path: a field of
+    # concrete type would be copied with every tensor that carries the basis.
+    angles::NamedTuple
     function RotatedBasis(R::AbstractMatrix{T}) where {T <: Number}
         dim = size(R, 1)
         isidentity(R) && return CanonicalBasis{dim, T}()
         eᵢ = eⁱ = Matrix(R)
-        a = angles(R)
-        return new{dim, T, typeof(a)}(eᵢ, eⁱ, a)
+        return new{dim, T}(eᵢ, eⁱ, angles(R))
     end
     function RotatedBasis(θ::T1, ϕ::T2, ψ::T3 = 0) where {T1 <: Number, T2 <: Number, T3 <: Number}
         Rz = RotZYZ(ϕ, θ, ψ)
@@ -290,24 +291,21 @@ struct RotatedBasis{dim, T, A <: NamedTuple} <: AbstractBasis{dim, T}
         isidentity(R) && return CanonicalBasis{3, promote_type(T1, T2, T3)}()
         # The type of the rotation, not of the angles: integer angles give
         # floating-point cosines.
-        a = angles(Rz)
-        return new{3, eltype(R), typeof(a)}(R, R, a)
+        return new{3, eltype(R)}(R, R, angles(Rz))
     end
     function RotatedBasis(θ::T) where {T <: Number}
         cθ = cos(θ)
         sθ = sin(θ)
         eᵢ = [cθ -sθ; sθ cθ]
         isidentity(eᵢ) && return CanonicalBasis{2, T}()
-        a = angles(eᵢ)
-        return new{2, eltype(eᵢ), typeof(a)}(eᵢ, eᵢ, a)
+        return new{2, eltype(eᵢ)}(eᵢ, eᵢ, angles(eᵢ))
     end
     function RotatedBasis(θ::T) where {T <: SymType}
         cθ = cos(θ)
         sθ = sin(θ)
         eᵢ = [cθ -sθ; sθ cθ]
         isidentity(eᵢ) && return CanonicalBasis{2, T}()
-        a = (θ = θ,)
-        return new{2, eltype(eᵢ), typeof(a)}(eᵢ, eᵢ, a)
+        return new{2, eltype(eᵢ)}(eᵢ, eᵢ, (θ = θ,))
     end
 end
 
