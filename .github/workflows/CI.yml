@@ -19,10 +19,6 @@ jobs:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    # A nightly build of Julia can break on its own — a dependency that no
-    # longer precompiles before any line of TensND runs — so its jobs report
-    # and do not fail the run.
-    continue-on-error: ${{ matrix.version == 'nightly' }}
     permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
       actions: write
       contents: read
