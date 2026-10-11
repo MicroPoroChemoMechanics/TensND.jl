@@ -883,7 +883,7 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "TensOrtho — concrete frame field, closed-form inv (v0.2.4 regression)" begin
+    @testsection "TensOrtho — concrete frame field, closed-form inv" begin
         frame = CanonicalBasis{3, Float64}()
         O = TensOrtho(
             250.0e3, 180.0e3, 150.0e3, 90.0e3, 80.0e3, 70.0e3,
@@ -892,7 +892,7 @@
         # The frame field must be a concrete type: TensOrtho{T} decouples the
         # frame eltype from T (for ForwardDiff) via a *type parameter*, not by
         # erasing it to the abstract `OrthonormalBasis{3}` — an abstract field
-        # boxes every access and defeats inference (v0.2.3 regression).
+        # boxes every access and defeats inference.
         @test isconcretetype(fieldtype(typeof(O), :frame))
         @test typeof(O) === TensOrtho{Float64, CanonicalBasis{3, Float64}}
 

@@ -1,23 +1,21 @@
 # =============================================================================
 #  test_tensor_products.jl — the outer products, pinned against their definition.
 #
-#  `otimes`, `otimesu`, `otimesl` and `sotimes` on `AbstractArray` were rewritten
-#  from `einsum` calls to single broadcasts (v0.3.3). They contract nothing —
-#  their output indices are the union of the input indices — so the rewrite is
-#  purely about how elements are placed, and a wrong placement is a silent
-#  numerical error, not an exception.
+#  `otimes`, `otimesu`, `otimesl` and `sotimes` on `AbstractArray` contract
+#  nothing — their output indices are the union of the input indices — so they
+#  are single broadcasts, and all that can go wrong is how elements are placed:
+#  a wrong placement is a silent numerical error, not an exception.
 #
 #  Three independent references, because one is not enough:
 #
 #  1. the **definition** written out as explicit loops, which owes nothing to
 #     any implementation;
-#  2. the **einsum** form that was replaced, kept here verbatim as the historical
-#     reference;
+#  2. the **einsum** form, an implementation independent of this package's;
 #  3. **algebraic identities** the products must satisfy whatever the code.
 #
 #  And, deliberately, coverage over the *types the callers actually pass*.
-#  The v0.3.3 regression that reached the documentation build — `transpose` of a
-#  `Tensors.Vec` is discontinued upstream — passed every array-based check and
+#  A regression once reached the documentation build — `transpose` of a
+#  `Tensors.Vec` is discontinued upstream — through every array-based check and
 #  the whole suite, because nothing here exercised a first-order `Tensors`
 #  operand. That gap is the reason for the "Tensors element types" section.
 # =============================================================================
@@ -126,7 +124,7 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
     end
 
     @testset "Tensors element types — the first-order operand" begin
-        # This is the case that broke the documentation build in v0.3.3 while
+        # This is the case that once broke the documentation build while
         # every array-based test stayed green: `transpose` of a `Tensors.Vec`
         # is discontinued upstream, so an implementation that transposed raised
         # here and nowhere else.
@@ -156,7 +154,7 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
         end
 
         # `sotimes` of two second-order Tensors arrays has a method of its own,
-        # which raised `UndefVarError` until 0.6.0 — and every order-2 `Tens`
+        # which used to raise `UndefVarError` — and every order-2 `Tens`
         # stores such an array, so `S ⊗ˢ S` raised as well. The result of two
         # symmetric operands is not minor-symmetric in general, hence a full
         # `Tensor`, with the same products in the same order as the array

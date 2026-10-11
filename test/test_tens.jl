@@ -61,10 +61,9 @@ end
 
 
 @testsection "pprint" begin
-    # `pprint` is the display entry point, renamed twice: `intrinsic` (through
-    # v0.2.7) → `print_tensor` (v0.3.0) → `pprint` (v0.3.1). Both former names
-    # must keep forwarding. `_pprint_string` is the formatting half, split out
-    # so the layout can be checked without capturing `stdout`.
+    # `pprint` is the display entry point; `intrinsic` and `print_tensor`, its
+    # former names, must keep forwarding. `_pprint_string` is the formatting
+    # half, split out so the layout can be checked without capturing `stdout`.
     S = coorsys_spherical()
     𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(S)
     θ, ϕ, r = getcoords(S)
