@@ -159,22 +159,16 @@ function components(
     end
 end
 
+# A tensor whose own basis is `ℬ` is a `TensOrthogonal`, served above: here
+# the basis always changes.
 function components(
         t::AbstractTens{order, dim, T},
         ℬ::OrthogonalBasis{dim},
         var::NTuple{order, Symbol},
     ) where {order, dim, T}
-    if isequal(ℬ, get_basis(t))
-        return components(t, var)
-    else
-        m0 = components(t, relevant_OrthonormalBasis(ℬ))
-        m = _narrow_eltype(_components_eltype(eltype(m0), ℬ), Array(m0))
-        Λ = Dict(:cont => inv.(ℬ.λ), :cov => ℬ.λ)
-        for ind in CartesianIndices(m)
-            m[ind] *= prod([Λ[var[i]][ind[i]] for i in 1:order])
-        end
-        return m
-    end
+    m0 = components(t, relevant_OrthonormalBasis(ℬ))
+    m = _narrow_eltype(_components_eltype(eltype(m0), ℬ), Array(m0))
+    return _scale_by_variance!(m, var, ℬ.λ, inv.(ℬ.λ))
 end
 
 components(t::AbstractTens{order, dim, T}, ℬ::AbstractBasis{dim}) where {order, dim, T} =

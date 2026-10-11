@@ -338,3 +338,51 @@ end
     TensND.Symbolics.@variables z
     @test_throws ArgumentError tlimit(z, z, 0)
 end
+
+@testsection "Short cuts and less common shapes" begin
+    # Same basis, same variances: the components, or the tensor, come back
+    # as they are.
+    ℬ = Basis([1.0 0.2 0.1; 0.0 1.0 0.3; 0.1 0.0 1.0])
+    t = Tens([1.0 2.0 0.5; 0.3 4.0 1.0; 0.2 0.1 3.0], ℬ, (:cont, :cov))
+    @test components(t, get_var(t)) === get_array(t)
+    @test change_tens(t, get_var(t)) === t
+    o = Tens([2.0 0.5 0.1; 0.5 3.0 0.2; 0.1 0.2 4.0])
+    @test components(o, (:cov, :cont)) === get_array(o)
+    @test components(o, get_basis(o)) === get_array(o)
+    ℬo = Basis(RotatedBasis(0.3, 0.2, 0.1), [2.0, 1.0, 0.5])
+    to = Tens([1.0, 2.0, 3.0], ℬo, (:cov,))
+    @test components(to, get_basis(to), (:cont,)) == components(to, (:cont,))
+
+    # The product of a tensor with itself takes a short cut; it agrees with
+    # the general route, which the same tensor written in another basis takes.
+    v = Tens([1.0, 2.0, 3.0], ℬ, (:cont,))
+    v2 = change_tens(v, Basis([1.0 0.0 0.3; 0.2 1.0 0.0; 0.0 0.1 1.0]))
+    @test !isequal(v, v2) && components_canon(v) ≈ components_canon(v2)
+    @test components_canon(v ⊗ v) ≈ components_canon(v ⊗ v2)
+    # A non-symmetric order-2 tensor, and a vector of dimension 4, have no
+    # symmetric storage for their square: they used to raise a MethodError.
+    # Beyond dimension 3, where Tensors.jl has no type, the components stay a
+    # plain array; building such a tensor used to raise a MethodError too.
+    @test get_array(Tens([1.0, 2.0, 3.0, 4.0])) isa Vector{Float64}
+    @test get_array(Tens(reshape(collect(1.0:16.0), 4, 4))) isa Matrix{Float64}
+    @test components_canon(t ⊗ t) ≈ components_canon(t ⊗ change_tens(t, RotatedBasis(0.3, 0.2, 0.1)))
+    a = [1.0 2.0 0.5; 0.3 4.0 1.0; 0.2 0.1 3.0]
+    @test get_array(Tens(a) ⊗ Tens(a)) == [a[i, j] * a[k, l] for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
+    w = Tens([1.0, 2.0, 3.0, 4.0])
+    @test get_array(w ⊗ w) == [1.0, 2.0, 3.0, 4.0] * [1.0, 2.0, 3.0, 4.0]'
+    u = Tens([1.0, 2.0, 3.0])
+    @test get_array(u ⊗ˢ u) == get_array(u ⊗ u)
+    # The Frobenius norm of an order-2 tensor, in an orthonormal basis.
+    @test norm(o) ≈ norm(get_array(o))
+
+    # Kelvin-Mandel matrices of every shape go back to the right tensor type;
+    # a shape of none is refused.
+    A = [0.1 * (i + 2j) * (k + l) + (i == k) for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
+    @test get_array(inv_KM(KM(Tens(A)))) ≈ A
+    @test get_array(inv_KM(KM(Tens(A)))) isa Tensors.Tensor{4, 3}
+    S2 = SymmetricTensor{4, 2}((i, j, k, l) -> 1.0 * (i + j) * (k + l))
+    @test get_array(inv_KM(KM(S2))) ≈ S2
+    T2 = Tensor{4, 2}((i, j, k, l) -> 1.0 * (i + 2j) * (k + l))
+    @test get_array(inv_KM(KM(T2))) ≈ T2
+    @test_throws DimensionMismatch inv_KM(rand(5, 5))
+end

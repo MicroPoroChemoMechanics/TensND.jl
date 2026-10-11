@@ -415,3 +415,12 @@ end
         end
     end
 end
+
+@testsection "dotdot on plain arrays, against its definition" begin
+    # (v₁·𝔸·v₂)ⱼₖ = Σᵢₗ v₁ᵢ Aᵢⱼₖₗ v₂ₗ, at any order of the middle array.
+    A = [0.1 * i + 0.2 * j * k + 0.03 * l for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
+    v1, v2 = [1.0, -2.0, 0.5], [0.3, 1.0, 2.0]
+    ref = [sum(v1[i] * A[i, j, k, l] * v2[l] for i in 1:3, l in 1:3) for j in 1:3, k in 1:3]
+    @test dotdot(v1, A, v2) ≈ ref
+    @test dotdot(v1, A[:, :, :, 1], v2) ≈ [sum(v1[i] * A[i, j, k, 1] * v2[k] for i in 1:3, k in 1:3) for j in 1:3]
+end

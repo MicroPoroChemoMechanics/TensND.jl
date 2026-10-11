@@ -189,13 +189,22 @@ TensOrthonormal(t::TensOrthonormal) = t
 function TensOrthonormal(t::TensOrthogonal{order, dim, T}) where {order, dim, T}
     ℬ = get_basis(t)
     m = _narrow_eltype(_components_eltype(T, ℬ), Array(get_array(t)))
-    onℬ = relevant_OrthonormalBasis(ℬ)
-    Λ = Dict(:cov => inv.(ℬ.λ), :cont => ℬ.λ)
-    for ind in CartesianIndices(m)
-        m[ind] *= prod([Λ[get_var(t, i)][ind[i]] for i in 1:order])
-    end
-    return Tens(m, onℬ)
+    _scale_by_variance!(m, get_var(t), inv.(ℬ.λ), ℬ.λ)
+    return Tens(m, relevant_OrthonormalBasis(ℬ))
 end
+
+# `m[i₁, …, iₙ] *= s₁[i₁] ⋯ sₙ[iₙ]`, where `sₖ` is `cov` if the k-th index is
+# covariant and `cont` if it is contravariant: the scale factors between the
+# components in an orthogonal basis and in its orthonormal counterpart.
+function _scale_by_variance!(m::AbstractArray{<:Any, order}, var::NTuple{order, Symbol}, cov, cont) where {order}
+    s = ntuple(k -> _by_variance(_pick_by_variance, var[k], cov, cont), Val(order))
+    for ind in CartesianIndices(m)
+        m[ind] *= prod(ntuple(k -> s[k][ind[k]], Val(order)))
+    end
+    return m
+end
+_pick_by_variance(cov, cont, ::Val{:cov}) = cov
+_pick_by_variance(cov, cont, ::Val{:cont}) = cont
 
 @inline Base.size(t::TensArray) = size(get_array(t))
 @inline Base.getindex(t::TensArray, ind...) = getindex(get_array(t), ind...)
@@ -205,8 +214,9 @@ end
 # This function aims at storing the table of components in the `Tensor` type whenever possible
 # Convert a raw array into the best matching Tensors.jl type (Vec, Tensor, or
 # SymmetricTensor).  Falls through to the input unchanged for types that are
-# already Tensors.AllTensors or for orders not in {1,2,4}.
-tensor_or_array(tab::AbstractArray{T, 1}) where {T} = Vec{size(tab, 1)}(tab)
+# already Tensors.AllTensors, for orders not in {1,2,4}, and for dimensions
+# above 3, where Tensors.jl has no type.
+tensor_or_array(tab::AbstractArray{T, 1}) where {T} = size(tab, 1) ≤ 3 ? Vec{size(tab, 1)}(tab) : tab
 # `dim` comes from `size(tab, 1)`, i.e. it is a RUNTIME value.  Writing
 # `Tensor{order, dim}(tab)` with such a `dim` builds a non-concrete type at
 # compile time, so the construction is fully dynamic: measured at 3147 ns and
@@ -281,6 +291,7 @@ for order in (2, 4)
         dim = size(tab, 1)
         dim == 3 && return _to_tensor(tab, Val(3), Val($order))
         dim == 2 && return _to_tensor(tab, Val(2), Val($order))
+        dim == 1 || return tab
         newtab = Tensor{$order, dim}(tab)
         if Tensors.issymmetric(newtab)
             newtab = convert(SymmetricTensor{$order, dim}, newtab)

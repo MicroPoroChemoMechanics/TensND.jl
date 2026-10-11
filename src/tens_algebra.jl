@@ -76,11 +76,18 @@ function Tensors.otimes(
     end
 end
 
+# The product of a tensor with itself. Tensors.jl stores `v ⊗ v` and `S ⊗ S`
+# (`S` symmetric) with their symmetries; any other array, a non-symmetric
+# order-2 tensor or a vector beyond dimension 3, goes the general way.
+_self_otimes(a::Vec) = otimes(a)
+_self_otimes(a::SymmetricTensor{2}) = otimes(a)
+_self_otimes(a::AbstractArray) = otimes(a, a)
+
 Tensors.otimes(v::AbstractTens{1, dim}) where {dim} =
-    Tens(otimes(get_array(v)), get_basis(v), (get_var(v)..., get_var(v)...))
+    Tens(_self_otimes(get_array(v)), get_basis(v), (get_var(v)..., get_var(v)...))
 
 Tensors.otimes(v::TensOrthonormal{1, dim}) where {dim} =
-    Tens(otimes(get_array(v)), get_basis(v))
+    Tens(_self_otimes(get_array(v)), get_basis(v))
 
 @inline function Tensors.otimes(S::SymmetricTensor{2, dim}) where {dim}
     return SymmetricTensor{4, dim}(
@@ -91,10 +98,10 @@ Tensors.otimes(v::TensOrthonormal{1, dim}) where {dim} =
 end
 
 Tensors.otimes(t::AbstractTens{2, dim}) where {dim} =
-    Tens(otimes(get_array(t)), get_basis(t), (get_var(t)..., get_var(t)...))
+    Tens(_self_otimes(get_array(t)), get_basis(t), (get_var(t)..., get_var(t)...))
 
 Tensors.otimes(t::TensOrthonormal{2, dim}) where {dim} =
-    Tens(otimes(get_array(t)), get_basis(t))
+    Tens(_self_otimes(get_array(t)), get_basis(t))
 
 
 scontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(1))

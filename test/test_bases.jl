@@ -98,3 +98,10 @@ end
     @test vecbasis(RotatedBasis(1), :cov) == vecbasis(RotatedBasis(1.0), :cov)
     @test RotatedBasis(0, 0, 0) isa CanonicalBasis
 end
+
+@testsection "A variance is :cov or :cont" begin
+    ℬ = RotatedBasis(0.3, 0.2, 0.1)
+    @test vecbasis(ℬ, :cov) == vecbasis(ℬ, Val(:cov))
+    @test_throws ArgumentError vecbasis(ℬ, :covariant)
+    @test_throws ArgumentError metric(ℬ, :foo)
+end

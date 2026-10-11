@@ -88,8 +88,9 @@ See [Numerical coordinate systems](@ref man-coorsystems-num).
 
 ## Interoperability with `Tensors.jl`
 
-`TensND` stores its data in `Tensors.jl` containers whenever the shape allows,
-so the two compose directly and index symmetries are preserved:
+`TensND` stores its data in `Tensors.jl` containers whenever the shape allows
+(order 1, 2 or 4, dimension 1 to 3; any other shape keeps a plain array), so
+the two compose directly and index symmetries are preserved:
 
 ```@example sn4
 using TensND, Tensors, LinearAlgebra

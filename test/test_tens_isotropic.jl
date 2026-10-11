@@ -228,3 +228,12 @@ end
     β = get_data(isotropify(get_array(TensISO{3}(3k, 2μ))))[2]
     @test string(β) == "2*μ"
 end
+
+@testsection "isotropify in dimensions 2 and 4" begin
+    # Exact on an isotropic array of any dimension: the moduli come back.
+    for d in (2, 4)
+        A = get_array(TensISO{d}(3 // 1, 2 // 1))
+        @test get_data(isotropify(A)) === (3 // 1, 2 // 1)
+        @test isotropify(A) isa TensISO{4, d}
+    end
+end
