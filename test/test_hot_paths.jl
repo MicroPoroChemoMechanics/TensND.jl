@@ -27,6 +27,24 @@
     Gd, Ga = TensND._generic_tens(TId), TensND._generic_tens(TI)
     @inferred Gd ⊡ Ga
     @test _allocs(⊡, Gd, Ga) == 0
+    # A static Kelvin-Mandel array carries its size in its type: the tensor
+    # type comes by dispatch, and the result is the one of the plain array.
+    # Inferred when the size gives a symmetric tensor; a full one is stored
+    # symmetric or not according to its components, a value.
+    SA = TensND.StaticArrays
+    static(v) = v isa AbstractMatrix ? SA.SMatrix{size(v)...}(v) : SA.SVector{length(v)}(v)
+    M6 = [10.0 3 1 0 0 0; 3 8 0.5 0 0 0; 1 0.5 4 0 0 0; 0 0 0 2 0 0; 0 0 0 0 3 0; 0 0 0 0 0 1.5]
+    for v in (M6, M6[1:3, 1:3], M6[:, 1], M6[1:3, 1])
+        @test get_array(@inferred inv_KM(static(v))) == get_array(inv_KM(v))
+        @test get_array(@inferred inv_KM(static(v), RotatedBasis(0.3))) == get_array(inv_KM(v, RotatedBasis(0.3)))
+    end
+    for v in ([1.0 2 0 0; 2 5 0 0; 0 0 3 1; 0 0 1 4], [1.0, 2, 3, 4])
+        @test get_array(inv_KM(static(v))) == get_array(inv_KM(v))
+        @test get_array(inv_KM(static(v), RotatedBasis(0.3))) == get_array(inv_KM(v, RotatedBasis(0.3)))
+    end
+    # The parent of an orthogonal basis is in its type.
+    ℬo = Basis(RotatedBasis(0.3, 0.2, 0.1), [2.0, 1.0, 0.5])
+    @test (@inferred TensND.relevant_OrthonormalBasis(ℬo)) isa RotatedBasis{3, Float64}
     # The contraction kernels.
     A4 = [0.1 * (i + 2j) * (k + l) + (i == k) for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
     A2 = [1.0 2.0 0.5; 0.3 4.0 1.0; 0.2 0.1 3.0]

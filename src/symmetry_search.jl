@@ -6,6 +6,21 @@
 
 proj_tens(sym::Symbol, A::AbstractArray) = proj_tens(Val(sym), A)
 
+# The axis a TI container carries, the frame an orthotropic or cubic one does;
+# for any other tensor, the candidate read off the eigenstructure of its array
+# `A` — and, for the cube, the canonical frame (see `best_sym_tens`).
+_axis_or_candidate(t::TensTI, A) = axis(t)
+_axis_or_candidate(t::AbstractTens, A) = _candidate_TI_axis(A)
+_frame_or_candidate(t::Union{TensOrtho, TensCubic}, A) = frame(t)
+_frame_or_candidate(t::AbstractTens, A) = _candidate_ORTHO_frame(A)
+_cube_frame_or_canonical(t::Union{TensOrtho, TensCubic}, A) = frame(t)
+_cube_frame_or_canonical(t::AbstractTens, A) = CanonicalBasis{3, eltype(A)}()
+
+# The classes a fixed orientation can serve: a frame serves all but `:TI`, an
+# axis all but `:ORTHO` and `:CUBIC` (see `best_sym_tens(t, n_or_frame)`).
+_classes_served(::OrthonormalBasis{3}, proj) = filter(!=(:TI), proj)
+_classes_served(n, proj) = filter(sym -> sym ∉ (:ORTHO, :CUBIC), proj)
+
 # Internal helper: loop over symmetry projections and return the first match.
 # `proj_fn(sym)` must return `(projected, d, drel)`.
 function _best_sym_loop(newt::AbstractTens{order, dim, T}, proj, ε, proj_fn) where {order, dim, T}
@@ -70,16 +85,8 @@ for order in (2, 4)
                 # otherwise a candidate from the eigendecomposition of the trace
                 # tensor of `A`, the array already materialized above — each
                 # computed only if `proj` asks for the symmetry that reads it.
-                n_default = if :TI in proj
-                    hasmethod(axis, Tuple{typeof(t)}) ? axis(t) : _candidate_TI_axis(A)
-                else
-                    nothing
-                end
-                frame_default = if :ORTHO in proj
-                    hasmethod(frame, Tuple{typeof(t)}) ? frame(t) : _candidate_ORTHO_frame(A)
-                else
-                    nothing
-                end
+                n_default = :TI in proj ? _axis_or_candidate(t, A) : nothing
+                frame_default = :ORTHO in proj ? _frame_or_candidate(t, A) : nothing
                 # `:CUBIC` cannot use the orthotropic eigencandidate: every
                 # second-order contraction of a cubic tensor is isotropic, so no
                 # eigenframe says where the cube points, and that candidate
@@ -87,12 +94,7 @@ for order in (2, 4)
                 # own; anything else falls back to the canonical frame, which
                 # finds an axis-aligned cube and nothing else. Detecting a
                 # *rotated* cubic tensor needs `optimize_angles = true`.
-                cube_default = if :CUBIC in proj
-                    hasmethod(frame, Tuple{typeof(t)}) ? frame(t) :
-                        CanonicalBasis{3, eltype(A)}()
-                else
-                    nothing
-                end
+                cube_default = :CUBIC in proj ? _cube_frame_or_canonical(t, A) : nothing
                 return _best_sym_loop(
                     newt, proj, ε,
                     function (sym)
@@ -154,11 +156,7 @@ for order in (2, 4)
             # happened before `:CUBIC` existed, whenever `:ORTHO` was reached
             # with an axis — the classes the argument cannot serve are dropped,
             # and the docstring says so.
-            usable = if n_or_frame isa OrthonormalBasis{3}
-                filter(!=(:TI), proj)
-            else
-                filter(sym -> sym ∉ (:ORTHO, :CUBIC), proj)
-            end
+            usable = _classes_served(n_or_frame, proj)
             return _best_sym_loop(
                 newt, usable, ε,
                 sym -> sym == :ISO ? proj_tens(sym, A) : proj_tens(sym, A, n_or_frame)

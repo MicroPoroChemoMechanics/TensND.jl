@@ -149,6 +149,12 @@ end
 # Returns a plain scalar or Array (ForwardDiff-compatible)
 # ─────────────────────────────────────────────────────────────────
 
+# A field as a function of plain values: the components of a tensor, a number
+# or an array as it is.
+_plain_value(v::AbstractTens) = Array(v)
+_plain_value(v) = v
+_plain_field(f) = x -> _plain_value(f(x))
+
 """
     ∂(f::Function, i::Integer, CS::CoorSystemNum, x₀)
 
@@ -162,30 +168,29 @@ See also `GRAD`, `DIV`, `LAPLACE`, `HESS`, `SYMGRAD` for high-level operators th
 results in `AbstractTens`.
 """
 function ∂(f::Function, i::Integer, CS::CoorSystemNum{dim, T}, x₀::AbstractVector) where {dim, T}
-    # Ensure f_arr returns a plain array (handle AbstractTens-returning functions)
-    f_arr = x -> begin
-        v = f(x); v isa AbstractTens ? Array(v) : v
-    end
-    val = f_arr(x₀)
+    f_arr = _plain_field(f)
+    return _∂(f_arr(x₀), f_arr, i, CS, x₀)
+end
 
-    if val isa Number
-        # Scalar: plain partial derivative (no Christoffel correction needed)
-        Jac = ForwardDiff.jacobian(x -> [f_arr(x)], collect(x₀))
-        return Jac[1, i]
-    else
-        χ₀ = CS.χ_func(x₀)
-        order = ndims(val)
-        # Convert to natural contravariant components: t_nat = t_phys / (χᵢ₁ ⋯ χᵢₙ)
-        f_nat = x -> f_arr(x) ./ _χ_outer(CS.χ_func(x), order)
-        Jac_nat = ForwardDiff.jacobian(x -> vec(f_nat(x)), collect(x₀))
-        ∂_nat = reshape(Jac_nat[:, i], size(val))
-        # Christoffel correction in natural contravariant frame
-        val_nat = val ./ _χ_outer(χ₀, order)
-        Γᵢ = CS.Γ_func(x₀)[i, :, :]
-        correction_nat = _apply_christoffel(Array(val_nat), Γᵢ)
-        # Convert back to physical (normalized) components
-        return (∂_nat .+ correction_nat) .* _χ_outer(χ₀, order)
-    end
+# A scalar field: the plain partial derivative, no Christoffel correction.
+function _∂(::Number, f_arr, i, CS, x₀)
+    Jac = ForwardDiff.jacobian(x -> [f_arr(x)], collect(x₀))
+    return Jac[1, i]
+end
+
+function _∂(val::AbstractArray, f_arr, i, CS, x₀)
+    χ₀ = CS.χ_func(x₀)
+    order = ndims(val)
+    # Convert to natural contravariant components: t_nat = t_phys / (χᵢ₁ ⋯ χᵢₙ)
+    f_nat = x -> f_arr(x) ./ _χ_outer(CS.χ_func(x), order)
+    Jac_nat = ForwardDiff.jacobian(x -> vec(f_nat(x)), collect(x₀))
+    ∂_nat = reshape(Jac_nat[:, i], size(val))
+    # Christoffel correction in natural contravariant frame
+    val_nat = val ./ _χ_outer(χ₀, order)
+    Γᵢ = CS.Γ_func(x₀)[i, :, :]
+    correction_nat = _apply_christoffel(Array(val_nat), Γᵢ)
+    # Convert back to physical (normalized) components
+    return (∂_nat .+ correction_nat) .* _χ_outer(χ₀, order)
 end
 
 # ─────────────────────────────────────────────────────────────────
@@ -267,9 +272,7 @@ Christoffel(CS::CoorSystemNum, x::AbstractVector) = CS.Γ_func(x)
 
 function _grad_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
     return function (x₀::AbstractVector)
-        f_arr = x -> begin
-            v = f(x); v isa AbstractTens ? Array(v) : v
-        end
+        f_arr = _plain_field(f)
         val = f_arr(x₀)
         χ = CS.χ_func(x₀)
         # The buffer must hold both the geometry (χ, from the coordinate system)
@@ -278,26 +281,27 @@ function _grad_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
         # the system is built at a `Float64` point, so a `Dual`-valued field had
         # nowhere to go and the call failed converting a `Dual` to a `Float64`.
         # Promoting costs nothing when both are `Float64`.
-        ET = promote_type(eltype(χ), eltype(val))
-        if val isa Number
-            Jac = ForwardDiff.jacobian(x -> [f_arr(x)], collect(x₀))
-            return [Jac[1, i] / χ[i] for i in 1:dim]
-        else
-            order = ndims(val)
-            result = zeros(ET, size(val)..., dim)
-            for i in 1:dim
-                result[fill(:, order)..., i] = ∂(f_arr, i, CS, x₀) ./ χ[i]
-            end
-            return result
-        end
+        return _grad_at(val, f_arr, CS, χ, promote_type(eltype(χ), eltype(val)), x₀)
     end
+end
+
+function _grad_at(::Number, f_arr, CS::CoorSystemNum{dim}, χ, ET, x₀) where {dim}
+    Jac = ForwardDiff.jacobian(x -> [f_arr(x)], collect(x₀))
+    return [Jac[1, i] / χ[i] for i in 1:dim]
+end
+
+function _grad_at(val::AbstractArray, f_arr, CS::CoorSystemNum{dim}, χ, ET, x₀) where {dim}
+    order = ndims(val)
+    result = zeros(ET, size(val)..., dim)
+    for i in 1:dim
+        result[fill(:, order)..., i] = ∂(f_arr, i, CS, x₀) ./ χ[i]
+    end
+    return result
 end
 
 function _div_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
     return function (x₀::AbstractVector)
-        f_arr = x -> begin
-            v = f(x); v isa AbstractTens ? Array(v) : v
-        end
+        f_arr = _plain_field(f)
         val = f_arr(x₀)
         χ = CS.χ_func(x₀)
         order = ndims(val)
@@ -327,20 +331,16 @@ Return a function `x₀ -> gradient` as an `AbstractTens` in the normalized basi
 """
 function GRAD(f::Function, CS::CoorSystemNum{dim}) where {dim}
     return function (x₀::AbstractVector)
-        f_arr = x -> begin
-            v = f(x); v isa AbstractTens ? Array(v) : v
-        end
+        f_arr = _plain_field(f)
         val = f_arr(x₀)
         G = _grad_raw(f_arr, CS)(x₀)
-        ℬnorm = normalized_basis(CS, x₀)
-        if val isa Number
-            return Tens(Vec{dim}(i -> G[i]), ℬnorm, (:cont,))
-        else
-            order = ndims(val)
-            return Tens(G, ℬnorm, ntuple(_ -> :cont, order + 1))
-        end
+        return _grad_tens(val, G, normalized_basis(CS, x₀))
     end
 end
+
+# The gradient of a scalar field is a vector; of an order-n field, order n + 1.
+_grad_tens(::Number, G, ℬ::AbstractBasis{dim}) where {dim} = Tens(Vec{dim}(i -> G[i]), ℬ, (:cont,))
+_grad_tens(val::AbstractArray, G, ℬ) = Tens(G, ℬ, ntuple(_ -> :cont, ndims(val) + 1))
 
 """
     SYMGRAD(f::Function, CS::CoorSystemNum) -> Function
@@ -350,9 +350,7 @@ basis at `x₀`. Applies to vector-valued functions `f`.
 """
 function SYMGRAD(f::Function, CS::CoorSystemNum{dim}) where {dim}
     return function (x₀::AbstractVector)
-        f_arr = x -> begin
-            v = f(x); v isa AbstractTens ? Array(v) : v
-        end
+        f_arr = _plain_field(f)
         G = _grad_raw(f_arr, CS)(x₀)   # dim×dim plain matrix
         S = (G + permutedims(G, (2, 1))) / 2
         ℬnorm = normalized_basis(CS, x₀)
@@ -370,15 +368,13 @@ Return a function `x₀ -> divergence` as a scalar (if `f` is a vector field) or
 """
 function DIV(f::Function, CS::CoorSystemNum{dim}) where {dim}
     return function (x₀::AbstractVector)
-        d = _div_raw(f, CS)(x₀)
-        if d isa Number
-            return d
-        else
-            ℬnorm = normalized_basis(CS, x₀)
-            return Tens(d, ℬnorm, ntuple(_ -> :cont, ndims(d)))
-        end
+        return _div_tens(_div_raw(f, CS)(x₀), CS, x₀)
     end
 end
+
+# The divergence of a vector field is a number; of an order-n field, order n − 1.
+_div_tens(d::Number, CS, x₀) = d
+_div_tens(d::AbstractArray, CS, x₀) = Tens(d, normalized_basis(CS, x₀), ntuple(_ -> :cont, ndims(d)))
 
 """
     LAPLACE(f::Function, CS::CoorSystemNum) -> Function
@@ -387,9 +383,7 @@ Return a function `x₀ -> Laplacian` (scalar). Uses the raw (plain-array) gradi
 divergence internally, so it is fully compatible with `ForwardDiff` differentiation.
 """
 function LAPLACE(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    f_arr = x -> begin
-        v = f(x); v isa AbstractTens ? Array(v) : v
-    end
+    f_arr = _plain_field(f)
     return x₀ -> _div_raw(_grad_raw(f_arr, CS), CS)(x₀)
 end
 
@@ -400,9 +394,7 @@ Return a function `x₀ -> Hessian` as an `AbstractTens{2}` in the normalized ba
 Uses the raw (plain-array) double gradient internally.
 """
 function HESS(f::Function, CS::CoorSystemNum{dim}) where {dim}
-    f_arr = x -> begin
-        v = f(x); v isa AbstractTens ? Array(v) : v
-    end
+    f_arr = _plain_field(f)
     return function (x₀::AbstractVector)
         H = _grad_raw(_grad_raw(f_arr, CS), CS)(x₀)
         ℬnorm = normalized_basis(CS, x₀)

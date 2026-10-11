@@ -124,19 +124,12 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
     function Basis(ℬ::AbstractBasis{dim, T}, χᵢ::V) where {dim, T, V}
         Χ = collect(χᵢ)
         invΧ = inv.(Χ)
-        if all(isone.(Χ))
-            return ℬ
-        else
-            if ℬ isa OrthonormalBasis
-                return OrthogonalBasis(ℬ, Χ)
-            else
-                eᵢ = vecbasis(ℬ, :cov) .* transpose(Χ)
-                eⁱ = vecbasis(ℬ, :cont) .* transpose(invΧ)
-                gᵢⱼ = Symmetric(Χ .* metric(ℬ, :cov) .* transpose(Χ))
-                gⁱʲ = Symmetric(invΧ .* metric(ℬ, :cont) .* transpose(invΧ))
-                new{dim, promote_type(T, eltype(Χ))}(eᵢ, eⁱ, gᵢⱼ, gⁱʲ)
-            end
-        end
+        all(isone, Χ) && return ℬ
+        eᵢ = vecbasis(ℬ, :cov) .* transpose(Χ)
+        eⁱ = vecbasis(ℬ, :cont) .* transpose(invΧ)
+        gᵢⱼ = Symmetric(Χ .* metric(ℬ, :cov) .* transpose(Χ))
+        gⁱʲ = Symmetric(invΧ .* metric(ℬ, :cont) .* transpose(invΧ))
+        return new{dim, promote_type(T, eltype(Χ))}(eᵢ, eⁱ, gᵢⱼ, gⁱʲ)
     end
     function Basis(eᵢ::AbstractMatrix{T}, ::Val{:cov}) where {T}
         dim = size(eᵢ, 1)
@@ -327,8 +320,8 @@ the `χᵢ` are the Lamé coefficients — see
 Built by `Basis(ℬ, χᵢ)` from an orthonormal basis and a tuple of scaling
 factors. Normalizing it returns the orthonormal basis it came from.
 """
-struct OrthogonalBasis{dim, T} <: AbstractBasis{dim, T}
-    parent::OrthonormalBasis{dim, T}
+struct OrthogonalBasis{dim, T, P <: OrthonormalBasis{dim, T}} <: AbstractBasis{dim, T}
+    parent::P
     λ::Vector{T}
     eᵢ::Matrix{T}
     eⁱ::Matrix{T}
@@ -345,9 +338,15 @@ struct OrthogonalBasis{dim, T} <: AbstractBasis{dim, T}
         else
             eᵢ = [λ[j] * parent[i, j] for i in 1:dim, j in 1:dim]
             eⁱ = [parent[i, j] / λ[j] for i in 1:dim, j in 1:dim]
-            return new{dim, T}(parent, λ, eᵢ, eⁱ, Diagonal(λ .^ 2), Diagonal(inv.(λ) .^ 2))
+            return new{dim, T, typeof(parent)}(parent, λ, eᵢ, eⁱ, Diagonal(λ .^ 2), Diagonal(inv.(λ) .^ 2))
         end
     end
+end
+
+# Scaling an orthonormal basis gives an orthogonal one.
+function Basis(ℬ::OrthonormalBasis{dim}, χᵢ::Union{AbstractVector, Tuple}) where {dim}
+    Χ = collect(χᵢ)
+    return all(isone, Χ) ? ℬ : OrthogonalBasis(ℬ, Χ)
 end
 
 # The same orthonormal basis with entries of type `T`.

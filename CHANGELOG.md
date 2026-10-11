@@ -33,6 +33,9 @@ where NLopt stopped at a local minimum.
 - `Tens`, `TensRotated` and `TensOrthogonal` take their basis as a fifth type
   parameter. Code that names the four-parameter types keeps working, those
   names being the union over all bases.
+- `OrthogonalBasis` takes the type of the orthonormal basis it scales as a third
+  type parameter, so that this field is concrete. `OrthogonalBasis{dim, T}`
+  keeps naming every orthogonal basis of that dimension and element type.
 - Arguments are validated by exceptions rather than `@assert`, which may be
   compiled out: mismatched axes or frames in structured sums throw
   `ArgumentError`, a non-square basis matrix `DimensionMismatch`, an invalid
@@ -89,13 +92,18 @@ Same machine, v0.5.1 against v0.6.0, values equal:
 - the product of a dual tensor with a plain one, both canonical, from 361 ns
   to 19 ns with no allocation (the TI case about different axes ×1.6): the
   two canonical bases of different element types were found equal only at run
-  time, which left every such product with a dynamic dispatch.
+  time, which left every such product with a dynamic dispatch;
+- `inv_KM` of a static array: the size of the array gives the tensor type by
+  dispatch, so the result is inferred.
 
 The structural reasons: concrete type parameters instead of abstract fields
 (the basis of a tensor, the functions of a numerical chart), variances
 dispatched without a run-time `Val`, the dimension read from the type (also
-where a structured tensor is turned into a Tensors.jl array), no `Dict` or
-temporary array in the loops, `Base.@pure` removed. The paths that are
+where a structured tensor is turned into a Tensors.jl array), dispatch instead
+of a run-time test wherever the type holds the answer (the class of a tensor in
+the symmetry search, `hasmethod` gone; the orthonormality of a scaled basis;
+number against array in the numerical charts), no `Dict` or temporary array in
+the loops, `Base.@pure` removed. The paths that are
 type-stable by construction are now held to it by tests of inference and
 allocations (`test/test_hot_paths.jl`).
 

@@ -53,55 +53,51 @@ KM(t::AbstractArray, b::AbstractBasis; kwargs...) = KM(Tens(t), b; kwargs...)
 
 
 """
-    inv_KM(v::AbstractVecOrMat; kwargs...)
+    inv_KM(v::AbstractVecOrMat[, b::AbstractBasis]; kwargs...)
+    inv_KM(TT::Type{<:Tensors.AllTensors}, v[, b]; kwargs...)
 
-Define a tensor from a Kelvin-Mandel vector or matrix representation
+The tensor whose Kelvin-Mandel vector or matrix is `v`, in the basis `b` (the
+canonical one by default). The size of `v` gives the Tensors.jl type `TT` —
+inferred when `v` is a static array — unless it is given.
 """
 inv_KM(TT::Type{<:Tensors.AllTensors}, v::AbstractVecOrMat; kwargs...) =
     Tens(frommandel(TT, v; kwargs...))
 inv_KM(TT::Type{<:Tensors.AllTensors}, v::AbstractVecOrMat, b::AbstractBasis; kwargs...) =
     Tens(frommandel(TT, v; kwargs...), b)
-# The shape of `v` gives the tensor type: 6×6 → SymmetricTensor{4,3},
-# 9×9 → Tensor{4,3}, 3×3 → SymmetricTensor{4,2}, 4×4 → Tensor{4,2}, and the
-# vectors of the same lengths → the order-2 types. Each branch names its type
-# literally at its own call site, so that each is inferred concretely and the
-# return type is a union of four concrete types, which Julia splits; a type
-# returned by a helper, or read from a table, would be a run-time value and
-# `frommandel` would be reached by dynamic dispatch.
+# The shape of `v` gives the tensor type: 6×6 → SymmetricTensor{4,3}, 9×9 →
+# Tensor{4,3}, 3×3 → SymmetricTensor{4,2}, 4×4 → Tensor{4,2}, and the vectors of
+# the same lengths → the order-2 types.
+#
+# A static array carries its size in its type, and the tensor type is chosen by
+# dispatch: inferred, and the fastest route. A plain array knows its size only
+# at run time, so the type is chosen by tests on it: a dispatch on
+# `Val(size(v))` would be a dynamic one, measured twelve times slower. Each
+# branch names its type literally, so the result is a union of four concrete
+# types, which Julia splits.
+inv_KM(v::StaticMatrix{6, 6}, b::AbstractBasis...; kwargs...) = inv_KM(SymmetricTensor{4, 3}, v, b...; kwargs...)
+inv_KM(v::StaticMatrix{9, 9}, b::AbstractBasis...; kwargs...) = inv_KM(Tensor{4, 3}, v, b...; kwargs...)
+inv_KM(v::StaticMatrix{3, 3}, b::AbstractBasis...; kwargs...) = inv_KM(SymmetricTensor{4, 2}, v, b...; kwargs...)
+inv_KM(v::StaticMatrix{4, 4}, b::AbstractBasis...; kwargs...) = inv_KM(Tensor{4, 2}, v, b...; kwargs...)
+inv_KM(v::StaticVector{6}, b::AbstractBasis...; kwargs...) = inv_KM(SymmetricTensor{2, 3}, v, b...; kwargs...)
+inv_KM(v::StaticVector{9}, b::AbstractBasis...; kwargs...) = inv_KM(Tensor{2, 3}, v, b...; kwargs...)
+inv_KM(v::StaticVector{3}, b::AbstractBasis...; kwargs...) = inv_KM(SymmetricTensor{2, 2}, v, b...; kwargs...)
+inv_KM(v::StaticVector{4}, b::AbstractBasis...; kwargs...) = inv_KM(Tensor{2, 2}, v, b...; kwargs...)
 
-function inv_KM(v::AbstractMatrix; kwargs...)
+function inv_KM(v::AbstractMatrix, b::AbstractBasis...; kwargs...)
     m, n = size(v)
-    (m, n) == (6, 6) && return inv_KM(SymmetricTensor{4, 3}, v; kwargs...)
-    (m, n) == (9, 9) && return inv_KM(Tensor{4, 3}, v; kwargs...)
-    (m, n) == (3, 3) && return inv_KM(SymmetricTensor{4, 2}, v; kwargs...)
-    (m, n) == (4, 4) && return inv_KM(Tensor{4, 2}, v; kwargs...)
+    (m, n) == (6, 6) && return inv_KM(SymmetricTensor{4, 3}, v, b...; kwargs...)
+    (m, n) == (9, 9) && return inv_KM(Tensor{4, 3}, v, b...; kwargs...)
+    (m, n) == (3, 3) && return inv_KM(SymmetricTensor{4, 2}, v, b...; kwargs...)
+    (m, n) == (4, 4) && return inv_KM(Tensor{4, 2}, v, b...; kwargs...)
     throw(DimensionMismatch("no Kelvin-Mandel tensor type for a $m×$n matrix"))
 end
 
-function inv_KM(v::AbstractVector; kwargs...)
+function inv_KM(v::AbstractVector, b::AbstractBasis...; kwargs...)
     n = length(v)
-    n == 6 && return inv_KM(SymmetricTensor{2, 3}, v; kwargs...)
-    n == 9 && return inv_KM(Tensor{2, 3}, v; kwargs...)
-    n == 3 && return inv_KM(SymmetricTensor{2, 2}, v; kwargs...)
-    n == 4 && return inv_KM(Tensor{2, 2}, v; kwargs...)
-    throw(DimensionMismatch("no Kelvin-Mandel tensor type for a length-$n vector"))
-end
-
-function inv_KM(v::AbstractMatrix, b::AbstractBasis; kwargs...)
-    m, n = size(v)
-    (m, n) == (6, 6) && return inv_KM(SymmetricTensor{4, 3}, v, b; kwargs...)
-    (m, n) == (9, 9) && return inv_KM(Tensor{4, 3}, v, b; kwargs...)
-    (m, n) == (3, 3) && return inv_KM(SymmetricTensor{4, 2}, v, b; kwargs...)
-    (m, n) == (4, 4) && return inv_KM(Tensor{4, 2}, v, b; kwargs...)
-    throw(DimensionMismatch("no Kelvin-Mandel tensor type for a $m×$n matrix"))
-end
-
-function inv_KM(v::AbstractVector, b::AbstractBasis; kwargs...)
-    n = length(v)
-    n == 6 && return inv_KM(SymmetricTensor{2, 3}, v, b; kwargs...)
-    n == 9 && return inv_KM(Tensor{2, 3}, v, b; kwargs...)
-    n == 3 && return inv_KM(SymmetricTensor{2, 2}, v, b; kwargs...)
-    n == 4 && return inv_KM(Tensor{2, 2}, v, b; kwargs...)
+    n == 6 && return inv_KM(SymmetricTensor{2, 3}, v, b...; kwargs...)
+    n == 9 && return inv_KM(Tensor{2, 3}, v, b...; kwargs...)
+    n == 3 && return inv_KM(SymmetricTensor{2, 2}, v, b...; kwargs...)
+    n == 4 && return inv_KM(Tensor{2, 2}, v, b...; kwargs...)
     throw(DimensionMismatch("no Kelvin-Mandel tensor type for a length-$n vector"))
 end
 
