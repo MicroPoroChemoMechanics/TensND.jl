@@ -751,7 +751,7 @@ end
 Element type of the components of a tensor of element type `T` written through
 the given bases: wide enough for a `Float64` tensor in a basis of duals or
 symbols, which converting back to `T` cannot hold. The conversion that follows
-each contraction narrows the output of `einsum` to this type.
+each contraction narrows the output of the contraction to this type.
 
 The canonical basis imposes no type: its entries are exact zeros and ones,
 which every number type represents. Without that exception, the default
@@ -770,14 +770,9 @@ function components(t::Tens{order, dim, T}, var::NTuple{order, Symbol}) where {o
     else
         Tc = _components_eltype(T, get_basis(t))
         m = Array{Tc}(get_array(t))
-        ec1 = ntuple(i -> i, Val(order))
-        newcp = order + 1
         for i in 1:order
             if !isequal(get_var(t, i), var[i])
-                g_or_G = metric(get_basis(t), var[i])
-                ec2 = (i, newcp)
-                ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
-                m = Tc.(einsum(EinCode((ec1, ec2), ec3), (m, g_or_G)))
+                m = _narrow_eltype(Tc, _contract_index(m, metric(get_basis(t), var[i]), i))
             end
         end
         return m
@@ -794,8 +789,6 @@ function components(
     else
         Tc = _components_eltype(T, get_basis(t), ℬ)
         m = Array{Tc}(get_array(t))
-        ec1 = ntuple(i -> i, Val(order))
-        newcp = order + 1
         for i in 1:order
             # The matrix of the change for this index, from the variance it has
             # to the one asked: computed here rather than stored in a
@@ -803,9 +796,7 @@ function components(
             # at run time.
             c = vecbasis(get_basis(t), invvar(get_var(t, i)))' * vecbasis(ℬ, var[i])
             if c ≠ 1I
-                ec2 = (i, newcp)
-                ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
-                m = Tc.(einsum(EinCode((ec1, ec2), ec3), (m, c)))
+                m = _narrow_eltype(Tc, _contract_index(m, c, i))
             end
         end
         return m
@@ -846,13 +837,9 @@ function components(
         bb = vecbasis(get_basis(t))' * vecbasis(ℬ)
         Tc = _components_eltype(T, get_basis(t), ℬ)
         m = Array{Tc}(get_array(t))
-        ec1 = ntuple(i -> i, Val(order))
-        newcp = order + 1
-        for i in 1:order
-            if bb ≠ 1I
-                ec2 = (i, newcp)
-                ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
-                m = Tc.(einsum(EinCode((ec1, ec2), ec3), (m, bb)))
+        if bb ≠ 1I
+            for i in 1:order
+                m = _narrow_eltype(Tc, _contract_index(m, bb, i))
             end
         end
         return m

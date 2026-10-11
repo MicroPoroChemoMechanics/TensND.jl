@@ -8,6 +8,7 @@ using ForwardDiff, StaticArrays
 using SymPy
 using Symbolics
 
+include("contraction_kernels.jl")
 include("array_utils.jl")
 include("bases.jl")
 include("tens.jl")
