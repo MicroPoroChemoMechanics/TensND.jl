@@ -788,8 +788,10 @@ end
 # package. `change_tens` short-circuits on an equal basis, so the canonical
 # target stays allocation-free apart from the wrapper.
 
+# The dimension is 3 by type: the conversion to a Tensors.jl array is called with
+# it, where `tensor_or_array` of a plain array reads it at run time.
 _as_canonical_tens(t::AbstractTens{order, 3, T}) where {order, T} =
-    Tens(tensor_or_array(get_array(t)), CanonicalBasis{3, T}())
+    Tens(_to_tensor(get_array(t), Val(3), Val(order)), CanonicalBasis{3, T}())
 
 change_tens(t::TensTI{2, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
     change_tens(_as_canonical_tens(t), ℬ)
