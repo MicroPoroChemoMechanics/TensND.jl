@@ -4,9 +4,6 @@ Closest tensor of a prescribed material symmetry, and symmetry detection.
 Theory: [Projection onto a symmetry class](@ref th-projection); usage:
 [Projection](@ref man-projection).
 
-The orientation-optimizing methods of `proj_tens` require `NLopt`
-(package extension `TensNDNLoptExt`).
-
 ```@docs
 proj_tens
 best_sym_tens

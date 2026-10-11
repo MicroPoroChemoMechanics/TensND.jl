@@ -103,6 +103,7 @@ include("test_tens_isotropic.jl")
 include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
 include("test_tens_projection.jl")
+include("test_orientation_search.jl")
 include("test_tens_rotational_average.jl")
 include("test_special_tens.jl")
 include("test_coorsystems.jl")
@@ -117,9 +118,6 @@ include("test_conventions.jl")
 include("test_docs_nomenclature.jl")
 # The bitwise lock of the tensor algebra; see `golden/cases.jl`.
 include("test_golden.jl")
-# Must stay last: it loads NLopt, which `test_tens_projection.jl` requires to
-# be absent.
-include("test_nlopt_ext.jl")
 
 print_timer()
 println()

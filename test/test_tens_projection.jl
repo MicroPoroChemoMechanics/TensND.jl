@@ -272,7 +272,7 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "best_sym_tens — cheap path (no NLopt)" begin
+    @testsection "best_sym_tens — cheap path (no orientation search)" begin
         # ── ISO detection is always cheap, always succeeds
         Iso = TensISO{3}(2.0, 3.0)
         _, _, _, sym = best_sym_tens(Iso)
@@ -330,11 +330,9 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "best_sym_tens — no NLopt needed by default" begin
-        # Regression: the default no-argument form must not throw when NLopt
-        # is absent from the session.  This file must therefore keep running
-        # BEFORE `test_nlopt_ext.jl`, which is what loads NLopt (see the
-        # include order in runtests.jl) — once loaded it stays loaded.
+    @testsection "best_sym_tens — a tensor of no class" begin
+        # The default call on a tensor of no symmetry class returns it as
+        # `:ANISO` rather than raising.
         aniso_KM = Float64[
             10 3 2 1 0 0
             3 8 1 0 1 0

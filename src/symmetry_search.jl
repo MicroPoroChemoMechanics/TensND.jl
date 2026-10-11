@@ -31,14 +31,13 @@ for order in (2, 4)
           `:ISO` projection is closed-form; for `:TI` the symmetry axis is taken
           from `t` itself (if it is a structured TI container) or derived from the
           Kelvin-Mandel eigenstructure (otherwise); for `:ORTHO` the material frame
-          is taken from `t` or derived likewise.  No external optimizer needed.
-        - `optimize_angles=true`: the `:TI` axis and `:ORTHO` frame are found by
-          nonlinear optimization (multistart L-BFGS) — requires `using NLopt`.
+          is taken from `t` or derived likewise.
+        - `optimize_angles=true`: the `:TI` axis and the `:ORTHO` and `:CUBIC`
+          frames are searched by [`proj_tens`](@ref) (a screening of fixed
+          orientations, then Newton's method on the best ones).
 
         Returns `(projected, d, drel, sym)` where
         `sym ∈ {:ISO, :CUBIC, :TI, :ORTHO, :ANISO}`.
-
-        The default call needs no NLopt; `optimize_angles=true` does.
 
         # Examples
         ```julia

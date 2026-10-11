@@ -288,8 +288,8 @@
         end
         # ...and the consequence: handing the orthotropic eigencandidate a cubic
         # tensor returns an arbitrary frame. The free-orientation search
-        # therefore starts from the angular grid alone, and lives in
-        # `test_nlopt_ext.jl` because it needs NLopt.
+        # therefore starts from the screened orientations alone; it is tested
+        # in `test_orientation_search.jl`.
         @test proj_tens(Val(:CUBIC), A, TensND._candidate_ORTHO_frame(A))[3] > 1.0e-2
         @test proj_tens(Val(:CUBIC), A, rot)[3] < 1.0e-12
 

@@ -22,13 +22,14 @@ flowchart TB
     OPS["<b>structured_tens_ops.jl</b><br/>shared metaprogramming"]
     PRO["<b>structured_tens_promotion.jl</b><br/>cross-class promotion"]
     PRJ["<b>tens_projection.jl</b><br/>projection kernels"]
+    ORI["<b>orientation_search.jl</b><br/>free axis or frame"]
     SYM["<b>symmetry_search.jl</b><br/>best_sym_tens"]
     RA["<b>tens_rotational_average.jl</b><br/>isotropic and transverse averages"]
     SPE["<b>special_tens.jl</b><br/>LeviCivita, rot2/3/6, init_*"]
     CSS["<b>coorsystems.jl</b><br/>CoorSystemSym"]
     CSN["<b>coorsystems_num.jl</b><br/>CoorSystemNum"]
     SUB["<b>submanifold.jl</b><br/>SubManifoldSym"]
-    CK --> AU --> BA --> TE --> TD --> TC --> KMF --> TA --> ISO --> ANI --> CUB --> OPS --> PRO --> PRJ --> SYM --> RA --> SPE --> CSS --> CSN --> SUB
+    CK --> AU --> BA --> TE --> TD --> TC --> KMF --> TA --> ISO --> ANI --> CUB --> OPS --> PRO --> PRJ --> ORI --> SYM --> RA --> SPE --> CSS --> CSN --> SUB
 ```
 
 ## Layers
@@ -56,8 +57,10 @@ generates the scalar arithmetic and the symbolic passes from those two.
 `structured_tens_promotion.jl` handles mixed-class operations.
 
 **Projection.** `tens_projection.jl` works entirely in the ``6\times6``
-Kelvin–Mandel picture. The orientation search lives in the weak-dependency
-extension `ext/TensNDNLoptExt.jl`, so `NLopt` is optional.
+Kelvin–Mandel picture, at a given orientation. `orientation_search.jl` searches
+the axis or the frame when it is free — a screening of fixed orientations, then
+Newton's method on the angles from the best ones — and `symmetry_search.jl`
+tries the classes in turn.
 
 **Differential calculus.** The symbolic side is written **once**. `∂` and the
 five operators are defined in `coorsystems.jl` over `AbstractCoorSystem`, and
@@ -91,13 +94,3 @@ a product of two orthotropic tensors needs twelve constants, not nine. The
 fallback is bit-for-bit the generic computation, never an approximation. The
 full table is on [Structured tensors](@ref man-structured).
 
-## The extension
-
-`ext/TensNDNLoptExt.jl` overrides `TensND._proj_tens_opt`, the hook the
-no-orientation methods of [`proj_tens`](@ref) dispatch to. Without `NLopt` those
-methods throw a clear error; with it, they run the deterministic multi-start
-described on [Projection onto a symmetry class](@ref th-projection).
-
-Because loading `NLopt` **permanently** activates the extension for the session,
-`test/test_nlopt_ext.jl` must run last: `test/test_tens_projection.jl` asserts
-the no-NLopt behavior and would fail after it.
