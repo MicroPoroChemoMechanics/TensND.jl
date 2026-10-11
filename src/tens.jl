@@ -357,7 +357,7 @@ TensOrthonormal(data::AbstractArray, ::CanonicalBasis) = TensCanonical(data)
 TensOrthonormal(t::TensOrthonormal) = t
 function TensOrthonormal(t::TensOrthogonal{order, dim, T}) where {order, dim, T}
     ℬ = get_basis(t)
-    m = Array{_components_eltype(T, ℬ)}(get_array(t))
+    m = _narrow_eltype(_components_eltype(T, ℬ), Array(get_array(t)))
     onℬ = relevant_OrthonormalBasis(ℬ)
     Λ = Dict(:cov => inv.(ℬ.λ), :cont => ℬ.λ)
     for ind in CartesianIndices(m)
@@ -770,7 +770,7 @@ function components(t::Tens{order, dim, T}, var::NTuple{order, Symbol}) where {o
         return get_array(t)
     else
         Tc = _components_eltype(T, get_basis(t))
-        m = Array{Tc}(get_array(t))
+        m = _narrow_eltype(Tc, Array(get_array(t)))
         for i in 1:order
             if !isequal(get_var(t, i), var[i])
                 m = _narrow_eltype(Tc, _contract_index(m, metric(get_basis(t), var[i]), i))
@@ -789,7 +789,7 @@ function components(
         return components(t, var)
     else
         Tc = _components_eltype(T, get_basis(t), ℬ)
-        m = Array{Tc}(get_array(t))
+        m = _narrow_eltype(Tc, Array(get_array(t)))
         for i in 1:order
             # The matrix of the change for this index, from the variance it has
             # to the one asked: computed here rather than stored in a
@@ -813,7 +813,7 @@ function components(
         return components(t, var)
     else
         m0 = components(t, relevant_OrthonormalBasis(ℬ))
-        m = Array{_components_eltype(eltype(m0), ℬ)}(m0)
+        m = _narrow_eltype(_components_eltype(eltype(m0), ℬ), Array(m0))
         Λ = Dict(:cont => inv.(ℬ.λ), :cov => ℬ.λ)
         for ind in CartesianIndices(m)
             m[ind] *= prod([Λ[var[i]][ind[i]] for i in 1:order])
@@ -837,7 +837,7 @@ function components(
     else
         bb = vecbasis(get_basis(t))' * vecbasis(ℬ)
         Tc = _components_eltype(T, get_basis(t), ℬ)
-        m = Array{Tc}(get_array(t))
+        m = _narrow_eltype(Tc, Array(get_array(t)))
         if bb ≠ 1I
             for i in 1:order
                 m = _narrow_eltype(Tc, _contract_index(m, bb, i))

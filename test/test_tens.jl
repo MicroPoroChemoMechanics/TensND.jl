@@ -239,6 +239,14 @@ end
     @test eltype(c) <: Sym
     @test simplify(c[1] - cos(ϑ)) == 0 && simplify(c[2] - sin(ϑ)) == 0
 
+    # A symbolic tensor built from `Sym[…]` (abstract element type `Sym`)
+    # has components of the concrete `Sym{PyObject}`, as the conversions
+    # through broadcasting always gave them.
+    ℬs = Basis(Sym[1 0 0; 0 1 0; 0 1 1])
+    ts = Tens(metric(ℬs, :cov), ℬs, (:cov, :cov))
+    @test isconcretetype(eltype(components(ts, (:cont, :cov))))
+    @test isconcretetype(eltype(components(ts, CanonicalBasis{3, Sym}(), (:cont, :cont))))
+
     # Plain tensors in plain bases keep their element type.
     @test eltype(components(Tens(A), RotatedBasis(0.3, 0.2, 0.1), (:cont, :cont))) == Float64
     @test eltype(components(Tens(A, RotatedBasis(0.3, 0.2, 0.1)), CanonicalBasis(), (:cont, :cont))) == Float64
