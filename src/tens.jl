@@ -95,10 +95,10 @@ struct Tens{order, dim, T, A <: AbstractArray, B <: Basis} <: AbstractTens{order
         TensOrthogonal(data, basis, args...)
     Tens(
         data::AbstractArray{T},
-        basis::OrthonormalBasis = CanonicalBasis{size(data)[1], T}(),
+        basis::OrthonormalBasis = CanonicalBasis{_dim_of(data), T}(),
         args...,
     ) where {T} = TensOrthonormal(data, basis)
-    Tens(data::AbstractArray, var::NTuple, basis::AbstractBasis = CanonicalBasis{size(data, 1), eltype(data)}()) = Tens(data, basis, var)
+    Tens(data::AbstractArray, var::NTuple, basis::AbstractBasis = CanonicalBasis{_dim_of(data), eltype(data)}()) = Tens(data, basis, var)
     Tens(data::AbstractArray{T, 0}, args...) where {T} = T(data[1])
     # A zero-dimensional array is a wrapped scalar and unwraps to one whatever
     # follows it. The method above says so, but it is generic in `args...` while
@@ -309,11 +309,17 @@ struct TensRotated{order, dim, T, A <: AbstractArray, B <: RotatedBasis} <: Abst
     end
 end
 
+# The dimension, from the type of the array when it carries one (every
+# Tensors.jl array) so that the type of the tensor is inferred, from its size
+# otherwise.
+_dim_of(::Tensors.AbstractTensor{order, dim}) where {order, dim} = dim
+_dim_of(a::AbstractArray) = size(a, 1)
+
 struct TensCanonical{order, dim, T, A <: AbstractArray} <: AbstractTens{order, dim, T}
     data::A
     function TensCanonical(data::AbstractArray{T, order}) where {order, T}
         newdata = tensor_or_array(data)
-        return new{order, size(data, 1), T, typeof(newdata)}(newdata)
+        return new{order, _dim_of(newdata), T, typeof(newdata)}(newdata)
     end
 end
 
