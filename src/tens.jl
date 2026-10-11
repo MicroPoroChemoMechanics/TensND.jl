@@ -41,11 +41,11 @@ Dimension of the underlying space.
 
 
 """
-    Tens{order,dim,T,A<:AbstractArray}
+    Tens{order,dim,T,A<:AbstractArray,B<:Basis}
 
 Tensor type of any order defined by
 - a multidata of components (of any type inheriting from `AbstractArray`, e.g. `Tensor` or `SymmetricTensor`)
-- a basis of `AbstractBasis` type
+- a basis of `AbstractBasis` type, whose concrete type is the parameter `B`
 - a tuple of variances (covariant `:cov` or contravariant `:cont`) of length equal to the `order` of the tensor
 
 The variance tuple only matters when the basis is not orthonormal; on an
@@ -76,9 +76,11 @@ julia> components(T, (:cont, :cov))
 
 See also [`components`](@ref), [`change_tens`](@ref), [`get_var`](@ref).
 """
-struct Tens{order, dim, T, A <: AbstractArray} <: AbstractTens{order, dim, T}
+# The basis is a type parameter, not an abstract field: every `get_basis` and
+# everything dispatched on its result would otherwise be resolved at run time.
+struct Tens{order, dim, T, A <: AbstractArray, B <: Basis} <: AbstractTens{order, dim, T}
     data::A
-    basis::Basis
+    basis::B
     var::NTuple{order, Symbol}
     function Tens(
             data::AbstractArray{T, order},
@@ -86,7 +88,7 @@ struct Tens{order, dim, T, A <: AbstractArray} <: AbstractTens{order, dim, T}
             var::NTuple{order, Symbol} = ntuple(_ -> :cont, Val(order)),
         ) where {order, dim, T}
         newdata = tensor_or_array(data)
-        return new{order, dim, T, typeof(newdata)}(newdata, basis, var)
+        return new{order, dim, T, typeof(newdata), typeof(basis)}(newdata, basis, var)
     end
     Tens(data::AbstractArray, basis::RotatedBasis, args...) = TensRotated(data, basis)
     Tens(data::AbstractArray, basis::OrthogonalBasis, args...) =
@@ -295,15 +297,15 @@ for order in (2, 4)
     end
 end
 
-struct TensRotated{order, dim, T, A <: AbstractArray} <: AbstractTens{order, dim, T}
+struct TensRotated{order, dim, T, A <: AbstractArray, B <: RotatedBasis} <: AbstractTens{order, dim, T}
     data::A
-    basis::RotatedBasis
+    basis::B
     function TensRotated(
             data::AbstractArray{T, order},
             basis::RotatedBasis{dim},
         ) where {order, dim, T}
         newdata = tensor_or_array(data)
-        return new{order, dim, T, typeof(newdata)}(newdata, basis)
+        return new{order, dim, T, typeof(newdata), typeof(basis)}(newdata, basis)
     end
 end
 
@@ -315,9 +317,9 @@ struct TensCanonical{order, dim, T, A <: AbstractArray} <: AbstractTens{order, d
     end
 end
 
-struct TensOrthogonal{order, dim, T, A <: AbstractArray} <: AbstractTens{order, dim, T}
+struct TensOrthogonal{order, dim, T, A <: AbstractArray, B <: OrthogonalBasis} <: AbstractTens{order, dim, T}
     data::A
-    basis::OrthogonalBasis
+    basis::B
     var::NTuple{order, Symbol}
     function TensOrthogonal(
             data::AbstractArray{T, order},
@@ -325,7 +327,7 @@ struct TensOrthogonal{order, dim, T, A <: AbstractArray} <: AbstractTens{order, 
             var::NTuple{order, Symbol} = ntuple(_ -> :cont, Val(order)),
         ) where {order, dim, T}
         newdata = tensor_or_array(data)
-        return new{order, dim, T, typeof(newdata)}(newdata, basis, var)
+        return new{order, dim, T, typeof(newdata), typeof(basis)}(newdata, basis, var)
     end
 end
 
