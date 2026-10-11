@@ -289,7 +289,7 @@ simprules(t, CS::AbstractCoorSystem) = length(core(CS).rules) > 0 ? tsubs(t, cor
 
 natvec(CS::AbstractCoorSystem, ::Val{:cov}) = core(CS).aᵢ
 natvec(CS::AbstractCoorSystem, ::Val{:cont}) = core(CS).aⁱ
-natvec(CS::AbstractCoorSystem, var = :cov) = natvec(CS, Val(var))
+natvec(CS::AbstractCoorSystem, var::Symbol = :cov) = _by_variance(natvec, var, CS)
 natvec(CS::AbstractCoorSystem, i::Integer, var = :cov) = natvec(CS, var)[i]
 
 unitvec(CS::AbstractCoorSystem) = core(CS).eᵢ

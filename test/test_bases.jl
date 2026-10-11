@@ -104,4 +104,15 @@ end
     @test vecbasis(ℬ, :cov) == vecbasis(ℬ, Val(:cov))
     @test_throws ArgumentError vecbasis(ℬ, :covariant)
     @test_throws ArgumentError metric(ℬ, :foo)
+    # Every function taking a variance as a `Symbol` reads it through the same
+    # bridge, so a wrong one says so instead of failing to find a `Val` method.
+    @test Basis(Matrix(ℬ), :cont) == Basis(Matrix(ℬ), Val(:cont))
+    @test_throws ArgumentError Basis(ℬ, :foo)
+    @test tens_basis(ℬ, 2, :cont) == tens_basis(ℬ, 2, Val(:cont))
+    @test tens_basis(ℬ, :cont) == tens_basis(ℬ, Val(:cont))
+    @test length(tens_basis(ℬ)) == 3
+    @test_throws ArgumentError tens_basis(ℬ, :foo)
+    @test TensND.strvecbasis(ℬ, 2, :cont) == "𝐞²"
+    @test TensND.strvecbasis(ℬ, "θ", :cov; vec = "𝐚") == "𝐚" * TensND.subscriptchar("θ")
+    @test_throws ArgumentError TensND.strvecbasis(ℬ, 1, :foo)
 end

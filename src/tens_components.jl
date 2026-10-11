@@ -446,8 +446,9 @@ The `i`-th basis vector of `ℬ` as a first-order tensor, or all of them as a
 tuple. `var = :cov` gives the basis vectors `𝐞ᵢ`, `var = :cont` the dual
 vectors `𝐞ⁱ`.
 """
-tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, var = :cov) where {dim, T} = tens_basis(ℬ, i, Val(var))
-tens_basis(ℬ::AbstractBasis{dim, T}, var = :cov) where {dim, T} = ntuple(i -> tens_basis(ℬ, i, Val(var)), get_dim(ℬ))
+tens_basis(ℬ::AbstractBasis, i::Integer, var::Symbol = :cov) = _by_variance(tens_basis, var, ℬ, i)
+tens_basis(ℬ::AbstractBasis, var::Symbol = :cov) = _by_variance(tens_basis, var, ℬ)
+tens_basis(ℬ::AbstractBasis{dim}, var::Val) where {dim} = ntuple(i -> tens_basis(ℬ, i, var), Val(dim))
 
 export components, components_canon, change_tens, change_tens_canon
 export diff_with_basis

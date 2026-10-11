@@ -77,6 +77,10 @@ where NLopt stopped at a local minimum.
   averages threw on an integer axis; `RotatedBasis` threw on integer angles.
 - The order-2 cubic projection, which is the isotropic one, takes any element
   type.
+- `natvec` of a numerical chart took any variance but `:cov` for `:cont`. A
+  variance given as a `Symbol` is now read the same way everywhere (`Basis`,
+  `natvec`, `tens_basis`, `strvecbasis`): anything but `:cov` or `:cont` throws
+  `ArgumentError`, where it used to fail to find a method.
 
 ### Performance
 

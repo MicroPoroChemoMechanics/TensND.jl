@@ -228,23 +228,22 @@ end
 Return the `i`-th natural basis vector at point `x₀`, either covariant (`var=:cov`,
 proportional to `χᵢ`) or contravariant (`var=:cont`, proportional to `1/χᵢ`).
 """
-function natvec(CS::CoorSystemNum{dim, T}, x₀::AbstractVector, i::Integer, var::Symbol = :cov) where {dim, T}
-    ℬnorm = normalized_basis(CS, x₀)
+natvec(CS::CoorSystemNum, x₀::AbstractVector, i::Integer, var::Symbol = :cov) =
+    _by_variance(natvec, var, CS, x₀, i)
+
+function natvec(CS::CoorSystemNum{dim}, x₀::AbstractVector, i::Integer, ::Val{:cov}) where {dim}
     χ = CS.χ_func(x₀)
     ET = eltype(χ)
-    if var == :cov
-        data = Vec{dim}(j -> j == i ? χ[i] : zero(ET))
-        return Tens(data, ℬnorm, (:cov,))
-    else  # :cont
-        data = Vec{dim}(j -> j == i ? one(ET) / χ[i] : zero(ET))
-        return Tens(data, ℬnorm, (:cont,))
-    end
+    data = Vec{dim}(j -> j == i ? χ[i] : zero(ET))
+    return Tens(data, normalized_basis(CS, x₀), (:cov,))
 end
 
-natvec(CS::CoorSystemNum{dim, T}, x₀::AbstractVector, i::Integer, var::Val{:cov}) where {dim, T} =
-    natvec(CS, x₀, i, :cov)
-natvec(CS::CoorSystemNum{dim, T}, x₀::AbstractVector, i::Integer, var::Val{:cont}) where {dim, T} =
-    natvec(CS, x₀, i, :cont)
+function natvec(CS::CoorSystemNum{dim}, x₀::AbstractVector, i::Integer, ::Val{:cont}) where {dim}
+    χ = CS.χ_func(x₀)
+    ET = eltype(χ)
+    data = Vec{dim}(j -> j == i ? one(ET) / χ[i] : zero(ET))
+    return Tens(data, normalized_basis(CS, x₀), (:cont,))
+end
 
 """
     unitvec(CS::CoorSystemNum, x₀, i) → AbstractTens

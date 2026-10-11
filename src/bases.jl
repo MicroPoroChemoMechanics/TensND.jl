@@ -179,14 +179,14 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
             end
         end
     end
-    Basis(v::AbstractMatrix{T}, var::Symbol) where {T} = Basis(v, Val(var))
+    Basis(v::AbstractMatrix{T}, var::Symbol) where {T} = _by_variance(Basis, var, v)
     # An `AbstractBasis` is an `AbstractMatrix`, so `Basis(ℬ, χᵢ)` above — which
     # rescales a basis by a tuple of factors — is weighed against the three
     # constructors that read a variance marker as their second argument. The
     # second argument tells them apart: a `Symbol` or a `Val` asks to reinterpret
     # the matrix, never to rescale a basis. These three say so.
     Basis(ℬ::AbstractBasis{dim, T}, var::Symbol) where {dim, T} =
-        Basis(Matrix(ℬ), Val(var))
+        _by_variance(Basis, var, Matrix(ℬ))
     Basis(ℬ::AbstractBasis{dim, T}, ::Val{:cov}) where {dim, T} =
         Basis(Matrix(ℬ), Val(:cov))
     Basis(ℬ::AbstractBasis{dim, T}, ::Val{:cont}) where {dim, T} =
@@ -460,7 +460,8 @@ vecbasis(ℬ::AbstractBasis, i::Integer, var::Symbol = :cov) = vecbasis(ℬ, var
 
 strvecbasis(::AbstractBasis, i::Integer, ::Val{:cov}; vec = "𝐞") = vec * subscriptnumber(i)
 strvecbasis(::AbstractBasis, i::Integer, ::Val{:cont}; vec = "𝐞") = vec * superscriptnumber(i)
-strvecbasis(ℬ::AbstractBasis, i::Integer, var = :cov; vec = "𝐞") = strvecbasis(ℬ, i, Val(var); vec = vec)
+strvecbasis(ℬ::AbstractBasis, i::Integer, var::Symbol = :cov; vec = "𝐞") =
+    _by_variance((ℬ, i, v) -> strvecbasis(ℬ, i, v; vec), var, ℬ, i)
 
 const dsubscriptchar = Dict(
     "a" => "ₐ",
@@ -528,7 +529,8 @@ superscriptchar(s::String) = s ∈ keys(dsuperscriptchar) ? dsuperscriptchar[s] 
 
 strvecbasis(::AbstractBasis, i::AbstractString, ::Val{:cov}; vec = "𝐞") = vec * subscriptchar(i)
 strvecbasis(::AbstractBasis, i::AbstractString, ::Val{:cont}; vec = "𝐞") = vec * superscriptchar(i)
-strvecbasis(ℬ::AbstractBasis, i::AbstractString, var = :cov; vec = "𝐞") = strvecbasis(ℬ, i, Val(var); vec = vec)
+strvecbasis(ℬ::AbstractBasis, i::AbstractString, var::Symbol = :cov; vec = "𝐞") =
+    _by_variance((ℬ, i, v) -> strvecbasis(ℬ, i, v; vec), var, ℬ, i)
 
 
 """
