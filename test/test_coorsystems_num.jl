@@ -19,6 +19,9 @@
         # natvec and unitvec return AbstractTens
         @test natvec(CS, x₀, 1, :cov) isa AbstractTens
         @test natvec(CS, x₀, 2, :cont) isa AbstractTens
+        @test natvec(CS, x₀, 2, Val(:cont)) == natvec(CS, x₀, 2, :cont)
+        # Any variance but `:cov` used to be taken for `:cont`.
+        @test_throws ArgumentError natvec(CS, x₀, 1, :covariant)
         @test unitvec(CS, x₀, 3) isa AbstractTens
 
         # Gradient of scalar: ∇f = [∂f/∂x, ∂f/∂y, ∂f/∂z]

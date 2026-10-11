@@ -272,7 +272,7 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "best_sym_tens — cheap path (no NLopt)" begin
+    @testsection "best_sym_tens — cheap path (no orientation search)" begin
         # ── ISO detection is always cheap, always succeeds
         Iso = TensISO{3}(2.0, 3.0)
         _, _, _, sym = best_sym_tens(Iso)
@@ -330,11 +330,9 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "best_sym_tens — no NLopt needed by default" begin
-        # Regression: the default no-argument form must not throw when NLopt
-        # is absent from the session.  This file must therefore keep running
-        # BEFORE `test_nlopt_ext.jl`, which is what loads NLopt (see the
-        # include order in runtests.jl) — once loaded it stays loaded.
+    @testsection "best_sym_tens — a tensor of no class" begin
+        # The default call on a tensor of no symmetry class returns it as
+        # `:ANISO` rather than raising.
         aniso_KM = Float64[
             10 3 2 1 0 0
             3 8 1 0 1 0
@@ -348,6 +346,59 @@
         res = best_sym_tens(aniso)
         @test res isa Tuple
         @test res[end] === :ANISO
+    end
+
+    @testsection "best_sym_tens — the candidate axis and frame carry derivatives" begin
+        # The candidates came from LAPACK, for `AbstractFloat` only: a `Dual`
+        # tensor fell back to the axis e₃ and the canonical frame, so a TI or
+        # orthotropic tensor about any other axis was reported `:ANISO` under
+        # automatic differentiation, and returned unprojected. The candidates
+        # now carry the derivative of the eigenvectors they are built from.
+        n(p) = [sin(p), 0.0, cos(p)]
+        ti(p) = TensTI{4}(30.0 * (1 + p), 9.0, 7.0, 6.0, 4.0, n(p))
+        ortho(p) = TensOrtho(30.0 * (1 + p), 25.0, 20.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, RotatedBasis(p, 0.7, 1.1))
+        # `proj` restricted to the class at stake: the default list would
+        # compile every projection for every number type, for nothing more.
+        for (mk, sym) in ((ti, :TI), (ortho, :ORTHO))
+            plain(p) = Tens(Array(components_canon(mk(p))))
+            p = 0.4
+            @test best_sym_tens(plain(p); proj = (sym,))[4] === sym
+            # The class must be found under differentiation too — the old
+            # candidates returned `:ANISO` there, and the unprojected tensor has
+            # the right derivative, so the check is made inside. The projection
+            # of a tensor of the class is the tensor itself, so the derivative
+            # of the projection is that of the structured tensor, which owes
+            # nothing to the eigenvectors.
+            function proj(p)
+                t, _, _, found = best_sym_tens(plain(p); proj = (sym,))
+                found === sym || error("$found found under differentiation")
+                return Array(components_canon(t))
+            end
+            ref(p) = Array(components_canon(mk(p)))
+            @test ForwardDiff.derivative(proj, p) ≈ ForwardDiff.derivative(ref, p) atol = 1.0e-9
+        end
+
+        # The decomposition itself: d·V = V·Λ and VᵀV = 𝟏 hold in the first
+        # and the second derivatives, the nesting the candidates rest on.
+        D(x) = [4.0 + x 1.0 0.5; 1.0 3.0 0.2 * x; 0.5 0.2 * x 1.0]
+        e = ForwardDiff.Dual{:outer}(ForwardDiff.Dual{:inner}(0.3, 1.0), ForwardDiff.Dual{:inner}(1.0, 0.0))
+        λ, V = TensND._sym_eigen(D(e))
+        flat(x) = (
+            v = ForwardDiff.value(x); p = ForwardDiff.partials(x, 1);
+            (ForwardDiff.value(v), ForwardDiff.partials(v, 1), ForwardDiff.value(p), ForwardDiff.partials(p, 1))
+        )
+        for r in (D(e) * V - V * Diagonal(λ), V' * V - I)
+            @test maximum(x -> maximum(abs, flat(x)), r) < 1.0e-12
+        end
+
+        # The optimized projections refuse duals by name rather than with a
+        # `MethodError`: the orientation they find carries no derivative.
+        Ad = Array(components_canon(ti(ForwardDiff.Dual(0.4, 1.0))))
+        for S in (:TI, :ORTHO, :CUBIC)
+            @test_throws ArgumentError proj_tens(Val(S), Ad)
+        end
+        @test_throws ArgumentError proj_tens(Val(:TI), Ad[:, :, 1, 1])
+        @test proj_tens(Val(:CUBIC), Ad[:, :, 1, 1])[1] isa TensISO   # no orientation at order 2
     end
 
 end

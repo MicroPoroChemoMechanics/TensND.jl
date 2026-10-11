@@ -46,8 +46,9 @@ that [`Basis`](@ref)`(θ, ϕ, ψ)` builds the [`RotatedBasis`](@ref) they span.
 here: a transversely isotropic tensor is oriented by ``\underline{n}`` alone, so
 its projection is parametrized by ``(\theta,\varphi)`` with ``\psi`` irrelevant,
 while orthotropy needs all three. The degeneracy at ``\theta=0``, where
-``\varphi`` no longer affects ``\underline{n}``, is why the multi-start grids in
-`ext/TensNDNLoptExt.jl` filter those duplicates.
+``\varphi`` no longer affects ``\underline{n}``, is why the orientation search
+screens axes spread over a hemisphere rather than a grid in
+``(\theta,\varphi)``, which would crowd them at the pole.
 
 !!! note "Spherical coordinates use the same angles in a different slot order"
     The predefined spherical coordinate system returns its coordinates as

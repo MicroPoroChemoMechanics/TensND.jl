@@ -12,31 +12,6 @@ or, from the Pkg REPL mode (`]`):
 pkg> add TensND
 ```
 
-## Optional dependency
-
-The **orientation search** of [`proj_tens`](@ref) and [`best_sym_tens`](@ref) —
-finding the transversely isotropic axis or the orthotropic frame when it is not
-known in advance — is provided by a package extension:
-
-```julia
-pkg> add NLopt
-```
-
-Loading `NLopt` activates `TensNDNLoptExt` and enables the methods of
-[`proj_tens`](@ref) that take no axis or frame:
-
-```julia
-using TensND, NLopt
-
-B, d, drel = proj_tens(:TI, A)        # axis optimized
-B, d, drel = proj_tens(:ORTHO, A)     # frame optimized
-```
-
-Without `NLopt`, everything else works, including projection onto a class with a
-**given** axis or frame and the `optimize_angles = false` path of
-[`best_sym_tens`](@ref), which infers the orientation from the Kelvin–Mandel
-eigenstructure. See [Projection](@ref man-projection).
-
 ## Symbolic backends
 
 `SymPy` and `Symbolics` are ordinary dependencies, so both symbolic element
@@ -90,9 +65,7 @@ machine-readable form. Works cited by this documentation are collected on the
 | Package | Role here |
 | :--- | :--- |
 | [Tensors.jl](https://github.com/Ferrite-FEM/Tensors.jl) | low-level storage for small tensors |
-| [OMEinsum.jl](https://github.com/under-Peter/OMEinsum.jl) | the contraction engine |
 | [SymPy.jl](https://github.com/JuliaPy/SymPy.jl) | symbolic backend |
 | [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl) | native Julia CAS backend |
 | [Rotations.jl](https://github.com/JuliaGeometry/Rotations.jl) | rotation representations |
 | [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) | automatic differentiation |
-| [NLopt.jl](https://github.com/JuliaOpt/NLopt.jl) | optional, orientation search |

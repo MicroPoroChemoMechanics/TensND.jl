@@ -1,7 +1,7 @@
 δkron(T::Type{<:Number}, i::Integer, j::Integer) = i == j ? one(T) : zero(T)
 
 struct Id2{dim, T <: Number} <: AbstractMatrix{T} end
-@pure Base.size(::Id2{dim}) where {dim} = (dim, dim)
+Base.size(::Id2{dim}) where {dim} = (dim, dim)
 Base.getindex(::Id2{dim, T}, i::Integer, j::Integer) where {dim, T} = δkron(T, i, j)
 function Base.replace_in_print_matrix(::Id2, i::Integer, j::Integer, s::AbstractString)
     return i == j ? s : Base.replace_with_centered_mark(s)
@@ -11,7 +11,8 @@ end
     isidentity(a::AbstractMatrix) → Bool
 
 Test whether `a` is the identity matrix, within the tolerance of `≈` for
-floating-point element types and exactly for symbolic ones.
+floating-point element types and exactly for symbolic ones. A matrix of
+`ForwardDiff.Dual` numbers is the identity only if its derivatives vanish too.
 
 # Examples
 ```jldoctest
@@ -25,8 +26,7 @@ julia> isidentity([1.0 0.5; 0.0 1.0])
 false
 ```
 """
-isidentity(a::AbstractMatrix{T}) where {T} = a ≈ I
-isdiagonal(a::AbstractMatrix{T}) where {T} = norm(a - Diagonal(a)) <= eps(T)
+isidentity(a::AbstractMatrix) = a ≈ I && !any(_carries_partials, a)
 
 # ── Symbolic passes ──────────────────────────────────────────────────────────
 #
@@ -245,6 +245,32 @@ is_hard_numeric(::Type{ForwardDiff.Dual{T, V, N}}) where {T, V, N} = is_hard_num
 is_hard_numeric(::Type) = false
 is_hard_numeric(x) = is_hard_numeric(typeof(x))
 
+# Exact element types (integers, rationals) compare exactly: `eps` is not
+# defined on them. The tolerance is that of the floating-point type underneath.
+isdiagonal(a::AbstractMatrix) = isdiag(a)
+function isdiagonal(a::AbstractMatrix{T}) where {T <: ApproxType}
+    off = a - Diagonal(a)
+    return norm(off) <= _approx_eps(T) && !any(_carries_partials, off)
+end
+
+"""
+    _carries_partials(x) -> Bool
+
+Whether `x` carries a nonzero derivative, at any nesting level of
+`ForwardDiff.Dual`.
+
+The structural predicates [`isidentity`](@ref) and `isdiagonal` decide whether
+a basis collapses to a simpler one, and they compare **values** — `≈` and
+`norm` see only the value of a `Dual`. A rotation by a dual angle at zero is the
+identity in value, yet its derivative is the generator of the rotation:
+collapsing it to the canonical basis returned zero derivatives. The predicates
+therefore also require the derivatives to vanish.
+"""
+_carries_partials(::Number) = false
+_carries_partials(x::ForwardDiff.Dual) =
+    any(p -> !iszero(p) || _carries_partials(p), ForwardDiff.partials(x)) ||
+    _carries_partials(ForwardDiff.value(x))
+
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
 
@@ -315,10 +341,9 @@ end
 
 function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, Num}) where {dim}
     @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        # This one used to read `a - b == zero(Num)`, which on a `Num` builds a
-        # symbolic *equation* rather than answering, so `!(…)` threw
-        # `TypeError: non-boolean (Num) used in boolean context` — a hard
-        # failure where its siblings merely returned a wrong `false`.
+        # Not `a - b == zero(Num)`: on a `Num` that builds a symbolic
+        # *equation* rather than answering, and `!(…)` of it throws
+        # `TypeError: non-boolean (Num) used in boolean context`.
         if !_num_equal(t[i, j, k, l], t[k, l, i, j])
             return false
         end
@@ -339,21 +364,18 @@ end
 
 Tensor (outer) product: `out[i…, j…] = t1[i…] * t2[j…]`.
 
-No index is summed over, so there is nothing for a contraction engine to do
-here. Going through `einsum` anyway cost 3.5 µs and 4.1 kB for two 3×3 arrays,
-against 65 ns for the outer product written directly — the machinery, not the
-arithmetic.
+No index is summed over, so there is nothing to contract: the product is
+written directly.
 
 It is the identity case of `_interleaved_otimes`: `t1`'s indices go to
 output positions `1…order1` and `t2`'s to `order1+1…order1+order2`, so each
 operand is reshaped with singleton axes where the other's indices sit and the
 product is one broadcast.
 
-An earlier version wrote this as `vec(t1) .* transpose(vec(t2))`, which is the
-same layout but **fails on `Tensors.Vec`**: `transpose` of a first-order
-`Tensors` array is deliberately discontinued upstream, so a first-order operand
-raised instead of multiplying. Singleton axes transpose nothing and have no such
-restriction. Broadcasting also keeps this generic over `Dual` and symbolic
+It is not written `vec(t1) .* transpose(vec(t2))`, the same layout: `transpose`
+of a first-order `Tensors` array is deliberately discontinued upstream, so a
+`Tensors.Vec` operand would raise instead of multiplying. Singleton axes
+transpose nothing and have no such restriction. Broadcasting also keeps this generic over `Dual` and symbolic
 element types, where BLAS could not be used.
 """
 function Tensors.otimes(
@@ -379,45 +401,33 @@ julia> contract([1.0 2.0; 3.0 4.0], 1, 2)
 ```
 """
 function contract(t::AbstractArray{T, order}, i::Integer, j::Integer) where {T, order}
-    m = min(i, j)
-    M = max(i, j)
-    ec1 = ntuple(k -> k == j ? i : k, order)
-    ec2 = (Tuple(1:(m - 1))..., Tuple((m + 1):(M - 1))..., Tuple((M + 1):order)...)
-    return einsum(EinCode((ec1,), ec2), (AbstractArray{T}(t),))
+    m, M = minmax(i, j)
+    n = size(t, m)
+    (m != M && size(t, M) == n) ||
+        throw(DimensionMismatch("cannot trace index $i against index $j of an array of size $(size(t))"))
+    # Position, in `t`, of each index of the result: all but `m` and `M`.
+    kept = ntuple(q -> q < m ? q : (q < M - 1 ? q + 1 : q + 2), Val(order - 2))
+    out = Array{T}(undef, map(q -> size(t, q), kept))
+    @inbounds for I in CartesianIndices(out)
+        s = zero(T)
+        for x in 1:n
+            idx = ntuple(q -> q == m || q == M ? x : I[q < m ? q : (q < M ? q - 1 : q - 2)], Val(order))
+            s += t[idx...]
+        end
+        out[I] = s
+    end
+    return out
 end
 
 contract(t::AbstractArray{T, 2}, ::Integer, ::Integer) where {T} = tr(t)
 
-function Tensors.dcontract(
-        t1::AbstractArray{T1, order1},
-        t2::AbstractArray{T2, order2},
-    ) where {T1, T2, order1, order2}
-    newc = order1 + order2
-    ec1 = (ntuple(i -> i, order1 - 2)..., newc, newc + 1)
-    ec2 = (newc, newc + 1, ntuple(i -> order1 - 2 + i, order2 - 2)...)
-    ec3 = ntuple(i -> i, order1 + order2 - 4)
-    return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
-end
+Tensors.dcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(2))
 
 Tensors.dcontract(t1::AbstractArray{T1, 2}, t2::AbstractArray{T2, 2}) where {T1, T2} =
     dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
 
-function Tensors.dotdot(
-        v1::AbstractArray{T1, order1},
-        S::AbstractArray{TS, orderS},
-        v2::AbstractArray{T2, order2},
-    ) where {T1, TS, T2, order1, orderS, order2}
-    newc = order1 + orderS
-    ec1 = (ntuple(i -> i, order1 - 1)..., newc)
-    ecS = (newc, ntuple(i -> order1 - 1 + i, orderS - 1)...)
-    ec3 = ntuple(i -> i, order1 + orderS - 2)
-    v1S = einsum(EinCode((ec1, ecS), ec3), (AbstractArray{T1}(v1), AbstractArray{TS}(S)))
-    newc += order2
-    ecv1S = (ntuple(i -> i, order1 + orderS - 3)..., newc)
-    ec2 = (newc, ntuple(i -> order1 + orderS - 3 + i, order2 - 1)...)
-    ec3 = ntuple(i -> i, newc - 4)
-    return einsum(EinCode((ecv1S, ec2), ec3), (v1S, AbstractArray{T2}(v2)))
-end
+Tensors.dotdot(v1::AbstractArray, S::AbstractArray, v2::AbstractArray) =
+    _contract_trailing(_contract_trailing(v1, S, Val(1)), v2, Val(1))
 
 """
     qcontract(t1::AbstractArray, t2::AbstractArray)
@@ -443,16 +453,7 @@ deviatoric subspaces in 3-D.
 
 See also `dcontract`, [`contract`](@ref).
 """
-function qcontract(
-        t1::AbstractArray{T1, order1},
-        t2::AbstractArray{T2, order2},
-    ) where {T1, T2, order1, order2}
-    newc = order1 + order2
-    ec1 = (ntuple(i -> i, order1 - 4)..., newc, newc + 1, newc + 2, newc + 3)
-    ec2 = (newc, newc + 1, newc + 2, newc + 3, ntuple(i -> order1 - 4 + i, order2 - 4)...)
-    ec3 = ntuple(i -> i, order1 + order2 - 8)
-    return einsum(EinCode((ec1, ec2), ec3), (AbstractArray{T1}(t1), AbstractArray{T2}(t2)))
-end
+qcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(4))
 
 qcontract(t1::AbstractArray{T1, 4}, t2::AbstractArray{T2, 4}) where {T1, T2} =
     dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
@@ -591,13 +592,11 @@ end
     )
 end
 
+# A full `Tensor` even for two symmetric operands: symmetrizing the middle pair
+# of indices breaks the minor symmetry `i ↔ j`. Same products, same order as
+# the array method above, hence the same bits.
 @inline function sotimes(S1::SecondOrderTensor{dim}, S2::SecondOrderTensor{dim}) where {dim}
-    TensorType = Tensors.getreturntype(
-        otimes,
-        Tensors.get_base(typeof(S1)),
-        Tensors.get_base(typeof(S2)),
-    )
-    return TensorType(
+    return Tensor{4, dim}(
         @inline function (i, j, k, l)
             return @inbounds (S1[i, j] * S2[k, l] + S1[i, k] * S2[j, l]) / 2
         end

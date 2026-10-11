@@ -1,5 +1,125 @@
 # Changelog
 
+## v0.6.0 — no OMEinsum, no NLopt, and every number type through the algebra
+
+An audit of the whole package for speed, for the number types it must carry
+(integers, rationals, `ForwardDiff` duals at any nesting, SymPy and Symbolics),
+and for correctness. Every step was held against a bitwise lock of the tensor
+algebra recorded on the code of v0.5.1 (`test/test_golden.jl`, 83 cases): no
+value moved except where a defect is listed below.
+
+The two dependencies that did the heavy lifting are gone. Changes of basis and
+contractions now go through direct kernels (`src/contraction_kernels.jl`),
+written for any order and any mix of covariant and contravariant indices, and
+as fast as `einsum` or faster on every case measured. The free-orientation
+projections no longer need `using NLopt`: the orientation is found by a
+screening of fixed orientations followed by Newton's method with the exact
+Hessian, and in closed form at order 2. On 561 test tensors the new search is
+never worse than the NLopt one, and better on 8 transversely isotropic cases,
+where NLopt stopped at a local minimum.
+
+### Breaking changes
+
+- Below 1.0 a minor release is breaking for the resolver: packages with
+  `TensND = "0.5"` must widen their bound to accept 0.6.
+- `isequal` is structural — same basis, same components, same variances outside
+  orthonormal bases — and `hash` agrees with it. It used to compare two tensors
+  after writing them in a common basis, as `==` does, while `hash` hashed the
+  components in each tensor's own basis: two `isequal` tensors could hash
+  differently, which `Dict` and `Set` rely on never happening. `==` still
+  compares the mathematical objects, whatever their bases.
+- `KM(t, b, var; kwargs...)`: the keyword arguments were trailing positional
+  ones, so none could be passed.
+- `Tens`, `TensRotated` and `TensOrthogonal` take their basis as a fifth type
+  parameter. Code that names the four-parameter types keeps working, those
+  names being the union over all bases.
+- `OrthogonalBasis` takes the type of the orthonormal basis it scales as a third
+  type parameter, so that this field is concrete. `OrthogonalBasis{dim, T}`
+  keeps naming every orthogonal basis of that dimension and element type.
+- Arguments are validated by exceptions rather than `@assert`, which may be
+  compiled out: mismatched axes or frames in structured sums throw
+  `ArgumentError`, a non-square basis matrix `DimensionMismatch`, an invalid
+  variance `ArgumentError`.
+- TensND no longer redefines the display of a Tensors.jl fourth-order tensor
+  for every session that loads it.
+- `unset_coorsys!` also forgets the letter and the coordinate names that the
+  default chart gave to `pprint`.
+- The free-orientation projections (`proj_tens(sym, A)`,
+  `best_sym_tens(t; optimize_angles = true)`) refuse `ForwardDiff` duals with an
+  `ArgumentError` pointing to a given axis or frame, since the orientation
+  they find carries no derivative; they raised `MethodError`. Their results can
+  change where NLopt had stopped at a local minimum (see above).
+
+### Fixed
+
+- `sotimes` of two second-order tensors raised `UndefVarError`, so did
+  `S ⊗ˢ S` for every order-2 `Tens`.
+- `t ⊗ t` raised `MethodError` for a non-symmetric second-order tensor: the
+  short cut for a product of a tensor with itself assumed symmetric storage.
+- A tensor of dimension 4 or more raised at construction (`Tens([1, 2, 3, 4])`):
+  Tensors.jl has no type there. Its components now stay a plain array.
+- A rotation by a dual angle at zero collapsed to the canonical basis, which
+  zeroed every derivative with respect to the angle for |θ| below about 1e-8:
+  `isidentity` and `isdiagonal` compared values only. They now also require
+  the derivatives to vanish. `isdiagonal` threw on integer and rational bases.
+- A `Float64` tensor written in a basis of duals or symbols raised
+  `MethodError`, and so did `scontract` of a `Float64` tensor with a dual one,
+  or an orthogonal basis with dual scale factors: the components were converted
+  back to the element type of the tensor. They now take the type that holds
+  both.
+- Under automatic differentiation the symmetry candidates of `best_sym_tens`,
+  `is_TI` and `is_ORTHO` fell back to `e₃` and the canonical frame, so a TI or
+  orthotropic tensor about any other axis was reported `:ANISO`. The
+  eigendecomposition now takes duals (values from LAPACK, derivatives from
+  first-order perturbation theory, level by level).
+- `KM` of an isotropic tensor with integer moduli threw `InexactError`;
+  `isotropify` turned rational and symbolic moduli into floats; the azimuthal
+  averages threw on an integer axis; `RotatedBasis` threw on integer angles.
+- The order-2 cubic projection, which is the isotropic one, takes any element
+  type.
+- `natvec` of a numerical chart took any variance but `:cov` for `:cont`. A
+  variance given as a `Symbol` is now read the same way everywhere (`Basis`,
+  `natvec`, `tens_basis`, `strvecbasis`): anything but `:cov` or `:cont` throws
+  `ArgumentError`, where it used to fail to find a method.
+
+### Performance
+
+Same machine, v0.5.1 against v0.6.0, values equal:
+
+- change of basis ×17–27, contractions ×5–40, closed-form `isotropify` ×37,
+  `KM` of dual tensors ×21, `best_sym_tens` 20 % faster;
+- orientation search ×1.9 (TI), ×3.5 (orthotropic), ×3.7 (cubic), ×75–178 at
+  order 2;
+- the scaling between orthogonal and orthonormal components ×3–8;
+- `KM` of a `TensTI` ×2.9 and of a `TensOrtho` ×2.1, the product of two TI
+  tensors about different axes ×1.7 and their sum ×1.4;
+- the product of a dual tensor with a plain one, both canonical, from 361 ns
+  to 19 ns with no allocation (the TI case about different axes ×1.6): the
+  two canonical bases of different element types were found equal only at run
+  time, which left every such product with a dynamic dispatch;
+- `inv_KM` of a static array: the size of the array gives the tensor type by
+  dispatch, so the result is inferred.
+
+The structural reasons: concrete type parameters instead of abstract fields
+(the basis of a tensor, the functions of a numerical chart), variances
+dispatched without a run-time `Val`, the dimension read from the type (also
+where a structured tensor is turned into a Tensors.jl array), dispatch instead
+of a run-time test wherever the type holds the answer (the class of a tensor in
+the symmetry search, `hasmethod` gone; the orthonormality of a scaled basis;
+number against array in the numerical charts), no `Dict` or temporary array in
+the loops, `Base.@pure` removed. The paths that are
+type-stable by construction are now held to it by tests of inference and
+allocations (`test/test_hot_paths.jl`).
+
+### Internals
+
+- `src/tens.jl` split by subject: storage, display, components, Kelvin-Mandel,
+  algebra, symmetry search, orientation search.
+- The lock compares to the bit with `TENSND_GOLDEN_BITWISE=true` and to 8 ulps
+  of each case otherwise: BLAS reductions differ in their last bit from one
+  machine to another.
+- Patch coverage 100 %.
+
 ## v0.5.1 — `dotdot` is exported
 
 ### Fixed

@@ -1,23 +1,21 @@
 # =============================================================================
 #  test_tensor_products.jl — the outer products, pinned against their definition.
 #
-#  `otimes`, `otimesu`, `otimesl` and `sotimes` on `AbstractArray` were rewritten
-#  from `einsum` calls to single broadcasts (v0.3.3). They contract nothing —
-#  their output indices are the union of the input indices — so the rewrite is
-#  purely about how elements are placed, and a wrong placement is a silent
-#  numerical error, not an exception.
+#  `otimes`, `otimesu`, `otimesl` and `sotimes` on `AbstractArray` contract
+#  nothing — their output indices are the union of the input indices — so they
+#  are single broadcasts, and all that can go wrong is how elements are placed:
+#  a wrong placement is a silent numerical error, not an exception.
 #
 #  Three independent references, because one is not enough:
 #
 #  1. the **definition** written out as explicit loops, which owes nothing to
 #     any implementation;
-#  2. the **einsum** form that was replaced, kept here verbatim as the historical
-#     reference;
+#  2. the **einsum** form, an implementation independent of this package's;
 #  3. **algebraic identities** the products must satisfy whatever the code.
 #
 #  And, deliberately, coverage over the *types the callers actually pass*.
-#  The v0.3.3 regression that reached the documentation build — `transpose` of a
-#  `Tensors.Vec` is discontinued upstream — passed every array-based check and
+#  A regression once reached the documentation build — `transpose` of a
+#  `Tensors.Vec` is discontinued upstream — through every array-based check and
 #  the whole suite, because nothing here exercised a first-order `Tensors`
 #  operand. That gap is the reason for the "Tensors element types" section.
 # =============================================================================
@@ -126,7 +124,7 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
     end
 
     @testset "Tensors element types — the first-order operand" begin
-        # This is the case that broke the documentation build in v0.3.3 while
+        # This is the case that once broke the documentation build while
         # every array-based test stayed green: `transpose` of a `Tensors.Vec`
         # is discontinued upstream, so an implementation that transposed raised
         # here and nowhere else.
@@ -154,6 +152,22 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
             @test otimesu(x, y) ≈ _ref_otimesu(collect(x), collect(y))
             @test otimesl(x, y) ≈ _ref_otimesl(collect(x), collect(y))
         end
+
+        # `sotimes` of two second-order Tensors arrays has a method of its own,
+        # which used to raise `UndefVarError` — and every order-2 `Tens`
+        # stores such an array, so `S ⊗ˢ S` raised as well. The result of two
+        # symmetric operands is not minor-symmetric in general, hence a full
+        # `Tensor`, with the same products in the same order as the array
+        # method: equal to the bit.
+        for (x, y) in ((t2, t2), (s2, s2), (t2, s2), (s2, t2))
+            p = TensND.sotimes(x, y)
+            @test p isa Tensors.Tensor{4, 3}
+            @test all(collect(p) .=== TensND.sotimes(collect(x), collect(y)))
+            @test collect(p) ≈ _ref_sotimes(collect(x), collect(y))
+        end
+        S = Tens(collect(s2))
+        @test get_array(S) isa Tensors.SymmetricTensor{2, 3}
+        @test all(collect(get_array(S ⊗ˢ S)) .=== TensND.sotimes(collect(s2), collect(s2)))
     end
 
     @testset "exact and generic element types" begin
@@ -398,4 +412,13 @@ end
             )
         end
     end
+end
+
+@testsection "dotdot on plain arrays, against its definition" begin
+    # (v₁·𝔸·v₂)ⱼₖ = Σᵢₗ v₁ᵢ Aᵢⱼₖₗ v₂ₗ, at any order of the middle array.
+    A = [0.1 * i + 0.2 * j * k + 0.03 * l for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
+    v1, v2 = [1.0, -2.0, 0.5], [0.3, 1.0, 2.0]
+    ref = [sum(v1[i] * A[i, j, k, l] * v2[l] for i in 1:3, l in 1:3) for j in 1:3, k in 1:3]
+    @test dotdot(v1, A, v2) ≈ ref
+    @test dotdot(v1, A[:, :, :, 1], v2) ≈ [sum(v1[i] * A[i, j, k, 1] * v2[k] for i in 1:3, k in 1:3) for j in 1:3]
 end

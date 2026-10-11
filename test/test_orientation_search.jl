@@ -1,13 +1,9 @@
-# Loading NLopt activates TensNDNLoptExt.  This file MUST be included last:
-# `test_tens_projection.jl` asserts the no-NLopt behavior, and a package
-# stays loaded for the rest of the session once `using` has run.
-using NLopt
+# The projections with a free orientation (`src/orientation_search.jl`): the
+# axis or frame recovered exactly for tensors of the class, never worse than a
+# fixed orientation, global on random tensors against a dense search, the
+# closed forms of order 2 against an exhaustive one, and determinism.
 
-@testsection "NLopt extension — rotation-optimized projections" begin
-
-    # The extension overrides the error-throwing fallbacks of
-    # tens_projection.jl.  `test_tens_projection.jl` deliberately checks the
-    # *absence* of NLopt; here NLopt is loaded, so the real optimizers run.
+@testsection "Orientation search — projections with a free orientation" begin
 
     @testsection "proj_tens(:TI, A) — order 4, exact TI recovered" begin
         # A tensor that IS transversely isotropic about a tilted axis must be
@@ -135,8 +131,8 @@ using NLopt
     @testsection "proj_tens(:CUBIC, A) — order 4, rotated cube recovered" begin
         # The one class with no eigenstructure candidate to start from: every
         # second-order contraction of a cubic tensor is isotropic, so the search
-        # begins from the angular grid alone (`_cubic_starts`). It still
-        # recovers a rotated cube exactly, which is the point.
+        # begins from the screened orientations alone (`_cubic_starts`). It
+        # still recovers a rotated cube exactly, which is the point.
         for fr in (
                 CanonicalBasis{3, Float64}(),
                 RotatedBasis(0.3, 0.4, 0.5),
@@ -158,8 +154,8 @@ using NLopt
         @test is_CUBIC(get_array(TensISO{3}(18.0, 6.0)))
         @test !is_CUBIC(get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])))
 
-        # Optimizing can only improve on a fixed frame, the grid containing the
-        # canonical one.
+        # Optimizing can only improve on a fixed frame, the canonical one being
+        # refined among the others.
         arr = get_array(tens_cubic(10.0, 4.0, 2.0, RotatedBasis(0.3, 0.4, 0.5)))
         @test proj_tens(:CUBIC, arr)[3] ≤
             proj_tens(:CUBIC, arr, CanonicalBasis{3, Float64}())[3] + 1.0e-12
@@ -176,13 +172,8 @@ using NLopt
     end
 
     @testsection "proj_tens — determinism and monotonicity" begin
-        # Regression guard for the stochastic-optimizer bug: the first pass used
-        # to be `GD_MLSL`, whose generator NLopt seeds from the clock.  Repeated
-        # calls returned different angles, and ~0.5 % of them a spurious local
-        # minimum — on the rotated-frame tensor above, `drel ≈ 0.44` instead of
-        # `≈ 1e-13`, which showed up as an intermittent CI failure.  The two
-        # properties below are what the deterministic multi-start buys, and
-        # neither held before.
+        # No random search is involved, so a call is repeatable to the bit, and
+        # the result is never worse than a fixed orientation the search refines.
 
         arr_ortho = Array(
             get_array(
@@ -210,9 +201,9 @@ using NLopt
                 results = [proj_tens(sym, arr)[3] for _ in 1:4]
                 @test all(==(results[1]), results)
 
-                # 2. Never worse than a fixed-frame projection along a start of
-                #    the grid — the canonical frame is one, so this is a
-                #    guarantee by construction, not a hope about the optimizer.
+                # 2. Never worse than the projection about the canonical
+                #    orientation, which is always refined: a guarantee by
+                #    construction, not a hope about the optimizer.
                 fixed = sym === :TI ?
                     proj_tens(Val(:TI), arr, (0.0, 0.0, 1.0))[3] :
                     proj_tens(Val(:ORTHO), arr, CanonicalBasis{3, Float64}())[3]
@@ -230,9 +221,65 @@ using NLopt
         @test proj_tens(:ORTHO, A2)[3] < 1.0e-10
     end
 
+    @testsection "Order 2 — closed forms against an exhaustive search" begin
+        # The best orthotropic frame is the eigenframe of the symmetric part,
+        # and the best TI axis an eigenvector of an extreme eigenvalue: no
+        # orientation of a dense set of axes does better.
+        dense = TensND._hemisphere_spiral(4000)
+        # A symmetric tensor, a non-symmetric one, and one with a double
+        # eigenvalue.
+        for A in (
+                Float64[5.0 1.0 2.0; 1.0 8.0 3.0; 2.0 3.0 12.0],
+                Float64[3.0 -2.0 0.5; 1.0 -1.0 4.0; 0.2 3.0 7.0],
+                Float64[4.0 0.0 0.0; 0.0 4.0 0.0; 0.0 0.0 9.0],
+            )
+            drel = proj_tens(:TI, A)[3]
+            best = minimum(x -> proj_tens(Val(:TI), A, TensND._n_from_angles(x[1], x[2]))[3], dense)
+            @test drel ≤ best + 1.0e-12
+            # The orthotropic projection keeps all of the symmetric part.
+            Aₛ = (A + A') / 2
+            @test proj_tens(:ORTHO, A)[3] ≈ norm(A - Aₛ) / norm(A) atol = 1.0e-12
+        end
+    end
+
+    @testsection "Order 4 — the search is global on random tensors" begin
+        # Against a dense search (3,000 axes; 600 axes × 12 turns for the
+        # frames, each of the 12 best refined), on random anisotropic
+        # stiffnesses: the minimum found is the dense one, to rounding. A
+        # multi-start from a dozen points missed it for one TI tensor in twenty.
+        rng = Random.Xoshiro(20261011)
+        axes = TensND._hemisphere_spiral(3000)
+        frames = [TensND.SVector(a[1], a[2], ψ) for a in TensND._hemisphere_spiral(600) for ψ in range(0, π / 2; length = 13)[1:12]]
+        objective = Dict(:TI => TensND._obj_TI4, :ORTHO => TensND._obj_ORTHO4, :CUBIC => TensND._obj_CUBIC4)
+        for _ in 1:8
+            M = randn(rng, 6, 6)
+            A = Array(frommandel(SymmetricTensor{4, 3}, M * M' + 6I))
+            C = TensND._KM_of_array(A)
+            s = sum(abs2, C)
+            for S in (:TI, :ORTHO, :CUBIC)
+                j(x) = objective[S](x, C, s)
+                grid = S === :TI ? axes : frames
+                vals = j.(grid)
+                dense = minimum(j(TensND._refine_angles(j, x)) for x in grid[partialsortperm(vals, 1:12)])
+                @test proj_tens(S, A)[3]^2 ≤ dense + 1.0e-12
+            end
+        end
+    end
+
+    @testsection "Newton refinement — a smooth minimum to machine precision" begin
+        # A function of two angles with a minimum at (0.4, -1.1) and a saddle
+        # elsewhere: the refinement reaches the minimum from nearby, and never
+        # returns a point worse than its start.
+        f(x) = (1 - cos(x[1] - 0.4)) + 2 * (1 - cos(x[2] + 1.1)) + 0.1 * sin(x[1]) * sin(x[2])^2
+        x = TensND._refine_angles(f, TensND.SVector(1.0, -0.2))
+        @test norm(ForwardDiff.gradient(f, x)) < 1.0e-10
+        for x0 in (TensND.SVector(3.0, 2.0), TensND.SVector(0.0, 0.0), TensND.SVector(-2.5, 1.5))
+            @test f(TensND._refine_angles(f, x0)) ≤ f(x0)
+        end
+    end
+
     @testsection "best_sym_tens — optimize_angles path" begin
-        # With NLopt loaded, `optimize_angles = true` goes through the
-        # extension instead of throwing.
+        # `optimize_angles = true` searches the orientation.
         n_true = [0.0, 1 / √2, 1 / √2]
         t = Tens(get_array(TensTI{4}(3.0, 5.0, 1.5, 2.0, 2.5, Tuple(n_true))))
 

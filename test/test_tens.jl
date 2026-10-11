@@ -61,10 +61,9 @@ end
 
 
 @testsection "pprint" begin
-    # `pprint` is the display entry point, renamed twice: `intrinsic` (through
-    # v0.2.7) → `print_tensor` (v0.3.0) → `pprint` (v0.3.1). Both former names
-    # must keep forwarding. `_pprint_string` is the formatting half, split out
-    # so the layout can be checked without capturing `stdout`.
+    # `pprint` is the display entry point; `intrinsic` and `print_tensor`, its
+    # former names, must keep forwarding. `_pprint_string` is the formatting
+    # half, split out so the layout can be checked without capturing `stdout`.
     S = coorsys_spherical()
     𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(S)
     θ, ϕ, r = getcoords(S)
@@ -149,6 +148,144 @@ end
     @test !(TensND.tensor_or_array(rawd) isa SymmetricTensor)
 end
 
+@testsection "A rotation by a dual angle keeps its derivatives at zero" begin
+    # A rotation by a dual angle θ = 0 is the identity in value, but its
+    # derivative is the generator of the rotation. `isidentity` compared values
+    # only, so `RotatedBasis` collapsed to `CanonicalBasis` and every derivative
+    # with respect to the angle came out zero — for any |θ| below about 1e-8,
+    # the tolerance of `≈`.
+    @test RotatedBasis(ForwardDiff.Dual(0.0, 1.0), 0.0, 0.0) isa RotatedBasis
+    @test RotatedBasis(ForwardDiff.Dual(0.0, 1.0)) isa RotatedBasis
+    @test RotatedBasis(0.0, 0.0, 0.0) isa CanonicalBasis           # unchanged
+    @test RotatedBasis(ForwardDiff.Dual(0.0, 0.0), 0.0, 0.0) isa CanonicalBasis
+
+    # References in closed form: with ϕ = ψ = 0, the ZYZ rotation is a rotation
+    # by θ about e₂, and a vector of components v in it has the canonical
+    # components R(θ)·v.
+    v = [1.0, 2.0, 3.0]
+    f(θ) = components_canon(Tens(v .* one(θ), RotatedBasis(θ, zero(θ), zero(θ))))
+    dR(θ) = [-sin(θ) 0 cos(θ); 0 0 0; -cos(θ) 0 -sin(θ)]
+    d2R(θ) = [-cos(θ) 0 -sin(θ); 0 0 0; sin(θ) 0 -cos(θ)]
+    for θ in (0.0, 0.7)
+        @test ForwardDiff.derivative(f, θ) ≈ dR(θ) * v
+        @test ForwardDiff.derivative(θ -> ForwardDiff.derivative(f, θ), θ) ≈ d2R(θ) * v
+    end
+    g(θ) = components_canon(Tens([1.0, 2.0] .* one(θ), RotatedBasis(θ)))
+    @test ForwardDiff.derivative(g, 0.0) ≈ [0.0 -1.0; 1.0 0.0] * [1.0, 2.0]
+
+    # A structured tensor in that frame: dℂ/dθ at 0 is the generator W acting
+    # on each index, Σ W_ia ℂ_ajkl + W_jb ℂ_ibkl + W_kc ℂ_ijcl + W_ld ℂ_ijkd.
+    C(θ) = TensOrtho(30.0, 25.0, 20.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, RotatedBasis(θ, zero(θ), zero(θ)))
+    c = components_canon(C(0.0))
+    W = dR(0.0)
+    dc = [
+        sum(W[i, a] * c[a, j, k, l] + W[j, a] * c[i, a, k, l] + W[k, a] * c[i, j, a, l] + W[l, a] * c[i, j, k, a] for a in 1:3)
+            for i in 1:3, j in 1:3, k in 1:3, l in 1:3
+    ]
+    @test ForwardDiff.derivative(θ -> Matrix(KM(C(θ))), 0.0) ≈ Matrix(KM(Tens(dc))) atol = 1.0e-12
+    @test maximum(abs, Matrix(KM(Tens(dc)))) > 1                    # not vacuous
+
+    # The diagonal test, for the same reason, and on exact element types, where
+    # its absolute `eps(T)` tolerance threw: an integer or rational basis could
+    # not be built.
+    z = ForwardDiff.Dual(0.0, 1.0)
+    @test !TensND.isdiagonal([1.0 z; 0.0 2.0])
+    @test !isidentity([1.0 z; 0.0 1.0])
+    @test TensND.isdiagonal([1 0; 0 2]) && !TensND.isdiagonal([1 1; 0 2])
+    @test TensND.isdiagonal([1 // 2 0; 0 2]) && !TensND.isdiagonal([1 // 2 1; 0 2])
+    @test Basis([2 0 0; 0 1 0; 0 0 1]) isa OrthogonalBasis
+    @test Basis([2 // 1 0 0; 0 1 0; 0 0 1]) isa OrthogonalBasis
+end
+
+@testsection "Plain-number tensors in a basis of duals or symbols" begin
+    # The components of a tensor written in another basis were converted back
+    # to the element type of the tensor. For a `Float64` tensor in a basis of
+    # duals or symbols that conversion throws (`Float64(::Dual)`,
+    # `Float64(::Sym)`): they now take the type that holds both. The canonical
+    # basis imposes no type of its own — its entries are exact zeros and ones.
+    v = [1.0, 2.0, 3.0]
+    R(θ) = [cos(θ) 0 sin(θ); 0 1 0; -sin(θ) 0 cos(θ)]
+    dR(θ) = [-sin(θ) 0 cos(θ); 0 0 0; -cos(θ) 0 -sin(θ)]
+    f(θ) = components_canon(Tens(v, RotatedBasis(θ, zero(θ), zero(θ))))
+    for θ in (0.0, 0.7)
+        @test ForwardDiff.derivative(f, θ) ≈ dR(θ) * v
+    end
+
+    # Into a rotated basis, for an order-2 tensor: components Rᵀ·A·R.
+    A = [2.0 0.5 0.1; 0.5 3.0 0.2; 0.1 0.2 4.0]
+    h(θ) = Matrix(components(Tens(A), RotatedBasis(θ, zero(θ), zero(θ)), (:cont, :cont)))
+    θ = 0.7
+    @test ForwardDiff.derivative(h, θ) ≈ dR(θ)' * A * R(θ) + R(θ)' * A * dR(θ)
+
+    # A contraction of a plain tensor with a dual one, through the generic
+    # array route (a fourth-order operand is no Tensors.jl `dot` pair).
+    𝔸 = Tens([0.1 * i + 0.2 * j + 0.3 * k + 0.05 * l for i in 1:3, j in 1:3, k in 1:3, l in 1:3])
+    n(x) = [sin(x), 0.0, cos(x)]
+    a(x) = Array(components_canon(𝔸 ⋅ Tens(n(x))))
+    dn = [cos(0.4), 0.0, -sin(0.4)]
+    @test ForwardDiff.derivative(a, 0.4) ≈ [sum(get_array(𝔸)[i, j, k, l] * dn[l] for l in 1:3) for i in 1:3, j in 1:3, k in 1:3]
+
+    # An orthogonal basis whose scale factors are duals: x = Σ vⁱ χᵢ 𝐫ᵢ, so
+    # ∂x/∂χ₁ = v¹ 𝐫₁.
+    ℬʳ = RotatedBasis(0.3, 0.2, 0.1)
+    s(χ) = components_canon(Tens(v, Basis(ℬʳ, [χ, 1.0, 1.0])))
+    @test Basis(ℬʳ, [ForwardDiff.Dual(2.0, 1.0), 1.0, 1.0]) isa OrthogonalBasis
+    @test ForwardDiff.derivative(s, 2.0) ≈ v[1] * Array(vecbasis(ℬʳ, :cov))[:, 1]
+
+    # Symbolic: a plain vector in a basis rotated by a symbolic angle.
+    @syms ϑ::real
+    c = components_canon(Tens([1.0, 0.0], RotatedBasis(ϑ)))
+    @test eltype(c) <: Sym
+    @test simplify(c[1] - cos(ϑ)) == 0 && simplify(c[2] - sin(ϑ)) == 0
+
+    # A symbolic tensor built from `Sym[…]` (abstract element type `Sym`)
+    # has components of the concrete `Sym{PyObject}`, as the conversions
+    # through broadcasting always gave them.
+    ℬs = Basis(Sym[1 0 0; 0 1 0; 0 1 1])
+    ts = Tens(metric(ℬs, :cov), ℬs, (:cov, :cov))
+    @test isconcretetype(eltype(components(ts, (:cont, :cov))))
+    @test isconcretetype(eltype(components(ts, CanonicalBasis{3, Sym}(), (:cont, :cont))))
+
+    # Plain tensors in plain bases keep their element type.
+    @test eltype(components(Tens(A), RotatedBasis(0.3, 0.2, 0.1), (:cont, :cont))) == Float64
+    @test eltype(components(Tens(A, RotatedBasis(0.3, 0.2, 0.1)), CanonicalBasis(), (:cont, :cont))) == Float64
+end
+
+@testsection "Equality, hashing, Kelvin-Mandel signature, display" begin
+    # `==` compares tensors as mathematical objects, in whatever basis. The
+    # same comparison stood for `isequal`, whose contract with `hash` it broke:
+    # the same vector written in a permuted basis was `isequal` to itself in
+    # the canonical one, with different components and so a different hash.
+    P = Basis([0.0 1.0 0.0; 0.0 0.0 1.0; 1.0 0.0 0.0])
+    t = Tens([1.0, 2.0, 3.0])
+    tp = change_tens(t, P)
+    @test t == tp
+    tensors = (
+        t, tp, Tens([1.0, 2.0, 3.0]), TensISO{3}(3.0, 2.0),
+        Tens(get_array(TensISO{3}(3.0, 2.0))), Tens([1.0, 2.0, 3.0], (:cov,), P),
+    )
+    for a in tensors, b in tensors
+        isequal(a, b) && @test hash(a) == hash(b)
+    end
+    @test isequal(t, Tens([1.0, 2.0, 3.0]))                          # structural
+    @test isequal(TensISO{3}(3.0, 2.0), Tens(get_array(TensISO{3}(3.0, 2.0))))
+    @test Dict(t => 1)[Tens([1.0, 2.0, 3.0])] == 1
+    @test length(Set((t, tp, Tens([1.0, 2.0, 3.0])))) == 2
+
+    # `KM(t, b, var)` took its keywords as trailing positional arguments, so
+    # none could be passed.
+    C = TensISO{3}(3.0, 2.0)
+    ℬʳ = RotatedBasis(0.3, 0.2, 0.1)
+    @test KM(C, ℬʳ, (:cont, :cont, :cont, :cont); order = nothing) == KM(C, ℬʳ, (:cont, :cont, :cont, :cont))
+
+    # Displaying a Tensors.jl fourth-order tensor is left to Tensors.jl.
+    @test parentmodule(which(show, Tuple{Tensors.SymmetricTensor{4, 3, Float64, 36}})) !== TensND
+
+    # A basis is built from a square matrix, checked by an exception that
+    # cannot be compiled out.
+    @test_throws DimensionMismatch Basis([1.0 0.0 0.0; 0.0 1.0 0.0])
+end
+
 @testsection "symbolic passes reach structured tensors and tuples" begin
     # REGRESSION. `structured_tens_ops.jl` implements the whole `tsimplify`
     # family as `_rebuild(A, OP(get_data(A)))`, and `get_data` returns an
@@ -199,4 +336,53 @@ end
     # the test environment does not import it directly.
     TensND.Symbolics.@variables z
     @test_throws ArgumentError tlimit(z, z, 0)
+end
+
+@testsection "Short cuts and less common shapes" begin
+    # Same basis, same variances: the components, or the tensor, come back
+    # as they are.
+    ℬ = Basis([1.0 0.2 0.1; 0.0 1.0 0.3; 0.1 0.0 1.0])
+    t = Tens([1.0 2.0 0.5; 0.3 4.0 1.0; 0.2 0.1 3.0], ℬ, (:cont, :cov))
+    @test components(t, get_var(t)) === get_array(t)
+    @test change_tens(t, get_var(t)) === t
+    o = Tens([2.0 0.5 0.1; 0.5 3.0 0.2; 0.1 0.2 4.0])
+    @test components(o, (:cov, :cont)) === get_array(o)
+    @test components(o, get_basis(o)) === get_array(o)
+    ℬo = Basis(RotatedBasis(0.3, 0.2, 0.1), [2.0, 1.0, 0.5])
+    to = Tens([1.0, 2.0, 3.0], ℬo, (:cov,))
+    @test components(to, get_basis(to), (:cont,)) == components(to, (:cont,))
+
+    # The product of a tensor with itself takes a short cut; it agrees with
+    # the general route, which the same tensor written in another basis takes.
+    v = Tens([1.0, 2.0, 3.0], ℬ, (:cont,))
+    v2 = change_tens(v, Basis([1.0 0.0 0.3; 0.2 1.0 0.0; 0.0 0.1 1.0]))
+    @test !isequal(v, v2) && components_canon(v) ≈ components_canon(v2)
+    @test components_canon(v ⊗ v) ≈ components_canon(v ⊗ v2)
+    # A non-symmetric order-2 tensor, and a vector of dimension 4, have no
+    # symmetric storage for their square: they used to raise a MethodError.
+    # Beyond dimension 3, where Tensors.jl has no type, the components stay a
+    # plain array; building such a tensor used to raise a MethodError too.
+    @test get_array(Tens([1.0, 2.0, 3.0, 4.0])) isa Vector{Float64}
+    @test get_array(Tens(reshape(collect(1.0:16.0), 4, 4))) isa Matrix{Float64}
+    @test components_canon(t ⊗ t) ≈ components_canon(t ⊗ change_tens(t, RotatedBasis(0.3, 0.2, 0.1)))
+    a = [1.0 2.0 0.5; 0.3 4.0 1.0; 0.2 0.1 3.0]
+    @test get_array(Tens(a) ⊗ Tens(a)) == [a[i, j] * a[k, l] for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
+    w = Tens([1.0, 2.0, 3.0, 4.0])
+    @test get_array(w ⊗ w) == [1.0, 2.0, 3.0, 4.0] * [1.0, 2.0, 3.0, 4.0]'
+    u = Tens([1.0, 2.0, 3.0])
+    @test get_array(u ⊗ˢ u) == get_array(u ⊗ u)
+    # The Frobenius norm of an order-2 tensor, in an orthonormal basis.
+    @test norm(o) ≈ norm(get_array(o))
+
+    # Kelvin-Mandel matrices of every shape go back to the right tensor type;
+    # a shape of none is refused.
+    A = [0.1 * (i + 2j) * (k + l) + (i == k) for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
+    @test get_array(inv_KM(KM(Tens(A)))) ≈ A
+    @test get_array(inv_KM(KM(Tens(A)))) isa Tensors.Tensor{4, 3}
+    S2 = SymmetricTensor{4, 2}((i, j, k, l) -> 1.0 * (i + j) * (k + l))
+    @test get_array(inv_KM(KM(S2))) ≈ S2
+    T2 = Tensor{4, 2}((i, j, k, l) -> 1.0 * (i + 2j) * (k + l))
+    @test get_array(inv_KM(KM(T2))) ≈ T2
+    @test_throws DimensionMismatch inv_KM(rand(5, 5))
+    @test_throws DimensionMismatch inv_KM(rand(5))
 end

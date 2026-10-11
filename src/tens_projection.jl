@@ -62,9 +62,8 @@ Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = _KM_rotation(…)`;
 
 Built entirely with `SMatrix` / `ntuple`, so it is compatible with
 `ForwardDiff.Dual` **and** with non-`isbits` element types such as
-`SymPy.Sym` or `Symbolics.Num`. (It used to fill an `MMatrix{6,6,T}(undef)`,
-which cannot even be constructed for a symbolic `T` — that made every
-`proj_tens` / `best_sym_tens` call fail on a symbolic tensor.)
+`SymPy.Sym` or `Symbolics.Num`, for which an `MMatrix{6,6,T}(undef)` cannot
+even be constructed.
 
 # Examples
 ```julia
@@ -411,6 +410,49 @@ function _trace_tensor(C::AbstractArray{T, 4}) where {T}
 end
 
 """
+    _sym_eigen(d::AbstractMatrix; rtol = 1e-8) -> (λ, V)
+
+Eigenvalues, ascending, and orthonormal eigenvectors of the real symmetric
+matrix `d`, as `eigen(Symmetric(d))` returns them.
+
+`eigen` goes through LAPACK and stops at `AbstractFloat`. For
+`ForwardDiff.Dual` entries the values are those of the value matrix, and each
+derivative comes from first-order perturbation theory, one nesting level at a
+time:
+
+    λ̇ᵢ = vᵢ·ḋ·vᵢ,    v̇ᵢ = Σⱼ≠ᵢ (vⱼ·ḋ·vᵢ) / (λᵢ − λⱼ) vⱼ.
+
+Two eigenvalues closer than `rtol · max(λₙ − λ₁, 1)` — the closeness by which
+`_candidate_TI_axis` recognizes a double eigenvalue — are treated as one:
+within their plane no direction is preferred, so neither contributes to the
+derivative of the other's vector.
+"""
+_sym_eigen(d::AbstractMatrix{<:AbstractFloat}; rtol = 1.0e-8) =
+    (e = eigen(Symmetric(Matrix(d))); (e.values, e.vectors))
+
+function _sym_eigen(d::AbstractMatrix{D}; rtol = 1.0e-8) where {D <: ForwardDiff.Dual}
+    λ₀, V₀ = _sym_eigen(ForwardDiff.value.(d); rtol)
+    n = length(λ₀)
+    span = max(λ₀[n] - λ₀[1], one(eltype(λ₀)))
+    # Each derivative of `d` in the eigenbasis: entry (j, i) is vⱼ·ḋ·vᵢ.
+    ḋ = ntuple(k -> V₀' * ForwardDiff.partials.(d, k) * V₀, Val(ForwardDiff.npartials(D)))
+    function v̇(m, a, i)
+        s = zero(eltype(m))
+        for j in 1:n
+            (j == i || abs(λ₀[i] - λ₀[j]) < rtol * span) && continue
+            s += m[j, i] / (λ₀[i] - λ₀[j]) * V₀[a, j]
+        end
+        return s
+    end
+    λ = [D(λ₀[i], ForwardDiff.Partials(map(m -> m[i, i], ḋ))) for i in 1:n]
+    V = [D(V₀[a, i], ForwardDiff.Partials(map(m -> v̇(m, a, i), ḋ))) for a in 1:n, i in 1:n]
+    return λ, V
+end
+
+# The element types whose candidates come from an eigendecomposition.
+const _EigenType = Union{AbstractFloat, ForwardDiff.Dual}
+
+"""
     _candidate_TI_axis(C::AbstractArray{T,4}; rtol=1e-8) → NTuple{3,T}
 
 Propose a candidate TI symmetry axis for a 4th-order tensor `C` by looking
@@ -421,11 +463,8 @@ back to `e₃ = (0, 0, 1)`.
 
 Only meaningful for numeric element types: for symbolic `T`, the eigendecomposition is skipped and `e₃` is returned.
 """
-function _candidate_TI_axis(C::AbstractArray{T, 4}; rtol = 1.0e-8) where {T <: AbstractFloat}
-    d = _trace_tensor(C)
-    eig = eigen(Symmetric(Matrix(d)))
-    λ = eig.values
-    V = eig.vectors
+function _candidate_TI_axis(C::AbstractArray{T, 4}; rtol = 1.0e-8) where {T <: _EigenType}
+    λ, V = _sym_eigen(_trace_tensor(C); rtol)
     span = max(abs(λ[3] - λ[1]), one(T))
     close12 = abs(λ[1] - λ[2]) < rtol * span
     close23 = abs(λ[2] - λ[3]) < rtol * span
@@ -440,7 +479,7 @@ function _candidate_TI_axis(C::AbstractArray{T, 4}; rtol = 1.0e-8) where {T <: A
     return (T(v[1]), T(v[2]), T(v[3]))
 end
 
-# Non-floating-point fallback (symbolic, Int, etc.): return canonical e₃.
+# Fallback for the other element types (symbolic, integer…): the canonical e₃.
 _candidate_TI_axis(::AbstractArray{T, 4}; kwargs...) where {T} = (zero(T), zero(T), one(T))
 
 """
@@ -450,10 +489,8 @@ For a 2nd-order tensor `M`, propose its unique/isolated eigenvector as the
 candidate TI axis.  Falls back to `e₃` when the three eigenvalues are
 indistinguishable.
 """
-function _candidate_TI_axis(M::AbstractArray{T, 2}; rtol = 1.0e-8) where {T <: AbstractFloat}
-    eig = eigen(Symmetric((M + M') / 2))
-    λ = eig.values
-    V = eig.vectors
+function _candidate_TI_axis(M::AbstractArray{T, 2}; rtol = 1.0e-8) where {T <: _EigenType}
+    λ, V = _sym_eigen((M + M') / 2; rtol)
     span = max(abs(λ[3] - λ[1]), one(T))
     close12 = abs(λ[1] - λ[2]) < rtol * span
     close23 = abs(λ[2] - λ[3]) < rtol * span
@@ -480,10 +517,8 @@ with the canonical frame).
 Only meaningful for numeric element types: for symbolic `T`, the canonical
 frame is returned.
 """
-function _candidate_ORTHO_frame(C::AbstractArray{T, 4}) where {T <: AbstractFloat}
-    d = _trace_tensor(C)
-    eig = eigen(Symmetric(Matrix(d)))
-    R = Matrix{T}(eig.vectors)
+function _candidate_ORTHO_frame(C::AbstractArray{T, 4}) where {T <: _EigenType}
+    R = Matrix{T}(last(_sym_eigen(_trace_tensor(C))))
     # Ensure a right-handed basis (det = +1, not −1)
     if det(R) < 0
         R[:, 1] = -R[:, 1]
@@ -499,9 +534,8 @@ _candidate_ORTHO_frame(::AbstractArray{T, 4}) where {T} = CanonicalBasis{3, T}()
 For a 2nd-order tensor, the ORTHO frame candidate is directly built from its
 eigenvectors.
 """
-function _candidate_ORTHO_frame(M::AbstractArray{T, 2}) where {T <: AbstractFloat}
-    eig = eigen(Symmetric((M + M') / 2))
-    R = Matrix{T}(eig.vectors)
+function _candidate_ORTHO_frame(M::AbstractArray{T, 2}) where {T <: _EigenType}
+    R = Matrix{T}(last(_sym_eigen((M + M') / 2)))
     if det(R) < 0
         R[:, 1] = -R[:, 1]
     end
@@ -790,38 +824,29 @@ Convenience dispatch: `proj_tens(:TI, A, n)` calls `proj_tens(Val(:TI), A, n)`.
 """
 proj_tens(sym::Symbol, A::AbstractArray, arg) = proj_tens(Val(sym), A, arg)
 
-# ── Fallbacks for optimized versions (require NLopt) ─────────────────────────
+# ── Projections with a free orientation ──────────────────────────────────────
 #
-# `TensNDNLoptExt` supplies the real optimizers.  It must NOT define methods
-# with the same signatures as the fallbacks below: overwriting a method is
-# forbidden during module precompilation, so the extension would fail to
-# precompile and be rebuilt (with a warning) on every session.
-#
-# Hence the indirection through `_proj_tens_opt`: the fallback here is the
-# catch-all `Val{S}`/`AbstractArray` method, and the extension registers
-# strictly *more specific* methods, which is plain dispatch — no overwrite.
+# The orientation is searched by `_proj_tens_opt` (`orientation_search.jl`),
+# for floating-point arrays.
 
-"""
-    _proj_tens_opt(::Val{S}, A) -> (B, d, drel)
-
-Internal hook for the rotation-optimized projections.  The fallback throws;
-`TensNDNLoptExt` adds the concrete methods when NLopt is loaded.
-"""
-function _proj_tens_opt(::Val{S}, A::AbstractArray) where {S}
-    fixed = S === :ORTHO ? "proj_tens(:ORTHO, A, frame)" :
-        S === :CUBIC ? "proj_tens(:CUBIC, A, frame)" : "proj_tens(:TI, A, n)"
-    return error(
-        "NLopt.jl is required for rotation-optimized $S projection. " *
-            "Run `using NLopt` or add NLopt to your project. " *
-            "For fixed-axis/frame projection, use $fixed."
-    )
+# The orientation found by the optimizer carries no derivative: it would take
+# the implicit function theorem on its optimality condition. Refused, rather
+# than a projection whose derivative ignores how the orientation moves.
+for (S, N) in ((:TI, 4), (:TI, 2), (:ORTHO, 4), (:ORTHO, 2), (:CUBIC, 4))
+    msg = "the rotation-optimized :$S projection does not differentiate the " *
+        "orientation it finds; project on a given axis or frame, or call " *
+        "best_sym_tens with optimize_angles = false, whose candidates carry derivatives."
+    @eval proj_tens(::Val{$(QuoteNode(S))}, ::AbstractArray{<:ForwardDiff.Dual, $N}) =
+        throw(ArgumentError($msg))
 end
 
 """
     proj_tens(::Val{:TI}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
 
-Find the best TI approximation of `A` by optimizing over all possible
-symmetry axes. Requires the NLopt package: `using NLopt`.
+Find the best TI approximation of `A` over all symmetry axes. The axis is
+searched — the objective screened on 200 axes, Newton's method on the angles
+from the best ones, from the eigenstructure candidate and from `e₃` — with no
+random step, so a call is repeatable to the bit.
 
 See also [`proj_tens(::Val{:TI}, A, n)`](@ref) for fixed-axis projection.
 """
@@ -831,8 +856,10 @@ proj_tens(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
 """
     proj_tens(::Val{:TI}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
 
-Find the best TI approximation of a 2nd-order tensor `A` by optimizing
-the symmetry axis. Requires the NLopt package: `using NLopt`.
+Find the best TI approximation of a 2nd-order tensor `A` over all symmetry
+axes. No search is needed: the axis is an eigenvector of the smallest or the
+largest eigenvalue of the symmetric part of `A`, whichever gives the closer
+tensor.
 """
 proj_tens(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
     _proj_tens_opt(Val(:TI), A)
@@ -840,8 +867,9 @@ proj_tens(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
 """
     proj_tens(::Val{:ORTHO}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
 
-Find the best orthotropic approximation of `A` by optimizing over all
-possible material frames. Requires the NLopt package: `using NLopt`.
+Find the best orthotropic approximation of `A` over all material frames. The
+frame is searched as the TI axis is (400 frames screened, Newton's method on
+the best ones, on the eigenstructure candidate and on the canonical frame).
 """
 proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
     _proj_tens_opt(Val(:ORTHO), A)
@@ -849,8 +877,9 @@ proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
 """
     proj_tens(::Val{:CUBIC}, A::AbstractArray{T,4}) where {T<:AbstractFloat}
 
-Find the best cubic approximation of `A` by optimizing over all possible **cube
-orientations**. Requires the NLopt package: `using NLopt`.
+Find the best cubic approximation of `A` over all **cube orientations**, searched
+as an orthotropic frame is, but with no eigenstructure candidate, there being
+none for a cubic tensor.
 
 The octahedral group is discrete, but the *orientation of the cube* is not: it
 is an ordinary rotation, so the objective is smooth in the Euler angles exactly
@@ -866,19 +895,20 @@ proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: AbstractFloat} =
     _proj_tens_opt(Val(:CUBIC), A)
 
 """
-    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
+    proj_tens(::Val{:CUBIC}, A::AbstractArray{T,2})
 
 At order two the cubic class is the isotropic class, which has no orientation
-to optimize, so this is the isotropic projection and needs no NLopt.
+to optimize, so this is the isotropic projection, for any element type the
+isotropic one takes.
 """
-proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
-    proj_tens(Val(:ISO), A)
+proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 2}) where {T} = proj_tens(Val(:ISO), A)
 
 """
     proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}) where {T<:AbstractFloat}
 
-Find the best orthotropic approximation of a 2nd-order tensor `A` by
-optimizing the material frame. Requires the NLopt package: `using NLopt`.
+Find the best orthotropic approximation of a 2nd-order tensor `A` over all
+material frames. No search is needed: it is the eigenframe of the symmetric
+part of `A`, in which the projection keeps all of that part.
 """
 proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
     _proj_tens_opt(Val(:ORTHO), A)
@@ -892,8 +922,8 @@ proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
 # components satisfy this symmetry to tolerance ε?" rather than "does this
 # container impose this symmetry?".  The default cheap path uses the
 # Kelvin-Mandel eigenstructure to propose a candidate axis/frame without any
-# optimization (O(1)); the expensive path with `optimize_angles=true` routes
-# to the NLopt-backed `proj_tens(Val(:TI|:ORTHO), A)` fallbacks.
+# optimization (O(1)); the path with `optimize_angles=true` searches the
+# orientation with `proj_tens(Val(:TI|:ORTHO), A)`.
 
 """
     is_ISO(A::AbstractArray; ε=1e-6) → Bool
@@ -951,8 +981,7 @@ end
 
 Cheap default: propose a candidate TI axis from the Kelvin-Mandel
 eigendecomposition of `A` and check the residual.  With
-`optimize_angles=true`, runs the NLopt-backed axis search — requires
-`using NLopt`.
+`optimize_angles=true`, searches the axis (`proj_tens(:TI, A)`).
 
 See also [`is_TI(A, n)`](@ref), `_candidate_TI_axis`.
 """
@@ -982,7 +1011,7 @@ end
 
 Cheap default: propose a candidate orthotropic frame from the Kelvin-Mandel
 eigendecomposition and check the residual.  With `optimize_angles=true`,
-runs the NLopt-backed frame search — requires `using NLopt`.
+searches the frame (`proj_tens(:ORTHO, A)`).
 """
 function is_ORTHO(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
     if optimize_angles
@@ -1040,11 +1069,11 @@ end
 """
     is_CUBIC(A::AbstractArray; ε = 1.0e-6) -> Bool
 
-Whether `A` is cubic about **some** cube. **Requires NLopt**, and unlike
-[`is_TI`](@ref) and [`is_ORTHO`](@ref) it has no cheap alternative: every
-second-order contraction of a cubic tensor is isotropic, so no eigenframe
-reveals where the cube points and there is nothing to start from but a search.
-See the note above `_candidate_ORTHO_frame`'s cubic counterpart in this file.
+Whether `A` is cubic about **some** cube, the cube orientation being searched
+(`proj_tens(:CUBIC, A)`). Unlike [`is_TI`](@ref) and [`is_ORTHO`](@ref) it has
+no cheap alternative: every second-order contraction of a cubic tensor is
+isotropic, so no eigenframe reveals where the cube points and there is nothing
+to start from but a search.
 
 Give the frame — `is_CUBIC(A, frame)` — whenever it is known; that path is exact
 and costs one projection.
@@ -1074,11 +1103,11 @@ is_CUBIC(t::AbstractTens; kwargs...) = is_CUBIC(get_array(t); kwargs...)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public aliases for the per-block Kelvin-Mandel ↔ symmetry-parameter
-# conversions (previously private `_project_TI_KM`/`_build_TI_KM`/
-# `_project_ORTHO_KM`/`_build_ORTHO_KM`, used internally by `proj_tens`).
-# Exposed publicly so that callers working directly on 6×6 Kelvin-Mandel
-# blocks (e.g. MeanFieldHomogenization's per-timestep ALV Volterra matrices) can reuse
-# the same closed-form projection without going through a full `AbstractTens`.
+# conversions `proj_tens` uses internally (`_project_TI_KM`, `_build_TI_KM`,
+# `_project_ORTHO_KM`, `_build_ORTHO_KM`), so that callers working directly on
+# 6×6 Kelvin-Mandel blocks (e.g. MeanFieldHomogenization's per-timestep ALV
+# Volterra matrices) can reuse the same closed-form projection without going
+# through a full `AbstractTens`.
 # ──────────────────────────────────────────────────────────────────────────────
 
 """

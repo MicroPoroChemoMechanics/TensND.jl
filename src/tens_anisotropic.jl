@@ -80,9 +80,9 @@ TensTI{order, T, N}(data::NTuple{N, Any}, n::NTuple{3, Any}) where {order, T, N}
 
 # ── Traits ────────────────────────────────────────────────────────────────────
 
-@pure Base.eltype(::Type{TensTI{order, T, N}}) where {order, T, N} = T
-@pure Base.length(::TensTI{order}) where {order} = 3^order
-@pure Base.size(::TensTI{order}) where {order} = ntuple(_ -> 3, Val(order))
+Base.eltype(::Type{TensTI{order, T, N}}) where {order, T, N} = T
+Base.length(::TensTI{order}) where {order} = 3^order
+Base.size(::TensTI{order}) where {order} = ntuple(_ -> 3, Val(order))
 
 get_basis(::TensTI{order, T}) where {order, T} = CanonicalBasis{3, T}()
 get_var(::TensTI{order}) where {order} = ntuple(_ -> :cont, Val(order))
@@ -111,11 +111,6 @@ get_ℓ(t::TensTI{4, T, 5}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[3], t.data[4], t.data[5])
 get_ℓ(t::TensTI{4, T, 6}) where {T} = t.data
 
-# Helper: 2×2 Walpole matrix [[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]]
-function _walpole_mat(t::TensTI{4})
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄ = get_ℓ(t)[1:4]
-    return SMatrix{2, 2}(ℓ₁, ℓ₄, ℓ₃, ℓ₂)   # column-major: [col1, col2] = [[ℓ₁,ℓ₄],[ℓ₃,ℓ₂]]
-end
 
 # ── Constructors ──────────────────────────────────────────────────────────────
 
@@ -298,7 +293,7 @@ end
 
 Kelvin-Mandel (6×6) matrix of the Walpole tensor.
 """
-KM(t::TensTI{4}) = tomandel(tensor_or_array(get_array(t)))
+KM(t::TensTI{4}) = tomandel(_static_tensor(t))
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -678,7 +673,7 @@ end
 
 # ── KM ───────────────────────────────────────────────────────────────────────
 
-KM(t::TensTI{2}) = tomandel(tensor_or_array(get_array(t)))
+KM(t::TensTI{2}) = tomandel(_static_tensor(t))
 
 # ── Arithmetic — axis-aware ± ────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -699,10 +694,10 @@ KM(t::TensTI{2}) = tomandel(tensor_or_array(get_array(t)))
 # coefficient are odd in `n`), falling back to the generic route.
 
 # Generic (unstructured) view of a structured tensor, used by all fallbacks.
-_generic_tens(t::AbstractTens) = Tens(tensor_or_array(get_array(t)))
+_generic_tens(t::AbstractTens) = Tens(_static_tensor(t))
 
-@inline _generic_binary(op, A::AbstractTens, B::AbstractTens) =
-    Tens(tensor_or_array(broadcast(op, get_array(A), get_array(B))))
+@inline _generic_binary(op, A::AbstractTens{order, dim}, B::AbstractTens{order, dim}) where {order, dim} =
+    Tens(_static_tensor(broadcast(op, get_array(A), get_array(B)), Val(dim), Val(order)))
 
 @inline function Base.:+(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
     axis(A) == axis(B) || return _generic_binary(+, A, B)
@@ -789,7 +784,7 @@ end
 # target stays allocation-free apart from the wrapper.
 
 _as_canonical_tens(t::AbstractTens{order, 3, T}) where {order, T} =
-    Tens(tensor_or_array(get_array(t)), CanonicalBasis{3, T}())
+    Tens(_static_tensor(t), CanonicalBasis{3, T}())
 
 change_tens(t::TensTI{2, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
     change_tens(_as_canonical_tens(t), ℬ)
@@ -940,9 +935,9 @@ TensOrtho{T}(data::NTuple{9}, frame::B) where {T, B <: OrthonormalBasis{3}} =
 
 # ── Traits ────────────────────────────────────────────────────────────────────
 
-@pure Base.eltype(::Type{TensOrtho{T}}) where {T} = T
-@pure Base.length(::TensOrtho) = 81
-@pure Base.size(::TensOrtho) = (3, 3, 3, 3)
+Base.eltype(::Type{TensOrtho{T}}) where {T} = T
+Base.length(::TensOrtho) = 81
+Base.size(::TensOrtho) = (3, 3, 3, 3)
 
 get_basis(::TensOrtho{T}) where {T} = CanonicalBasis{3, T}()
 get_var(::TensOrtho) = (:cont, :cont, :cont, :cont)
@@ -1067,14 +1062,10 @@ end
 """
     getindex(t::TensOrtho, i, j, k, l)
 
-Single component in closed form.
-
-This used to be `get_array(t)[i,j,k,l]`, i.e. an `Array{T,4}` allocation plus
-an 81-iteration loop **per scalar access**.  Since `TensOrtho <: AbstractArray`,
-every generic algorithm (`Array(t)`, `norm`, broadcasting, `show`, `tomandel`,
-…) walks the tensor element by element, so an O(81) traversal cost O(81²) and
-81 allocations.  `TensOrtho` was the last structured type still on that dense
-path — `TensISO` and `TensTI` had already been given closed forms.
+Single component in closed form, without building the 81 components:
+`TensOrtho <: AbstractArray`, so every generic algorithm (`Array(t)`, `norm`,
+broadcasting, `show`, `tomandel`, …) walks it element by element, and a dense
+access per element would make an O(81) traversal cost O(81²).
 """
 Base.@propagate_inbounds function Base.getindex(
         t::TensOrtho, i::Integer, j::Integer, k::Integer, l::Integer
@@ -1095,7 +1086,7 @@ Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 Returns the 6×6 Kelvin-Mandel matrix in the **canonical** frame.
 Use `KM_material(t)` for the block-diagonal form in the material frame.
 """
-KM(t::TensOrtho) = tomandel(tensor_or_array(get_array(t)))
+KM(t::TensOrtho) = tomandel(_static_tensor(t))
 
 """
     KM_material(t::TensOrtho)
@@ -1221,8 +1212,8 @@ not symmetric unless they commute, so `A ⊡ B` is orthotropic *without major
 symmetry* — 12 independent constants where `TensOrtho` stores 9. This is the
 same widening that makes `dcontract(::TensTI{4}, ::TensTI{4})` return N=6
 rather than N=5. Rather than introduce a 12-parameter container, this method
-returns the very `TensCanonical` the generic route used to produce, bitwise
-compatible with it up to floating-point reassociation.
+returns the `TensCanonical` the generic route returns, equal to it up to
+floating-point reassociation.
 
 If the two material frames differ the product is generally fully anisotropic
 and the generic route is taken instead.
@@ -1352,7 +1343,6 @@ end
 # (both are 3D order-4 tensors stored in the canonical frame)
 ##############################################################################
 
-# TensTI{4}: T used to link tensor eltype with basis eltype.
 # See the note above `_as_canonical_tens`: the components must be rotated, not
 # relabeled.
 change_tens(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}) where {T} =

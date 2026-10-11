@@ -613,10 +613,10 @@
         @test opequal(get_array(W + O), get_array(W) + get_array(O))
         @test opequal(get_array(O - W), get_array(O) - get_array(W))
 
-        # Reference mismatch → assertion
+        # Reference mismatch → ArgumentError
         n_mis = (1.0, 1.0, 1.0) ./ sqrt(3.0)
         Wmis = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_mis)
-        @test_throws AssertionError Wmis + O
+        @test_throws ArgumentError Wmis + O
 
         # ── TensTI{4} N=5 + N=6 (same axis) → N=6 ─────────────────────────
         W5 = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n)          # N=5
@@ -883,7 +883,7 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "TensOrtho — concrete frame field, closed-form inv (v0.2.4 regression)" begin
+    @testsection "TensOrtho — concrete frame field, closed-form inv" begin
         frame = CanonicalBasis{3, Float64}()
         O = TensOrtho(
             250.0e3, 180.0e3, 150.0e3, 90.0e3, 80.0e3, 70.0e3,
@@ -892,7 +892,7 @@
         # The frame field must be a concrete type: TensOrtho{T} decouples the
         # frame eltype from T (for ForwardDiff) via a *type parameter*, not by
         # erasing it to the abstract `OrthonormalBasis{3}` — an abstract field
-        # boxes every access and defeats inference (v0.2.3 regression).
+        # boxes every access and defeats inference.
         @test isconcretetype(fieldtype(typeof(O), :frame))
         @test typeof(O) === TensOrtho{Float64, CanonicalBasis{3, Float64}}
 

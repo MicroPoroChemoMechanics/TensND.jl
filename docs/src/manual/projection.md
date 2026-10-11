@@ -7,7 +7,7 @@ symmetry a tensor has. The algorithms are on
 ## `proj_tens`
 
 ```julia
-B, d, drel = proj_tens(sym, A)              # orientation optimized — needs NLopt
+B, d, drel = proj_tens(sym, A)              # orientation searched
 B, d, drel = proj_tens(sym, A, n_or_frame)  # orientation given
 ```
 
@@ -40,16 +40,14 @@ the wrong axis is not:
 [round(proj_tens(:TI, C, [sind(α), 0.0, cosd(α)])[3], digits = 5) for α in (0, 15, 30, 45, 90)]
 ```
 
-That function of the orientation is what the optimizer minimizes.
+That function of the orientation is what the search minimizes.
 
 ## Orientation given, or found
 
-Without `NLopt`, the axis or frame must be supplied. With it, the two-argument
-form searches:
+The three-argument form takes the axis or frame; the two-argument form searches
+it:
 
 ```@example proj
-using NLopt
-
 θ, ϕ = 0.6, 1.1
 n_tilt = [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]
 C_tilt = get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt))
@@ -63,8 +61,9 @@ The axis is recovered up to a sign, which is immaterial: ``\underline{n}`` and
 determined only up to the reorderings and sign flips that map the three
 orthogonal planes onto themselves.
 
-The search is a **deterministic** multi-start, so repeated calls return
-bit-identical results:
+The search is **deterministic** — a screening of fixed orientations, then
+Newton's method on the angles from the best ones, with no random step — so
+repeated calls return bit-identical results:
 
 ```@example proj
 length(unique([proj_tens(:TI, C_tilt)[3] for _ in 1:5]))
@@ -91,10 +90,10 @@ fewer constants. The argument must be an
 best_sym_tens(Tens(C_tilt))[4]
 ```
 
-| `optimize_angles` | axis / frame | needs NLopt |
-| :--- | :--- | :--- |
-| `false` (default) | from the tensor if it is a structured container, otherwise from the Kelvin–Mandel eigenstructure | no |
-| `true` | found by multi-start optimization | yes |
+| `optimize_angles` | axis / frame |
+| :--- | :--- |
+| `false` (default) | from the tensor if it is a structured container, otherwise from the Kelvin–Mandel eigenstructure |
+| `true` | searched, as by `proj_tens(sym, A)` |
 
 !!! note "The cheap path is usually enough"
     The eigenstructure candidate is **exact** whenever the tensor genuinely has
@@ -116,8 +115,8 @@ B, d, drel = proj_tens(:CUBIC, get_array(cub), ℬ)
 drel
 ```
 
-Omitting the frame optimizes over cube orientations, exactly as for a TI axis
-or an orthotropic frame, and needs NLopt in the same way. The octahedral group
+Omitting the frame searches the cube orientation, exactly as for a TI axis or
+an orthotropic frame. The octahedral group
 is discrete but the *orientation* of the cube is not — it is an ordinary
 rotation — so the objective is smooth in the Euler angles; the group shows up
 only as a 24-fold degeneracy of the minimum, and all 24 frames describe the same

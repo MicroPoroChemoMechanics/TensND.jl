@@ -1,6 +1,6 @@
 abstract type AbstractBasis{dim, T <: Number} <: AbstractMatrix{T} end
 
-@pure Base.size(::AbstractBasis{dim}) where {dim} = (dim, dim)
+Base.size(::AbstractBasis{dim}) where {dim} = (dim, dim)
 
 # `Val(:cov)` is spelled out rather than reached through `vecbasis(ℬ, :cov)`:
 # the Symbol overload builds the `Val` from a runtime value, so the dispatch was
@@ -19,8 +19,8 @@ Base.getindex(ℬ::AbstractBasis, i::Integer, j::Integer) =
 # identity still equals a `CanonicalBasis`); only the number of dispatches is.
 Base.:(==)(A::AbstractBasis{dim}, B::AbstractBasis{dim}) where {dim} =
     vecbasis(A, Val(:cov)) == vecbasis(B, Val(:cov))
-@pure Base.eltype(::Type{AbstractBasis{dim, T}}) where {dim, T} = T
-@pure get_dim(::AbstractBasis{dim}) where {dim} = dim
+Base.eltype(::Type{AbstractBasis{dim, T}}) where {dim, T} = T
+get_dim(::AbstractBasis{dim}) where {dim} = dim
 
 # Build a Unicode sub/superscript string from an integer.
 # `minus_char` is the sign character; `digit_map` converts a digit 0–9 to its
@@ -105,7 +105,7 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
             gⁱʲ::AbstractMatrix{T},
         ) where {T}
         dim = size(eᵢ, 1)
-        @assert dim == size(eᵢ, 2) "v should be a square matrix"
+        dim == size(eᵢ, 2) || throw(DimensionMismatch("a basis is built from a square matrix"))
         if isidentity(eᵢ)
             return CanonicalBasis{dim, T}()
         elseif isidentity(gᵢⱼ)
@@ -124,23 +124,16 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
     function Basis(ℬ::AbstractBasis{dim, T}, χᵢ::V) where {dim, T, V}
         Χ = collect(χᵢ)
         invΧ = inv.(Χ)
-        if all(isone.(Χ))
-            return ℬ
-        else
-            if ℬ isa OrthonormalBasis
-                return OrthogonalBasis(ℬ, Χ)
-            else
-                eᵢ = vecbasis(ℬ, :cov) .* transpose(Χ)
-                eⁱ = vecbasis(ℬ, :cont) .* transpose(invΧ)
-                gᵢⱼ = Symmetric(Χ .* metric(ℬ, :cov) .* transpose(Χ))
-                gⁱʲ = Symmetric(invΧ .* metric(ℬ, :cont) .* transpose(invΧ))
-                new{dim, T}(eᵢ, eⁱ, gᵢⱼ, gⁱʲ)
-            end
-        end
+        all(isone, Χ) && return ℬ
+        eᵢ = vecbasis(ℬ, :cov) .* transpose(Χ)
+        eⁱ = vecbasis(ℬ, :cont) .* transpose(invΧ)
+        gᵢⱼ = Symmetric(Χ .* metric(ℬ, :cov) .* transpose(Χ))
+        gⁱʲ = Symmetric(invΧ .* metric(ℬ, :cont) .* transpose(invΧ))
+        return new{dim, promote_type(T, eltype(Χ))}(eᵢ, eⁱ, gᵢⱼ, gⁱʲ)
     end
     function Basis(eᵢ::AbstractMatrix{T}, ::Val{:cov}) where {T}
         dim = size(eᵢ, 1)
-        @assert dim == size(eᵢ, 2) "v should be a square matrix"
+        dim == size(eᵢ, 2) || throw(DimensionMismatch("a basis is built from a square matrix"))
         if isidentity(eᵢ)
             return CanonicalBasis{dim, T}()
         else
@@ -164,7 +157,7 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
     end
     function Basis(eⁱ::AbstractMatrix{T}, ::Val{:cont}) where {T}
         dim = size(eⁱ, 1)
-        @assert dim == size(eⁱ, 2) "v should be a square matrix"
+        dim == size(eⁱ, 2) || throw(DimensionMismatch("a basis is built from a square matrix"))
         if isidentity(eⁱ)
             return CanonicalBasis{dim, T}()
         else
@@ -186,14 +179,14 @@ struct Basis{dim, T} <: AbstractBasis{dim, T}
             end
         end
     end
-    Basis(v::AbstractMatrix{T}, var::Symbol) where {T} = Basis(v, Val(var))
+    Basis(v::AbstractMatrix{T}, var::Symbol) where {T} = _by_variance(Basis, var, v)
     # An `AbstractBasis` is an `AbstractMatrix`, so `Basis(ℬ, χᵢ)` above — which
     # rescales a basis by a tuple of factors — is weighed against the three
     # constructors that read a variance marker as their second argument. The
     # second argument tells them apart: a `Symbol` or a `Val` asks to reinterpret
     # the matrix, never to rescale a basis. These three say so.
     Basis(ℬ::AbstractBasis{dim, T}, var::Symbol) where {dim, T} =
-        Basis(Matrix(ℬ), Val(var))
+        _by_variance(Basis, var, Matrix(ℬ))
     Basis(ℬ::AbstractBasis{dim, T}, ::Val{:cov}) where {dim, T} =
         Basis(Matrix(ℬ), Val(:cov))
     Basis(ℬ::AbstractBasis{dim, T}, ::Val{:cont}) where {dim, T} =
@@ -276,48 +269,36 @@ julia> θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true) ; ℬʳ = RotatedBasis(θ
 struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
     eᵢ::Matrix{T} # Primal basis `eᵢ=e[:,i]`
     eⁱ::Matrix{T} # Dual basis `eⁱ=E[:,i]`
+    # Read by `angles(ℬ)` only, never on a computation's path: a field of
+    # concrete type would be copied with every tensor that carries the basis.
     angles::NamedTuple
     function RotatedBasis(R::AbstractMatrix{T}) where {T <: Number}
         dim = size(R, 1)
-        if isidentity(R)
-            return CanonicalBasis{dim, T}()
-        else
-            eᵢ = eⁱ = Matrix(R)
-            return new{dim, T}(eᵢ, eⁱ, angles(R))
-        end
+        isidentity(R) && return CanonicalBasis{dim, T}()
+        eᵢ = eⁱ = Matrix(R)
+        return new{dim, T}(eᵢ, eⁱ, angles(R))
     end
     function RotatedBasis(θ::T1, ϕ::T2, ψ::T3 = 0) where {T1 <: Number, T2 <: Number, T3 <: Number}
-        T = promote_type(T1, T2, T3)
-        dim = 3
-        R = RotZYZ(ϕ, θ, ψ)
-        if isidentity(R)
-            return CanonicalBasis{dim, T}()
-        else
-            eᵢ = eⁱ = Matrix(R)
-            return new{dim, T}(eᵢ, eⁱ, angles(R))
-        end
+        Rz = RotZYZ(ϕ, θ, ψ)
+        R = Matrix(Rz)
+        isidentity(R) && return CanonicalBasis{3, promote_type(T1, T2, T3)}()
+        # The type of the rotation, not of the angles: integer angles give
+        # floating-point cosines.
+        return new{3, eltype(R)}(R, R, angles(Rz))
     end
     function RotatedBasis(θ::T) where {T <: Number}
-        dim = 2
         cθ = cos(θ)
         sθ = sin(θ)
-        eᵢ = eⁱ = [cθ -sθ; sθ cθ]
-        if isidentity(eᵢ)
-            return CanonicalBasis{dim, T}()
-        else
-            return new{dim, T}(eᵢ, eⁱ, angles(eᵢ))
-        end
+        eᵢ = [cθ -sθ; sθ cθ]
+        isidentity(eᵢ) && return CanonicalBasis{2, T}()
+        return new{2, eltype(eᵢ)}(eᵢ, eᵢ, angles(eᵢ))
     end
     function RotatedBasis(θ::T) where {T <: SymType}
-        dim = 2
         cθ = cos(θ)
         sθ = sin(θ)
-        eᵢ = eⁱ = [cθ -sθ; sθ cθ]
-        if isidentity(eᵢ)
-            return CanonicalBasis{dim, T}()
-        else
-            return new{dim, T}(eᵢ, eⁱ, (θ = θ,))
-        end
+        eᵢ = [cθ -sθ; sθ cθ]
+        isidentity(eᵢ) && return CanonicalBasis{2, T}()
+        return new{2, eltype(eᵢ)}(eᵢ, eᵢ, (θ = θ,))
     end
 end
 
@@ -339,24 +320,39 @@ the `χᵢ` are the Lamé coefficients — see
 Built by `Basis(ℬ, χᵢ)` from an orthonormal basis and a tuple of scaling
 factors. Normalizing it returns the orthonormal basis it came from.
 """
-struct OrthogonalBasis{dim, T} <: AbstractBasis{dim, T}
-    parent::OrthonormalBasis{dim, T}
+struct OrthogonalBasis{dim, T, P <: OrthonormalBasis{dim, T}} <: AbstractBasis{dim, T}
+    parent::P
     λ::Vector{T}
     eᵢ::Matrix{T}
     eⁱ::Matrix{T}
     gᵢⱼ::Diagonal{T, Vector{T}}
     gⁱʲ::Diagonal{T, Vector{T}}
-    function OrthogonalBasis(parent::OrthonormalBasis{dim, T}, λ::Vector) where {dim, T}
+    function OrthogonalBasis(parent::OrthonormalBasis{dim, T0}, λ::Vector) where {dim, T0}
+        # Scale factors of a wider type than the frame (duals on a `Float64`
+        # frame) widen the basis rather than being converted to the frame's.
+        T = promote_type(T0, eltype(λ))
+        parent = _with_eltype(T, parent)
         λ = T.(λ)
         if all(isone.(λ))
             return parent
         else
             eᵢ = [λ[j] * parent[i, j] for i in 1:dim, j in 1:dim]
             eⁱ = [parent[i, j] / λ[j] for i in 1:dim, j in 1:dim]
-            return new{dim, T}(parent, λ, eᵢ, eⁱ, Diagonal(λ .^ 2), Diagonal(inv.(λ) .^ 2))
+            return new{dim, T, typeof(parent)}(parent, λ, eᵢ, eⁱ, Diagonal(λ .^ 2), Diagonal(inv.(λ) .^ 2))
         end
     end
 end
+
+# Scaling an orthonormal basis gives an orthogonal one.
+function Basis(ℬ::OrthonormalBasis{dim}, χᵢ::Union{AbstractVector, Tuple}) where {dim}
+    Χ = collect(χᵢ)
+    return all(isone, Χ) ? ℬ : OrthogonalBasis(ℬ, Χ)
+end
+
+# The same orthonormal basis with entries of type `T`.
+_with_eltype(::Type{T}, ::CanonicalBasis{dim}) where {dim, T} = CanonicalBasis{dim, T}()
+_with_eltype(::Type{T}, ℬ::RotatedBasis{dim, T}) where {dim, T} = ℬ
+_with_eltype(::Type{T}, ℬ::RotatedBasis) where {T} = RotatedBasis(Matrix{T}(vecbasis(ℬ, :cov)))
 
 relevant_OrthonormalBasis(ℬ::OrthogonalBasis) = ℬ.parent
 relevant_OrthonormalBasis(ℬ::OrthonormalBasis) = ℬ
@@ -436,7 +432,15 @@ angles(v::AbstractVector{T}) where {T} = angles(v, Val(size(v, 1)))
 
 invvar(::Val{:cov}) = :cont
 invvar(::Val{:cont}) = :cov
-invvar(var) = invvar(Val(var))
+invvar(var::Symbol) = _by_variance(invvar, var)
+
+# A variance is a run-time `Symbol`: branching on its two values keeps the call
+# static, where `Val(var)` was dispatched at run time on every call.
+@inline function _by_variance(f, var::Symbol, args...)
+    var === :cov && return f(args..., Val(:cov))
+    var === :cont && return f(args..., Val(:cont))
+    throw(ArgumentError("a variance is :cov or :cont, not :$var"))
+end
 
 
 """
@@ -449,14 +453,15 @@ vecbasis(ℬ::AbstractBasis, ::Val{:cont}) = ℬ.eⁱ
 vecbasis(::CanonicalBasis{dim, T}, ::Val{:cov}) where {dim, T} = Id2{dim, T}()
 vecbasis(::CanonicalBasis{dim, T}, ::Val{:cont}) where {dim, T} = Id2{dim, T}()
 
-vecbasis(ℬ::AbstractBasis, var) = vecbasis(ℬ, Val(var))
-vecbasis(ℬ::AbstractBasis) = vecbasis(ℬ, :cov)
-vecbasis(ℬ::AbstractBasis, i::Integer, j::Integer, var = :cov) = vecbasis(ℬ, Val(var))[i, j]
-vecbasis(ℬ::AbstractBasis, i::Integer, var = :cov) = vecbasis(ℬ, Val(var))[:, i]
+vecbasis(ℬ::AbstractBasis, var::Symbol) = _by_variance(vecbasis, var, ℬ)
+vecbasis(ℬ::AbstractBasis) = vecbasis(ℬ, Val(:cov))
+vecbasis(ℬ::AbstractBasis, i::Integer, j::Integer, var::Symbol = :cov) = vecbasis(ℬ, var)[i, j]
+vecbasis(ℬ::AbstractBasis, i::Integer, var::Symbol = :cov) = vecbasis(ℬ, var)[:, i]
 
 strvecbasis(::AbstractBasis, i::Integer, ::Val{:cov}; vec = "𝐞") = vec * subscriptnumber(i)
 strvecbasis(::AbstractBasis, i::Integer, ::Val{:cont}; vec = "𝐞") = vec * superscriptnumber(i)
-strvecbasis(ℬ::AbstractBasis, i::Integer, var = :cov; vec = "𝐞") = strvecbasis(ℬ, i, Val(var); vec = vec)
+strvecbasis(ℬ::AbstractBasis, i::Integer, var::Symbol = :cov; vec = "𝐞") =
+    _by_variance((ℬ, i, v) -> strvecbasis(ℬ, i, v; vec), var, ℬ, i)
 
 const dsubscriptchar = Dict(
     "a" => "ₐ",
@@ -524,7 +529,8 @@ superscriptchar(s::String) = s ∈ keys(dsuperscriptchar) ? dsuperscriptchar[s] 
 
 strvecbasis(::AbstractBasis, i::AbstractString, ::Val{:cov}; vec = "𝐞") = vec * subscriptchar(i)
 strvecbasis(::AbstractBasis, i::AbstractString, ::Val{:cont}; vec = "𝐞") = vec * superscriptchar(i)
-strvecbasis(ℬ::AbstractBasis, i::AbstractString, var = :cov; vec = "𝐞") = strvecbasis(ℬ, i, Val(var); vec = vec)
+strvecbasis(ℬ::AbstractBasis, i::AbstractString, var::Symbol = :cov; vec = "𝐞") =
+    _by_variance((ℬ, i, v) -> strvecbasis(ℬ, i, v; vec), var, ℬ, i)
 
 
 """
@@ -537,9 +543,9 @@ metric(ℬ::AbstractBasis, ::Val{:cont}) = ℬ.gⁱʲ
 metric(::OrthonormalBasis{dim, T}, ::Val{:cov}) where {dim, T} = Id2{dim, T}()
 metric(::OrthonormalBasis{dim, T}, ::Val{:cont}) where {dim, T} = Id2{dim, T}()
 
-metric(ℬ::AbstractBasis, var) = metric(ℬ, Val(var))
-metric(ℬ::AbstractBasis) = metric(ℬ, :cov)
-metric(ℬ::AbstractBasis, i::Integer, j::Integer, var = :cov) = metric(ℬ, Val(var))[i, j]
+metric(ℬ::AbstractBasis, var::Symbol) = _by_variance(metric, var, ℬ)
+metric(ℬ::AbstractBasis) = metric(ℬ, Val(:cov))
+metric(ℬ::AbstractBasis, i::Integer, j::Integer, var::Symbol = :cov) = metric(ℬ, var)[i, j]
 
 """
     normalize(ℬ::AbstractBasis, var = cov)

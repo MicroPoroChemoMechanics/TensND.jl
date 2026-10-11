@@ -5,8 +5,8 @@ symmetry — and, if the orientation is unknown, find that too. This page states
 the problem, derives the closed forms `TensND` uses at fixed orientation, and
 describes the optimizer used when the orientation is free.
 
-Implementation: `src/tens_projection.jl` and, for the orientation search, the
-weak-dependency extension `ext/TensNDNLoptExt.jl`. The formulation follows the
+Implementation: `src/tens_projection.jl` and, for the orientation search,
+`src/orientation_search.jl`. The formulation follows the
 one of the Echoes C++ library; the general theory of closest tensors of
 prescribed symmetry is due to [moakher2006](@citet), and the
 harmonic-decomposition alternative to [browaeys2004](@citet).
@@ -191,34 +191,51 @@ In practice `TensND` obtains this gradient by **automatic differentiation**
 (`ForwardDiff` through the objective), which is exact to machine precision and
 removes any risk of the analytic expression drifting from the code.
 
-### The optimizer
+### The search
 
-Loading `NLopt` activates `TensNDNLoptExt` and enables the no-orientation
-methods of [`proj_tens`](@ref). The strategy is a **deterministic multi-start**:
+When the orientation is free, [`proj_tens`](@ref) searches it, with no
+dependency beyond `ForwardDiff`:
 
-1. a candidate from the eigenstructure of ``C`` (`_candidate_TI_axis`,
-   `_candidate_ORTHO_frame`, `_candidate_CUBIC_frame`) — exact whenever the
-   tensor genuinely has the symmetry sought;
-2. a fixed angular grid containing the canonical axes;
-3. `LD_TNEWTON` local refinement from every start, with ForwardDiff gradients;
-4. the best objective over all starts *and* all refined starts.
+1. the objective is **screened** on a fixed, quasi-uniform set of orientations:
+   200 axes spread over a hemisphere along a golden-angle spiral for the TI
+   axis; 100 such axes, each with four turns about it, for an orthotropic or a
+   cubic frame — a quarter turn about an axis of the frame maps it onto an
+   equivalent one. An evaluation costs about a third of a microsecond;
+2. **Newton's method** on the angles refines the three (TI) or four (frames)
+   best screened orientations, the eigenstructure candidate
+   (`_candidate_TI_axis`, `_candidate_ORTHO_frame` — exact whenever the tensor
+   genuinely has the symmetry sought; there is none for the cubic class, every
+   second-order contraction of a cubic tensor being isotropic) and the
+   canonical orientation. The Hessian is exact (`ForwardDiff`, a ``2\times2``
+   or ``3\times3`` matrix), so the refinement converges quadratically near a
+   minimum; away from one, each eigen-direction is scaled by the absolute value
+   of its curvature and a backtracking line search keeps the objective
+   decreasing;
+3. the best objective over every refined orientation is kept.
 
-Two properties follow, and both matter:
+Three properties follow:
 
-- **reproducibility** — repeated calls return bit-identical angles;
-- **no regression** — because the grid contains the canonical frame, the
-  optimized projection is never worse than the fixed-frame projection along any
-  grid point.
+- **reproducibility** — no random step, so repeated calls return bit-identical
+  angles;
+- **no regression** — the result is never worse than the projection about any
+  refined orientation, the eigenstructure candidate and the canonical one
+  included;
+- **globality, as measured** — on 150 random anisotropic stiffnesses, the
+  minimum found matched, to rounding, that of a dense search (3,000 axes; 7,200
+  frames, the best of each refined), which a multi-start from a dozen fixed
+  points missed for about one TI tensor in twenty. The test suite repeats the
+  comparison on random tensors.
 
-!!! note "Why the stochastic global pass was removed"
-    Earlier versions followed the Echoes C++ strategy: a `GD_MLSL` global stage
-    followed by a local one. `GD_MLSL` is stochastic and NLopt seeds it from the
-    clock, so results were irreproducible from call to call. On a tensor exactly
-    orthotropic about a tilted frame, roughly 0.5 % of runs returned a spurious
-    local minimum (``d_{\text{rel}}\approx0.44`` instead of ``\approx10^{-13}``),
-    which surfaced as an intermittent CI failure. The multi-start above matched
-    or beat the best of 30 `GD_MLSL` runs on every tensor tested — 150 random
-    anisotropic ones included — and is 3 to 8 times faster.
+At **order 2** no search is needed. In the frame of the eigenvectors of the
+symmetric part of ``\boldsymbol{A}``, the orthotropic projection keeps all of
+that part, the most any frame can keep, so that frame is the optimum. About an
+axis ``\underline{n}``, the transversely isotropic projection is
+``a\,(\boldsymbol{1}-\underline{n}\otimes\underline{n})+b\,\underline{n}\otimes\underline{n}``
+with ``b=q=\underline{n}\cdot\boldsymbol{A}\cdot\underline{n}`` and
+``a=(\operatorname{tr}\boldsymbol{A}-q)/2``; its squared norm
+``(\operatorname{tr}\boldsymbol{A}-q)^2/2+q^2`` is convex in ``q``, which ranges
+over the eigenvalues of the symmetric part, so the optimum is at the smallest or
+the largest one, and the axis is the corresponding eigenvector.
 
 ## Detecting the symmetry: the cascade
 
@@ -241,10 +258,10 @@ contains them both.
 The relative criterion is what makes the tolerance dimensionless and independent
 of the units of the moduli. Two modes:
 
-| `optimize_angles` | TI axis / ORTHO frame / CUBIC frame | Needs NLopt |
-| :---------------- | :-------------------- | :---------- |
-| `false` (default) | taken from the tensor if it is a structured container, otherwise from the Kelvin–Mandel eigenstructure | no |
-| `true` | found by the multi-start above | yes |
+| `optimize_angles` | TI axis / ORTHO frame / CUBIC frame |
+| :---------------- | :-------------------- |
+| `false` (default) | taken from the tensor if it is a structured container, otherwise from the Kelvin–Mandel eigenstructure |
+| `true` | found by the search above |
 
 The value-level predicates [`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref),
 [`is_CUBIC`](@ref)

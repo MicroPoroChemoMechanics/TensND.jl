@@ -6,8 +6,8 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 # ── Symbolic helpers (generic T) ─────────────────────────────────────────────
-# A single definition per operation, dispatched via Union, replacing the
-# identical loops previously duplicated in each file.
+# A single definition per operation, dispatched on the union of the
+# structured types.
 
 for OP in (:tsimplify, :tfactor, :tsubs, :tdiff, :ttrigsimp, :texpand_trig, :tlimit)
     @eval $OP(A::Union{TensISO, TensTI{4}, TensTI, TensOrtho, TensCubic}, args...; kwargs...) =
@@ -51,9 +51,11 @@ end
 # for a reason given in `_same_cube_frame`.  Binary arithmetic requires the
 # same reference.
 
+# An `ArgumentError` rather than `@assert`, which may be compiled out.
 @inline _check_same_reference(A::TensTI{4}, B::TensTI{4}) =
-    @assert axis(A) == axis(B) "TensTI{4} operation requires the same axis"
+    axis(A) == axis(B) || throw(ArgumentError("TensTI{4} operation requires the same axis"))
 @inline _check_same_reference(A::TensTI, B::TensTI) =
-    @assert axis(A) == axis(B) "TensTI operation requires the same axis"
+    axis(A) == axis(B) || throw(ArgumentError("TensTI operation requires the same axis"))
 @inline _check_same_reference(A::TensOrtho, B::TensOrtho) =
-    @assert frame(A) == frame(B) "TensOrtho operation requires the same material frame"
+    frame(A) == frame(B) ||
+    throw(ArgumentError("TensOrtho operation requires the same material frame"))

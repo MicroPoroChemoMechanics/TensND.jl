@@ -240,10 +240,8 @@ connection(SM::SubManifoldSym{dim}) where {dim} = core(SM).Γ[1:(dim - 1), 1:(di
 # along the `dim` ambient ones. That single number is the *only* difference
 # between the symbolic operators here and those of a chart, so `∂`, `GRAD`,
 # `SYMGRAD`, `DIV`, `LAPLACE` and `HESS` are defined once in `coorsystems.jl`
-# over `AbstractCoorSystem` and parametrized by `nderiv`. They used to be
-# duplicated verbatim in this file — which is how the `∂coord` fix had to be
-# applied twice, and how the covariant/contravariant swap survived here after
-# being fixed for charts.
+# over `AbstractCoorSystem` and parametrized by `nderiv`, so that a submanifold
+# and a chart cannot drift apart.
 nderiv(::SubManifoldSym{dim}) where {dim} = dim - 1
 
 export SubManifoldSym

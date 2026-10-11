@@ -99,10 +99,12 @@ opequal(x, y) = x == y || x ≈ y
 include("test_bases.jl")
 include("test_tens.jl")
 include("test_tensor_products.jl")
+include("test_hot_paths.jl")
 include("test_tens_isotropic.jl")
 include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
 include("test_tens_projection.jl")
+include("test_orientation_search.jl")
 include("test_tens_rotational_average.jl")
 include("test_special_tens.jl")
 include("test_coorsystems.jl")
@@ -115,9 +117,8 @@ include("test_submanifold.jl")
 include("test_conventions.jl")
 # The nomenclature of the documentation and the typography of its formulas.
 include("test_docs_nomenclature.jl")
-# Must stay last: it loads NLopt, which `test_tens_projection.jl` requires to
-# be absent.
-include("test_nlopt_ext.jl")
+# The bitwise lock of the tensor algebra; see `golden/cases.jl`.
+include("test_golden.jl")
 
 print_timer()
 println()

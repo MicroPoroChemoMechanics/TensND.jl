@@ -13,12 +13,6 @@ julia --project=. -e 'using Pkg; Pkg.test()'
 reproducible, wraps each file in a `@testsection` with `TimerOutputs`, and
 includes the files in a **deliberate order**.
 
-!!! warning "`test_nlopt_ext.jl` must stay last"
-    Loading `NLopt` permanently activates `TensNDNLoptExt` for the session, and
-    `test/test_tens_projection.jl` asserts the behavior of the *cheap*,
-    no-NLopt path. Moving the extension test earlier makes the projection tests
-    exercise a different code path than intended.
-
 ## Conventions pinned by tests
 
 Each of the following is a statement made somewhere in the documentation that a
@@ -80,9 +74,9 @@ integers, exact tuples — are written as `jldoctest` and run by
 
 ```bash
 julia --project=docs -e '
-  using TensND, Documenter, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations
+  using TensND, Documenter, LinearAlgebra, SymPy, Tensors, Rotations
   DocMeta.setdocmeta!(TensND, :DocTestSetup,
-      :(using TensND, LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations); recursive = true)
+      :(using TensND, LinearAlgebra, SymPy, Tensors, Rotations); recursive = true)
   doctest(TensND)'
 ```
 

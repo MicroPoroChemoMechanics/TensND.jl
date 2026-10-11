@@ -8,30 +8,44 @@ How the source is organized, and why. Files are listed in the order
 ```mermaid
 %%{init: {"flowchart": {"useMaxWidth": false}}}%%
 flowchart TB
-    AU["<b>array_utils.jl</b><br/>products and contractions<br/>on raw arrays (OMEinsum)"]
+    CK["<b>contraction_kernels.jl</b><br/>the three contraction shapes"]
+    AU["<b>array_utils.jl</b><br/>products and contractions<br/>on raw arrays"]
     BA["<b>bases.jl</b><br/>Basis hierarchy,<br/>metric, variance"]
-    TE["<b>tens.jl</b><br/>AbstractTens, Tens,<br/>components, KM"]
+    TE["<b>tens.jl</b><br/>AbstractTens, Tens,<br/>accessors, storage"]
+    TD["<b>tens_display.jl</b><br/>show, pprint"]
+    TC["<b>tens_components.jl</b><br/>components, change_tens,<br/>equality"]
+    KMF["<b>kelvin_mandel.jl</b><br/>KM, inv_KM"]
+    TA["<b>tens_algebra.jl</b><br/>arithmetic, products,<br/>contractions"]
     ISO["<b>tens_isotropic.jl</b><br/>TensISO"]
     ANI["<b>tens_anisotropic.jl</b><br/>TensTI, TensOrtho"]
     CUB["<b>tens_cubic.jl</b><br/>TensCubic"]
     OPS["<b>structured_tens_ops.jl</b><br/>shared metaprogramming"]
     PRO["<b>structured_tens_promotion.jl</b><br/>cross-class promotion"]
     PRJ["<b>tens_projection.jl</b><br/>projection kernels"]
+    ORI["<b>orientation_search.jl</b><br/>free axis or frame"]
+    SYM["<b>symmetry_search.jl</b><br/>best_sym_tens"]
+    RA["<b>tens_rotational_average.jl</b><br/>isotropic and transverse averages"]
     SPE["<b>special_tens.jl</b><br/>LeviCivita, rot2/3/6, init_*"]
     CSS["<b>coorsystems.jl</b><br/>CoorSystemSym"]
     CSN["<b>coorsystems_num.jl</b><br/>CoorSystemNum"]
     SUB["<b>submanifold.jl</b><br/>SubManifoldSym"]
-    AU --> BA --> TE --> ISO --> ANI --> OPS --> PRO --> PRJ --> SPE --> CSS --> CSN --> SUB
+    CK --> AU --> BA --> TE --> TD --> TC --> KMF --> TA --> ISO --> ANI --> CUB --> OPS --> PRO --> PRJ --> ORI --> SYM --> RA --> SPE --> CSS --> CSN --> SUB
 ```
 
 ## Layers
 
-**Raw arrays.** `array_utils.jl` implements every product as an OMEinsum
-contraction code on `AbstractArray`s. It knows nothing about bases, and is
-therefore generic in the element type by construction. Everything above it
+**Raw arrays.** `contraction_kernels.jl` writes the three shapes every
+contraction takes — one index changed by a matrix, the last indices of one
+array against the first of another, two indices traced together — for any
+order, and `array_utils.jl` builds every product on them and on broadcasts. It
+knows nothing about bases, and is therefore generic in the element type by
+construction. Everything above it
 inherits that genericity.
 
-**Bases and tensors.** `bases.jl` and `tens.jl` add the basis and the variance.
+**Bases and tensors.** `bases.jl` and `tens.jl` add the basis and the variance;
+`tens_display.jl`, `tens_components.jl`, `kelvin_mandel.jl` and `tens_algebra.jl`
+display tensors, change their basis, write them in Kelvin-Mandel notation and
+operate on them.
 The tensor type follows the basis type, which is what makes the cost of a
 component conversion a property of the data rather than of the call site.
 
@@ -43,8 +57,10 @@ generates the scalar arithmetic and the symbolic passes from those two.
 `structured_tens_promotion.jl` handles mixed-class operations.
 
 **Projection.** `tens_projection.jl` works entirely in the ``6\times6``
-Kelvin–Mandel picture. The orientation search lives in the weak-dependency
-extension `ext/TensNDNLoptExt.jl`, so `NLopt` is optional.
+Kelvin–Mandel picture, at a given orientation. `orientation_search.jl` searches
+the axis or the frame when it is free — a screening of fixed orientations, then
+Newton's method on the angles from the best ones — and `symmetry_search.jl`
+tries the classes in turn.
 
 **Differential calculus.** The symbolic side is written **once**. `∂` and the
 five operators are defined in `coorsystems.jl` over `AbstractCoorSystem`, and
@@ -78,13 +94,3 @@ a product of two orthotropic tensors needs twelve constants, not nine. The
 fallback is bit-for-bit the generic computation, never an approximation. The
 full table is on [Structured tensors](@ref man-structured).
 
-## The extension
-
-`ext/TensNDNLoptExt.jl` overrides `TensND._proj_tens_opt`, the hook the
-no-orientation methods of [`proj_tens`](@ref) dispatch to. Without `NLopt` those
-methods throw a clear error; with it, they run the deterministic multi-start
-described on [Projection onto a symmetry class](@ref th-projection).
-
-Because loading `NLopt` **permanently** activates the extension for the session,
-`test/test_nlopt_ext.jl` must run last: `test/test_tens_projection.jl` asserts
-the no-NLopt behavior and would fail after it.

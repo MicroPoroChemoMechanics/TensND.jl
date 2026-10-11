@@ -35,9 +35,8 @@ coefficients, the connection array, and the symbolic-simplification settings.
 Held by both [`CoorSystemSym`](@ref) and [`SubManifoldSym`](@ref) — which
 differ only in what they *add* to it (a submanifold adds the two fundamental
 forms) and in how many directions they differentiate along ([`nderiv`](@ref)).
-Declaring the block once is what keeps the two in step: it was previously
-duplicated field for field, and every fix to one had to be repeated in the
-other.
+Declaring the block once keeps the two in step: a fix to one is a fix to
+the other.
 
 Reached through [`core`](@ref); user code should go through the accessors
 ([`getcoords`](@ref), [`Lame`](@ref), [`Christoffel`](@ref), …) instead.
@@ -171,14 +170,10 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
         # Plain componentwise derivative of the position vector — deliberately
         # NOT the two-argument `∂`.
         #
-        # `@set_coorsys` installs a method `∂(::AbstractTens, ::Sym)` bound to
-        # whatever system was made the default, and it is more specific than the
-        # variadic fallback, so it wins here. It then looks `coords[i]` up among
-        # *its own* coordinates, does not find it, and returns `zero(t)`: every
-        # natural vector comes out null, the frame matrix is singular, and the
-        # constructor dies with `NonInvertibleMatrixError`. In other words,
-        # building any new coordinate system after a `@set_coorsys` used to
-        # fail. `SubManifoldSym` carries the same fix.
+        # The natural vectors are the derivatives of the canonical components
+        # of the position vector, taken here directly: what they are must not
+        # depend on any method a chart adds to `∂`. `SubManifoldSym` does the
+        # same.
         ∂coord(t, xᵢ) = change_tens(Tens(tdiff(components_canon(t), xᵢ)), get_basis(t), get_var(t))
         aᵢ = ntuple(i -> simp(chvar(∂coord(OMc, coords[i]), tmp_var)), dim)
         χᵢ = ntuple(i -> simp(norm(aᵢ[i])), dim)
@@ -215,12 +210,9 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
     end
 end
 
-# These four were restricted to `CoorSystemSym` while every neighboring
-# accessor below dispatches on `AbstractCoorSystem`.  `SubManifoldSym` is also
-# an `AbstractCoorSystem` and carries the very same fields, so the restriction
-# made `∂`/`GRAD`/`DIV`/`LAPLACE`/`HESS` on a submanifold fail with a
-# `MethodError` on `only_coords`.
-with_tmp_var(CS::AbstractCoorSystem, t) = length(core(CS).tmp_var) > 0 ? tsubs(t, core(CS).tmp_var...) : t
+# On `AbstractCoorSystem`, like every accessor below: `SubManifoldSym` carries
+# the same fields, and `∂`/`GRAD`/`DIV`/`LAPLACE`/`HESS` on a submanifold reach
+# `only_coords`.
 only_coords(CS::AbstractCoorSystem, t) = length(core(CS).to_coords) > 0 ? tsubs(t, core(CS).to_coords...) : t
 
 """
@@ -235,7 +227,7 @@ that `θ = ϕ = 0` reproduces the canonical basis in the canonical order.
 getcoords(CS::AbstractCoorSystem) = core(CS).coords
 getcoords(CS::AbstractCoorSystem, i::Integer) = getcoords(CS)[i]
 
-@pure get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
+get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
 
 """
     nderiv(CS::AbstractCoorSystem) → Int
@@ -247,7 +239,7 @@ which differentiates along its surface coordinates only. Every differential
 operator loops to `nderiv(CS)`, which is what lets a single implementation serve
 both.
 """
-@pure nderiv(::AbstractCoorSystem{dim}) where {dim} = dim
+nderiv(::AbstractCoorSystem{dim}) where {dim} = dim
 
 """
     getOM(CS::AbstractCoorSystem) → AbstractTens{1}
@@ -297,7 +289,7 @@ simprules(t, CS::AbstractCoorSystem) = length(core(CS).rules) > 0 ? tsubs(t, cor
 
 natvec(CS::AbstractCoorSystem, ::Val{:cov}) = core(CS).aᵢ
 natvec(CS::AbstractCoorSystem, ::Val{:cont}) = core(CS).aⁱ
-natvec(CS::AbstractCoorSystem, var = :cov) = natvec(CS, Val(var))
+natvec(CS::AbstractCoorSystem, var::Symbol = :cov) = _by_variance(natvec, var, CS)
 natvec(CS::AbstractCoorSystem, i::Integer, var = :cov) = natvec(CS, var)[i]
 
 unitvec(CS::AbstractCoorSystem) = core(CS).eᵢ
@@ -310,7 +302,8 @@ function compute_Christoffel(coords, χ, γ, invγ)
     ∂g = [tdiff(gᵢⱼ[i, j], coords[k]) for i in 1:dim, j in 1:dim, k in 1:dim]
     Γᵢⱼₖ =
         [(∂g[i, k, j] + ∂g[j, k, i] - ∂g[i, j, k]) / 2 for i in 1:dim, j in 1:dim, k in 1:dim]
-    return ein"ijl,lk->ijk"(Γᵢⱼₖ, gⁱʲ)
+    # Γᵢⱼᵏ = Γᵢⱼₗ gˡᵏ: the last index raised by the inverse metric.
+    return _contract_trailing(Γᵢⱼₖ, gⁱʲ, Val(1))
 end
 
 """
@@ -356,10 +349,7 @@ function ∂(
     Γ = Christoffel(CS)
     data = tdiff(t, getcoords(CS, i))
     for o in 1:order
-        ec1 = ntuple(j -> j == o ? order + 1 : j, order)
-        ec2 = (order + 1, o)
-        ec3 = ntuple(j -> j, order)
-        data += einsum(EinCode((ec1, ec2), ec3), (t, view(Γ, i, :, :)))
+        data += _contract_index(t, view(Γ, i, :, :), o)
     end
     return change_tens(Tens(simprules(data, CS), ℬ, var), normalized_basis(CS), var)
 end
@@ -829,25 +819,18 @@ end
 
 # ── The default coordinate system ────────────────────────────────────────────
 #
-# `@set_coorsys` used to `@eval` single-argument methods for `∂`, `GRAD`, `DIV`,
-# … straight into this module. That is global mutation of the method table from
-# a macro, and it caused two concrete failures:
-#
-#   * `∂(t, x)` already means "plain derivative with respect to the symbol `x`"
-#     (see the `∂` docstring). The generated method was *more specific* than
-#     that fallback, so after any `@set_coorsys` the same call silently became a
-#     covariant derivative in the default chart — which then failed to find `x`
-#     among its own coordinates and returned `zero(t)`. Every constructor that
-#     differentiates a position vector was broken by it.
-#   * it invalidates compiled code and is invisible at the call site.
-#
-# The default is now a plain `Ref`, and the single-argument methods are defined
-# once, below. `∂` deliberately gets **no** default-chart method: it keeps its
-# one unambiguous meaning.
+# The default chart is data held in a reference, and the single-argument forms
+# of `GRAD`, `DIV`, … are ordinary methods defined once, below. Methods
+# evaluated into the module by `@set_coorsys` would mutate the method table
+# globally — invalidating compiled code, invisibly at the call site — and a
+# default-chart `∂(t, x)` would be more specific than the plain derivative with
+# respect to the symbol `x` and silently turn it into a covariant derivative.
+# `∂` therefore has **no** default-chart method: it keeps its one meaning.
 
-const _DEFAULT_COORSYS = Ref{Any}(nothing)
-const _DEFAULT_COORSYS_VEC = Ref{Char}('𝐞')
-const _DEFAULT_COORSYS_COORDS = Ref{Any}(nothing)
+# One reference holds the whole default — the chart, the letter of its vectors
+# and the names of its coordinates — so that a reader never sees parts of two
+# different `set_coorsys!` calls.
+const _DEFAULT_COORSYS = Ref{Any}(nothing)      # `nothing` or `(; CS, vec, coords)`
 
 """
     set_coorsys!(CS; vec = '𝐞', coords = nothing) → CS
@@ -867,9 +850,7 @@ The macro [`@set_coorsys`](@ref) is a thin wrapper over this function.
 See also [`default_coorsys`](@ref), [`unset_coorsys!`](@ref).
 """
 function set_coorsys!(CS::AbstractCoorSystem; vec::Char = '𝐞', coords = nothing)
-    _DEFAULT_COORSYS[] = CS
-    _DEFAULT_COORSYS_VEC[] = vec
-    _DEFAULT_COORSYS_COORDS[] = coords
+    _DEFAULT_COORSYS[] = (; CS, vec, coords)
     return CS
 end
 
@@ -880,31 +861,30 @@ The coordinate system installed by [`set_coorsys!`](@ref) or
 [`@set_coorsys`](@ref). Throws if none has been set.
 """
 function default_coorsys()
-    CS = _DEFAULT_COORSYS[]
-    CS === nothing && error(
+    d = _DEFAULT_COORSYS[]
+    d === nothing && error(
         "no default coordinate system is set: call `set_coorsys!(CS)` " *
             "(or `@set_coorsys CS`), or pass the system explicitly as the last argument."
     )
-    return CS
+    return d.CS
 end
 
 """
     unset_coorsys!()
 
-Forget the default coordinate system installed by [`set_coorsys!`](@ref).
+Forget the default coordinate system installed by [`set_coorsys!`](@ref), with
+the letter and the coordinate names it gave [`pprint`](@ref).
 """
 function unset_coorsys!()
     _DEFAULT_COORSYS[] = nothing
-    _DEFAULT_COORSYS_COORDS[] = nothing
     return nothing
 end
 
 # Single-argument forms, defined once and for all.
 #
-# One method per branch of what used to be `Union{T, AbstractTens} where
-# {T <: SymType}`: with an `AbstractTens` argument that union binds `T` to
-# nothing, a signature Julia accepts and can never dispatch on. Same behavior,
-# same two accepted argument types.
+# One method per kind of argument: a single `Union{T, AbstractTens} where
+# {T <: SymType}` would bind `T` to nothing for an `AbstractTens`, a signature
+# Julia accepts and can never dispatch on.
 for OP in (:GRAD, :SYMGRAD, :LAPLACE, :HESS)
     @eval $OP(t::AbstractTens) = $OP(t, default_coorsys())
     @eval $OP(t::T) where {T <: SymType} = $OP(t, default_coorsys())
@@ -946,13 +926,12 @@ end
 # than with numbered basis vectors. Without a default it falls through to the
 # generic method in `tens.jl`.
 function pprint(t::AbstractTens{order, dim, T}) where {order, dim, T <: SymType}
-    CS = _DEFAULT_COORSYS[]
-    (CS === nothing || get_dim(CS) != dim) &&
-        return pprint(t; vec = _DEFAULT_COORSYS_VEC[], coords = ntuple(i -> i, dim))
-    coords = _DEFAULT_COORSYS_COORDS[]
-    coords === nothing && (coords = string.(getcoords(CS)))
+    d = _DEFAULT_COORSYS[]
+    d === nothing && return pprint(t; vec = '𝐞', coords = ntuple(i -> i, dim))
+    get_dim(d.CS) != dim && return pprint(t; vec = d.vec, coords = ntuple(i -> i, dim))
+    coords = d.coords === nothing ? string.(getcoords(d.CS)) : d.coords
     length(coords) == dim - 1 && (coords = (coords..., dim))
-    return pprint(change_tens(t, normalized_basis(CS)); vec = _DEFAULT_COORSYS_VEC[], coords = coords)
+    return pprint(change_tens(t, normalized_basis(d.CS)); vec = d.vec, coords = coords)
 end
 
 function pprint(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '𝐞') where {order, dim, T}

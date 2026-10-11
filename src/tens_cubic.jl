@@ -104,9 +104,9 @@ TensCubic{T}(data::NTuple{3}, frame::B) where {T, B <: OrthonormalBasis{3}} =
 
 # ── Traits ───────────────────────────────────────────────────────────────────
 
-@pure Base.eltype(::Type{TensCubic{T}}) where {T} = T
-@pure Base.length(::TensCubic) = 81
-@pure Base.size(::TensCubic) = (3, 3, 3, 3)
+Base.eltype(::Type{TensCubic{T}}) where {T} = T
+Base.length(::TensCubic) = 81
+Base.size(::TensCubic) = (3, 3, 3, 3)
 
 get_basis(::TensCubic{T}) where {T} = CanonicalBasis{3, T}()
 get_var(::TensCubic) = (:cont, :cont, :cont, :cont)
@@ -234,7 +234,7 @@ Base.IndexStyle(::Type{<:TensCubic}) = IndexCartesian()
 The 6×6 Kelvin-Mandel matrix in the **canonical** frame. Use
 [`KM_material`](@ref) for the sparse form in the cube frame.
 """
-KM(t::TensCubic) = tomandel(tensor_or_array(get_array(t)))
+KM(t::TensCubic) = tomandel(_static_tensor(t))
 
 """
     KM_material(t::TensCubic)
@@ -297,7 +297,8 @@ function _same_cube_frame(A::TensCubic, B::TensCubic)
 end
 
 @inline _check_same_reference(A::TensCubic, B::TensCubic) =
-    @assert _same_cube_frame(A, B) "TensCubic operation requires frames describing the same cube"
+    _same_cube_frame(A, B) ||
+    throw(ArgumentError("TensCubic operation requires frames describing the same cube"))
 
 # ── Arithmetic ───────────────────────────────────────────────────────────────
 # Scalar operations (-, α*A, A*α, A/α) come from structured_tens_ops.jl.

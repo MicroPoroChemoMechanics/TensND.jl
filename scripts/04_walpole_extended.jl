@@ -12,7 +12,7 @@
 import Pkg                                                          #jl
 Pkg.activate(joinpath(@__DIR__, "..", "docs"); io = devnull)        #jl
 ## The `docs` environment declares every dependency the tutorials use     #jl
-## (SymPy, Symbolics, NLopt, BenchmarkTools, ...) and resolves TensND      #jl
+## (SymPy, Symbolics, BenchmarkTools, ...) and resolves TensND             #jl
 ## itself through `[sources]`. These four lines are stripped from the      #jl
 ## generated page and notebook, which already run inside that project.     #jl
 

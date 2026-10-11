@@ -82,4 +82,27 @@
     end
 
 
+    @testsection "The default chart" begin
+        # The chart, its letter and its coordinate names were held in three
+        # references, set one after the other, and `unset_coorsys!` forgot only
+        # two of them: the letter of a forgotten chart stayed in `pprint`.
+        printed(x) = mktemp() do path, io
+            redirect_stdout(() -> pprint(x), io)
+            flush(io)
+            read(path, String)
+        end
+        unset_coorsys!()
+        @test_throws ErrorException default_coorsys()
+        Polar = coorsys_polar()
+        r, θ = getcoords(Polar)
+        f = SymFunction("f", real = true)(r, θ)
+        @test set_coorsys!(Polar; vec = '𝐮') === Polar
+        @test default_coorsys() === Polar
+        @test GRAD(f) == GRAD(f, Polar)
+        v = Tens(Sym[1, 0])
+        @test occursin('𝐮', printed(v))
+        unset_coorsys!()
+        @test_throws ErrorException default_coorsys()
+        @test !occursin('𝐮', printed(v))
+    end
 end

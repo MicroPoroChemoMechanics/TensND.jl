@@ -11,7 +11,7 @@
 import Pkg                                                          #jl
 Pkg.activate(joinpath(@__DIR__, "..", "docs"); io = devnull)        #jl
 ## The `docs` environment declares every dependency the tutorials use     #jl
-## (SymPy, Symbolics, NLopt, BenchmarkTools, ...) and resolves TensND      #jl
+## (SymPy, Symbolics, BenchmarkTools, ...) and resolves TensND             #jl
 ## itself through `[sources]`. These four lines are stripped from the      #jl
 ## generated page and notebook, which already run inside that project.     #jl
 
@@ -52,7 +52,7 @@ for α in (0.0, 15.0, 30.0, 45.0, 90.0)
 end
 
 # At 90° the axis lies in the isotropy plane and the fit is worst; at 0° it is
-# exact. This function of the orientation is what the optimizer minimizes.
+# exact. This function of the orientation is what the search minimizes.
 
 # ## Fixed frame versus optimized frame
 #
@@ -68,10 +68,8 @@ _, _, drel_true = proj_tens(:TI, arr(C_tilt), n_tilt)
 @printf "assuming the canonical axis : drel = %.4e\n" drel_canon
 @printf "using the true axis         : drel = %.4e\n" drel_true
 
-# Without `NLopt` the axis must be supplied. Loading it activates the extension
-# and enables the no-axis methods, which search over the orientation.
-
-using NLopt
+# Without an axis, `proj_tens` searches it: the objective is screened on fixed
+# orientations, then Newton's method on the angles refines the best ones.
 
 B_opt, d_opt, drel_opt = proj_tens(:TI, arr(C_tilt))
 @printf "optimized axis              : drel = %.4e\n" drel_opt
@@ -88,9 +86,8 @@ min(
 
 # ## Determinism
 #
-# The multi-start is deterministic — no clock-seeded global stage — so repeated
-# calls return bit-identical results. This matters: the previous stochastic
-# strategy produced intermittent CI failures.
+# The search has no random step, so repeated calls return bit-identical
+# results.
 
 results = [proj_tens(:TI, arr(C_tilt))[3] for _ in 1:5]
 all(r === results[1] for r in results), results[1]
@@ -136,7 +133,7 @@ end
 
 # Without optimization the axis and frame are guessed from the Kelvin–Mandel
 # eigenstructure, which is exact when the tensor really does have the symmetry —
-# so the cheap path finds the tilted cases too, and needs no `NLopt`:
+# so the cheap path finds the tilted cases too, with no search:
 
 println("\nwithout angle optimization (cheap path):")
 for (name, C) in materials
@@ -146,8 +143,9 @@ end
 
 # ## Cost
 #
-# The cheap path is a handful of closed-form averages; the optimized one runs a
-# multi-start local search over two or three angles.
+# The cheap path is a handful of closed-form averages; the optimized one screens
+# fixed orientations and refines the best ones by Newton's method over two or
+# three angles.
 
 using BenchmarkTools
 

@@ -46,12 +46,11 @@ struct TensISO{order, dim, T, N} <: AbstractTens{order, dim, T}
         new{order, dim, T, order ÷ 2}(ntuple(_ -> one(T), Val(order ÷ 2)))
 end
 
-@pure get_order(::TensISO{order}) where {order} = order
-@pure get_dim(::TensISO{order, dim}) where {order, dim} = dim
-@pure Base.eltype(::Type{TensISO{order, dim, T}}) where {order, dim, T} = T
-@pure Base.length(::TensISO{order, dim, T, N}) where {order, dim, T, N} = dim^order
-@pure datanumber(::TensISO{order, dim, T, N}) where {order, dim, T, N} = N
-@pure Base.size(::TensISO{order, dim}) where {order, dim} = ntuple(_ -> dim, Val(order))
+get_order(::TensISO{order}) where {order} = order
+get_dim(::TensISO{order, dim}) where {order, dim} = dim
+Base.eltype(::Type{TensISO{order, dim, T}}) where {order, dim, T} = T
+Base.length(::TensISO{order, dim, T, N}) where {order, dim, T, N} = dim^order
+Base.size(::TensISO{order, dim}) where {order, dim} = ntuple(_ -> dim, Val(order))
 Base.getindex(t::TensISO{2}, i::Integer, j::Integer) = t.data[1] * I[i, j]
 Base.getindex(
     t::TensISO{4, dim},
@@ -339,9 +338,11 @@ Displaying one did too, `show` going through `KM`.
 """
 function KM(A::TensISO{4, dim}) where {dim}
     α, β = get_data(A)
-    T = promote_type(typeof(α), typeof(β))
     m = dim * (dim + 1) ÷ 2
     sph = (α - β) / dim
+    # The type of the spherical part too: `(α - β) / dim` of integer moduli is
+    # not an integer.
+    T = promote_type(typeof(α), typeof(β), typeof(sph))
     M = zeros(T, m, m)
     @inbounds for i in 1:m
         M[i, i] = T(β)
@@ -448,9 +449,8 @@ function Tensors.dcontract(
     ) where {order, dim, T}
     nB = TensOrthonormal(B)
     m = get_array(nB)
-    # `ec1` is the identity permutation, so this is a plain index swap of the
-    # first two axes — `permutedims` does the same thing without OMEinsum's
-    # `EinCode` dispatch/allocation overhead.
+    # The symmetrized product needs the first two axes swapped: a plain
+    # `permutedims`.
     ec2 = (2, 1, ntuple(i -> i + 2, order - 2)...)
     m2 = permutedims(m, ec2)
     newm =
@@ -465,8 +465,7 @@ function Tensors.dcontract(
     ) where {order, dim, T}
     nA = TensOrthonormal(A)
     m = get_array(nA)
-    # Plain index swap of the last two axes — see the mirror-image method
-    # above for why `permutedims` replaces the OMEinsum call.
+    # The last two axes swapped, as in the mirror-image method above.
     ec2 = (ntuple(i -> i, order - 2)..., order, order - 1)
     m2 = permutedims(m, ec2)
     newm =
@@ -560,13 +559,30 @@ See also [`proj_tens`](@ref), [Isotropic tensors](@ref th-isotropic).
 """
 isotropify(A::AbstractArray{T, 2}) where {T} = TensISO{size(A)[1]}(tr(A) / size(A)[1])
 
+# The dimension of a plain array is known at run time only: one branch per
+# dimension in use turns it into a type parameter, so that the `TensISO` built
+# below has a concrete type instead of being constructed dynamically.
 function isotropify(A::AbstractArray{T, 4}) where {T}
-    dim = size(A)[1]
-    α = tens_J4(dim, T) ⊙ A
-    # 5 = dim(deviatoric space) = dim(𝕂) for 3D; generalizes to dim*(dim+1)/2 - 1
-    dimK = dim * (dim + 1) / 2 - 1
-    β = (tens_K4(dim, T) ⊙ A) / dimK
-    return TensISO{dim}(α, β)
+    d = _dim_of(A)
+    d == 3 && return _isotropify4(A, Val(3))
+    d == 2 && return _isotropify4(A, Val(2))
+    return _isotropify4(A, Val(d))
+end
+
+function _isotropify4(A::AbstractArray{T, 4}, ::Val{d}) where {T, d}
+    # 𝔸 ⊙ 𝕁 = Aᵢᵢⱼⱼ/d and 𝔸 ⊙ 𝕂 = (Aᵢⱼᵢⱼ + Aᵢⱼⱼᵢ)/2 − 𝔸 ⊙ 𝕁, summed directly: d²
+    # terms, where contracting with 𝕁 and 𝕂 built for the purpose read 2·3⁴.
+    sJ = zero(T)    # Aᵢᵢⱼⱼ
+    sI = zero(T)    # Aᵢⱼᵢⱼ + Aᵢⱼⱼᵢ
+    @inbounds for j in 1:d, i in 1:d
+        sJ += A[i, i, j, j]
+        sI += A[i, j, i, j] + A[i, j, j, i]
+    end
+    α = sJ / d
+    # 𝕂 ⊙ 𝕂 = d(d+1)/2 − 1, the dimension of the deviatoric space (5 in 3D): an
+    # integer, so that exact and symbolic element types stay exact.
+    β = (sI / 2 - α) / (d * (d + 1) ÷ 2 - 1)
+    return TensISO{d}(α, β)
 end
 
 TensISO(A::AbstractArray) = isotropify(Tens(A))

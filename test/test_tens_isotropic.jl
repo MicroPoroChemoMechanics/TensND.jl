@@ -214,3 +214,26 @@ end
     @test Tensors.ismajorsymmetric(Tensor{4, 3}(get_array(An)))
     @test Tensors.isminorsymmetric(Tensor{4, 3}(get_array(An)))
 end
+
+@testsection "Isotropic tensors — exact and integer element types" begin
+    # `KM` sized its matrix to the type of the moduli and added the spherical
+    # part `(α - β) / dim` into it: integer moduli threw `InexactError`.
+    @test KM(TensISO{3}(3, 2)) == KM(TensISO{3}(3.0, 2.0))
+    @test KM(TensISO{3}(3 // 1, 2 // 1)) isa Matrix{Rational{Int}}
+
+    # `isotropify` divided the deviatoric part by `5.0`, a float: rational
+    # moduli came back as floats and symbolic ones as `2.0*μ`.
+    @test get_data(isotropify(get_array(TensISO{3}(3 // 1, 2 // 1)))) === (3 // 1, 2 // 1)
+    @syms k::positive μ::positive
+    β = get_data(isotropify(get_array(TensISO{3}(3k, 2μ))))[2]
+    @test string(β) == "2*μ"
+end
+
+@testsection "isotropify in dimensions 2 and 4" begin
+    # Exact on an isotropic array of any dimension: the moduli come back.
+    for d in (2, 4)
+        A = get_array(TensISO{d}(3 // 1, 2 // 1))
+        @test get_data(isotropify(A)) === (3 // 1, 2 // 1)
+        @test isotropify(A) isa TensISO{4, d}
+    end
+end
