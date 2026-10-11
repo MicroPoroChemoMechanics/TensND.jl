@@ -792,18 +792,16 @@ function components(
     if isequal(ℬ, get_basis(t))
         return components(t, var)
     else
-        bb = Dict{Tuple{Symbol, Symbol}, AbstractMatrix}()
-        for v1 in (:cov, :cont), v2 in (:cov, :cont)
-            if v1 ∈ get_var(t) && v2 ∈ var
-                bb[v1, v2] = vecbasis(get_basis(t), invvar(v1))' * vecbasis(ℬ, v2)
-            end
-        end
         Tc = _components_eltype(T, get_basis(t), ℬ)
         m = Array{Tc}(get_array(t))
         ec1 = ntuple(i -> i, Val(order))
         newcp = order + 1
         for i in 1:order
-            c = bb[get_var(t, i), var[i]]
+            # The matrix of the change for this index, from the variance it has
+            # to the one asked: computed here rather than stored in a
+            # `Dict{…, AbstractMatrix}`, whose abstract values every use read
+            # at run time.
+            c = vecbasis(get_basis(t), invvar(get_var(t, i)))' * vecbasis(ℬ, var[i])
             if c ≠ 1I
                 ec2 = (i, newcp)
                 ec3 = ntuple(j -> j ≠ i ? j : newcp, Val(order))
