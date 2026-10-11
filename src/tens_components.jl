@@ -386,6 +386,13 @@ function same_basis(
     return change_tens(t1, ℬ), change_tens(t2, ℬ)
 end
 
+# Two tensors in the canonical basis are in the same basis already, whatever
+# the element types of their two `CanonicalBasis` objects. The generic method
+# would find so at run time, through `isequal`, but return a type it cannot
+# infer, and every product of a dual tensor with a plain one paid a dynamic
+# dispatch for it.
+same_basis(t1::TensCanonical, t2::TensCanonical) = (t1, t2)
+
 function same_basis_same_var(
         t1::AbstractTens{order1, dim},
         t2::AbstractTens{order2, dim},
@@ -393,16 +400,6 @@ function same_basis_same_var(
     ℬ = choose_best_basis(get_basis(t1), get_basis(t2))
     return change_tens(t1, ℬ, get_var(t1)), change_tens(t2, ℬ, get_var(t1))
 end
-
-# same_basis(
-#     t1::AbstractTens{order1,dim},
-#     t2::AbstractTens{order2,dim},
-# ) where {order1,order2,dim} = t1, change_tens(t2, basis(t1))
-
-# same_basis_same_var(
-#     t1::AbstractTens{order1,dim},
-#     t2::AbstractTens{order2,dim},
-# ) where {order1,order2,dim} = t1, change_tens(t2, basis(t1), get_var(t1))
 
 
 # `==` compares tensors as mathematical objects, whatever the basis and the
