@@ -293,7 +293,7 @@ end
 
 Kelvin-Mandel (6×6) matrix of the Walpole tensor.
 """
-KM(t::TensTI{4}) = tomandel(tensor_or_array(get_array(t)))
+KM(t::TensTI{4}) = tomandel(_static_tensor(t))
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -673,7 +673,7 @@ end
 
 # ── KM ───────────────────────────────────────────────────────────────────────
 
-KM(t::TensTI{2}) = tomandel(tensor_or_array(get_array(t)))
+KM(t::TensTI{2}) = tomandel(_static_tensor(t))
 
 # ── Arithmetic — axis-aware ± ────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -694,10 +694,10 @@ KM(t::TensTI{2}) = tomandel(tensor_or_array(get_array(t)))
 # coefficient are odd in `n`), falling back to the generic route.
 
 # Generic (unstructured) view of a structured tensor, used by all fallbacks.
-_generic_tens(t::AbstractTens) = Tens(tensor_or_array(get_array(t)))
+_generic_tens(t::AbstractTens) = Tens(_static_tensor(t))
 
-@inline _generic_binary(op, A::AbstractTens, B::AbstractTens) =
-    Tens(tensor_or_array(broadcast(op, get_array(A), get_array(B))))
+@inline _generic_binary(op, A::AbstractTens{order, dim}, B::AbstractTens{order, dim}) where {order, dim} =
+    Tens(_static_tensor(broadcast(op, get_array(A), get_array(B)), Val(dim), Val(order)))
 
 @inline function Base.:+(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
     axis(A) == axis(B) || return _generic_binary(+, A, B)
@@ -783,10 +783,8 @@ end
 # package. `change_tens` short-circuits on an equal basis, so the canonical
 # target stays allocation-free apart from the wrapper.
 
-# The dimension is 3 by type: the conversion to a Tensors.jl array is called with
-# it, where `tensor_or_array` of a plain array reads it at run time.
 _as_canonical_tens(t::AbstractTens{order, 3, T}) where {order, T} =
-    Tens(_to_tensor(get_array(t), Val(3), Val(order)), CanonicalBasis{3, T}())
+    Tens(_static_tensor(t), CanonicalBasis{3, T}())
 
 change_tens(t::TensTI{2, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
     change_tens(_as_canonical_tens(t), ℬ)
@@ -1088,7 +1086,7 @@ Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 Returns the 6×6 Kelvin-Mandel matrix in the **canonical** frame.
 Use `KM_material(t)` for the block-diagonal form in the material frame.
 """
-KM(t::TensOrtho) = tomandel(tensor_or_array(get_array(t)))
+KM(t::TensOrtho) = tomandel(_static_tensor(t))
 
 """
     KM_material(t::TensOrtho)

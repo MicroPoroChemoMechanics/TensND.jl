@@ -42,10 +42,10 @@ KM(
     b::AbstractBasis{dim},
     var::NTuple{order, Symbol};
     kwargs...,
-) where {order, dim} = tomandel(tensor_or_array(components(t, b, var)); kwargs...)
+) where {order, dim} = tomandel(_static_tensor(components(t, b, var), Val(dim), Val(order)); kwargs...)
 
 KM(t::AbstractTens{order, dim}, b::AbstractBasis{dim}; kwargs...) where {order, dim} =
-    tomandel(tensor_or_array(components(t, b)); kwargs...)
+    tomandel(_static_tensor(components(t, b), Val(dim), Val(order)); kwargs...)
 
 
 KM(t::AbstractArray; kwargs...) = KM(Tens(t); kwargs...)

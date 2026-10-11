@@ -234,7 +234,7 @@ Base.IndexStyle(::Type{<:TensCubic}) = IndexCartesian()
 The 6×6 Kelvin-Mandel matrix in the **canonical** frame. Use
 [`KM_material`](@ref) for the sparse form in the cube frame.
 """
-KM(t::TensCubic) = tomandel(tensor_or_array(get_array(t)))
+KM(t::TensCubic) = tomandel(_static_tensor(t))
 
 """
     KM_material(t::TensCubic)

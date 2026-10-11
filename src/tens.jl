@@ -303,6 +303,15 @@ end
 tensor_or_array(tab::Tensors.AllTensors) = tab
 tensor_or_array(tab::AbstractArray) = tab
 
+# `tensor_or_array` for an array whose order and dimension the caller knows from
+# a type: the Tensors.jl type is then built at a static dimension, with the
+# same storage decision, where `tensor_or_array` reads the dimension from the
+# array at run time and leaves every caller with an uninferred result.
+@inline _static_tensor(a, ::Val{dim}, ::Val{order}) where {dim, order} =
+    order in (2, 4) && dim in (2, 3) ? _to_tensor(a, Val(dim), Val(order)) : tensor_or_array(a)
+@inline _static_tensor(t::AbstractTens{order, dim}) where {order, dim} =
+    _static_tensor(get_array(t), Val(dim), Val(order))
+
 ##############################
 # Utility/Accessor Functions #
 ##############################
