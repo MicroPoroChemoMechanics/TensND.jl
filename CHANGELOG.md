@@ -83,12 +83,21 @@ Same machine, v0.5.1 against v0.6.0, values equal:
   `KM` of dual tensors ×21, `best_sym_tens` 20 % faster;
 - orientation search ×1.9 (TI), ×3.5 (orthotropic), ×3.7 (cubic), ×75–178 at
   order 2;
-- the scaling between orthogonal and orthonormal components ×3–8.
+- the scaling between orthogonal and orthonormal components ×3–8;
+- `KM` of a `TensTI` ×2.9 and of a `TensOrtho` ×2.1, the product of two TI
+  tensors about different axes ×1.7 and their sum ×1.4;
+- the product of a dual tensor with a plain one, both canonical, from 361 ns
+  to 19 ns with no allocation (the TI case about different axes ×1.6): the
+  two canonical bases of different element types were found equal only at run
+  time, which left every such product with a dynamic dispatch.
 
 The structural reasons: concrete type parameters instead of abstract fields
 (the basis of a tensor, the functions of a numerical chart), variances
-dispatched without a run-time `Val`, the dimension read from the type, no
-`Dict` or temporary array in the loops, `Base.@pure` removed.
+dispatched without a run-time `Val`, the dimension read from the type (also
+where a structured tensor is turned into a Tensors.jl array), no `Dict` or
+temporary array in the loops, `Base.@pure` removed. The paths that are
+type-stable by construction are now held to it by tests of inference and
+allocations (`test/test_hot_paths.jl`).
 
 ### Internals
 
