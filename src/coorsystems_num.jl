@@ -26,13 +26,17 @@ Unlike `CoorSystemSym`, the normalized basis, natural basis vectors, Lamé coeff
 and Christoffel symbols all depend on the evaluation point `x₀` and are accessed via
 point-wise accessors `normalized_basis(CS, x₀)`, `natural_basis(CS, x₀)`, etc.
 """
-struct CoorSystemNum{dim, T <: Real} <: AbstractCoorSystem{dim, T}
-    χ_func::Function   # x -> Vector of Lamé coefficients
-    R_func::Function   # x -> Matrix  (columns = unit vectors eᵢ in Cartesian frame)
-    Γ_func::Function   # x -> Array{T,3}  Γ[i,j,k] = Γᵏᵢⱼ
+struct CoorSystemNum{dim, T <: Real, X, R, G} <: AbstractCoorSystem{dim, T}
+    χ_func::X   # x -> Vector of Lamé coefficients
+    R_func::R   # x -> Matrix  (columns = unit vectors eᵢ in Cartesian frame)
+    Γ_func::G   # x -> Array{T,3}  Γ[i,j,k] = Γᵏᵢⱼ
+    # The three functions are type parameters rather than `::Function` fields,
+    # so that what they return is inferred.
+    CoorSystemNum{dim, T}(χ_func::X, R_func::R, Γ_func::G) where {dim, T <: Real, X, R, G} =
+        new{dim, T, X, R, G}(χ_func, R_func, Γ_func)
 end
 
-@pure get_dim(::CoorSystemNum{dim}) where {dim} = dim
+get_dim(::CoorSystemNum{dim}) where {dim} = dim
 
 # ─────────────────────────────────────────────────────────────────
 # Christoffel symbol helpers

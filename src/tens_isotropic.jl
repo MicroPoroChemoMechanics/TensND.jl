@@ -46,12 +46,12 @@ struct TensISO{order, dim, T, N} <: AbstractTens{order, dim, T}
         new{order, dim, T, order ÷ 2}(ntuple(_ -> one(T), Val(order ÷ 2)))
 end
 
-@pure get_order(::TensISO{order}) where {order} = order
-@pure get_dim(::TensISO{order, dim}) where {order, dim} = dim
-@pure Base.eltype(::Type{TensISO{order, dim, T}}) where {order, dim, T} = T
-@pure Base.length(::TensISO{order, dim, T, N}) where {order, dim, T, N} = dim^order
-@pure datanumber(::TensISO{order, dim, T, N}) where {order, dim, T, N} = N
-@pure Base.size(::TensISO{order, dim}) where {order, dim} = ntuple(_ -> dim, Val(order))
+get_order(::TensISO{order}) where {order} = order
+get_dim(::TensISO{order, dim}) where {order, dim} = dim
+Base.eltype(::Type{TensISO{order, dim, T}}) where {order, dim, T} = T
+Base.length(::TensISO{order, dim, T, N}) where {order, dim, T, N} = dim^order
+datanumber(::TensISO{order, dim, T, N}) where {order, dim, T, N} = N
+Base.size(::TensISO{order, dim}) where {order, dim} = ntuple(_ -> dim, Val(order))
 Base.getindex(t::TensISO{2}, i::Integer, j::Integer) = t.data[1] * I[i, j]
 Base.getindex(
     t::TensISO{4, dim},

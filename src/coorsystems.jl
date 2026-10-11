@@ -235,7 +235,7 @@ that `θ = ϕ = 0` reproduces the canonical basis in the canonical order.
 getcoords(CS::AbstractCoorSystem) = core(CS).coords
 getcoords(CS::AbstractCoorSystem, i::Integer) = getcoords(CS)[i]
 
-@pure get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
+get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
 
 """
     nderiv(CS::AbstractCoorSystem) → Int
@@ -247,7 +247,7 @@ which differentiates along its surface coordinates only. Every differential
 operator loops to `nderiv(CS)`, which is what lets a single implementation serve
 both.
 """
-@pure nderiv(::AbstractCoorSystem{dim}) where {dim} = dim
+nderiv(::AbstractCoorSystem{dim}) where {dim} = dim
 
 """
     getOM(CS::AbstractCoorSystem) → AbstractTens{1}

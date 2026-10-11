@@ -80,9 +80,9 @@ TensTI{order, T, N}(data::NTuple{N, Any}, n::NTuple{3, Any}) where {order, T, N}
 
 # ── Traits ────────────────────────────────────────────────────────────────────
 
-@pure Base.eltype(::Type{TensTI{order, T, N}}) where {order, T, N} = T
-@pure Base.length(::TensTI{order}) where {order} = 3^order
-@pure Base.size(::TensTI{order}) where {order} = ntuple(_ -> 3, Val(order))
+Base.eltype(::Type{TensTI{order, T, N}}) where {order, T, N} = T
+Base.length(::TensTI{order}) where {order} = 3^order
+Base.size(::TensTI{order}) where {order} = ntuple(_ -> 3, Val(order))
 
 get_basis(::TensTI{order, T}) where {order, T} = CanonicalBasis{3, T}()
 get_var(::TensTI{order}) where {order} = ntuple(_ -> :cont, Val(order))
@@ -940,9 +940,9 @@ TensOrtho{T}(data::NTuple{9}, frame::B) where {T, B <: OrthonormalBasis{3}} =
 
 # ── Traits ────────────────────────────────────────────────────────────────────
 
-@pure Base.eltype(::Type{TensOrtho{T}}) where {T} = T
-@pure Base.length(::TensOrtho) = 81
-@pure Base.size(::TensOrtho) = (3, 3, 3, 3)
+Base.eltype(::Type{TensOrtho{T}}) where {T} = T
+Base.length(::TensOrtho) = 81
+Base.size(::TensOrtho) = (3, 3, 3, 3)
 
 get_basis(::TensOrtho{T}) where {T} = CanonicalBasis{3, T}()
 get_var(::TensOrtho) = (:cont, :cont, :cont, :cont)

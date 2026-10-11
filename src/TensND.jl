@@ -1,6 +1,6 @@
 module TensND
 
-import Base: @pure, eltype
+import Base: eltype
 import LinearAlgebra: normalize, dot, tr
 
 using LinearAlgebra, Tensors, OMEinsum, Rotations

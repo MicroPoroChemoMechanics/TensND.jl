@@ -104,9 +104,9 @@ TensCubic{T}(data::NTuple{3}, frame::B) where {T, B <: OrthonormalBasis{3}} =
 
 # ── Traits ───────────────────────────────────────────────────────────────────
 
-@pure Base.eltype(::Type{TensCubic{T}}) where {T} = T
-@pure Base.length(::TensCubic) = 81
-@pure Base.size(::TensCubic) = (3, 3, 3, 3)
+Base.eltype(::Type{TensCubic{T}}) where {T} = T
+Base.length(::TensCubic) = 81
+Base.size(::TensCubic) = (3, 3, 3, 3)
 
 get_basis(::TensCubic{T}) where {T} = CanonicalBasis{3, T}()
 get_var(::TensCubic) = (:cont, :cont, :cont, :cont)

@@ -1,7 +1,7 @@
 δkron(T::Type{<:Number}, i::Integer, j::Integer) = i == j ? one(T) : zero(T)
 
 struct Id2{dim, T <: Number} <: AbstractMatrix{T} end
-@pure Base.size(::Id2{dim}) where {dim} = (dim, dim)
+Base.size(::Id2{dim}) where {dim} = (dim, dim)
 Base.getindex(::Id2{dim, T}, i::Integer, j::Integer) where {dim, T} = δkron(T, i, j)
 function Base.replace_in_print_matrix(::Id2, i::Integer, j::Integer, s::AbstractString)
     return i == j ? s : Base.replace_with_centered_mark(s)

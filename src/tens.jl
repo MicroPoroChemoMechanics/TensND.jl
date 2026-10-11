@@ -29,15 +29,15 @@ abstract type AbstractTens{order, dim, T <: Number} <: AbstractArray{T, order} e
 
 Order (number of indices) of `t`.
 """
-@pure get_order(::AbstractTens{order, dim, T}) where {order, dim, T} = order
+get_order(::AbstractTens{order, dim, T}) where {order, dim, T} = order
 """
     get_dim(t::AbstractTens) → Int
     get_dim(ℬ::AbstractBasis) → Int
 
 Dimension of the underlying space.
 """
-@pure get_dim(::AbstractTens{order, dim, T}) where {order, dim, T} = dim
-@pure Base.eltype(::Type{AbstractTens{order, dim, T}}) where {order, dim, T} = T
+get_dim(::AbstractTens{order, dim, T}) where {order, dim, T} = dim
+Base.eltype(::Type{AbstractTens{order, dim, T}}) where {order, dim, T} = T
 
 
 """
@@ -367,7 +367,7 @@ end
 
 @inline Base.size(t::TensArray) = size(get_array(t))
 @inline Base.getindex(t::TensArray, ind...) = getindex(get_array(t), ind...)
-@pure datatype(::TensArray{order, dim, T, A}) where {order, dim, T, A} = A
+datatype(::TensArray{order, dim, T, A}) where {order, dim, T, A} = A
 
 @inline Base.zero(t::AbstractTens) = Tens(zero.(get_array(t)), get_basis(t), get_var(t))
 
