@@ -384,4 +384,5 @@ end
     T2 = Tensor{4, 2}((i, j, k, l) -> 1.0 * (i + 2j) * (k + l))
     @test get_array(inv_KM(KM(T2))) ≈ T2
     @test_throws DimensionMismatch inv_KM(rand(5, 5))
+    @test_throws DimensionMismatch inv_KM(rand(5))
 end
