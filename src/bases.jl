@@ -435,7 +435,15 @@ angles(v::AbstractVector{T}) where {T} = angles(v, Val(size(v, 1)))
 
 invvar(::Val{:cov}) = :cont
 invvar(::Val{:cont}) = :cov
-invvar(var) = invvar(Val(var))
+invvar(var::Symbol) = _by_variance(invvar, var)
+
+# A variance is a run-time `Symbol`: branching on its two values keeps the call
+# static, where `Val(var)` was dispatched at run time on every call.
+@inline function _by_variance(f, var::Symbol, args...)
+    var === :cov && return f(args..., Val(:cov))
+    var === :cont && return f(args..., Val(:cont))
+    throw(ArgumentError("a variance is :cov or :cont, not :$var"))
+end
 
 
 """
@@ -448,10 +456,10 @@ vecbasis(ℬ::AbstractBasis, ::Val{:cont}) = ℬ.eⁱ
 vecbasis(::CanonicalBasis{dim, T}, ::Val{:cov}) where {dim, T} = Id2{dim, T}()
 vecbasis(::CanonicalBasis{dim, T}, ::Val{:cont}) where {dim, T} = Id2{dim, T}()
 
-vecbasis(ℬ::AbstractBasis, var) = vecbasis(ℬ, Val(var))
-vecbasis(ℬ::AbstractBasis) = vecbasis(ℬ, :cov)
-vecbasis(ℬ::AbstractBasis, i::Integer, j::Integer, var = :cov) = vecbasis(ℬ, Val(var))[i, j]
-vecbasis(ℬ::AbstractBasis, i::Integer, var = :cov) = vecbasis(ℬ, Val(var))[:, i]
+vecbasis(ℬ::AbstractBasis, var::Symbol) = _by_variance(vecbasis, var, ℬ)
+vecbasis(ℬ::AbstractBasis) = vecbasis(ℬ, Val(:cov))
+vecbasis(ℬ::AbstractBasis, i::Integer, j::Integer, var::Symbol = :cov) = vecbasis(ℬ, var)[i, j]
+vecbasis(ℬ::AbstractBasis, i::Integer, var::Symbol = :cov) = vecbasis(ℬ, var)[:, i]
 
 strvecbasis(::AbstractBasis, i::Integer, ::Val{:cov}; vec = "𝐞") = vec * subscriptnumber(i)
 strvecbasis(::AbstractBasis, i::Integer, ::Val{:cont}; vec = "𝐞") = vec * superscriptnumber(i)
@@ -536,9 +544,9 @@ metric(ℬ::AbstractBasis, ::Val{:cont}) = ℬ.gⁱʲ
 metric(::OrthonormalBasis{dim, T}, ::Val{:cov}) where {dim, T} = Id2{dim, T}()
 metric(::OrthonormalBasis{dim, T}, ::Val{:cont}) where {dim, T} = Id2{dim, T}()
 
-metric(ℬ::AbstractBasis, var) = metric(ℬ, Val(var))
-metric(ℬ::AbstractBasis) = metric(ℬ, :cov)
-metric(ℬ::AbstractBasis, i::Integer, j::Integer, var = :cov) = metric(ℬ, Val(var))[i, j]
+metric(ℬ::AbstractBasis, var::Symbol) = _by_variance(metric, var, ℬ)
+metric(ℬ::AbstractBasis) = metric(ℬ, Val(:cov))
+metric(ℬ::AbstractBasis, i::Integer, j::Integer, var::Symbol = :cov) = metric(ℬ, var)[i, j]
 
 """
     normalize(ℬ::AbstractBasis, var = cov)
