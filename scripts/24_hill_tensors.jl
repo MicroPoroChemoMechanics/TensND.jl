@@ -148,9 +148,10 @@ get_array(𝚲ᵗⁱ)[3, 3, 3, 3]
 # Substituting the isotropic moduli into the TI result must reproduce the
 # isotropic ``\mathbb{\Lambda}`` evaluated at ``\underline{\xi}=\underline{e}_3``:
 
-Λᵗⁱ_iso = tsimplify(subs.(get_array(𝚲ᵗⁱ), iso_subs...))
-Λ_iso_axis = tsimplify(subs.(get_array(𝚲₂), θ => Sym(0), ϕ => Sym(0)))
+𝚲ᵗⁱ_iso = tsubs(𝚲ᵗⁱ, iso_subs...)
+𝚲_axis = tsubs(𝚲₂, θ => 0, ϕ => 0)
 
-tsimplify(Λᵗⁱ_iso - Λ_iso_axis)
+iszero(tsimplify(𝚲ᵗⁱ_iso - 𝚲_axis))
 
-# Zero: the transversely isotropic construction degenerates correctly.
+# The difference is the zero tensor: the transversely isotropic construction
+# degenerates correctly.
