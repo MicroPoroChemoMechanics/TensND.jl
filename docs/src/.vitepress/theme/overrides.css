@@ -238,3 +238,89 @@
 mjx-container[data-nomen] {
   cursor: help;
 }
+
+/* ── Interactive figures (components/FrameFigure.vue) ──────────────────────
+ * Drawn on a transparent background, so their colors are tokens, one value per
+ * scheme; components/figures/kit.ts reads them each time a figure is drawn and
+ * draws it again when the scheme is toggled. `q1`-`q3` belong to the first,
+ * second and third coordinate (or Euler angle), in the order of the chart: its
+ * slider, the angle or length it measures, the surface on which it is
+ * constant and the unit vector crossing that surface. Surfaces are drawn
+ * translucent over these same colors. */
+:root {
+  --tensnd-fig-ink: #24292f;
+  --tensnd-fig-guide: #6e7781;
+  --tensnd-fig-canonical: #57606a;
+  --tensnd-fig-local: #c0392b;
+  --tensnd-fig-body: #8c959f;
+  --tensnd-fig-q1: #1a5fb4;
+  --tensnd-fig-q2: #1f883d;
+  --tensnd-fig-q3: #bc4c00;
+}
+
+.dark {
+  --tensnd-fig-ink: #e6edf3;
+  --tensnd-fig-guide: #9da7b3;
+  --tensnd-fig-canonical: #c9d1d9;
+  --tensnd-fig-local: #ff7b72;
+  --tensnd-fig-body: #8b949e;
+  --tensnd-fig-q1: #79b8ff;
+  --tensnd-fig-q2: #56d364;
+  --tensnd-fig-q3: #ffa657;
+}
+
+.vp-doc .tensnd-frame-figure {
+  margin: 1.4rem 0;
+}
+
+.tensnd-frame-plot {
+  width: 100%;
+}
+
+.tensnd-frame-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem 1.6rem;
+  align-items: center;
+  padding: 0.6rem 0.2rem 0;
+  border-top: 1px solid var(--vp-c-divider);
+  font-size: 0.95rem;
+}
+
+.tensnd-frame-slider {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex: 1 1 11rem;
+  min-width: 0;
+}
+
+/* A range input is 129 px wide by default, which three of them plus their
+ * labels exceed on a 688 px column: let it start from nothing and grow. */
+.tensnd-frame-slider input[type='range'] {
+  flex: 1 1 0;
+  width: 0;
+  min-width: 4rem;
+}
+
+.tensnd-frame-symbol {
+  font-family: 'STIX Two Text', Cambria, 'Times New Roman', serif;
+  font-size: 1.2rem;
+  min-width: 1rem;
+  text-align: center;
+}
+
+.tensnd-frame-slider output {
+  font-variant-numeric: tabular-nums;
+  min-width: 4.2rem;
+  text-align: right;
+  color: var(--vp-c-text-2);
+}
+
+.tensnd-frame-check {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--vp-c-text-1);
+  cursor: pointer;
+}

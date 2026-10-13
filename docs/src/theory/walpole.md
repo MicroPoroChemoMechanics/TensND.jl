@@ -47,19 +47,68 @@ In the frame where ``\underline{n}=\underline{e}_3``, with the ordering of
 [Kelvin–Mandel representation](@ref th-kelvin-mandel):
 
 ```math
-\mathrm{Mat}(\mathbb{W}_1)=\!\begin{pmatrix}0&&&&&\\&0&&&&\\&&1&&&\\&&&0&&\\&&&&0&\\&&&&&0\end{pmatrix}
-\;\;
-\mathrm{Mat}(\mathbb{W}_2)=\!\begin{pmatrix}\frac12&\frac12&&&&\\\frac12&\frac12&&&&\\&&0&&&\\&&&0&&\\&&&&0&\\&&&&&0\end{pmatrix}
-\;\;
-\mathrm{Mat}(\mathbb{W}_3)=\!\begin{pmatrix}0&0&0&&&\\0&0&0&&&\\\frac{1}{\sqrt2}&\frac{1}{\sqrt2}&0&&&\\&&&0&&\\&&&&0&\\&&&&&0\end{pmatrix}
-```
-
-```math
-\mathrm{Mat}(\mathbb{W}_4)=\!\begin{pmatrix}0&0&\frac{1}{\sqrt2}&&&\\0&0&\frac{1}{\sqrt2}&&&\\0&0&0&&&\\&&&0&&\\&&&&0&\\&&&&&0\end{pmatrix}
-\;\;
-\mathrm{Mat}(\mathbb{W}_5)=\!\begin{pmatrix}\frac12&-\frac12&&&&\\-\frac12&\frac12&&&&\\&&0&&&\\&&&0&&\\&&&&0&\\&&&&&1\end{pmatrix}
-\;\;
-\mathrm{Mat}(\mathbb{W}_6)=\!\begin{pmatrix}0&&&&&\\&0&&&&\\&&0&&&\\&&&1&&\\&&&&1&\\&&&&&0\end{pmatrix}
+\begin{array}{c@{\qquad}c@{\qquad}c}
+\mathrm{Mat}(\mathbb{W}_1) & \mathrm{Mat}(\mathbb{W}_2) & \mathrm{Mat}(\mathbb{W}_3)\\[4pt]
+{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
+\end{array}\right)}
+&
+\dfrac{1}{2}{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+1 & 1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+1 & 1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
+\end{array}\right)}
+&
+\dfrac{1}{\sqrt2}{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+1 & 1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
+\end{array}\right)}\\[14pt]
+\mathrm{Mat}(\mathbb{W}_4) & \mathrm{Mat}(\mathbb{W}_5) & \mathrm{Mat}(\mathbb{W}_6)\\[4pt]
+\dfrac{1}{\sqrt2}{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+\phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
+\end{array}\right)}
+&
+\dfrac{1}{2}{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+1 & -1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+-1 & 1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & 2
+\end{array}\right)}
+&
+{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & 1 & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
+\end{array}\right)}
+\end{array}
 ```
 
 Note that ``\mathbb{W}_3`` and ``\mathbb{W}_4`` are transposes of each other and

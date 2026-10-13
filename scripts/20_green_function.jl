@@ -63,12 +63,14 @@ aHG = get_array(HG)
 # The closed form it must reproduce:
 #
 # ```math
+# \begin{aligned}
 # \mathbb{\Gamma}=\frac{1}{8\pi\mu(1-\nu)r^{2}}
-# \Bigl(-2\mathbb{J}+2(1-2\nu)\mathbb{I}
+# \Bigl(&-2\mathbb{J}+2(1-2\nu)\mathbb{I}
 # +2(\boldsymbol{1}\otimes\underline{e}^r\otimes\underline{e}^r
-#   +\underline{e}^r\otimes\underline{e}^r\otimes\boldsymbol{1})
-# +8\nu\,\underline{e}^r\stackrel{s}{\otimes}\boldsymbol{1}\stackrel{s}{\otimes}\underline{e}^r
+#   +\underline{e}^r\otimes\underline{e}^r\otimes\boldsymbol{1})\\
+# &{}+8\nu\,\underline{e}^r\stackrel{s}{\otimes}\boldsymbol{1}\stackrel{s}{\otimes}\underline{e}^r
 # -8\,\underline{e}^r{}^{\otimes4}\Bigr)
+# \end{aligned}
 # ```
 
 ℾ₂ = tsimplify(

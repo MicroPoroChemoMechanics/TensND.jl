@@ -8,11 +8,11 @@
 # The definitions, once:
 #
 # ```math
-# \mathrm{GRAD}(t)=\sum_i\partial_i t\otimes\underline{a}^i,
-# \qquad
-# \mathrm{SYMGRAD}(t)=\sum_i\partial_i t\stackrel{s}{\otimes}\underline{a}^i,
-# \qquad
-# \mathrm{DIV}(t)=\sum_i\partial_i t\cdot\underline{a}^i .
+# \begin{aligned}
+# \mathrm{GRAD}(t)&=\sum_i\partial_i t\otimes\underline{a}^i,\\
+# \mathrm{SYMGRAD}(t)&=\sum_i\partial_i t\stackrel{s}{\otimes}\underline{a}^i,\\
+# \mathrm{DIV}(t)&=\sum_i\partial_i t\cdot\underline{a}^i .
+# \end{aligned}
 # ```
 
 import Pkg                                                          #jl

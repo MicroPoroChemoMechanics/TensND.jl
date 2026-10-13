@@ -56,6 +56,45 @@ screens axes spread over a hemisphere rather than a grid in
     ``\theta=\varphi=0`` reproduces the canonical basis in the canonical order.
     See [Curvilinear differential calculus](@ref th-curvilinear).
 
+### The three rotations, pictured
+
+Read from the left, ``R=R_z(\varphi)\,R_y(\theta)\,R_z(\psi)`` is a chain of
+rotations, each about an axis that the previous ones have moved:
+
+1. ``\varphi`` about ``\underline{e}_3`` turns ``\underline{e}_2`` into the
+   *line of nodes* ``\underline{e}^\varphi=-\sin\varphi\,\underline{e}_1+\cos\varphi\,\underline{e}_2``;
+2. ``\theta`` about the line of nodes tilts ``\underline{e}_3`` into
+   ``\underline{n}``, within the meridian plane of azimuth ``\varphi``, and
+   carries the image of ``\underline{e}_1`` to
+   ``\underline{e}^\theta=\cos\theta\cos\varphi\,\underline{e}_1+\cos\theta\sin\varphi\,\underline{e}_2-\sin\theta\,\underline{e}_3``;
+3. ``\psi`` about ``\underline{n}`` turns the pair
+   ``(\underline{e}^\theta,\underline{e}^\varphi)`` within the plane tangent to
+   the unit sphere at ``\underline{n}``.
+
+The rotated basis ``\underline{e}'_i=R\cdot\underline{e}_i`` is therefore
+
+```math
+\begin{aligned}
+\underline{e}'_1&=\cos\psi\,\underline{e}^\theta+\sin\psi\,\underline{e}^\varphi,\\
+\underline{e}'_2&=-\sin\psi\,\underline{e}^\theta+\cos\psi\,\underline{e}^\varphi,\\
+\underline{e}'_3&=\underline{n} ,
+\end{aligned}
+```
+
+and ``(\underline{e}^\theta,\underline{e}^\varphi,\underline{n})``, the frame
+``R(\theta,\varphi,0)`` makes of the canonical basis, is the normalized basis of
+the spherical coordinates at the point ``\underline{n}``
+([Predefined systems](@ref th-predefined-systems)). In the figure the canonical
+basis stays at the center of the unit sphere and the rotated one is attached
+at the tip of ``\underline{n}``; the sliders set the three angles, and the
+scene turns with the mouse. At ``\theta=0`` the line of nodes is still drawn,
+but ``\varphi`` and ``\psi`` then turn about the same axis and only their sum
+matters: the gimbal lock met again under *Recovering angles from a frame*.
+
+```@raw html
+<ClientOnly><FrameFigure kind="euler" /></ClientOnly>
+```
+
 ## Rotating tensors of each order
 
 A rotation acts on an order-``p`` tensor by rotating every index. `TensND`

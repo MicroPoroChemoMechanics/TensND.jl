@@ -58,11 +58,11 @@ and since ``\mathbb{J}`` and ``\mathbb{K}`` are orthogonal idempotents the
 algebra is that of a pair of independent scalars:
 
 ```math
-\mathbb{A}:\mathbb{B}=\alpha\alpha'\,\mathbb{J}+\beta\beta'\,\mathbb{K},
-\qquad
-\mathbb{A}^{-1}=\frac{1}{\alpha}\,\mathbb{J}+\frac{1}{\beta}\,\mathbb{K},
-\qquad
-\mathbb{A}::\mathbb{B}=\alpha\alpha'+\Bigl(\tfrac{d(d+1)}{2}-1\Bigr)\beta\beta' .
+\begin{aligned}
+\mathbb{A}:\mathbb{B}&=\alpha\alpha'\,\mathbb{J}+\beta\beta'\,\mathbb{K},\\[4pt]
+\mathbb{A}^{-1}&=\frac{1}{\alpha}\,\mathbb{J}+\frac{1}{\beta}\,\mathbb{K},\\[4pt]
+\mathbb{A}::\mathbb{B}&=\alpha\alpha'+\Bigl(\frac{d(d+1)}{2}-1\Bigr)\beta\beta' .
+\end{aligned}
 ```
 
 In elasticity ``\alpha=3k`` and ``\beta=2\mu`` in 3-D. `TensISO{4}` stores

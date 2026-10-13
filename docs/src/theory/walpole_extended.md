@@ -54,14 +54,28 @@ which is antisymmetric and odd in ``\underline{n}``. Then
 In the Kelvin–Mandel frame with ``\underline{n}=\underline{e}_3``:
 
 ```math
-\mathrm{Mat}(\mathbb{W}_7)=
-\begin{pmatrix}0&&&&&\\&0&&&&\\&&0&&&\\&&&0&-1&\\&&&1&0&\\&&&&&0\end{pmatrix}
-\qquad
-\mathrm{Mat}(\mathbb{W}_8)=
-\begin{pmatrix}0&0&0&0&0&-\tfrac{1}{\sqrt2}\\
-0&0&0&0&0&\tfrac{1}{\sqrt2}\\
-0&0&0&0&0&0\\ 0&0&0&0&0&0\\ 0&0&0&0&0&0\\
-\tfrac{1}{\sqrt2}&-\tfrac{1}{\sqrt2}&0&0&0&0\end{pmatrix}
+\begin{array}{c@{\qquad}c}
+\mathrm{Mat}(\mathbb{W}_7) & \mathrm{Mat}(\mathbb{W}_8)\\[4pt]
+{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & -1 & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
+\end{array}\right)}
+&
+\dfrac{1}{\sqrt2}{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & -1\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & 1\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
+1 & -1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
+\end{array}\right)}
+\end{array}
 ```
 
 Both matrices are **antisymmetric**, so
