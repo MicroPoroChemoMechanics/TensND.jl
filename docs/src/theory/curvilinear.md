@@ -135,10 +135,11 @@ the spheres of center ``O`` (``r``).
 <ClientOnly><FrameFigure kind="spherical" /></ClientOnly>
 ```
 
-### Prolate spheroidal coordinates
+### Spheroidal coordinates, prolate and oblate
 
-With ``-1\le p\le1`` and ``q\ge1``, the surfaces of constant coordinate all
-share the foci ``\pm c\,\underline{e}_3``. ``q=\text{const}`` is the prolate
+[`coorsys_spheroidal`](@ref) is the **prolate** system of the table. With
+``-1\le p\le1`` and ``q\ge1``, its surfaces of constant coordinate all share
+the foci ``\pm c\,\underline{e}_3``. ``q=\text{const}`` is the prolate
 spheroid
 
 ```math
@@ -167,7 +168,36 @@ basis, ordered as the coordinates, is
 
 Far from the foci, as ``q\to\infty``, ``c\,q`` tends to the radius ``r`` and
 ``p`` to ``\cos\theta``: the spheroids and hyperboloids become the spheres and
-cones of the spherical system. The figure is drawn for ``c=1``.
+cones of the spherical system.
+
+The **oblate** system revolves the same confocal ellipses and hyperbolas of a
+meridian plane about their minor axis instead of their major one:
+
+```math
+\underline{OM}=c\,\bigl(\bar{p}\hat{q}\cos\varphi,\;\bar{p}\hat{q}\sin\varphi,\;p\,q\bigr),
+\qquad
+\hat{q}=\sqrt{q^2+1},\quad -1\le p\le1,\quad q\ge0 .
+```
+
+Its foci form the circle of radius ``c`` in the plane ``z=0``.
+``q=\text{const}`` is the oblate spheroid
+
+```math
+\frac{x^2+y^2}{c^2\,(q^2+1)}+\frac{z^2}{c^2q^2}=1 ,
+```
+
+``p=\text{const}`` the half, on the side ``z/p>0``, of the hyperboloid of one
+sheet
+
+```math
+\frac{x^2+y^2}{c^2\,(1-p^2)}-\frac{z^2}{c^2p^2}=1 ,
+```
+
+and the Lamé coefficients and the normalized basis are those of the prolate
+system with ``\bar{q}`` replaced by ``\hat{q}`` and ``\sqrt{q^2-p^2}`` by
+``\sqrt{q^2+p^2}``. `TensND` does not predefine this system: the figure draws
+it for comparison. Its buttons switch between the two systems, and a fourth
+slider sets ``c``, the unit vectors of the canonical basis giving the scale.
 
 ```@raw html
 <ClientOnly><FrameFigure kind="spheroidal" /></ClientOnly>

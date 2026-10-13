@@ -324,3 +324,8 @@ mjx-container[data-nomen] {
   color: var(--vp-c-text-1);
   cursor: pointer;
 }
+
+.tensnd-frame-variants {
+  display: flex;
+  gap: 1.1rem;
+}
