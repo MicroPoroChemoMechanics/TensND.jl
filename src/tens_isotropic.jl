@@ -343,13 +343,8 @@ function KM(A::TensISO{4, dim}) where {dim}
     # The type of the spherical part too: `(α - β) / dim` of integer moduli is
     # not an integer.
     T = promote_type(typeof(α), typeof(β), typeof(sph))
-    M = zeros(T, m, m)
-    @inbounds for i in 1:m
-        M[i, i] = T(β)
-    end
-    @inbounds for i in 1:dim, j in 1:dim
-        M[i, j] += sph
-    end
+    M = Matrix{T}(T(β) * I, m, m)
+    @views M[1:dim, 1:dim] .+= sph
     return M
 end
 

@@ -113,8 +113,8 @@ eqs = tsimplify.(subs.([eqᶿ, eqʳ], uᶿ(r) => r^α, uʳ(r) => Λ * r^α))
 
 # The general solution is their combination:
 
-ûᶿ = sum(Sym("C$(i + 2)") * r^αΛ[i][1] for i in 1:length(αΛ))
-ûʳ = sum(Sym("C$(i + 2)") * αΛ[i][2] * r^αΛ[i][1] for i in 1:length(αΛ))
+ûᶿ = sum(Sym("C$(i + 2)") * r^α for (i, (α, _)) in enumerate(αΛ))
+ûʳ = sum(Sym("C$(i + 2)") * Λ * r^α for (i, (α, Λ)) in enumerate(αΛ))
 (ûᶿ, ûʳ)
 
 # and the tractions that carry the interface conditions:

@@ -46,7 +46,7 @@ a ⊗ˢ b
 
 # Their difference is the antisymmetric part, which ``\otimes^s`` removes:
 
-tsimplify(get_array(a ⊗ b) - get_array(a ⊗ˢ b))
+tsimplify(get_array(a ⊗ b - a ⊗ˢ b))
 
 # ## The two order-4 identities
 #

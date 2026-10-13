@@ -107,9 +107,8 @@ B = p_i * a^3 * b^3 / (4μ * (b^3 - a^3))
 u_func = x -> [0.0, 0.0, A * x[3] + B / x[3]^2]          # (θ, φ, r) components
 ε_func = x -> SYMGRAD(u_func, CS_sph)(x)
 function σ_func(x)
-    ε = ε_func(x)
-    trε = sum(ε[i, i] for i in 1:3)
-    return [λ * trε * (i == j) + 2μ * ε[i, j] for i in 1:3, j in 1:3]
+    ε = Array(ε_func(x))   # components in the local orthonormal frame
+    return λ * tr(ε) * I + 2μ * ε
 end
 ````
 

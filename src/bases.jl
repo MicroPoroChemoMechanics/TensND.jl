@@ -336,8 +336,8 @@ struct OrthogonalBasis{dim, T, P <: OrthonormalBasis{dim, T}} <: AbstractBasis{d
         if all(isone.(λ))
             return parent
         else
-            eᵢ = [λ[j] * parent[i, j] for i in 1:dim, j in 1:dim]
-            eⁱ = [parent[i, j] / λ[j] for i in 1:dim, j in 1:dim]
+            eᵢ = parent .* transpose(λ)   # column j scaled by λⱼ
+            eⁱ = parent ./ transpose(λ)
             return new{dim, T, typeof(parent)}(parent, λ, eᵢ, eⁱ, Diagonal(λ .^ 2), Diagonal(inv.(λ) .^ 2))
         end
     end

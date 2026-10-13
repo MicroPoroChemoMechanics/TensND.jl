@@ -130,7 +130,7 @@
     @testset "Kelvin–Mandel is an isometry" begin
         A = TensISO{3}(3.0, 2.0)
         B = TensISO{3}(5.0, 7.0)
-        @test sqrt(sum(arr(A) .^ 2)) ≈ norm(KM(A))
+        @test norm(arr(A)) ≈ norm(KM(A))
         @test KM(A ⊡ B) ≈ KM(A) * KM(B)
         @test KM(inv(A)) ≈ inv(Matrix(KM(A)))
         @test KM(𝕀) ≈ Matrix(1.0I, 6, 6)
@@ -207,7 +207,7 @@
         B, d, drel = proj_tens(:TI, arr(C), nv)
         @test B isa TensTI{4, Float64, 5}
         @test drel < 1.0e-12
-        @test drel ≈ d / sqrt(sum(arr(C) .^ 2))
+        @test drel ≈ d / norm(arr(C))
     end
 
     @testset "ForwardDiff passes through a projection" begin
@@ -370,10 +370,8 @@
         Γ = Christoffel(CS)
         x₀ = [0.7, 1.1, 2.3]
         Γnum = Christoffel(coorsys_spherical_num(), x₀)
-        Γsym = [
-            Float64(tsimplify(Γ[i, j, k]).subs(Dict(θs => x₀[1], ϕs => x₀[2], rs => x₀[3])))
-                for i in 1:3, j in 1:3, k in 1:3
-        ]
+        at_x₀ = Dict(θs => x₀[1], ϕs => x₀[2], rs => x₀[3])
+        Γsym = map(γ -> Float64(tsimplify(γ).subs(at_x₀)), Γ)
         @test Γnum ≈ Γsym
         @test collect(Lame(coorsys_spherical_num(), x₀)) ≈ [x₀[3], x₀[3] * sin(x₀[1]), 1.0]
     end
