@@ -94,9 +94,11 @@ orthogonal. The projection at fixed frame simply **keeps the block-diagonal part
 and symmetrizes** (`_project_ORTHO_KM`):
 
 ```math
-C_{ii}\ \text{unchanged},\qquad
-C_{ij}=\tfrac{C_{ij}+C_{ji}}{2}\ (i<j\le3),\qquad
-C_{44},C_{55},C_{66}\ \text{halved from the KM diagonal},
+\begin{aligned}
+&C_{ii}\ \text{unchanged},\\
+&C_{ij}=\tfrac{1}{2}\bigl(C_{ij}+C_{ji}\bigr)\quad(i<j\le3),\\
+&C_{44},C_{55},C_{66}\ \text{halved from the KM diagonal},
+\end{aligned}
 ```
 
 everything outside the two blocks being discarded. For an order-2 tensor the

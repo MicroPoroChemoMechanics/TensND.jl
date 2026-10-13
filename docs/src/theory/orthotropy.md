@@ -19,8 +19,8 @@ the associated projectors. Then
            &+C_{12}\bigl(\boldsymbol{P}_1{\otimes}\boldsymbol{P}_2
                         +\boldsymbol{P}_2{\otimes}\boldsymbol{P}_1\bigr)
             +C_{13}\bigl(\boldsymbol{P}_1{\otimes}\boldsymbol{P}_3
-                        +\boldsymbol{P}_3{\otimes}\boldsymbol{P}_1\bigr)
-            +C_{23}\bigl(\boldsymbol{P}_2{\otimes}\boldsymbol{P}_3
+                        +\boldsymbol{P}_3{\otimes}\boldsymbol{P}_1\bigr)\\
+           &+C_{23}\bigl(\boldsymbol{P}_2{\otimes}\boldsymbol{P}_3
                         +\boldsymbol{P}_3{\otimes}\boldsymbol{P}_2\bigr)\\
            &+2C_{44}\,\boldsymbol{P}_2\stackrel{s}{\boxtimes}\boldsymbol{P}_3
             +2C_{55}\,\boldsymbol{P}_1\stackrel{s}{\boxtimes}\boldsymbol{P}_3
@@ -34,19 +34,20 @@ The whole point of the class is that in its own frame the Kelvin–Mandel matrix
 splits:
 
 ```math
-\mathrm{Mat}_{\text{mat}}(\mathbb{C})=
-\begin{pmatrix}
+\begin{aligned}
+\mathrm{Mat}_{\text{mat}}(\mathbb{C})
+&=\begin{pmatrix}
 C_{11}&C_{12}&C_{13}&&&\\
 C_{12}&C_{22}&C_{23}&&&\\
 C_{13}&C_{23}&C_{33}&&&\\
 &&&2C_{44}&&\\
 &&&&2C_{55}&\\
 &&&&&2C_{66}
-\end{pmatrix}
-=\;
-\underbrace{\begin{bmatrix}3\times3\\ \text{symmetric}\end{bmatrix}}_{\text{6 constants}}
+\end{pmatrix}\\[6pt]
+&=\underbrace{\begin{bmatrix}3\times3\\ \text{symmetric}\end{bmatrix}}_{\text{6 constants}}
 \;\oplus\;
 \underbrace{\mathrm{diag}(2C_{44},2C_{55},2C_{66})}_{\text{3 constants}}
+\end{aligned}
 ```
 
 Extension and shear decouple entirely. This is [`KM_material`](@ref); the matrix

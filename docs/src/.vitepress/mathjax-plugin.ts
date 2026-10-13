@@ -12,6 +12,12 @@ import { symbolsOf } from './nomenclature-match.mjs'
 
 const mathjaxStyleModuleID = 'virtual:mathjax-styles.css'
 
+// Width, in px, of the box MathJax lays math out in at build time: MathJax's
+// own default (80 ex of 8 px), stated so that the warning below can name it.
+// With `displayOverflow: 'linebreak'`, a wider display equation is cut into
+// lines baked into the static SVG, whatever the reader's screen.
+const BUILD_WIDTH_PX = 640
+
 interface MathJaxOptions {
   font?: string
 }
@@ -66,12 +72,36 @@ export function mathjaxPlugin(options: MathJaxOptions = {}) {
     }
   }
 
+  // Each equation is reported once per process: the dev server renders a page
+  // again on every reload, and a build may render it once per bundle.
+  const reportedBreaks = new Set<string>()
+
+  // The equation's lines were chosen by MathJax, not by its author: it is wider
+  // than the build box, or carries a top-level `\\` (the pages have none; their
+  // multi-line equations use `aligned`, `gathered` or `array`). The break usually
+  // falls on a relation and leaves an orphan `=` line.
+  function warnLineBroken(content: string) {
+    const key = `${currentPage}\0${content}`
+    if (reportedBreaks.has(key)) return
+    reportedBreaks.add(key)
+    const tex = content.replace(/\s+/g, ' ').trim()
+    console.warn(
+      `[mathjax] ${currentPage}: a display equation was broken into lines ` +
+        `(wider than the ${BUILD_WIDTH_PX} px build width, or a top-level \\\\); ` +
+        `lay it out with aligned or gathered:\n    ` +
+        (tex.length > 160 ? `${tex.slice(0, 157)}...` : tex),
+    )
+  }
+
   function renderMath(content: string, displayMode: boolean): string {
     if (!initialized) {
       throw new Error('MathJax not initialized')
     }
 
-    const node = MathJax.tex2svg(content, { display: displayMode })
+    const node = MathJax.tex2svg(content, {
+      display: displayMode,
+      containerWidth: BUILD_WIDTH_PX,
+    })
 
     // Prevent Vue from touching MathJax output
     adaptor.setAttribute(node, 'v-pre', '')
@@ -85,6 +115,8 @@ export function mathjaxPlugin(options: MathJaxOptions = {}) {
     }
 
     let html = adaptor.outerHTML(node)
+
+    if (displayMode && html.includes('data-mjx-linestack')) warnLineBroken(content)
 
     // Preserve spaces inside mjx-break (SVG only)
     html = html.replace(

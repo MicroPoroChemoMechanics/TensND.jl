@@ -68,12 +68,16 @@ C_{12}&C_{12}&C_{11}&&&\\
 &&&&2C_{44}&\\
 &&&&&2C_{44}
 \end{pmatrix},
+```
+
+and the coefficients on the three projectors are
+
+```math
+\alpha = C_{11}+2C_{12} = 3K,
 \qquad
-\begin{aligned}
-\alpha &= C_{11}+2C_{12} = 3K,\\
-\beta  &= C_{11}-C_{12},\\
-\gamma &= 2C_{44}.
-\end{aligned}
+\beta = C_{11}-C_{12},
+\qquad
+\gamma = 2C_{44}.
 ```
 
 [`tens_cubic`](@ref) builds one from ``(C_{11},C_{12},C_{44})`` and

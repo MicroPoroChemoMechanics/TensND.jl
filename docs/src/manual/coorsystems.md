@@ -15,6 +15,10 @@ placement of each operator — is on
 | [`coorsys_spherical`](@ref) | ``(\theta,\varphi,r)`` | ``(r,\;r\sin\theta,\;1)`` |
 | [`coorsys_spheroidal`](@ref) | ``(\varphi,p,q)`` | prolate spheroidal |
 
+Each curvilinear system is drawn, with its normalized basis and its surfaces of
+constant coordinate, in an interactive figure of
+[Predefined systems](@ref th-predefined-systems).
+
 !!! note "Spherical coordinates are ordered ``(\theta,\varphi,r)``"
     Not ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the
     canonical basis in the canonical order.

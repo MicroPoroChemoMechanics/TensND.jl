@@ -75,12 +75,14 @@ R = symbols("R", positive = true)
 # ``\rho`` in place of ``r``:
 #
 # ```math
+# \begin{aligned}
 # \mathbb{\Gamma}=\frac{1}{16\pi\mu(1-\nu)\rho^{3}}
-# \Bigl(-3\mathbb{J}+2(1-2\nu)\mathbb{I}
+# \Bigl(&-3\mathbb{J}+2(1-2\nu)\mathbb{I}
 # +3(\boldsymbol{1}\otimes\underline{n}\otimes\underline{n}
-#   +\underline{n}\otimes\underline{n}\otimes\boldsymbol{1})
-# +12\nu\,\underline{n}\stackrel{s}{\otimes}\boldsymbol{1}\stackrel{s}{\otimes}\underline{n}
+#   +\underline{n}\otimes\underline{n}\otimes\boldsymbol{1})\\
+# &{}+12\nu\,\underline{n}\stackrel{s}{\otimes}\boldsymbol{1}\stackrel{s}{\otimes}\underline{n}
 # -15\,\underline{n}^{\otimes4}\Bigr)
+# \end{aligned}
 # ```
 
 ℾ = 1 / (16PI * μ * (1 - ν) * ρ^3) * (

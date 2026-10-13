@@ -78,11 +78,13 @@ The Green operator and the Hill-type kernel:
 It must reproduce the closed form
 
 ```math
-\mathbb{\Lambda}=\frac{\lambda^{2}}{\lambda+2\mu}\,\boldsymbol{1}\otimes\boldsymbol{1}
+\begin{aligned}
+\mathbb{\Lambda}&=\frac{\lambda^{2}}{\lambda+2\mu}\,\boldsymbol{1}\otimes\boldsymbol{1}
 +\frac{2\lambda\mu}{\lambda+2\mu}\bigl(\boldsymbol{1}\otimes\underline{e}^r\otimes\underline{e}^r
- +\underline{e}^r\otimes\underline{e}^r\otimes\boldsymbol{1}\bigr)
-+4\mu\Bigl(\underline{e}^r\stackrel{s}{\otimes}\boldsymbol{1}\stackrel{s}{\otimes}\underline{e}^r
+ +\underline{e}^r\otimes\underline{e}^r\otimes\boldsymbol{1}\bigr)\\
+&\quad{}+4\mu\Bigl(\underline{e}^r\stackrel{s}{\otimes}\boldsymbol{1}\stackrel{s}{\otimes}\underline{e}^r
  -\frac{\lambda+\mu}{\lambda+2\mu}\,\underline{e}^r{}^{\otimes4}\Bigr)
+\end{aligned}
 ```
 
 ````@example hill_tensors

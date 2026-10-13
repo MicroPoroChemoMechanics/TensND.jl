@@ -46,6 +46,133 @@ physical components are read. For an *orthogonal* system the metric is
 [`normalized_basis`](@ref), with [`natvec`](@ref) and [`unitvec`](@ref) for
 individual vectors and [`Lame`](@ref) for the ``\chi_i``.
 
+## [Predefined systems](@id th-predefined-systems)
+
+| System | Coordinates | ``\underline{OM}`` | Lamé ``\chi_i`` |
+| :----- | :---------- | :----------------- | :-------------- |
+| [`coorsys_cartesian`](@ref) | ``(x,y,z)`` | ``(x,\,y,\,z)`` | ``(1,1,1)`` |
+| [`coorsys_polar`](@ref) | ``(r,\theta)`` | ``(r\cos\theta,\;r\sin\theta)`` | ``(1,\,r)`` |
+| [`coorsys_cylindrical`](@ref) | ``(r,\theta,z)`` | ``(r\cos\theta,\;r\sin\theta,\;z)`` | ``(1,\,r,\,1)`` |
+| [`coorsys_spherical`](@ref) | ``(\theta,\varphi,r)`` | ``(r\sin\theta\cos\varphi,\;r\sin\theta\sin\varphi,\;r\cos\theta)`` | ``(r,\;r\sin\theta,\;1)`` |
+| [`coorsys_spheroidal`](@ref) | ``(\varphi,p,q)`` | ``c\,(\bar{p}\bar{q}\cos\varphi,\;\bar{p}\bar{q}\sin\varphi,\;p\,q)`` | ``\bigl(c\,\bar{p}\bar{q},\;c\sqrt{q^2-p^2}/\bar{p},\;c\sqrt{q^2-p^2}/\bar{q}\bigr)`` |
+
+with, for the prolate spheroidal system, ``\bar{p}=\sqrt{1-p^2}``,
+``\bar{q}=\sqrt{q^2-1}`` and ``c`` half the distance between its two foci.
+All five are orthogonal, so each normalized basis is orthonormal; its vectors
+are named after their coordinate, ``\underline{e}^r``, ``\underline{e}^\theta``,
+… — for an orthonormal basis the dual basis is the basis itself, and the
+position of the label carries no meaning.
+
+!!! warning "The spherical coordinates are ordered ``(\theta,\varphi,r)``"
+    Not ``(r,\theta,\varphi)``. The ordering is chosen so that
+    ``\theta=\varphi=0`` reproduces the canonical basis **in the canonical
+    order**, which makes the spherical frame a genuine
+    [`RotatedBasis`](@ref) — see [Rotations](@ref th-rotations) — and lets
+    spherical results be compared with Euler-angle results without a
+    permutation. The same ordering applies to
+    [`init_spherical`](@ref) and to ``\underline{e}^\theta,\underline{e}^\varphi,
+    \underline{e}^r``.
+
+The figures below draw each curvilinear system at a point ``M`` set by the
+sliders: the canonical basis at the origin ``O``, the normalized basis at
+``M``, the angles and lengths that locate ``M``, and, when the box is ticked,
+the lines (in 2-D) or surfaces (in 3-D) on which one coordinate is constant.
+Each coordinate keeps one color throughout. Since
+``\underline{a}^i=\underline{a}_i/\chi_i^2`` is the gradient of ``q^i``, the
+unit vector of a coordinate is normal to the surface on which that coordinate
+is constant, and both are drawn in its color. A 3-D figure turns with the
+mouse.
+
+### Polar coordinates
+
+With ``r>0`` and ``\theta`` taken on any interval of length ``2\pi`` (the
+slider of the figure runs from ``-\pi`` to ``\pi``):
+
+```math
+\underline{e}^r=\cos\theta\,\underline{e}_1+\sin\theta\,\underline{e}_2,
+\qquad
+\underline{e}^\theta=-\sin\theta\,\underline{e}_1+\cos\theta\,\underline{e}_2 .
+```
+
+```@raw html
+<ClientOnly><FrameFigure kind="polar" /></ClientOnly>
+```
+
+### Cylindrical coordinates
+
+The polar pair in the plane ``z=0``, completed by the axial direction:
+``\underline{e}^r`` and ``\underline{e}^\theta`` as above, and
+``\underline{e}^z=\underline{e}_3``. The surfaces of constant coordinate are the
+cylinders of axis ``\underline{e}_3`` (``r``), the half-planes bounded by that
+axis (``\theta``) and the planes normal to it (``z``).
+
+```@raw html
+<ClientOnly><FrameFigure kind="cylindrical" /></ClientOnly>
+```
+
+### Spherical coordinates
+
+With ``r>0``, the colatitude ``\theta\in[0,\pi]`` measured from
+``\underline{e}_3`` and the azimuth ``\varphi`` measured from ``\underline{e}_1``:
+
+```math
+\begin{aligned}
+\underline{e}^\theta&=\cos\theta\cos\varphi\,\underline{e}_1
++\cos\theta\sin\varphi\,\underline{e}_2-\sin\theta\,\underline{e}_3,\\
+\underline{e}^\varphi&=-\sin\varphi\,\underline{e}_1+\cos\varphi\,\underline{e}_2,\\
+\underline{e}^r&=\sin\theta\cos\varphi\,\underline{e}_1
++\sin\theta\sin\varphi\,\underline{e}_2+\cos\theta\,\underline{e}_3 .
+\end{aligned}
+```
+
+In this order the triad is the image of the canonical basis by the rotation
+``R(\theta,\varphi,0)`` of [Rotations and Euler angles](@ref th-rotations). The
+surfaces of constant coordinate are the cones of axis ``\underline{e}_3`` and
+apex ``O`` (``\theta``), the half-planes bounded by that axis (``\varphi``) and
+the spheres of center ``O`` (``r``).
+
+```@raw html
+<ClientOnly><FrameFigure kind="spherical" /></ClientOnly>
+```
+
+### Prolate spheroidal coordinates
+
+With ``-1\le p\le1`` and ``q\ge1``, the surfaces of constant coordinate all
+share the foci ``\pm c\,\underline{e}_3``. ``q=\text{const}`` is the prolate
+spheroid
+
+```math
+\frac{x^2+y^2}{c^2\,(q^2-1)}+\frac{z^2}{c^2q^2}=1 ,
+```
+
+``p=\text{const}`` the sheet, on the side ``z/p>0``, of the hyperboloid of two
+sheets
+
+```math
+\frac{z^2}{c^2p^2}-\frac{x^2+y^2}{c^2\,(1-p^2)}=1 ,
+```
+
+and ``\varphi=\text{const}`` a half-plane bounded by the axis. The normalized
+basis, ordered as the coordinates, is
+
+```math
+\begin{aligned}
+\underline{e}^\varphi&=-\sin\varphi\,\underline{e}_1+\cos\varphi\,\underline{e}_2,\\
+\underline{e}^p&=\frac{-p\,\bar{q}\,(\cos\varphi\,\underline{e}_1+\sin\varphi\,\underline{e}_2)
++q\,\bar{p}\,\underline{e}_3}{\sqrt{q^2-p^2}},\\
+\underline{e}^q&=\frac{q\,\bar{p}\,(\cos\varphi\,\underline{e}_1+\sin\varphi\,\underline{e}_2)
++p\,\bar{q}\,\underline{e}_3}{\sqrt{q^2-p^2}} .
+\end{aligned}
+```
+
+Far from the foci, as ``q\to\infty``, ``c\,q`` tends to the radius ``r`` and
+``p`` to ``\cos\theta``: the spheroids and hyperboloids become the spheres and
+cones of the spherical system. The figure is drawn for ``c=1``.
+
+```@raw html
+<ClientOnly><FrameFigure kind="spheroidal" /></ClientOnly>
+```
+
 ## Christoffel symbols
 
 The natural basis varies, and the rate at which it does is the connection:
@@ -67,6 +194,32 @@ They are symmetric in ``(i,j)`` because
 
 and it is the ``\Gamma`` terms — not the partial derivatives — that make a
 divergence in spherical coordinates differ from a sum of derivatives.
+
+For the [predefined systems](@ref th-predefined-systems), the non-vanishing
+ones are
+
+```math
+\textbf{polar / cylindrical:}\qquad
+\Gamma^r_{\theta\theta}=-r,
+\qquad
+\Gamma^\theta_{r\theta}=\Gamma^\theta_{\theta r}=\frac{1}{r}
+```
+
+```math
+\textbf{spherical:}\qquad
+\Gamma^r_{\theta\theta}=-r,\quad
+\Gamma^r_{\varphi\varphi}=-r\sin^2\theta,\quad
+\Gamma^\theta_{\varphi\varphi}=-\sin\theta\cos\theta,
+```
+
+```math
+\Gamma^\theta_{r\theta}=\Gamma^\theta_{\theta r}=\frac{1}{r},\quad
+\Gamma^\varphi_{r\varphi}=\Gamma^\varphi_{\varphi r}=\frac{1}{r},\quad
+\Gamma^\varphi_{\theta\varphi}=\Gamma^\varphi_{\varphi\theta}=\cot\theta .
+```
+
+All Christoffel symbols of the Cartesian system vanish, which is the definition
+of a Cartesian chart.
 
 !!! note "Storage convention"
     [`Christoffel`](@ref) returns a ``d\times d\times d`` array indexed
@@ -111,51 +264,6 @@ included — which is where the Christoffel symbols enter.
 
 Note also that `SYMGRAD` is a primitive, not `(GRAD + transpose)/2` — applied to
 a displacement field it is directly the linearized strain tensor.
-
-## Predefined systems
-
-| System | Coordinates | ``\underline{OM}`` | Lamé ``\chi_i`` |
-| :----- | :---------- | :----------------- | :-------------- |
-| [`coorsys_cartesian`](@ref) | ``(x,y,z)`` | ``(x,\,y,\,z)`` | ``(1,1,1)`` |
-| [`coorsys_polar`](@ref) | ``(r,\theta)`` | ``(r\cos\theta,\;r\sin\theta)`` | ``(1,\,r)`` |
-| [`coorsys_cylindrical`](@ref) | ``(r,\theta,z)`` | ``(r\cos\theta,\;r\sin\theta,\;z)`` | ``(1,\,r,\,1)`` |
-| [`coorsys_spherical`](@ref) | ``(\theta,\varphi,r)`` | ``(r\sin\theta\cos\varphi,\;r\sin\theta\sin\varphi,\;r\cos\theta)`` | ``(r,\;r\sin\theta,\;1)`` |
-| [`coorsys_spheroidal`](@ref) | ``(\varphi,p,q)`` | prolate spheroidal | see the constructor |
-
-Their non-vanishing Christoffel symbols:
-
-```math
-\textbf{polar / cylindrical:}\qquad
-\Gamma^r_{\theta\theta}=-r,
-\qquad
-\Gamma^\theta_{r\theta}=\Gamma^\theta_{\theta r}=\frac{1}{r}
-```
-
-```math
-\textbf{spherical:}\qquad
-\Gamma^r_{\theta\theta}=-r,\quad
-\Gamma^r_{\varphi\varphi}=-r\sin^2\theta,\quad
-\Gamma^\theta_{\varphi\varphi}=-\sin\theta\cos\theta,
-```
-
-```math
-\Gamma^\theta_{r\theta}=\Gamma^\theta_{\theta r}=\frac{1}{r},\quad
-\Gamma^\varphi_{r\varphi}=\Gamma^\varphi_{\varphi r}=\frac{1}{r},\quad
-\Gamma^\varphi_{\theta\varphi}=\Gamma^\varphi_{\varphi\theta}=\cot\theta .
-```
-
-All Christoffel symbols of the Cartesian system vanish, which is the definition
-of a Cartesian chart.
-
-!!! warning "The spherical coordinates are ordered ``(\theta,\varphi,r)``"
-    Not ``(r,\theta,\varphi)``. The ordering is chosen so that
-    ``\theta=\varphi=0`` reproduces the canonical basis **in the canonical
-    order**, which makes the spherical frame a genuine
-    [`RotatedBasis`](@ref) — see [Rotations](@ref th-rotations) — and lets
-    spherical results be compared with Euler-angle results without a
-    permutation. The same ordering applies to
-    [`init_spherical`](@ref) and to ``\underline{e}^\theta,\underline{e}^\varphi,
-    \underline{e}^r``.
 
 ## Two implementations, one interface
 
