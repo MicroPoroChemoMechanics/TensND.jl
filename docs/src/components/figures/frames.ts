@@ -95,7 +95,9 @@ const euler: FrameSpec = {
     { symbol: sym('φ'), min: -24, max: 24, step: 1, init: 10, angle: true },
     { symbol: sym('ψ'), min: -24, max: 24, step: 1, init: 6, angle: true },
   ],
-  height: 520,
+  // Shown right under the introduction of its page: short enough to be seen
+  // whole, sliders included, on the first screen of a laptop.
+  height: 480,
   build([t, f, s], pal, _iso, uid) {
     const ct = Math.cos(t), st = Math.sin(t), cf = Math.cos(f), sf = Math.sin(f)
     const cs = Math.cos(s), ss = Math.sin(s)

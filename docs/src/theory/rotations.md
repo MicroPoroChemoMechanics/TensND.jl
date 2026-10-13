@@ -6,6 +6,17 @@ is part of the specification, not a detail. This page states the one `TensND`
 implements, read off `_rot3_raw` in `src/tens_projection.jl` and `rot2`/`rot3`/
 `rot6` in `src/special_tens.jl`.
 
+```@raw html
+<ClientOnly><FrameFigure kind="euler" /></ClientOnly>
+```
+
+The rotation ``R(\theta,\varphi,\psi)`` of this page: the canonical basis
+``\underline{e}_i`` at the center of the unit sphere, the rotated basis
+``\underline{e}'_i=R\cdot\underline{e}_i`` at the tip of
+``\underline{n}=\underline{e}'_3``. The sliders set the three angles and the
+scene turns with the mouse; how the three rotations compose is read in
+[The three rotations](@ref th-rotations-composed).
+
 ## The convention: **Z–Y–Z**, in the order ``(\theta,\varphi,\psi)``
 
 ```math
@@ -56,7 +67,7 @@ screens axes spread over a hemisphere rather than a grid in
     ``\theta=\varphi=0`` reproduces the canonical basis in the canonical order.
     See [Curvilinear differential calculus](@ref th-curvilinear).
 
-### The three rotations, pictured
+### [The three rotations](@id th-rotations-composed)
 
 Read from the left, ``R=R_z(\varphi)\,R_y(\theta)\,R_z(\psi)`` is a chain of
 rotations, each about an axis that the previous ones have moved:
@@ -84,16 +95,12 @@ The rotated basis ``\underline{e}'_i=R\cdot\underline{e}_i`` is therefore
 and ``(\underline{e}^\theta,\underline{e}^\varphi,\underline{n})``, the frame
 ``R(\theta,\varphi,0)`` makes of the canonical basis, is the normalized basis of
 the spherical coordinates at the point ``\underline{n}``
-([Predefined systems](@ref th-predefined-systems)). In the figure the canonical
-basis stays at the center of the unit sphere and the rotated one is attached
-at the tip of ``\underline{n}``; the sliders set the three angles, and the
-scene turns with the mouse. At ``\theta=0`` the line of nodes is still drawn,
-but ``\varphi`` and ``\psi`` then turn about the same axis and only their sum
-matters: the gimbal lock met again under *Recovering angles from a frame*.
-
-```@raw html
-<ClientOnly><FrameFigure kind="euler" /></ClientOnly>
-```
+([Predefined systems](@ref th-predefined-systems)); the figure at the top of
+this page draws ``\underline{e}^\theta`` and ``\underline{e}^\varphi`` dashed,
+in the plane tangent to the sphere. At
+``\theta=0`` the line of nodes is still drawn, but ``\varphi`` and ``\psi``
+then turn about the same axis and only their sum matters: the gimbal lock met
+again under *Recovering angles from a frame*.
 
 ## Rotating tensors of each order
 
