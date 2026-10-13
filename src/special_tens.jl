@@ -246,6 +246,9 @@ end
 for eb in (:𝐞, :𝐞ᵖ, :𝐞ᶜ, :𝐞ˢ)
     @eval $eb(i::Integer, args...; kwargs...) = $eb(Val(i), args...; kwargs...)
 end
+# The documented form of `𝐞`, with a plain dimension and element type: the
+# forwarding above passes them on unchanged, where `Val`s are expected.
+𝐞(i::Integer, dim::Integer, ::Type{T} = Sym) where {T <: Number} = 𝐞(Val(i), Val(dim), Val(T))
 
 """
     init_spherical(coords = (symbols("θ ϕ", real = true)..., symbols("r", positive = true)); canonical = false)

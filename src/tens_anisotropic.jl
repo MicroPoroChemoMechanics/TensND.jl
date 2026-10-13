@@ -654,13 +654,10 @@ julia> get_array(A)
 """
 function get_array(t::TensTI{2, T, 2}) where {T}
     a, b = t.data
-    n = t.n
-    δ(i, j) = i == j ? one(T) : zero(T)
-    result = Array{T, 2}(undef, 3, 3)
-    for i in 1:3, j in 1:3
-        result[i, j] = a * (δ(i, j) - n[i] * n[j]) + b * n[i] * n[j]
-    end
-    return result
+    n = SVector(t.n)
+    # Static algebra copied once into the result: faster than filling it entry
+    # by entry, and `(b n) nᵀ` keeps the association of the component formula.
+    return copyto!(Matrix{T}(undef, 3, 3), a * (I - n * transpose(n)) + (b * n) * transpose(n))
 end
 
 function Base.getindex(t::TensTI{2, T, 2}, i::Integer, j::Integer) where {T}
@@ -1494,6 +1491,13 @@ _lift_ti2_N3(A::TensTI{2, T, 3}) where {T} = A
 
 # ── get_array ────────────────────────────────────────────────────────────────
 
+# `[n]ₓ`, the matrix of `p ↦ n × p`: the in-plane rotation generator of a TI
+# tensor about `n` (`transpose`-free, so a symbolic axis is not conjugated).
+@inline function _cross_matrix(n::NTuple{3, T}) where {T}
+    n₁, n₂, n₃ = n
+    return @SMatrix [zero(T) -n₃ n₂; n₃ zero(T) -n₁; -n₂ n₁ zero(T)]
+end
+
 function get_array(t::TensTI{4, T, 8}) where {T}
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = t.data
     n = t.n
@@ -1502,10 +1506,8 @@ function get_array(t::TensTI{4, T, 8}) where {T}
     nn(i, j) = n[i] * n[j]
     nT(i, j) = δ(i, j) - nn(i, j)
     # In-plane rotation generator w·p = n × p  (odd in n)
-    ε(i, j, k) =
-        (i, j, k) in ((1, 2, 3), (2, 3, 1), (3, 1, 2)) ? one(T) :
-        (i, j, k) in ((3, 2, 1), (1, 3, 2), (2, 1, 3)) ? -one(T) : zero(T)
-    w(i, j) = ε(i, 1, j) * n[1] + ε(i, 2, j) * n[2] + ε(i, 3, j) * n[3]
+    W = _cross_matrix(n)
+    w(i, j) = W[i, j]
     result = Array{T, 4}(undef, 3, 3, 3, 3)
     # Fill the canonical (i ≤ j, k ≤ l) entries only, then mirror — this keeps
     # the minor symmetry EXACT in floating point (summation order would
@@ -1544,10 +1546,8 @@ function Base.getindex(t::TensTI{4, T, 8}, i::Integer, j::Integer, k::Integer, l
     δ(a, b) = a == b ? one(T) : zero(T)
     nn(a, b) = n[a] * n[b]
     nT(a, b) = δ(a, b) - nn(a, b)
-    ε(a, b, c) =
-        (a, b, c) in ((1, 2, 3), (2, 3, 1), (3, 1, 2)) ? one(T) :
-        (a, b, c) in ((3, 2, 1), (1, 3, 2), (2, 1, 3)) ? -one(T) : zero(T)
-    w(a, b) = ε(a, 1, b) * n[1] + ε(a, 2, b) * n[2] + ε(a, 3, b) * n[3]
+    W = _cross_matrix(n)
+    w(a, b) = W[a, b]
     W1 = nn(ii, jj) * nn(kk, ll)
     W2 = nT(ii, jj) * nT(kk, ll) / 2
     W3 = nn(ii, jj) * nT(kk, ll) / sq2
@@ -1561,28 +1561,16 @@ end
 
 function get_array(t::TensTI{2, T, 3}) where {T}
     a, b, c = t.data
-    n = t.n
-    δ(i, j) = i == j ? one(T) : zero(T)
-    ε(i, j, k) =
-        (i, j, k) in ((1, 2, 3), (2, 3, 1), (3, 1, 2)) ? one(T) :
-        (i, j, k) in ((3, 2, 1), (1, 3, 2), (2, 1, 3)) ? -one(T) : zero(T)
-    w(i, j) = ε(i, 1, j) * n[1] + ε(i, 2, j) * n[2] + ε(i, 3, j) * n[3]
-    result = Array{T, 2}(undef, 3, 3)
-    for i in 1:3, j in 1:3
-        nnij = n[i] * n[j]
-        result[i, j] = a * (δ(i, j) - nnij) + b * nnij + c * w(i, j)
-    end
-    return result
+    n = SVector(t.n)
+    nn = n * transpose(n)
+    return copyto!(Matrix{T}(undef, 3, 3), a * (I - nn) + b * nn + c * _cross_matrix(t.n))
 end
 
 function Base.getindex(t::TensTI{2, T, 3}, i::Integer, j::Integer) where {T}
     a, b, c = t.data
     n = t.n
     δij = i == j ? one(T) : zero(T)
-    ε(p, q, r) =
-        (p, q, r) in ((1, 2, 3), (2, 3, 1), (3, 1, 2)) ? one(T) :
-        (p, q, r) in ((3, 2, 1), (1, 3, 2), (2, 1, 3)) ? -one(T) : zero(T)
-    wij = ε(i, 1, j) * n[1] + ε(i, 2, j) * n[2] + ε(i, 3, j) * n[3]
+    wij = _cross_matrix(n)[i, j]
     nnij = n[i] * n[j]
     return a * (δij - nnij) + b * nnij + c * wij
 end

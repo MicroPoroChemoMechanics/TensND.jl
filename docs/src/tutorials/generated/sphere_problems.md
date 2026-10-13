@@ -129,8 +129,8 @@ needs: two constants per layer, fixed by continuity at each interface.
 The general solution is their combination:
 
 ````@example sphere_problems
-ûᶿ = sum(Sym("C$(i + 2)") * r^αΛ[i][1] for i in 1:length(αΛ))
-ûʳ = sum(Sym("C$(i + 2)") * αΛ[i][2] * r^αΛ[i][1] for i in 1:length(αΛ))
+ûᶿ = sum(Sym("C$(i + 2)") * r^α for (i, (α, _)) in enumerate(αΛ))
+ûʳ = sum(Sym("C$(i + 2)") * Λ * r^α for (i, (α, Λ)) in enumerate(αΛ))
 (ûᶿ, ûʳ)
 ````
 

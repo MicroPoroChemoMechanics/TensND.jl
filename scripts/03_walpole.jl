@@ -57,8 +57,8 @@ norm(arr(W[3]) - permutedims(arr(W[4]), (3, 4, 1, 2)))
 # ``2\times2`` matrices, while ``\mathbb{W}_5`` and ``\mathbb{W}_6`` are
 # orthogonal idempotents.
 
-gram = [sum(arr(W[i]) .* arr(W[j])) for i in 1:6, j in 1:6]
-coeffs(P) = [sum(P .* arr(W[k])) / gram[k, k] for k in 1:6]
+gram = [Wᵢ ⊙ Wⱼ for Wᵢ in W, Wⱼ in W]
+coeffs(P) = [P ⊙ arr(Wₖ) / gram[k, k] for (k, Wₖ) in enumerate(W)]
 
 println("   𝕎ᵢ : 𝕎ⱼ")
 println("      ", join([lpad("𝕎$j", 5) for j in 1:6]))

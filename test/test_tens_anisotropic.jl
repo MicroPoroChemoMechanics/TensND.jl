@@ -156,9 +156,7 @@
         ℂisos = αs * 𝕁s + βs * 𝕂s
         Wisos = fromISO(ℂisos, n3s)
         @test Wisos isa TensTI{4, <:Any, 5}
-        for i in 1:3, j in 1:3, k in 1:3, l in 1:3
-            @test simplify(Wisos[i, j, k, l] - ℂisos[i, j, k, l]) == 0
-        end
+        @test all(==(0), simplify.(get_array(Wisos) .- get_array(ℂisos)))
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -257,9 +255,7 @@
         # L⊡inv(L) should be identity
         𝕀 = tens_Id4(Val(3), Val(Sym))
         prod = L ⊡ Li
-        for i in 1:3, j in 1:3, k in 1:3, l in 1:3
-            @test simplify(prod[i, j, k, l] - 𝕀[i, j, k, l]) == 0
-        end
+        @test all(==(0), simplify.(get_array(prod) .- get_array(𝕀)))
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -840,7 +836,7 @@
         A5 = TensTI{4}(1.0, 2.0, 0.5, 3.0, 4.0, nax)
         r = A5 ⊡ t3
         rsym = A5 ⊡ TensTI{2}(2.0, 5.0, nax)
-        @test maximum(abs, get_array(r) .- get_array(rsym)) < 1.0e-13
+        @test r ≈ rsym atol = 1.0e-13
 
         # mixed-axis dot falls back generically
         t3c = TensTI{2}(1.5, -1.0, -0.3, ez)
@@ -966,7 +962,8 @@
         A = TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ)
         B = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, ℬ)
         P = A ⊡ B
-        @test maximum(abs, [P[i, j, k, l] - P[k, l, i, j] for i in 1:3, j in 1:3, k in 1:3, l in 1:3]) > 1.0
+        p = get_array(P)
+        @test maximum(abs, p - permutedims(p, (3, 4, 1, 2))) > 1.0
         @test Tensors.isminorsymmetric(get_array(P))
     end
 
@@ -1009,7 +1006,7 @@
             S = 𝕀 + ℙ ⊡ δ(n)
             @test get_array(TensND._generic_tens(S)) isa Tensors.SymmetricTensor
             A = inv(S)                      # this is what used to throw
-            @test maximum(abs, get_array(A ⊡ S) - get_array(TensND._generic_tens(𝕀))) < 1.0e-10
+            @test A ⊡ S ≈ 𝕀 atol = 1.0e-10
         end
     end
 

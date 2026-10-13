@@ -1,5 +1,40 @@
 # Changelog
 
+## v0.6.1 — matrix expressions written as matrices
+
+### Changed
+
+- **The transversely isotropic tensors were assembled entry by entry**, with
+  the Levi-Civita symbol rewritten in each function as a closure that tested
+  whether the index triple belonged to one of two tuples. `get_array` of the
+  order-2 tensors now states the closed form, `a(𝟏 − n⊗n) + b n⊗n + c[n]ₓ`, in
+  static algebra copied once into the result, and a single helper builds the
+  cross-product matrix `[n]ₓ` for the order-2 and order-4 tensors and their
+  `getindex`. Against v0.6.0 on the same machine, `get_array` is 2 % to 28 %
+  faster and `getindex` 5 % to 17 % faster with indices known at run time;
+  every value of the golden lock is equal to the bit. Kept as loops, because
+  every matrix or broadcast form measured slower: `KM` of an isotropic tensor,
+  the quadratic form of `transverse_isotropify`, the partial trace of the
+  symmetry search and the scaled bases.
+
+### Fixed
+
+- `𝐞(i, dim, T)`, the form its docstring documents, threw a `MethodError`: the
+  integer form forwarded the dimension and the element type unchanged to the
+  method that expects them as `Val`s, so only `𝐞(i)` worked.
+
+### Tests and documentation
+
+- Tensors are compared through `≈` and `norm`, no longer by differences of
+  component arrays: `get_array` returns the components in each tensor's own
+  basis, so such a difference is wrong as soon as the two bases differ.
+  Symmetry gaps use `permutedims`; the numerical-operators tutorial writes
+  Hooke's law as `λ tr(ε) 𝟏 + 2μ ε`; the Gram matrix of the Walpole basis uses
+  `⊙`. Index comprehensions that are the independent reference of a test (a
+  tensor product checked component by component, a rotation by its 3⁸-term
+  definition) are kept: replaced by the operation under test, the test would
+  be circular.
+
 ## v0.6.0 — no OMEinsum, no NLopt, and every number type through the algebra
 
 An audit of the whole package for speed, for the number types it must carry

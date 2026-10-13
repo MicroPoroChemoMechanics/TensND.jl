@@ -106,7 +106,8 @@ CSnum = coorsys_spherical_num()
 x₀ = [0.7, 1.1, 2.3]                       # (θ, ϕ, r)
 
 Γnum = Christoffel(CSnum, x₀)
-Γsym = [Float64(tsimplify(Γ[i, j, k]).subs(Dict(θ => x₀[1], ϕ => x₀[2], r => x₀[3]))) for i in 1:3, j in 1:3, k in 1:3]
+at_x₀ = Dict(θ => x₀[1], ϕ => x₀[2], r => x₀[3])
+Γsym = map(γ -> Float64(tsimplify(γ).subs(at_x₀)), Γ)
 
 println("‖Γ_num − Γ_sym‖ at (θ,ϕ,r) = ", x₀, " : ", norm(Γnum - Γsym))
 

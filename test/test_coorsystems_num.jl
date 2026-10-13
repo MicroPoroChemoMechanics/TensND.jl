@@ -182,8 +182,7 @@
         ε_func = x -> Array(SYMGRAD(u_lame, CS)(x))
         σ_func = x -> begin
             ε = ε_func(x)
-            tr_ε = sum(ε[i, i] for i in 1:3)
-            [λ_val * tr_ε * (i == j ? 1.0 : 0.0) + 2μ_val * ε[i, j] for i in 1:3, j in 1:3]
+            λ_val * tr(ε) * I + 2μ_val * ε
         end
         div_σ = DIV(σ_func, CS)([π / 3, π / 4, 1.5])
         @test div_σ isa AbstractTens

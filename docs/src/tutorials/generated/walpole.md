@@ -61,8 +61,8 @@ behave exactly as the matrix units ``(E_{11},E_{22},E_{12},E_{21})`` of
 orthogonal idempotents.
 
 ````@example walpole
-gram = [sum(arr(W[i]) .* arr(W[j])) for i in 1:6, j in 1:6]
-coeffs(P) = [sum(P .* arr(W[k])) / gram[k, k] for k in 1:6]
+gram = [Wᵢ ⊙ Wⱼ for Wᵢ in W, Wⱼ in W]
+coeffs(P) = [P ⊙ arr(Wₖ) / gram[k, k] for (k, Wₖ) in enumerate(W)]
 
 println("   𝕎ᵢ : 𝕎ⱼ")
 println("      ", join([lpad("𝕎$j", 5) for j in 1:6]))

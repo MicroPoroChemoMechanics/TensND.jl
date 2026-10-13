@@ -286,7 +286,7 @@
         B, d, drel, sym = best_sym_tens(t; optimize_angles = true)
         @test sym === :TI
         @test drel < 1.0e-6
-        @test maximum(abs, get_array(B) - get_array(t)) < 1.0e-5 * maximum(abs, get_array(t))
+        @test B ≈ t rtol = 1.0e-5
     end
 
 end
