@@ -33,14 +33,30 @@ export interface Slider {
    * formulas receive radians.
    */
   angle: boolean
+  /**
+   * The color of the slider, as a CSS value. By default the k-th slider takes
+   * the color of the k-th coordinate; a parameter of the chart, which is not
+   * a coordinate, takes a neutral one.
+   */
+  color?: string
+}
+
+/** One of several forms of a figure, chosen with radio buttons. */
+export interface Variant {
+  label: string
+  /** Bounds of the sliders that differ in this form, by slider index. */
+  sliders?: Record<number, Partial<Pick<Slider, 'min' | 'max'>>>
 }
 
 export interface FrameSpec {
   sliders: Slider[]
+  variants?: Variant[]
   /** Label of the checkbox showing the surfaces (lines in 2-D) of constant coordinate; none if absent. */
   iso?: string
   height: number
-  build(q: number[], pal: Palette, iso: boolean, uid: string): { data: Trace[]; layout: Record<string, unknown> }
+  build(
+    q: number[], pal: Palette, iso: boolean, uid: string, variant: number,
+  ): { data: Trace[]; layout: Record<string, unknown> }
 }
 
 const E1: Vec3 = [1, 0, 0]
@@ -95,7 +111,9 @@ const euler: FrameSpec = {
     { symbol: sym('φ'), min: -24, max: 24, step: 1, init: 10, angle: true },
     { symbol: sym('ψ'), min: -24, max: 24, step: 1, init: 6, angle: true },
   ],
-  height: 520,
+  // Shown right under the introduction of its page: short enough to be seen
+  // whole, sliders included, on the first screen of a laptop.
+  height: 480,
   build([t, f, s], pal, _iso, uid) {
     const ct = Math.cos(t), st = Math.sin(t), cf = Math.cos(f), sf = Math.sin(f)
     const cs = Math.cos(s), ss = Math.sin(s)
@@ -323,53 +341,83 @@ const spherical: FrameSpec = {
   },
 }
 
-// ── Prolate spheroidal coordinates (φ, p, q) ────────────────────────────────
-// OM = c (√(1−p²) √(q²−1) cos φ, √(1−p²) √(q²−1) sin φ, p q), −1 ≤ p ≤ 1,
-// q ≥ 1, drawn for c = 1: q = const is a prolate spheroid of foci (0, 0, ±c),
-// p = const one sheet of a two-sheeted hyperboloid of the same foci, φ = const
-// a half-plane bounded by the axis. Normalized basis (e^φ, e^p, e^q).
+// ── Spheroidal coordinates (φ, p, q), prolate or oblate ──────────────────────
+// With σ = −1 (prolate, the one TensND predefines, `coorsys_spheroidal`) or
+// σ = +1 (oblate, drawn for comparison only):
+//
+//   OM = c (√(1−p²) √(q²+σ) cos φ, √(1−p²) √(q²+σ) sin φ, p q),
+//
+// −1 ≤ p ≤ 1, and q ≥ 1 (prolate) or q ≥ 0 (oblate). q = const is a spheroid,
+// p = const one sheet of a hyperboloid (of two sheets, prolate) or one half of
+// a hyperboloid (of one sheet, oblate), φ = const a half-plane bounded by the
+// axis. The foci are the points ±c e3 (prolate) or the circle of radius c in
+// the plane z = 0 (oblate). Normalized basis (e^φ, e^p, e^q), with
+// D = √(q² + σ p²):
+//
+//   e^p = (−p √(q²+σ) (cos φ, sin φ), q √(1−p²)) / D,
+//   e^q = ( q √(1−p²) (cos φ, sin φ), p √(q²+σ)) / D.
+
+// Half the side of the scene. Surfaces of constant coordinate are cut where
+// they leave it whatever c, so that the slider of c does not push them out.
+const H = 2.3
 
 const spheroidal: FrameSpec = {
   sliders: [
     { symbol: sym('φ'), min: -24, max: 24, step: 1, init: -4, angle: true },
     { symbol: sym('p'), min: -0.95, max: 0.95, step: 0.01, init: 0.7, angle: false },
-    { symbol: sym('q'), min: 1.05, max: 2, step: 0.01, init: 1.5, angle: false },
+    { symbol: sym('q'), min: 1.05, max: 1.9, step: 0.01, init: 1.5, angle: false },
+    { symbol: sym('c'), min: 0.3, max: 1.2, step: 0.05, init: 1, angle: false, color: 'var(--tensnd-fig-ink)' },
+  ],
+  variants: [
+    { label: 'Prolate' },
+    { label: 'Oblate', sliders: { 2: { min: 0.05, max: 1.6 } } },
   ],
   iso: 'Surfaces of constant coordinate',
-  height: 580,
-  build([f, p, q], pal, iso, uid) {
+  height: 600,
+  build([f, p, q, c], pal, iso, uid, variant) {
+    const sigma = variant === 1 ? 1 : -1
     const cf = Math.cos(f), sf = Math.sin(f)
-    const sp = Math.sqrt(1 - p * p), sq = Math.sqrt(q * q - 1), D = Math.sqrt(q * q - p * p)
     const at = (pp: number, qq: number, a: number): Vec3 => {
-      const rho = Math.sqrt(1 - pp * pp) * Math.sqrt(qq * qq - 1)
-      return [rho * Math.cos(a), rho * Math.sin(a), pp * qq]
+      const rho = c * Math.sqrt(1 - pp * pp) * Math.sqrt(qq * qq + sigma)
+      return [rho * Math.cos(a), rho * Math.sin(a), c * pp * qq]
     }
+    const sp = Math.sqrt(1 - p * p), sq = Math.sqrt(q * q + sigma), D = Math.sqrt(q * q + sigma * p * p)
     const M = at(p, q, f)
     const eph: Vec3 = [-sf, cf, 0]
     const ep: Vec3 = [-p * sq * cf / D, -p * sq * sf / D, q * sp / D]
     const eq: Vec3 = [q * sp * cf / D, q * sp * sf / D, p * sq / D]
-    const qmax = 2.3
+    // q along a sheet p = const, through q = cosh η (prolate) or sinh η (oblate),
+    // which spreads the points evenly; up to |OM| ≈ c q = H.
+    const qOf = (e: number) => (sigma < 0 ? Math.cosh(e) : Math.sinh(e))
+    const etaMax = sigma < 0 ? Math.acosh(Math.max(H / c, 1.0001)) : Math.asinh(H / c)
     const data: Trace[] = []
     const ann: Annotation[] = []
 
     if (iso) {
-      // Sampled through p = cos β and q = cosh η, which spreads the points evenly.
       data.push(surface3(grid((a, b) => at(Math.cos(b), q, a), range(0, TWO_PI, 60), range(0, Math.PI, 36)), pal.q[2], 0.14))
-      data.push(surface3(grid((a, e) => at(p, Math.cosh(e), a), range(0, TWO_PI, 60), range(0, Math.acosh(qmax), 24)), pal.q[1], 0.18))
-      data.push(surface3(grid((rho, h) => [rho * cf, rho * sf, h], [0, 1.9], [-2, 2]), pal.q[0], 0.14))
+      data.push(surface3(grid((a, e) => at(p, qOf(e), a), range(0, TWO_PI, 60), range(0, etaMax, 24)), pal.q[1], 0.18))
+      data.push(surface3(grid((rho, h) => [rho * cf, rho * sf, h], [0, 0.85 * H], [-0.9 * H, 0.9 * H]), pal.q[0], 0.14))
     }
 
     // The lines through M along which one coordinate varies.
     data.push(line3(arcPoints([0, 0, M[2]], E1, E2, Math.hypot(M[0], M[1]), 0, TWO_PI, 96), pal.guide, 2, 'dot'))
     data.push(line3(range(0, Math.PI, 72).map((b) => at(Math.cos(b), q, f)), pal.guide, 2, 'dot'))
-    data.push(line3(range(0, Math.acosh(qmax), 48).map((e) => at(p, Math.cosh(e), f)), pal.guide, 2, 'dot'))
+    data.push(line3(range(0, etaMax, 48).map((e) => at(p, qOf(e), f)), pal.guide, 2, 'dot'))
     data.push(line3([[0, 0, M[2]], M], pal.guide, 2, 'dot'))
 
-    // The foci, and φ from e1 in the equatorial plane.
-    data.push(line3([[0, 0, -1], [0, 0, 1]], pal.ink, 4))
-    data.push(point3([0, 0, 1], pal.ink, 4), point3([0, 0, -1], pal.ink, 4))
-    ann.push(label3([0, 0, 1], '<i>c</i>', pal.ink, { xshift: 14 }))
-    ann.push(label3([0, 0, -1], '−<i>c</i>', pal.ink, { xshift: 16 }))
+    // The foci: two points on the axis (prolate), a circle in the plane z = 0 (oblate).
+    if (sigma < 0) {
+      data.push(line3([[0, 0, -c], [0, 0, c]], pal.ink, 4))
+      data.push(point3([0, 0, c], pal.ink, 4), point3([0, 0, -c], pal.ink, 4))
+      ann.push(label3([0, 0, c], '<i>c</i>', pal.ink, { xshift: 14 }))
+      ann.push(label3([0, 0, -c], '−<i>c</i>', pal.ink, { xshift: 16 }))
+    } else {
+      data.push(line3(arcPoints(O, E1, E2, c, 0, TWO_PI, 96), pal.ink, 4))
+      const a = (3 * Math.PI) / 4
+      const R: Vec3 = [c * Math.cos(a), c * Math.sin(a), 0]
+      data.push(line3([O, R], pal.ink, 2, 'dash'))
+      ann.push(label3(scale(0.5, R), '<i>c</i>', pal.ink, { yshift: 12 }))
+    }
 
     canonical3(pal, 1, data, ann)
     const uf: Vec3 = [cf, sf, 0]
@@ -379,7 +427,7 @@ const spheroidal: FrameSpec = {
 
     localBasis3(M, [eph, ep, eq], [vec('e', `<sup>${sym('φ')}</sup>`), vec('e', `<sup>${sym('p')}</sup>`),
       vec('e', `<sup>${sym('q')}</sup>`)], pal, 0.55, data, ann)
-    const b: Bounds = [[-2.1, 2.1], [-2.1, 2.1], [-qmax, qmax]]
+    const b: Bounds = [[-H, H], [-H, H], [-H, H]]
     return { data, layout: layout3(pal, b, ann, uid, EYE) }
   },
 }

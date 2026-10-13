@@ -288,7 +288,7 @@ unit = "m"
 group = "Bases and coordinates"
 tex = 'p'
 label = "p"
-name = "prolate spheroidal coordinate, constant on a hyperboloid sheet (−1 ≤ p ≤ 1)"
+name = "spheroidal coordinate, constant on a hyperboloid sheet (−1 ≤ p ≤ 1)"
 unit = "1"
 pages = ["theory/curvilinear.md"]
 
@@ -296,7 +296,7 @@ pages = ["theory/curvilinear.md"]
 group = "Bases and coordinates"
 tex = 'q'
 label = "q"
-name = "prolate spheroidal coordinate, constant on a spheroid (q ≥ 1)"
+name = "spheroidal coordinate, constant on a spheroid (q ≥ 1 prolate, q ≥ 0 oblate)"
 unit = "1"
 pages = ["theory/curvilinear.md"]
 
@@ -304,7 +304,7 @@ pages = ["theory/curvilinear.md"]
 group = "Bases and coordinates"
 tex = '\bar{p}'
 label = "p̄"
-name = "shorthand √(1 − p<sup>2</sup>) of the prolate spheroidal coordinates"
+name = "shorthand √(1 − p<sup>2</sup>) of the spheroidal coordinates"
 unit = "1"
 pages = ["theory/curvilinear.md"]
 
@@ -318,9 +318,17 @@ pages = ["theory/curvilinear.md"]
 
 [[symbol]]
 group = "Bases and coordinates"
+tex = '\hat{q}'
+label = "q̂"
+name = "shorthand √(q<sup>2</sup> + 1) of the oblate spheroidal coordinates"
+unit = "1"
+pages = ["theory/curvilinear.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
 tex = 'c'
 label = "c"
-name = "half the distance between the foci of the prolate spheroidal coordinates"
+name = "half the focal distance (prolate) or radius of the focal circle (oblate) of the spheroidal coordinates"
 unit = "m"
 pages = ["theory/curvilinear.md"]
 

@@ -51,62 +51,62 @@ In the frame where ``\underline{n}=\underline{e}_3``, with the ordering of
 \mathrm{Mat}(\mathbb{W}_1) & \mathrm{Mat}(\mathbb{W}_2) & \mathrm{Mat}(\mathbb{W}_3)\\[4pt]
 {\small
 \left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
-\end{array}\right)}
-&
-\dfrac{1}{2}{\small
-\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
-1 & 1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-1 & 1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
-\end{array}\right)}
-&
-\dfrac{1}{\sqrt2}{\small
-\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-1 & 1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
-\end{array}\right)}\\[14pt]
-\mathrm{Mat}(\mathbb{W}_4) & \mathrm{Mat}(\mathbb{W}_5) & \mathrm{Mat}(\mathbb{W}_6)\\[4pt]
-\dfrac{1}{\sqrt2}{\small
-\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
-\phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
-\end{array}\right)}
-&
-\dfrac{1}{2}{\small
-\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
-1 & -1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
--1 & 1 & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & 2
+0&&&&&\\
+&0&&&&\\
+&&1&&&\\
+&&&0&&\\
+&&&&0&\\
+&&&&&0
 \end{array}\right)}
 &
 {\small
 \left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & 1 & \phantom{0} & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & 1 & \phantom{0}\\
-\phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0} & \phantom{0}
+\frac12&\frac12&&&&\\
+\frac12&\frac12&&&&\\
+&&0&&&\\
+&&&0&&\\
+&&&&0&\\
+&&&&&0
+\end{array}\right)}
+&
+{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+0&0&0&&&\\
+0&0&0&&&\\
+\frac{1}{\sqrt2}&\frac{1}{\sqrt2}&0&&&\\
+&&&0&&\\
+&&&&0&\\
+&&&&&0
+\end{array}\right)}\\[14pt]
+\mathrm{Mat}(\mathbb{W}_4) & \mathrm{Mat}(\mathbb{W}_5) & \mathrm{Mat}(\mathbb{W}_6)\\[4pt]
+{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+0&0&\frac{1}{\sqrt2}&&&\\
+0&0&\frac{1}{\sqrt2}&&&\\
+0&0&0&&&\\
+&&&0&&\\
+&&&&0&\\
+&&&&&0
+\end{array}\right)}
+&
+{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+\frac12&-\frac12&&&&\\
+-\frac12&\frac12&&&&\\
+&&0&&&\\
+&&&0&&\\
+&&&&0&\\
+&&&&&1
+\end{array}\right)}
+&
+{\small
+\left(\begin{array}{@{\,}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\;\;}c@{\,}}
+0&&&&&\\
+&0&&&&\\
+&&0&&&\\
+&&&1&&\\
+&&&&1&\\
+&&&&&0
 \end{array}\right)}
 \end{array}
 ```
