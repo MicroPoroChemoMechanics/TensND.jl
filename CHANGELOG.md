@@ -1,5 +1,35 @@
 # Changelog
 
+## v0.6.1 — matrix expressions written as matrices
+
+### Changed
+
+- **The order-2 transversely isotropic tensors were assembled component by
+  component**, with the Kronecker delta and the Levi-Civita symbol rewritten as
+  closures, the latter by testing whether the index triple belonged to one of
+  two tuples. `get_array` now states the closed form as matrices,
+  `a(𝟏 − n⊗n) + b n⊗n + c[n]ₓ`, and a single helper builds the cross-product
+  matrix `[n]ₓ` for the order-2 and order-4 tensors and their `getindex`, which
+  therefore keep agreeing to the bit. The isotropic `KM` is `β𝟏` plus the
+  spherical block, the quadratic form of `transverse_isotropify` is `nᵀ t n`,
+  the partial trace of the symmetry search, the scaled bases and the numerical
+  Cartesian chart follow. `transpose` throughout, never `'`, so that a symbolic
+  axis is not conjugated. No exported name, signature or computed value changes,
+  except the last bit of `transverse_isotropify`, whose quadratic form now sums
+  in the order of a matrix product.
+
+### Tests and documentation
+
+- Tensors are compared through `≈` and `norm`, no longer by differences of
+  component arrays: `get_array` returns the components in each tensor's own
+  basis, so such a difference is wrong as soon as the two bases differ.
+  Symmetry gaps use `permutedims`; the numerical-operators tutorial writes
+  Hooke's law as `λ tr(ε) 𝟏 + 2μ ε`; the Gram matrix of the Walpole basis uses
+  `⊙`. Index comprehensions that are the independent reference of a test (a
+  tensor product checked component by component, a rotation by its 3⁸-term
+  definition) are kept: replaced by the operation under test, the test would
+  be circular.
+
 ## v0.6.0 — no OMEinsum, no NLopt, and every number type through the algebra
 
 An audit of the whole package for speed, for the number types it must carry
