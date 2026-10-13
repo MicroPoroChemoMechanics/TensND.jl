@@ -17,6 +17,12 @@
   the quadratic form of `transverse_isotropify`, the partial trace of the
   symmetry search and the scaled bases.
 
+### Fixed
+
+- `𝐞(i, dim, T)`, the form its docstring documents, threw a `MethodError`: the
+  integer form forwarded the dimension and the element type unchanged to the
+  method that expects them as `Val`s, so only `𝐞(i)` worked.
+
 ### Tests and documentation
 
 - Tensors are compared through `≈` and `norm`, no longer by differences of

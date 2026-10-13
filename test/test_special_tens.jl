@@ -64,6 +64,10 @@
         for i in 1:3
             e = 𝐞(Val(i), Val(3), Val(Float64))
             @test get_array(e) ≈ [j == i ? 1.0 : 0.0 for j in 1:3]
+            # The documented integer form: it threw a `MethodError`.
+            @test 𝐞(i, 3, Float64) == e
+            @test eltype(𝐞(i, 3, Float64)) === Float64
+            @test 𝐞(i, 3) == 𝐞(Val(i), Val(3), Val(Sym))     # element type `Sym` by default
         end
     end
 
