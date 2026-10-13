@@ -413,7 +413,7 @@ Numerical Cartesian coordinate system in 3D. Coordinates: (x, y, z).
 function coorsys_cartesian_num(::Type{T} = Float64) where {T <: Real}
     dim = 3
     χ_func = x -> fill(one(x[1]), dim)
-    R_func = x -> Matrix{typeof(x[1])}(I, dim, dim)
+    R_func = x -> [i == j ? one(x[1]) : zero(x[1]) for i in 1:dim, j in 1:dim]
     Γ_func = x -> zeros(typeof(x[1]), dim, dim, dim)
     return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
 end

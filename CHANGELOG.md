@@ -4,19 +4,18 @@
 
 ### Changed
 
-- **The order-2 transversely isotropic tensors were assembled component by
-  component**, with the Kronecker delta and the Levi-Civita symbol rewritten as
-  closures, the latter by testing whether the index triple belonged to one of
-  two tuples. `get_array` now states the closed form as matrices,
-  `a(𝟏 − n⊗n) + b n⊗n + c[n]ₓ`, and a single helper builds the cross-product
-  matrix `[n]ₓ` for the order-2 and order-4 tensors and their `getindex`, which
-  therefore keep agreeing to the bit. The isotropic `KM` is `β𝟏` plus the
-  spherical block, the quadratic form of `transverse_isotropify` is `nᵀ t n`,
-  the partial trace of the symmetry search, the scaled bases and the numerical
-  Cartesian chart follow. `transpose` throughout, never `'`, so that a symbolic
-  axis is not conjugated. No exported name, signature or computed value changes,
-  except the last bit of `transverse_isotropify`, whose quadratic form now sums
-  in the order of a matrix product.
+- **The transversely isotropic tensors were assembled entry by entry**, with
+  the Levi-Civita symbol rewritten in each function as a closure that tested
+  whether the index triple belonged to one of two tuples. `get_array` of the
+  order-2 tensors now states the closed form, `a(𝟏 − n⊗n) + b n⊗n + c[n]ₓ`, in
+  static algebra copied once into the result, and a single helper builds the
+  cross-product matrix `[n]ₓ` for the order-2 and order-4 tensors and their
+  `getindex`. Against v0.6.0 on the same machine, `get_array` is 2 % to 28 %
+  faster and `getindex` 5 % to 17 % faster with indices known at run time;
+  every value of the golden lock is equal to the bit. Kept as loops, because
+  every matrix or broadcast form measured slower: `KM` of an isotropic tensor,
+  the quadratic form of `transverse_isotropify`, the partial trace of the
+  symmetry search and the scaled bases.
 
 ### Tests and documentation
 

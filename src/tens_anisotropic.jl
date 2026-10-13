@@ -655,9 +655,9 @@ julia> get_array(A)
 function get_array(t::TensTI{2, T, 2}) where {T}
     a, b = t.data
     n = SVector(t.n)
-    # `(b n) nᵀ`: the association of the component formula this replaced, so
-    # that every value stays equal to the bit.
-    return Matrix{T}(a * (I - n * transpose(n)) + (b * n) * transpose(n))
+    # Static algebra copied once into the result: faster than filling it entry
+    # by entry, and `(b n) nᵀ` keeps the association of the component formula.
+    return copyto!(Matrix{T}(undef, 3, 3), a * (I - n * transpose(n)) + (b * n) * transpose(n))
 end
 
 function Base.getindex(t::TensTI{2, T, 2}, i::Integer, j::Integer) where {T}
@@ -1563,7 +1563,7 @@ function get_array(t::TensTI{2, T, 3}) where {T}
     a, b, c = t.data
     n = SVector(t.n)
     nn = n * transpose(n)
-    return Matrix{T}(a * (I - nn) + b * nn + c * _cross_matrix(t.n))
+    return copyto!(Matrix{T}(undef, 3, 3), a * (I - nn) + b * nn + c * _cross_matrix(t.n))
 end
 
 function Base.getindex(t::TensTI{2, T, 3}, i::Integer, j::Integer) where {T}

@@ -377,8 +377,11 @@ function transverse_isotropify(t::AbstractTens{2, 3}, n)
     nn = sqrt(n[1]^2 + n[2]^2 + n[3]^2)
     T = promote_type(T0, typeof(nn))
     n̂ = (T(n[1] / nn), T(n[2] / nn), T(n[3] / nn))
-    b = transpose(SVector(n̂)) * arr * SVector(n̂)
-    a = (tr(arr) - b) / 2
+    b = zero(T)
+    @inbounds for i in 1:3, j in 1:3
+        b += n̂[i] * arr[i, j] * n̂[j]
+    end
+    a = ((arr[1, 1] + arr[2, 2] + arr[3, 3]) - b) / 2
     # c = (1/2) Σ w[i,j] t[i,j],  w[i,j] = ε[i,k,j] n̂[k]
     c = (
         n̂[1] * (arr[3, 2] - arr[2, 3]) +

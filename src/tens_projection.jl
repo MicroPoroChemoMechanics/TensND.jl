@@ -398,8 +398,15 @@ Used to propose candidate TI axes and candidate orthotropic frames when the
 user asks for symmetry detection without angle optimization.
 """
 function _trace_tensor(C::AbstractArray{T, 4}) where {T}
-    d = [sum(C[i, k, j, k] for k in 1:3) for i in 1:3, j in 1:3]  # Cᵢₖⱼₖ
-    return SMatrix{3, 3, T}((d + transpose(d)) / 2)  # symmetrize to guard numerical noise
+    d = MMatrix{3, 3, T}(undef)
+    for i in 1:3, j in 1:3
+        s = zero(T)
+        for k in 1:3
+            s += C[i, k, j, k]
+        end
+        d[i, j] = s
+    end
+    return SMatrix{3, 3, T}((d + d') / 2)  # symmetrize to guard numerical noise
 end
 
 """
