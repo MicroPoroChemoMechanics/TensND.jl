@@ -28,6 +28,11 @@ end
 @inline Base.:*(α::Number, t::AbstractTens) = Tens(α * get_array(t), get_basis(t), get_var(t))
 @inline Base.:*(t::AbstractTens, α::Number) = Tens(α * get_array(t), get_basis(t), get_var(t))
 @inline Base.:/(t::AbstractTens, α::Number) = Tens(get_array(t) / α, get_basis(t), get_var(t))
+# The same tie with Symbolics as for the structured tensors
+# (`structured_tens_ops.jl`); the components are divided elementwise, since a
+# real array divided by a `Num` would otherwise go to Symbolics' own method.
+@inline Base.:/(t::AbstractTens{order, dim, <:Real}, α::Symbolics.Num) where {order, dim} =
+    Tens(get_array(t) ./ α, get_basis(t), get_var(t))
 
 @inline Base.inv(t::AbstractTens{2}) =
     Tens(inv(get_array(t)), get_basis(t), (invvar(get_var(t, 2)), invvar(get_var(t, 1))))

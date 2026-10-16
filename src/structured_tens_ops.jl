@@ -45,6 +45,16 @@ for ST in (TensISO, TensTI{4}, TensTI, TensOrtho, TensCubic)
     @eval @inline Base.:/(A::$ST, α::Number) = _rebuild(A, get_data(A) ./ α)
 end
 
+# `Symbolics.Num <: Real`, and Symbolics divides any real array by a `Num`
+# (`/(::AbstractArray{<:Real}, ::Num)`). A structured tensor with real entries
+# divided by a `Num` matches that method and the one above equally well, so the
+# call was refused as ambiguous; the structured division is restated on the
+# intersection of the two signatures, which keeps the result structured.
+for ST in (TensISO, TensTI{4}, TensTI, TensOrtho, TensCubic)
+    @eval @inline Base.:/(A::$(typeintersect(ST, AbstractArray{<:Real})), α::Symbolics.Num) =
+        _rebuild(A, get_data(A) ./ α)
+end
+
 # ── Reference checks for binary operations ───────────────────────────────────
 # TensTI{4} and TensTI carry a symmetry axis (n); TensOrtho carries a material
 # frame; TensCubic carries a cube frame, and its check is looser than equality

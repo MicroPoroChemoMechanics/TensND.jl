@@ -396,10 +396,19 @@ scontract(::TensISO{2, d1}, ::TensISO{2, d2}) where {d1, d2} = throw(
             "$(d2)-dimensional one"
     )
 )
-for T in (AbstractArray, AbstractTens)
+# The plain arrays a tensor contracts with hold numbers, as the tensor does.
+# Saying so keeps these methods off the `dot` that MutableArithmetics (loaded by
+# Symbolics) defines on arrays of its mutable numbers, which are not `Number`s:
+# unrestricted, the two tied on such an array.
+for T in (AbstractArray{<:Number}, AbstractTens)
     @eval LinearAlgebra.dot(A::TensISO{2, dim}, B::$T) where {dim} = scontract(A, B)
     @eval LinearAlgebra.dot(A::$T, B::TensISO{2, dim}) where {dim} = scontract(A, B)
 end
+# LinearAlgebra contracts a `Diagonal` with any matrix through its own `dot`,
+# which tied with the pair above; the contraction is restated for that pair, as
+# for any other array.
+LinearAlgebra.dot(A::TensISO{2, dim}, B::Diagonal{<:Number}) where {dim} = scontract(A, B)
+LinearAlgebra.dot(A::Diagonal{<:Number}, B::TensISO{2, dim}) where {dim} = scontract(A, B)
 
 Tensors.dcontract(A::TensISO{2, dim}, B::TensISO{2, dim}) where {dim} =
     dim * get_data(A)[1] * get_data(B)[1]
