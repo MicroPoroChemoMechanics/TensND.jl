@@ -79,14 +79,12 @@ end
                 LinearAlgebra.UniformScaling,
             ],
         ),
-        # The twelve ambiguities left are all crossings with third-party
-        # signatures: Symbolics' `/(::AbstractArray{<:Real}, ::Num)`,
-        # MutableArithmetics' `dot` on mutable element types, and
-        # `LinearAlgebra.dot` on a `Diagonal`. Resolving each would mean adding a
-        # method that decides what, say, `dot(::TensISO{2}, ::Diagonal)` returns
-        # — a modeling question, not a dispatch one. The package's own
-        # ambiguities, seventeen of them, were fixed rather than excluded.
-        ambiguities = (exclude = [LinearAlgebra.dot, LinearAlgebra.normalize, /],),
+        # No ambiguity is excluded. The package's own, seventeen of them, were
+        # fixed first; the thirteen crossings with third-party signatures —
+        # Symbolics' `/(::AbstractArray{<:Real}, ::Num)`, `LinearAlgebra.dot`
+        # on a `Diagonal`, MutableArithmetics' `dot` on mutable element types and
+        # `LinearAlgebra.normalize(::AbstractArray, ::Real)` — are settled with
+        # the answer TensND already gives for every other number or array.
         # Run apart, see `aqua_persistent_tasks` above.
         persistent_tasks = false,
     )
@@ -110,6 +108,8 @@ include("test_special_tens.jl")
 include("test_coorsystems.jl")
 include("test_coorsystems_num.jl")
 include("test_submanifold.jl")
+# Calls that tied a TensND method with one of a package it loads.
+include("test_third_party_ties.jl")
 # Pins the conventions the documentation asserts — the Walpole identities, the
 # Kelvin-Mandel congruence, the operator index placement, and so on — so that
 # the code cannot drift away from the docs unnoticed. See

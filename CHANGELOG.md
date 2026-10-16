@@ -1,5 +1,41 @@
 # Changelog
 
+## v0.6.2 — no tie with Symbolics, LinearAlgebra or MutableArithmetics
+
+A patch release. Thirteen pairs of methods, each made of a method of TensND and
+a method of a package it loads, matched the same calls equally well, and Julia
+refused those calls as ambiguous. The most visible was the division of a tensor
+by a `Symbolics.Num`, which MeanFieldHomogenization makes when it closes an
+average by a symbolic volume fraction. Each call now returns what TensND
+returns for any other number or array, and Aqua's ambiguity check runs with no
+function excluded.
+
+### Fixed
+
+- **A tensor divided by a `Symbolics.Num` threw an ambiguity error** as soon as
+  its entries were real, symbolic ones included, since `Num <: Real`: Symbolics
+  divides any real array by a `Num`, and the division of TensND matched as
+  well. The division is restated on the intersection of the two signatures for
+  `TensISO`, `TensTI`, `TensOrtho`, `TensCubic` and any other tensor, and keeps
+  the structure of the tensor.
+- **`dot(::TensISO{2}, ::Diagonal)` and its mirror** tied with the `dot` of
+  LinearAlgebra on a `Diagonal`; they contract, as with any other matrix.
+- **`dot` between a `TensISO{2}` and an array of MutableArithmetics numbers**,
+  a package Symbolics loads, tied with the `dot` of MutableArithmetics. The
+  methods of `dot` on plain arrays now require numeric entries, as the entries
+  of a tensor are: an array whose element type is not a `Number`, such as a
+  `Vector{Any}`, no longer contracts with an isotropic tensor through `⋅` and
+  must be converted first.
+- **`normalize(ℬ::AbstractBasis, var)`** tied with the
+  `normalize(::AbstractArray, ::Real)` of LinearAlgebra. `var` is now a `Symbol`,
+  as documented, and `normalize(ℬ, p::Real)` is the p-norm normalization of the
+  basis matrix by LinearAlgebra.
+
+### Tests
+
+- Aqua's ambiguity check runs without exclusions, and a new test file checks
+  what the formerly ambiguous calls return.
+
 ## v0.6.1 — matrix expressions written as matrices
 
 ### Changed

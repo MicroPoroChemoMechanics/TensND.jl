@@ -548,13 +548,15 @@ metric(ℬ::AbstractBasis) = metric(ℬ, Val(:cov))
 metric(ℬ::AbstractBasis, i::Integer, j::Integer, var::Symbol = :cov) = metric(ℬ, var)[i, j]
 
 """
-    normalize(ℬ::AbstractBasis, var = cov)
+    normalize(ℬ::AbstractBasis, var::Symbol = :cov)
 
 Build a basis after normalization of column vectors of input matrix `v` where columns define either
 - primal vectors ie `eᵢ=v[:,i]/norm(v[:,i])` if `var = :cov` as by default
 - dual vector ie `eⁱ=v[:,i]/norm(v[:,i])` if `var = :cont`.
 """
-function LinearAlgebra.normalize(ℬ::AbstractBasis, var = :cov)
+function LinearAlgebra.normalize(ℬ::AbstractBasis, var::Symbol = :cov)
+    # `var` is a `Symbol`: untyped, the method tied with LinearAlgebra's
+    # `normalize(::AbstractArray, ::Real)` on a basis and a number.
     w = copy(vecbasis(ℬ, var))
     for i in 1:size(w, 2)
         w[:, i] /= norm(w[:, i])
