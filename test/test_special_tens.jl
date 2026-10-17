@@ -145,3 +145,11 @@
     end
 
 end
+
+@testsection "𝐞ˢ with its components in the canonical basis" begin
+    # The closed forms of `canonical = true` against the rotated frame.
+    θ, ϕ, ψ = 0.4, 1.1, -0.7
+    for i in 1:3
+        @test get_array(𝐞ˢ(Val(i), θ, ϕ, ψ; canonical = true)) ≈ components_canon(𝐞ˢ(Val(i), θ, ϕ, ψ))
+    end
+end

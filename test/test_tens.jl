@@ -386,3 +386,29 @@ end
     @test_throws DimensionMismatch inv_KM(rand(5, 5))
     @test_throws DimensionMismatch inv_KM(rand(5))
 end
+
+@testsection "zero of a vector, and tensors of dimension 1" begin
+    # The zero of an order-2 or order-4 tensor is isotropic (`TensISO`); that
+    # of a vector stays in its basis, with its variance.
+    ℬ = Basis([1.0 0.5 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0], :cov)
+    z = zero(Tens([1.0, 2.0, 3.0], ℬ, (:cov,)))
+    @test iszero(get_array(z))
+    @test get_basis(z) === ℬ && get_var(z) == (:cov,)
+    # Dimension 1 has Tensors.jl types too, and every such tensor is symmetric.
+    @test get_array(Tens(fill(2.0, 1, 1))) == SymmetricTensor{2, 1}((2.0,))
+    @test get_array(Tens(fill(2.0, 1, 1, 1, 1))) == SymmetricTensor{4, 1}((2.0,))
+end
+
+@testsection "Symmetry predicates on symbolic components" begin
+    # A macro is resolved before the testset runs: name it by its module path.
+    TensND.Symbolics.@variables a b
+    S = TensND.Symbolics
+    @test issymmetric(Tensor{2, 2, S.Num}((a, b, b, a)))
+    @test !issymmetric(Tensor{2, 2, S.Num}((a, b, a, a)))
+    # Order 4: one component without its minor partner, then one without its
+    # major partner.
+    m = Tensor{4, 2, S.Num}((i, j, k, l) -> (i, j, k, l) == (1, 2, 1, 1) ? a : zero(a))
+    @test !Tensors.isminorsymmetric(m)
+    M = Tensor{4, 2, S.Num}((i, j, k, l) -> (i, j, k, l) == (1, 1, 2, 2) ? a : zero(a))
+    @test Tensors.isminorsymmetric(M) && !Tensors.ismajorsymmetric(M)
+end
