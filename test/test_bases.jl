@@ -116,3 +116,20 @@ end
     @test TensND.strvecbasis(ℬ, "θ", :cov; vec = "𝐚") == "𝐚" * TensND.subscriptchar("θ")
     @test_throws ArgumentError TensND.strvecbasis(ℬ, 1, :foo)
 end
+
+@testsection "Bases from contravariant vectors" begin
+    @test Basis(Matrix(1.0I, 3, 3), :cont) isa CanonicalBasis
+    # Orthogonal columns of lengths 1, 4 and 2: an orthogonal basis whose
+    # covariant vectors are the duals of the given ones.
+    M = [1.0 0.0 0.0; 0.0 0.0 -2.0; 0.0 4.0 0.0]
+    ℬ = Basis(M, :cont)
+    @test ℬ isa OrthogonalBasis
+    @test vecbasis(ℬ, :cont) ≈ M
+    @test transpose(vecbasis(ℬ, :cov)) * vecbasis(ℬ, :cont) ≈ I
+    # Unit scale factors leave the orthonormal frame itself.
+    R = Basis(π / 6, π / 4, π / 3)
+    @test OrthogonalBasis(R, [1.0, 1.0, 1.0]) isa RotatedBasis
+    @test Matrix(OrthogonalBasis(R, [1.0, 1.0, 1.0])) ≈ Matrix(R)
+    @test TensND.strvecbasis(ℬ, 2, :cov) == "𝐞₂"
+    @test TensND.subscriptnumber(-12) == "₋₁₂"
+end

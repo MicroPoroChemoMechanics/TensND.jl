@@ -237,3 +237,13 @@ end
         @test isotropify(A) isa TensISO{4, d}
     end
 end
+
+@testsection "TensISO with a UniformScaling, and the double contraction of two" begin
+    A = TensISO{3}(2.0, 5.0)
+    𝕀 = Array(one(SymmetricTensor{4, 3}))
+    @test Array(get_array(A + 3I)) ≈ Array(get_array(A)) .+ 3 .* 𝕀
+    @test Array(get_array(A - 3I)) ≈ Array(get_array(A)) .- 3 .* 𝕀
+    @test Array(get_array(A * 3I)) ≈ 3 .* Array(get_array(A))
+    a, b = TensISO{3}(4.0), TensISO{3}(5.0)
+    @test dcontract(a, b) ≈ dcontract(get_array(a), get_array(b)) ≈ 60
+end

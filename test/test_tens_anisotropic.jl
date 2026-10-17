@@ -724,6 +724,18 @@
         W1 = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n1)
         O_from_w1 = walpole_to_ortho(W1, frame, 1)
         @test opequal(get_array(W1), get_array(O_from_w1))
+
+        # Axis along e₂, and an index that names no axis of the frame
+        n2 = (0.0, 1.0, 0.0)
+        W2 = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n2)
+        @test opequal(get_array(W2), get_array(walpole_to_ortho(W2, frame, 2)))
+        @test_throws ErrorException walpole_to_ortho(W2, frame, 4)
+
+        # A TI tensor is stored in the canonical frame, so its components there,
+        # whatever the variance, are its array; an axis given as a 1×3 matrix
+        # reads as the vector it holds.
+        @test components(W, (:cont, :cont, :cont, :cont)) == get_array(W)
+        @test TensND._extract_vec([0.0 0.0 1.0]) == (0.0, 0.0, 1.0)
     end
 
     # ═══════════════════════════════════════════════════════════════════════════

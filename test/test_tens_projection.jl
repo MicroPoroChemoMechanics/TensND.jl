@@ -402,3 +402,25 @@
     end
 
 end
+
+@testsection "proj_tens of a null tensor, and is_TI with the axis searched" begin
+    frame = CanonicalBasis{3, Float64}()
+    n = (0.0, 0.0, 1.0)
+    # A null tensor projects onto the null tensor of each class, at distance 0.
+    B4, d4, r4 = proj_tens(:TI, zeros(3, 3, 3, 3), n)
+    @test B4 isa TensTI{4} && iszero(get_array(B4)) && d4 == 0 && r4 == 0
+    B2, d2, r2 = proj_tens(:TI, zeros(3, 3), n)
+    @test B2 isa TensTI{2} && iszero(get_array(B2)) && d2 == 0 && r2 == 0
+    O4, e4, s4 = proj_tens(:ORTHO, zeros(3, 3, 3, 3), frame)
+    @test O4 isa TensOrtho && iszero(get_array(O4)) && e4 == 0 && s4 == 0
+    O2, e2, s2 = proj_tens(:ORTHO, zeros(3, 3), frame)
+    @test iszero(O2) && e2 == 0 && s2 == 0
+    I4, f4, t4 = proj_tens(:ISO, zeros(3, 3, 3, 3))
+    @test iszero(I4) && f4 == 0 && t4 == 0
+    # The axis search finds the axis of a TI tensor off the frame, and no axis
+    # makes an orthotropic tensor with three distinct axial moduli TI.
+    W = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, (0.6, 0.0, 0.8))
+    @test is_TI(get_array(W); optimize_angles = true)
+    O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame)
+    @test !is_TI(get_array(O); optimize_angles = true)
+end
