@@ -26,8 +26,13 @@ jobs:
       fail-fast: false
       matrix:
         version:
-          - '1.12'
-          - '1.13'
+          # Aliases, so that no release of Julia calls for an edit here: 'min' is
+          # the latest patch of the oldest minor that `julia` admits in
+          # Project.toml, '1' the latest release, which also measures the
+          # coverage on ubuntu (keep it, or move the coverage conditions below
+          # with it), and 'nightly' the master branch.
+          - 'min'
+          - '1'
           - 'nightly'
         os:
           - ubuntu-latest
@@ -38,10 +43,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: julia-actions/setup-julia@v3
+        id: julia
         with:
           version: ${{ matrix.version }}
           arch: ${{ matrix.arch }}
       - uses: julia-actions/cache@v3
+        with:
+          # The key holds the matrix, whose aliases stay the same when Julia
+          # changes: it names the installed version too, so that a new release
+          # starts its own depot instead of carrying the old `compiled/` along.
+          cache-name: julia-cache;workflow=${{ github.workflow }};job=${{ github.job }};julia=${{ steps.julia.outputs.julia-version }}
       # The Pkg server intermittently advertises a General tree hash that its
       # CDN then answers with a 404, which kills the first `Pkg.add` of a cold
       # depot before any of this repository's code runs.  Install the registry
@@ -98,13 +109,14 @@ jobs:
           end
       - uses: julia-actions/julia-runtest@v1
         with:
-          # Instrument only the primary job: coverage disables precompilation
-          # caching and would slow down every other matrix entry for nothing.
-          coverage: ${{ matrix.os == 'ubuntu-latest' && matrix.version == '1.12' }}
+          # Instrument only the ubuntu job on the latest release: coverage
+          # disables precompilation caching and would slow down every other
+          # matrix entry for nothing.
+          coverage: ${{ matrix.os == 'ubuntu-latest' && matrix.version == '1' }}
       # Not julia-actions/julia-processcoverage: see the header of the script
       # for why its `amend_coverage_from_src!` step misreports this package.
       - name: Process coverage
-        if: matrix.os == 'ubuntu-latest' && matrix.version == '1.12'
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
         shell: julia --color=yes {0}
         run: |
           using Pkg
@@ -115,7 +127,7 @@ jobs:
           # resolves relative to THAT file's directory, not the cwd.
           include(joinpath(pwd(), ".github", "scripts", "coverage.jl"))
       - uses: codecov/codecov-action@v7
-        if: matrix.os == 'ubuntu-latest' && matrix.version == '1.12'
+        if: matrix.os == 'ubuntu-latest' && matrix.version == '1'
         with:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
