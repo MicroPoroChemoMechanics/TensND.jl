@@ -25,9 +25,12 @@ jobs:
           # pushes. The default shallow clone has no merge base to rebase onto.
           fetch-depth: 0
       - uses: julia-actions/setup-julia@v3
+        id: julia
         with:
           version: '1'
       - uses: julia-actions/cache@v3
+        with:
+          cache-name: julia-cache;workflow=${{ github.workflow }};job=${{ github.job }};julia=${{ steps.julia.outputs.julia-version }}
       # The Pkg server intermittently advertises a General tree hash that its
       # CDN then answers with a 404, which kills the first `Pkg.add` of a cold
       # depot before any of this repository's code runs.  Install the registry
