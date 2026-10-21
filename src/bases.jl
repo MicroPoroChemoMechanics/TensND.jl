@@ -251,6 +251,18 @@ struct CanonicalBasis{dim, T} <: AbstractBasis{dim, T} end
 CanonicalBasis() = CanonicalBasis{3, Sym}()
 
 
+_check_orthogonal(R::AbstractMatrix{T}) where {T} = _check_orthogonal(R, Val(is_hard_numeric(T)))
+_check_orthogonal(::AbstractMatrix, ::Val{false}) = nothing
+function _check_orthogonal(R::AbstractMatrix, ::Val{true})
+    transpose(R) * R ≈ I || throw(
+        ArgumentError(
+            "RotatedBasis needs an orthogonal matrix, got one with RᵀR = " *
+                "$(transpose(R) * R); use `Basis(R)` for a general basis"
+        )
+    )
+    return nothing
+end
+
 """
     RotatedBasis(θ::T<:Number, ϕ::T<:Number, ψ::T<:Number)
     RotatedBasis(θ::T<:Number)
@@ -275,6 +287,10 @@ struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
     function RotatedBasis(R::AbstractMatrix{T}) where {T <: Number}
         dim = size(R, 1)
         isidentity(R) && return CanonicalBasis{dim, T}()
+        # The dual basis is taken to be `R` itself, which holds only for an
+        # orthogonal `R`. Checked where a comparison means something; a
+        # symbolic `R` is the caller's responsibility.
+        _check_orthogonal(R)
         eᵢ = eⁱ = Matrix(R)
         return new{dim, T}(eᵢ, eⁱ, angles(R))
     end

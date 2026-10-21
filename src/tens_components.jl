@@ -150,7 +150,7 @@ function components(
             # to the one asked: computed here rather than stored in a
             # `Dict{…, AbstractMatrix}`, whose abstract values every use read
             # at run time.
-            c = vecbasis(get_basis(t), invvar(get_var(t, i)))' * vecbasis(ℬ, var[i])
+            c = transpose(vecbasis(get_basis(t), invvar(get_var(t, i)))) * vecbasis(ℬ, var[i])
             if c ≠ 1I
                 m = _narrow_eltype(Tc, _contract_index(m, c, i))
             end
@@ -184,7 +184,7 @@ function components(
     if isequal(ℬ, get_basis(t))
         return get_array(t)
     else
-        bb = vecbasis(get_basis(t))' * vecbasis(ℬ)
+        bb = transpose(vecbasis(get_basis(t))) * vecbasis(ℬ)
         Tc = _components_eltype(T, get_basis(t), ℬ)
         m = _narrow_eltype(Tc, Array(get_array(t)))
         if bb ≠ 1I

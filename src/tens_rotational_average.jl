@@ -249,7 +249,9 @@ subspace is `{𝕁, 𝕂}` in both cases), which is what distinguishes it from t
 coincide exactly on minor-symmetric input.
 """
 function isotropify(t::AbstractTens{4, 3})
-    arr = get_array(t)
+    # Traces: the same in every orthonormal frame, so `t` is read in its own
+    # (only a non-orthonormal basis needs its components changed).
+    arr = first(_orthonormal_components(t))
     α = sum(arr[i, i, j, j] for i in 1:3, j in 1:3) / 3
     full_trace = sum(arr[i, j, i, j] for i in 1:3, j in 1:3)
     β = (full_trace - α) / 5
@@ -326,7 +328,7 @@ end
 Exact SO(3) average of a 2nd-order tensor: `(tr t / 3) 𝟏`.
 """
 function isotropify(t::AbstractTens{2, 3})
-    arr = get_array(t)
+    arr = first(_orthonormal_components(t))   # a trace: any orthonormal frame
     λ = (arr[1, 1] + arr[2, 2] + arr[3, 3]) / 3
     return TensISO{3}(λ)
 end
@@ -356,8 +358,11 @@ function transverse_isotropify(t::TensTI{4}, n)
 end
 
 function _transverse_isotropify(t::AbstractTens{4, 3}, R, n̂)
-    arr = get_array(t)
-    arr_ez = _rotate4(arr, R)
+    # The averaging frame `R` (columns u, v, n̂ in canonical coordinates) is
+    # brought into the orthonormal frame `t` is written in, a 3×3 product: the
+    # components of `t` are rotated once, into `R`, and never to canonical first.
+    arr, Q = _orthonormal_components(t)
+    arr_ez = _rotate4(arr, _frame_in(Q, R))
     p = ti8_params_from_KM(mandel66_minor(arr_ez))
     return TensTI{4}(p..., n̂)
 end
@@ -372,23 +377,43 @@ in-plane part `c` is preserved (a symmetric TI parametrization would silently
 drop it).
 """
 function transverse_isotropify(t::AbstractTens{2, 3}, n)
-    arr = get_array(t)
+    # `t` is read in its own orthonormal frame and the axis brought into it.
+    arr, Q = _orthonormal_components(t)
     T0 = eltype(arr)
     nn = sqrt(n[1]^2 + n[2]^2 + n[3]^2)
     T = promote_type(T0, typeof(nn))
     n̂ = (T(n[1] / nn), T(n[2] / nn), T(n[3] / nn))
+    m = _vector_in(Q, n̂)
     b = zero(T)
     @inbounds for i in 1:3, j in 1:3
-        b += n̂[i] * arr[i, j] * n̂[j]
+        b += m[i] * arr[i, j] * m[j]
     end
     a = ((arr[1, 1] + arr[2, 2] + arr[3, 3]) - b) / 2
-    # c = (1/2) Σ w[i,j] t[i,j],  w[i,j] = ε[i,k,j] n̂[k]
-    c = (
-        n̂[1] * (arr[3, 2] - arr[2, 3]) +
-            n̂[2] * (arr[1, 3] - arr[3, 1]) +
-            n̂[3] * (arr[2, 1] - arr[1, 2])
-    ) / 2
+    c = _azimuthal_coupling(Q, n̂, arr)
     return TensTI{2}(a, b, c, n̂)
+end
+
+# The averaging frame, or the axis, in the orthonormal frame of a tensor whose
+# rotation to canonical is `Q` (`nothing`: the canonical frame itself).
+_frame_in(::Nothing, R) = R
+_frame_in(Q::AbstractMatrix, R) = transpose(Q) * R
+_vector_in(::Nothing, n̂) = n̂
+_vector_in(Q::AbstractMatrix, n̂) = transpose(Q) * collect(n̂)
+
+# c = (1/2) w : t, with w the generator `p ↦ n̂ × p` in canonical coordinates,
+# w[i,j] = ε[i,k,j] n̂[k].
+_azimuthal_coupling(::Nothing, n̂, arr) = (
+    n̂[1] * (arr[3, 2] - arr[2, 3]) +
+        n̂[2] * (arr[1, 3] - arr[3, 1]) +
+        n̂[3] * (arr[2, 1] - arr[1, 2])
+) / 2
+# In the frame of `t`, w is `Qᵀ w Q`. The cross product with `Qᵀ n̂` would equal
+# it only for a proper rotation (it flips sign in a left-handed frame), so the
+# generator itself is carried over.
+function _azimuthal_coupling(Q::AbstractMatrix, n̂, arr)
+    z = zero(n̂[1])
+    w = [z -n̂[3] n̂[2]; n̂[3] z -n̂[1]; -n̂[2] n̂[1] z]
+    return tr(transpose(transpose(Q) * w * Q) * arr) / 2
 end
 
 # ── Kelvin-Mandel block helpers ─────────────────────────────────────────────

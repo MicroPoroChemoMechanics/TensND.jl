@@ -145,7 +145,9 @@ end
 # Extract a plain 3-vector from various input types
 _extract_vec(n::NTuple{3}) = n
 _extract_vec(n::AbstractVector) = (n[1], n[2], n[3])
-_extract_vec(n::AbstractTens) = _extract_vec(get_array(n))
+# Canonical components: an axis is canonical, whatever basis the vector that
+# gives it is written in.
+_extract_vec(n::AbstractTens) = _extract_vec(components_canon(n))
 _extract_vec(n::Vec{3}) = (n[1], n[2], n[3])
 _extract_vec(n::AbstractArray) = (n[1], n[2], n[3])
 
