@@ -472,10 +472,12 @@ function coorsys_spherical_num(::Type{T} = Float64) where {T <: Real}
     R_func = (x::AbstractVector{<:Number}) -> begin
         θ, ϕ = x[1], x[2]
         z = θ * 0
-        # Columns = 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ expressed in Cartesian
+        # Columns = 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ expressed in Cartesian. 𝐞ᶿ = (cos θ cos ϕ,
+        # cos θ sin ϕ, −sin θ): its second entry read sin θ cos ϕ, so the
+        # "normalized" basis was not even normed (|𝐞ᶿ|² = cos²ϕ + sin²θ).
         [
             cos(θ) * cos(ϕ)  -sin(ϕ)  sin(θ) * cos(ϕ);
-            sin(θ) * cos(ϕ)   cos(ϕ)  sin(θ) * sin(ϕ);
+            cos(θ) * sin(ϕ)   cos(ϕ)  sin(θ) * sin(ϕ);
             -sin(θ)          z        cos(θ)
         ]
     end

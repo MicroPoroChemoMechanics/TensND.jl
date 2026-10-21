@@ -118,8 +118,12 @@
         @test Γ[1, 2, 2] ≈ cos(θ₀) / sin(θ₀)       atol = 1.0e-8
         @test Γ[2, 1, 2] ≈ cos(θ₀) / sin(θ₀)       atol = 1.0e-8
 
-        # normalized_basis returns a RotatedBasis
+        # normalized_basis returns a RotatedBasis, whose columns are the unit
+        # tangent vectors ∂OM/∂xᵢ / |∂OM/∂xᵢ| of OM = r (sin θ cos ϕ, sin θ sin ϕ, cos θ).
         @test normalized_basis(CS, x₀) isa RotatedBasis
+        OM(x) = x[3] * [sin(x[1]) * cos(x[2]), sin(x[1]) * sin(x[2]), cos(x[1])]
+        Jac = ForwardDiff.jacobian(OM, x₀)
+        @test Matrix(vecbasis(normalized_basis(CS, x₀))) ≈ Jac ./ sqrt.(sum(abs2, Jac; dims = 1))
 
         # natvec: covariant aᵣ = χᵣ * 𝐞ʳ  (χ₃ = 1 for r-coord)
         ar_cov = natvec(CS, x₀, 3, :cov)
