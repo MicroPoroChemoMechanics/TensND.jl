@@ -179,6 +179,10 @@ end
 
 @testsection "generic_tens and change_tens_canon of structured tensors" begin
     ℬ = RotatedBasis(0.7, -0.4, 1.1)
+    # A generic tensor in a rotated basis: the same tensor, in the canonical basis.
+    G = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> Float64(i + 2j + k * l)), ℬ)
+    @test get_basis(generic_tens(G)) isa CanonicalBasis
+    @test Array(get_array(generic_tens(G))) ≈ Array(components_canon(G))
     for t in (
             TensISO{3}(3.0, 2.0), TensTI{4}(10.0, 7.0, 3.0, 4.0, 5.0, (0.6, 0.0, 0.8)),
             TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ), TensCubic(60.0, 16.0, 10.0, ℬ),

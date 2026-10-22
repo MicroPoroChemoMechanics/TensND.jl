@@ -200,4 +200,10 @@ export rebuild, param_norms, to_vector, from_vector
 # identity, and keeps its class.
 change_tens_canon(t::Union{TensISO, TensTI, TensOrtho, TensCubic}) = t
 
+# A generic tensor is generic already: `generic_tens` writes it in the canonical
+# basis, its own components rotated if need be (they are not canonical in
+# another basis). The structured classes keep `generic_tens(t::AbstractTens)`,
+# their components being canonical.
+generic_tens(t::TensArray) = change_tens_canon(t)
+
 export generic_tens
