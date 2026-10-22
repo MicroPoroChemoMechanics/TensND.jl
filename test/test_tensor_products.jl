@@ -422,3 +422,24 @@ end
     @test dotdot(v1, A, v2) ≈ ref
     @test dotdot(v1, A[:, :, :, 1], v2) ≈ [sum(v1[i] * A[i, j, k, 1] * v2[k] for i in 1:3, k in 1:3) for j in 1:3]
 end
+
+@testsection "Full contractions of plain arrays do not conjugate" begin
+    # `Σ aᵢ bᵢ`, the contraction: `dot`, the Hermitian product, gave `Σ āᵢ bᵢ`.
+    rng = Xoshiro(20261023)
+    A2, B2 = randn(rng, ComplexF64, 3, 3), randn(rng, 3, 3)
+    A4, B4 = randn(rng, ComplexF64, 3, 3, 3, 3), randn(rng, ComplexF64, 3, 3, 3, 3)
+    a1, b1 = randn(rng, ComplexF64, 3), randn(rng, ComplexF64, 3)
+    @test Tensors.dcontract(A2, B2) ≈ sum(A2[i, j] * B2[i, j] for i in 1:3, j in 1:3)
+    @test qcontract(A4, B4) ≈ sum(A4[I] * B4[I] for I in CartesianIndices(A4))
+    @test TensND.scontract(a1, b1) ≈ sum(a1 .* b1)
+    # The same on real arrays, and the plain-array route agrees with the
+    # tensor one.
+    R2 = real(A2)
+    @test Tensors.dcontract(R2, B2) ≈ get_array(Tens(R2)) ⊡ get_array(Tens(B2))
+    @test Tensors.dcontract(R2, B2) ≈ Tens(R2) ⊡ Tens(B2)
+    # A symbol of unknown reality is not conjugated either.
+    @syms a b
+    @test Tensors.dcontract(Sym[a 0; 0 b], Sym[1 0; 0 2]) == a + 2b
+    @test TensND.scontract(Sym[a, b], Sym[1, 1]) == a + b
+    @test_throws DimensionMismatch Tensors.dcontract(A2, ones(2, 2))
+end

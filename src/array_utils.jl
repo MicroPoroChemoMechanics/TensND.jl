@@ -407,8 +407,15 @@ contract(t::AbstractArray{T, 2}, ::Integer, ::Integer) where {T} = tr(t)
 
 Tensors.dcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(2))
 
+# `Σ aᵢ bᵢ` over all the components, as every contraction is. Not `dot`, which
+# conjugates its first argument (the Hermitian product): it gave `Σ āᵢⱼ bᵢⱼ` on
+# complex components and `conjugate(a)` on a `SymPy.Sym` not declared real.
+# `vec` also keeps a TensND tensor, itself an `AbstractArray`, away from the
+# tensor `dot`, which is a single contraction.
+_full_contraction(t1::AbstractArray, t2::AbstractArray) = transpose(vec(t1)) * vec(t2)
+
 Tensors.dcontract(t1::AbstractArray{T1, 2}, t2::AbstractArray{T2, 2}) where {T1, T2} =
-    dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
+    _full_contraction(t1, t2)
 
 Tensors.dotdot(v1::AbstractArray, S::AbstractArray, v2::AbstractArray) =
     _contract_trailing(_contract_trailing(v1, S, Val(1)), v2, Val(1))
@@ -440,7 +447,7 @@ See also `dcontract`, [`contract`](@ref).
 qcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(4))
 
 qcontract(t1::AbstractArray{T1, 4}, t2::AbstractArray{T2, 4}) where {T1, T2} =
-    dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
+    _full_contraction(t1, t2)
 
 """
     _interleaved_otimes(t1, t2, ec1, ec2, Val(n))

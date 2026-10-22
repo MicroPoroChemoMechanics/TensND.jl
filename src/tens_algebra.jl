@@ -112,7 +112,7 @@ Tensors.otimes(t::TensOrthonormal{2, dim}) where {dim} =
 scontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(1))
 
 scontract(t1::AbstractArray{T1, 1}, t2::AbstractArray{T2, 1}) where {T1, T2} =
-    dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
+    _full_contraction(t1, t2)
 
 for TT1 in (Vec, SecondOrderTensor), TT2 in (Vec, SecondOrderTensor)
     @eval scontract(S1::$TT1, S2::$TT2) = dot(S1, S2)
