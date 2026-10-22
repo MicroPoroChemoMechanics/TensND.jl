@@ -17,6 +17,17 @@
     # generic product as the fallback, so the product is not inferred; the
     # coaxial case still allocates nothing.
     @test _allocs(⊡, TI, TI) == 0
+    # An isotropic operand is lifted onto the axis of the TI one, so the product,
+    # the sum and the difference skip that comparison and are inferred; so is the
+    # chain of a dilute or Mori-Tanaka concentration, `C₁ ⊡ (𝕀 + ℙ ⊡ δℂ)⁻¹`.
+    TI6, TI8 = TI ⊡ ISO, TensND._lift_walpole_N8(TI)
+    @test _allocs(⊡, TI8, TI8) == 0 && TI8 ⊡ TI8 ≈ generic_tens(TI8) ⊡ generic_tens(TI8)
+    for t in (TI, TI6, TI8), (f, args) in ((⊡, (ISO, t)), (⊡, (t, ISO)), (+, (ISO, t)), (-, (t, ISO)))
+        @inferred f(args...)
+        @test _allocs(f, args...) == 0
+    end
+    concentration(P, δC, C₁, 𝕀) = C₁ ⊡ inv(𝕀 + P ⊡ δC)
+    @inferred concentration(TI, ISO, ISO, TensISO{3}(1.0, 1.0))
     # Kelvin-Mandel matrices of structured tensors, at the dimension of the type.
     for t in (ISO, TI, OR, tens_cubic(250.0, 120.0, 90.0, CanonicalBasis{3, Float64}()))
         @test (@inferred KM(t)) isa Matrix{Float64}
@@ -87,4 +98,10 @@
     @inferred Union{typeof(G), typeof(GR)} change_tens(GR, CanonicalBasis{3, Float64}())
     @inferred Union{Array{Float64, 4}, SymmetricTensor{4, 3, Float64, 36}} components_canon(GR)
     @inferred Union{RotatedBasis{<:Any, Float64}, CanonicalBasis{<:Any, Float64}} frame_from_axis((0.3, -0.5, 0.8))
+    # An isotropic tensor combined with a generic one: the result is at the
+    # static dimension of the types, its storage decided by its components.
+    GRs = Union{TensND.TensRotated{4, 3, Float64, SymmetricTensor{4, 3, Float64, 36}, typeof(ℬr)}, TensND.TensRotated{4, 3, Float64, Tensor{4, 3, Float64, 81}, typeof(ℬr)}}
+    for (f, args) in ((+, (ISO, GR)), (-, (GR, ISO)), (⊡, (ISO, GR)), (⊡, (GR, ISO)))
+        @inferred GRs f(args...)
+    end
 end

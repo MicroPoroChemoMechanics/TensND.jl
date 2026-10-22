@@ -323,16 +323,16 @@ end
 
 for OP in (:+, :-)
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 5})
-        return $OP(fromISO(A, axis(B)), B)
+        return _coaxial_binary($OP, fromISO(A, axis(B)), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensISO{4, 3})
-        return $OP(A, fromISO(B, axis(A)))
+        return _coaxial_binary($OP, A, fromISO(B, axis(A)))
     end
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 6})
-        return $OP(_lift_walpole_N6(fromISO(A, axis(B))), B)
+        return _coaxial_binary($OP, _lift_walpole_N6(fromISO(A, axis(B))), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 6}, B::TensISO{4, 3})
-        return $OP(A, _lift_walpole_N6(fromISO(B, axis(A))))
+        return _coaxial_binary($OP, A, _lift_walpole_N6(fromISO(B, axis(A))))
     end
 end
 

@@ -318,6 +318,13 @@ axes is generally fully anisotropic.
 """
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{4})
     A.n == B.n || return Tensors.dcontract(generic_tens(A), generic_tens(B))
+    return _dcontract_coaxial(A, B)
+end
+
+# The Walpole product of two TI tensors sharing their axis (not checked): the
+# callers that build one operand on the other's axis call it directly, so that
+# the result is inferred as a `TensTI` rather than a union with the generic route.
+function _dcontract_coaxial(A::TensTI{4}, B::TensTI{4})
     ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆ = get_ℓ(A)
     ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆ = get_ℓ(B)
     # 2×2 matrix rule: M_A × M_B where M = [[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]]
@@ -388,10 +395,10 @@ end
     dcontract(A::TensISO{4,3}, B::TensTI{4}) → TensTI{4, T, 6}
 """
 function Tensors.dcontract(A::TensTI{4}, B::TensISO{4, 3})
-    return Tensors.dcontract(A, fromISO(B, A.n))
+    return _dcontract_coaxial(A, fromISO(B, A.n))
 end
 function Tensors.dcontract(A::TensISO{4, 3}, B::TensTI{4})
-    return Tensors.dcontract(fromISO(A, B.n), B)
+    return _dcontract_coaxial(fromISO(A, B.n), B)
 end
 
 # ── TI convenience constructors ──────────────────────────────────────────────
@@ -726,12 +733,18 @@ generic_tens(t::AbstractTens) = Tens(_static_tensor(t))
 
 @inline function Base.:+(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
     axis(A) == axis(B) || return _generic_binary(+, A, B)
-    return _rebuild(A, get_data(A) .+ get_data(B))
+    return _coaxial_binary(+, A, B)
 end
 @inline function Base.:-(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
     axis(A) == axis(B) || return _generic_binary(-, A, B)
-    return _rebuild(A, get_data(A) .- get_data(B))
+    return _coaxial_binary(-, A, B)
 end
+
+# The data-wise sum or difference of two TI tensors of the same parametrization
+# sharing their axis (not checked): an isotropic operand lifted onto the other's
+# axis goes straight here, so that the result is inferred as a `TensTI`.
+@inline _coaxial_binary(op::F, A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {F, order, N} =
+    _rebuild(A, broadcast(op, get_data(A), get_data(B)))
 
 # ── Inverse (order 2) ───────────────────────────────────────────────────────
 
@@ -1644,6 +1657,10 @@ and z₂ = ℓ₅ + iℓ₈ (m=2).
 """
 function Tensors.dcontract(A::TensTI{4, <:Any, 8}, B::TensTI{4, <:Any, 8})
     A.n == B.n || return Tensors.dcontract(generic_tens(A), generic_tens(B))
+    return _dcontract_coaxial(A, B)
+end
+
+function _dcontract_coaxial(A::TensTI{4, <:Any, 8}, B::TensTI{4, <:Any, 8})
     ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆, ℓA₇, ℓA₈ = A.data
     ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆, ℓB₇, ℓB₈ = B.data
     n₁ = ℓA₁ * ℓB₁ + ℓA₃ * ℓB₄
@@ -1664,6 +1681,8 @@ Tensors.dcontract(A::TensTI{4, <:Any, 8}, B::TensTI{4}) =
     Tensors.dcontract(A, _lift_walpole_N8(B))
 Tensors.dcontract(A::TensTI{4}, B::TensTI{4, <:Any, 8}) =
     Tensors.dcontract(_lift_walpole_N8(A), B)
+_dcontract_coaxial(A::TensTI{4, <:Any, 8}, B::TensTI{4}) = _dcontract_coaxial(A, _lift_walpole_N8(B))
+_dcontract_coaxial(A::TensTI{4}, B::TensTI{4, <:Any, 8}) = _dcontract_coaxial(_lift_walpole_N8(A), B)
 
 # ── Inverse ──────────────────────────────────────────────────────────────────
 
@@ -1718,10 +1737,10 @@ for OP in (:+, :-)
     @eval Base.$OP(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 3}) =
         $OP(_lift_ti2_N3(A), B)
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 8})
-        return $OP(_lift_walpole_N8(fromISO(A, axis(B))), B)
+        return _coaxial_binary($OP, _lift_walpole_N8(fromISO(A, axis(B))), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 8}, B::TensISO{4, 3})
-        return $OP(A, _lift_walpole_N8(fromISO(B, axis(A))))
+        return _coaxial_binary($OP, A, _lift_walpole_N8(fromISO(B, axis(A))))
     end
     @eval function Base.$OP(A::TensISO{2, 3}, B::TensTI{2, <:Any, 3})
         λ = get_data(A)[1]

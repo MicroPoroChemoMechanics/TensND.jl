@@ -239,14 +239,14 @@ for OP in (:+, :-, :*)
             A2::AbstractTens{order, dim},
         ) where {order, dim, T, N}
         m1 = components(A1, get_basis(A2), get_var(A2))
-        return Tens($OP(m1, get_array(A2)), get_basis(A2), get_var(A2))
+        return Tens(_static_tensor($OP(m1, get_array(A2)), Val(dim), Val(order)), get_basis(A2), get_var(A2))
     end
     @eval @inline function Base.$OP(
             A1::AbstractTens{order, dim},
             A2::TensISO{order, dim, T, N},
         ) where {order, dim, T, N}
         m2 = components(A2, get_basis(A1), get_var(A1))
-        return Tens($OP(get_array(A1), m2), get_basis(A1), get_var(A1))
+        return Tens(_static_tensor($OP(get_array(A1), m2), Val(dim), Val(order)), get_basis(A1), get_var(A1))
     end
 end
 for OP in (:(==), :(<=), :(>=), :(<), :(>))
@@ -457,7 +457,7 @@ function Tensors.dcontract(
     newm =
         get_data(A)[2] * (m + m2) / 2 +
         (get_data(A)[1] - get_data(A)[2]) * Id2{dim, T}() ⊗ contract(m, 1, 2) / dim
-    return Tens(newm, get_basis(nB))
+    return Tens(_static_tensor(newm, Val(dim), Val(order)), get_basis(nB))
 end
 
 function Tensors.dcontract(
@@ -472,7 +472,7 @@ function Tensors.dcontract(
     newm =
         (m + m2) * get_data(B)[2] / 2 +
         contract(m, order - 1, order) ⊗ Id2{dim, T}() * (get_data(B)[1] - get_data(B)[2]) / dim
-    return Tens(newm, get_basis(nA))
+    return Tens(_static_tensor(newm, Val(dim), Val(order)), get_basis(nA))
 end
 
 for order in (2, 4)
