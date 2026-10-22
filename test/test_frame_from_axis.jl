@@ -68,6 +68,10 @@ end
     @test cols(permute_basis(RotatedBasis(0.3), (2, 1))) == hcat(cols(RotatedBasis(0.3))[:, 2], -cols(RotatedBasis(0.3))[:, 1])
     @test_throws ArgumentError permute_basis(RotatedBasis(0.3, 0.2, 0.1), (1, 1, 3))
     @test_throws ArgumentError permute_basis(RotatedBasis(0.3, 0.2, 0.1), (2, 1, 3); negate = 4)
+    # Any orthonormal basis, whatever its type; any other is refused.
+    Rg = Matrix(vecbasis(RotatedBasis(0.3, 0.2, 0.1)))
+    @test cols(permute_basis(Basis(Rg), (3, 1, 2))) == Rg[:, [3, 1, 2]]
+    @test_throws ArgumentError permute_basis(Basis([1.0 0.5 0; 0 1 0; 0 0 1]), (2, 1, 3))
     # A dual frame: the derivative of the permuted basis is the permuted
     # derivative.
     D(f) = ForwardDiff.derivative(f, 0.7)

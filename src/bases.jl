@@ -635,13 +635,14 @@ The orthonormal basis whose `k`-th vector is the `σ[k]`-th vector of `ℬ`, wit
 the orientation of `ℬ`: an odd permutation reverses the orientation, so the
 vector of index `negate` (the last one by default) is reversed as well. A shape
 invariant under the reflections of its own axes (an ellipsoid, a crack) is the
-same shape in the permuted basis, its semi-axes permuted by `σ`.
+same shape in the permuted basis, its semi-axes permuted by `σ`. A basis that
+is not orthonormal is refused, as by [`RotatedBasis`](@ref).
 
 ```julia
 julia> permute_basis(RotatedBasis(0.3, 0.2, 0.1), (2, 1, 3)) ;   # e₂, e₁, -e₃
 ```
 """
-function permute_basis(ℬ::OrthonormalBasis{dim, T}, σ::NTuple{dim, Int}; negate::Int = dim) where {dim, T}
+function permute_basis(ℬ::AbstractBasis{dim, T}, σ::NTuple{dim, Int}; negate::Int = dim) where {dim, T}
     isperm(σ) || throw(ArgumentError("permute_basis: $σ is not a permutation of 1:$dim"))
     1 ≤ negate ≤ dim || throw(ArgumentError("permute_basis: no vector of index $negate in dimension $dim"))
     odd = isodd(count(σ[i] > σ[j] for i in 1:dim for j in (i + 1):dim))
