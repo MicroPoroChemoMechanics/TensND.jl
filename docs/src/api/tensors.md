@@ -47,3 +47,9 @@ structured tensor where the class allows it.
 TensND.Tensors.majorsymmetric(::TensND.AbstractTens{4})
 TensND.Tensors.symmetric(::TensND.AbstractTens{2})
 ```
+
+## Real and imaginary parts
+
+```@docs
+Base.real(::TensND.AbstractTens)
+```

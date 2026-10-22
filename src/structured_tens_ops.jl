@@ -85,3 +85,29 @@ end
     order in (2, 4) && dim in (2, 3) ?
     SymmetricTensor{order, dim, eltype(t)}((ij...) -> @inbounds t[ij...]) :
     _static_tensor(get_array(t), Val(dim), Val(order))
+
+# ── Real and imaginary parts ──────────────────────────────────────────────────
+
+"""
+    real(t::AbstractTens)
+    imag(t::AbstractTens)
+
+The real or imaginary part of the tensor `t`, in its class: a `TensISO`,
+`TensTI`, `TensOrtho` or `TensCubic` stays one (its coefficients are linear in
+the tensor, its axis or frame a real geometry), a tensor in a real basis stays in
+that basis. In a complex basis the real part of the components is not the
+components of the real part, so such a tensor comes back in the canonical basis.
+"""
+Base.real(t::AbstractTens) = _part(real, t)
+Base.imag(t::AbstractTens) = _part(imag, t)
+
+_part(f, t::Union{TensISO, TensOrtho, TensCubic}) = _rebuild(t, map(f, get_data(t)))
+function _part(f, t::TensTI{order, T, N}) where {order, T, N}
+    d = map(f, get_data(t))
+    return TensTI{order, eltype(d), N}(d, map(x -> convert(eltype(d), real(x)), axis(t)))
+end
+_part(f, t::AbstractTens) = _part(f, t, get_basis(t))
+_part(f, t::AbstractTens, ℬ::Union{CanonicalBasis, AbstractBasis{<:Any, <:Real}}) =
+    Tens(f.(Array(get_array(t))), ℬ, get_var(t))
+_part(f, t::AbstractTens{order, dim}, ::AbstractBasis) where {order, dim} =
+    Tens(f.(Array(components_canon(t))), CanonicalBasis{dim, real(eltype(t))}())

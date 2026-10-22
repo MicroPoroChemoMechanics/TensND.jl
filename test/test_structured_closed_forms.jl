@@ -96,3 +96,37 @@
         @test Float64.(subs.(KM(cs), C => 60)) ≈ KM(TensCubic(60.0, 16.0, 10.0, RotatedBasis(R))) rtol = 1.0e-12
     end
 end
+
+@testsection "Real and imaginary parts of a tensor" begin
+    # Each part is checked against the parts of the canonical components, an
+    # independent reading of the same tensor, and keeps the class.
+    canon(t) = Array(components_canon(t))
+    ℬ = RotatedBasis(0.7, -0.4, 1.1)
+    n = (0.6, 0.0, 0.8)
+    for t in (
+            TensISO{3}(1.0 + 2im, 3.0 - 4im),
+            TensTI{4}(10.0 + 1im, 7.0, 3.0 - 2im, 4.0, 5.0 + 0.5im, n),
+            TensOrtho(160.0 + 1im, 120.0, 95.0, 55.0 - 2im, 48.0, 42.0, 33.0, 29.0 + 3im, 27.0, ℬ),
+            TensCubic(60.0 + 2im, 16.0, 10.0 - 1im, ℬ),
+            Tens(canon(TensISO{3}(1.0 + 2im, 3.0 - 4im)) .+ 0.1im, ℬ),
+        )
+        for f in (real, imag)
+            p = f(t)
+            @test eltype(p) == Float64
+            @test nameof(typeof(p)) == nameof(typeof(t))
+            @test canon(p) ≈ f.(canon(t))
+        end
+        @test canon(real(t)) + im * canon(imag(t)) ≈ canon(t)
+    end
+    @test axis(real(TensTI{4}(10.0 + 1im, 7.0, 3.0, 4.0, 5.0, n))) == n
+    @test frame(real(TensOrtho(1.0 + 1im, 1, 1, 0, 0, 0, 1, 1, 1, ℬ))) == ℬ
+    # In a complex basis the tensor comes back in the canonical one.
+    B = Basis(ComplexF64[1 1im 0; 0 1 0; 0 0 1])
+    tc = Tens(ComplexF64[1 + 2im 3; 4 5 - 1im][[1, 2, 2], [1, 2, 2]], B)
+    @test get_basis(real(tc)) isa CanonicalBasis
+    @test canon(real(tc)) ≈ real.(canon(tc))
+    # Duals and symbols go through.
+    @test ForwardDiff.derivative(x -> get_data(real(TensISO{3}(x + 2im, 3.0)))[1], 1.5) == 1
+    @syms a::real b::real
+    @test get_data(real(TensISO{3}(a + im * b, a))) == (a, a)
+end
