@@ -100,6 +100,8 @@ end
     @syms θ::real
     @test euler_basis((); T = typeof(θ)) isa CanonicalBasis{3, typeof(θ)}
     @test eltype(euler_basis((θ, 0, 0))) == typeof(θ)
+    @test canonical_eltype(Int) === Float64 && canonical_eltype(typeof(θ)) === typeof(θ)
+    @test canonical_eltype(ComplexF64) === ComplexF64
     # A dual angle keeps its derivative, even at zero.
     D = ForwardDiff.derivative(t -> cols(euler_basis((t, 0.4))), 0.0)
     @test D ≈ ForwardDiff.derivative(t -> cols(RotatedBasis(t, 0.4, 0.0)), 0.0)

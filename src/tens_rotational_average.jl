@@ -526,7 +526,7 @@ every component of every tensor later written in the frame.
 """
 function frame_from_axis(n; in_plane = nothing, T = nothing)
     ℬ = _frame_from_axis(n, in_plane)
-    return T === nothing || !(ℬ isa CanonicalBasis) ? ℬ : CanonicalBasis{3, _canonical_eltype(T)}()
+    return T === nothing || !(ℬ isa CanonicalBasis) ? ℬ : CanonicalBasis{3, canonical_eltype(T)}()
 end
 
 function _frame_from_axis(n, in_plane)

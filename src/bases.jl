@@ -651,7 +651,7 @@ function euler_basis(angles::Tuple{Vararg{Number}}; T::Type = Float64)
     n = length(angles)
     n ≤ 3 || throw(ArgumentError("euler_basis: at most three ZYZ angles, got $n: $angles"))
     θ = _euler_triple(angles)
-    return all(iszero, θ) ? CanonicalBasis{3, _canonical_eltype(promote_type(T, eltype(θ)))}() :
+    return all(iszero, θ) ? CanonicalBasis{3, canonical_eltype(promote_type(T, eltype(θ)))}() :
         RotatedBasis(θ...)
 end
 
@@ -665,10 +665,21 @@ function _euler_triple(angles::Tuple)
 end
 _euler_triple(::Tuple{}) = (0.0, 0.0, 0.0)
 
-# The element type of a canonical basis carrying data of type `T`: `Float64`
-# for any real number, the type itself for a symbolic or complex one.
-_canonical_eltype(::Type{T}) where {T <: Real} = Float64
-_canonical_eltype(::Type{T}) where {T <: Number} = T
+"""
+    canonical_eltype(T) -> Type
+
+The element type of the canonical basis that carries data of type `T`, the rule
+[`euler_basis`](@ref) follows: `Float64` for any real number (duals included: the
+entries of the canonical basis are exact zeros and ones), `T` itself for a
+symbolic or complex type, whose exact `0` and `1` add no float to an exact result.
+
+```julia
+julia> canonical_eltype(Int)
+Float64
+```
+"""
+canonical_eltype(::Type{T}) where {T <: Real} = Float64
+canonical_eltype(::Type{T}) where {T <: Number} = T
 
 """
     permute_basis(ℬ, σ; negate = dim) -> RotatedBasis
@@ -695,4 +706,4 @@ function permute_basis(ℬ::AbstractBasis{dim, T}, σ::NTuple{dim, Int}; negate:
 end
 
 export Basis, CanonicalBasis, RotatedBasis, CylindricalBasis, SphericalBasis, OrthogonalBasis, AllOrthogonalBasis
-export get_dim, vecbasis, metric, angles, isorthogonal, isorthonormal, permute_basis, euler_basis
+export get_dim, vecbasis, metric, angles, isorthogonal, isorthonormal, permute_basis, euler_basis, canonical_eltype
