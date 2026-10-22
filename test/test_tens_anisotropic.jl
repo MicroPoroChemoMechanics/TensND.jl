@@ -1082,3 +1082,25 @@
     end
 
 end  # "Walpole & Ortho tensors"
+
+@testsection "arg_TI of the six- and eight-parameter forms" begin
+    n = (0.36, 0.48, 0.8)
+    ℓ = (3.0, 2.0, 0.7, 4.0, 1.5)
+    five = arg_TI(TensTI{4, Float64, 5}(ℓ, n))
+    # The same tensor in the longer forms: the same five constants.
+    @test arg_TI(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5), n)) == five
+    @test arg_TI(TensTI{4, Float64, 8}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5, 0.0, 0.0), n)) == five
+    # Not major-symmetric: refused, not read as if ℓ₄, ℓ₇, ℓ₈ were not there.
+    @test_throws ArgumentError arg_TI(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.9, 4.0, 1.5), n))
+    @test_throws ArgumentError arg_TI(TensTI{4, Float64, 8}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5, 0.2, 0.0), n))
+    @test arg_TI(majorsymmetric(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.9, 4.0, 1.5), n)))[3] ≈ 0.8 / √2
+    # A product of TI tensors about one axis is major-symmetric to rounding.
+    A = TensTI{4, Float64, 5}(ℓ, n)
+    P = A ⊡ A
+    @test collect(arg_TI(P)) ≈ collect(arg_TI(majorsymmetric(P)))
+    # Duals and symbols.
+    @test ForwardDiff.derivative(x -> arg_TI(TensTI{4, typeof(x), 6}((x, 2.0, 0.7, 0.7, 4.0, 1.5), n))[4], 3.0) == 1
+    TensND.Symbolics.@variables a b
+    @test isequal(arg_TI(TensTI{4, TensND.Symbolics.Num, 6}((a, b, a, a, b, a), n))[4], a)
+    @test_throws ArgumentError arg_TI(TensTI{4, TensND.Symbolics.Num, 6}((a, b, a, b, b, a), n))
+end

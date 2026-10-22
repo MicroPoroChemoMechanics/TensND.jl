@@ -439,11 +439,28 @@ Inverse of [`tens_TI`](@ref):
 - `C₁₁₃₃ = ℓ₃/√2`
 - `C₂₃₂₃ = ℓ₆/2`
 
+A six- or eight-parameter tensor (a product of TI tensors lands there) has
+these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
+``\\ell_7 = \\ell_8 = 0``: exactly for symbolic coefficients, to rounding for
+numbers. Otherwise it is refused, rather than read as if `ℓ₄`, `ℓ₇` and `ℓ₈` were
+not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant.
+
 See also [`arg_TI_eng`](@ref).
 """
 function arg_TI(t::TensTI{4})
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = get_ℓ8(t)
+    _major_symmetric_ti(ℓ₃ - ℓ₄, ℓ₇, ℓ₈, max(abs(ℓ₁), abs(ℓ₂), abs(ℓ₃), abs(ℓ₅), abs(ℓ₆))) || throw(
+        ArgumentError(
+            "arg_TI: the tensor is not major-symmetric (ℓ₃ ≠ ℓ₄, or ℓ₇, ℓ₈ ≠ 0), so it has " *
+                "no five TI constants; take `Tensors.majorsymmetric(t)` first if its " *
+                "symmetric part is meant"
+        )
+    )
+    return arg_TI(TensTI{4, eltype(t), 5}((ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆), axis(t)))
+end
+
+function arg_TI(t::TensTI{4, T, 5}) where {T}
     ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(t)
-    T = eltype(t)
     sq2 = sqrt(T(2))
     C₃₃₃₃ = ℓ₁
     C₁₁₁₁ = (ℓ₂ + ℓ₅) / 2
@@ -452,6 +469,14 @@ function arg_TI(t::TensTI{4})
     C₂₃₂₃ = ℓ₆ / 2
     return (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
 end
+
+# Whether the major-antisymmetric generators vanish: to rounding against the
+# scale `s` for comparable numbers, structurally for symbolic ones.
+_major_symmetric_ti(d, ℓ₇, ℓ₈, s) = _major_symmetric_ti(Val(is_hard_numeric(typeof(d))), d, ℓ₇, ℓ₈, s)
+_major_symmetric_ti(::Val{true}, d, ℓ₇, ℓ₈, s) =
+    max(abs(d), abs(ℓ₇), abs(ℓ₈)) <= 16 * eps(float(primal(s)))      # 16 ulps of the scale
+_major_symmetric_ti(::Val{false}, d, ℓ₇, ℓ₈, s) =
+    all(x -> isequal(tsimplify(x), zero(x)), (d, ℓ₇, ℓ₈))
 
 """
     tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n) → TensTI{4, T, 5}
