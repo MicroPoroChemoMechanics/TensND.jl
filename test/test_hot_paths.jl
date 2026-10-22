@@ -53,4 +53,38 @@
     A2 = [1.0 2.0 0.5; 0.3 4.0 1.0; 0.2 0.1 3.0]
     @inferred TensND._contract_index(A4, A2, 2)
     @inferred Tensors.dcontract(A4, A2)
+
+    # Change of basis, Kelvin-Mandel, products and inverses on the four
+    # structured classes and on generic tensors, canonical or rotated.
+    ℬr = RotatedBasis(0.7, -0.4, 1.1)
+    CU = tens_cubic(60.0, 16.0, 10.0, ℬr)
+    ORr = TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬr)
+    G = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> Float64(i + j + k + l)))
+    S2 = Tens(SymmetricTensor{2, 3}((i, j) -> Float64(i * j)))
+    GR, S2R = change_tens(G, ℬr), change_tens(S2, ℬr)
+    for t in (ISO, TI, ORr, CU)
+        @test (@inferred change_tens(t, ℬr)) isa TensND.TensRotated{4, 3, Float64, SymmetricTensor{4, 3, Float64, 36}}
+        @inferred KM(t, ℬr)
+        @inferred inv(t)
+        # (TI + TI checks for a common axis at run time, like TI ⊡ TI above.)
+        t isa TensTI || @inferred t + t
+    end
+    # An isotropic tensor in a rotated basis: the same components as before,
+    # now at the static dimension of its type.
+    @test get_array(change_tens(ISO, ℬr)) == get_array(Tens(get_array(ISO), ℬr))
+    @inferred change_tens(TensISO{3}(2.0), ℬr)   # order 2: the constructor takes the dimension
+    for (f, args) in (
+            (KM, (G,)), (KM, (GR,)), (KM, (GR, CanonicalBasis{3, Float64}())),
+            (⊗, (S2, S2)), (⊗, (S2R, S2R)), (⊡, (G, S2)), (⊡, (GR, S2R)), (⊡, (ORr, ORr)),
+            (inv, (G,)), (inv, (GR,)), (+, (GR, GR)), (isotropify, (ORr,)), (KM_rotation, (Matrix(ℬr),)),
+        )
+        @inferred f(args...)
+    end
+    # Small unions decided by a value, by design: a tensor already in the
+    # target basis is returned as it is, a basis that is the identity is the
+    # canonical one, and the storage is symmetric only if the components are.
+    @inferred Union{typeof(G), typeof(GR)} change_tens(G, ℬr)
+    @inferred Union{typeof(G), typeof(GR)} change_tens(GR, CanonicalBasis{3, Float64}())
+    @inferred Union{Array{Float64, 4}, SymmetricTensor{4, 3, Float64, 36}} components_canon(GR)
+    @inferred Union{RotatedBasis{<:Any, Float64}, CanonicalBasis{<:Any, Float64}} frame_from_axis((0.3, -0.5, 0.8))
 end

@@ -213,12 +213,12 @@ components(t::TensISO{order, dim, T}, ::NTuple{order, Symbol}) where {order, dim
     get_array(t)
 
 change_tens(t::TensISO{order, dim}, ℬ::OrthonormalBasis{dim}) where {order, dim} =
-    Tens(get_array(t), ℬ)
+    Tens(_static_tensor(t), ℬ)
 change_tens(
     t::TensISO{order, dim},
     ℬ::OrthonormalBasis{dim},
     ::NTuple{order, Symbol},
-) where {order, dim} = Tens(get_array(t), ℬ)
+) where {order, dim} = Tens(_static_tensor(t), ℬ)
 
 # Scalar arithmetic (-, α*A, A*α, A/α) defined in structured_tens_ops.jl
 for OP in (:+, :-, :*)

@@ -77,3 +77,11 @@ end
 # `change_tens`, `⊡` and every path through `_static_tensor` without the detour.
 @inline _static_tensor(t::Union{TensTI{4}, TensOrtho, TensCubic}) =
     SymmetricTensor{4, 3, eltype(t)}((i, j, k, l) -> @inbounds t[i, j, k, l])
+
+# An isotropic tensor of order 2 or 4 is symmetric by construction too: built at
+# the static dimension of its type, where the array route read the dimension at
+# run time and left `change_tens` uninferred.
+@inline _static_tensor(t::TensISO{order, dim}) where {order, dim} =
+    order in (2, 4) && dim in (2, 3) ?
+    SymmetricTensor{order, dim, eltype(t)}((ij...) -> @inbounds t[ij...]) :
+    _static_tensor(get_array(t), Val(dim), Val(order))
