@@ -199,3 +199,51 @@ end
     Q = _rb_rotation(rng)
     @test vecbasis(RotatedBasis(Q)) ≈ Q
 end
+
+@testset "KM_rotation: the Kelvin-Mandel matrix in a rotated basis" begin
+    rng = Random.Xoshiro(RB_SEED + 300)
+    for _ in 1:RB_DRAWS
+        R = _rb_rotation(rng)
+        Q = KM_rotation(R)
+        @test transpose(Q) * Q ≈ I atol = 1.0e-12
+        M = TensND.mandel66_minor(_rb_sym4(rng))
+        # The components in the basis of `R` are Qᵀ M Q, as `KM` in that basis says.
+        @test transpose(Q) * M * Q ≈ Matrix(KM(Tens(inv_KM(M)), RotatedBasis(R))) atol = 1.0e-10
+    end
+    # QᵀQ = I along a path of rotations, so its derivative vanishes.
+    dQQ = ForwardDiff.derivative(θ -> (Q = KM_rotation(θ, 0.4, 1.3); transpose(Q) * Q), 0.7)
+    @test norm(dQQ) ≤ 1.0e-12
+end
+
+@testset "primal and carries_partials, at every nesting level" begin
+    x = ForwardDiff.Dual{:a}(2.0, 1.0)
+    y = ForwardDiff.Dual{:b}(x, ForwardDiff.Dual{:a}(0.0, 0.0))     # nested, outer partial zero
+    @test primal(x) === 2.0
+    @test primal(y) === 2.0
+    @test primal(3) === 3
+    @test carries_partials(x)
+    @test carries_partials(y)                    # the inner level carries one
+    @test !carries_partials(ForwardDiff.Dual{:a}(2.0, 0.0))
+    @test !carries_partials(1.5)
+    @syms s
+    @test !carries_partials(s) && primal(s) === s
+end
+
+@testset "isparallel, numeric, dual and symbolic" begin
+    rng = Random.Xoshiro(RB_SEED + 400)
+    n = _rb_unit(rng)
+    @test isparallel(n, -3.0 .* n)
+    @test isparallel(Tuple(2.0 .* n), n)
+    @test !isparallel(n, _rb_unit(rng))
+    @test !isparallel(n, zeros(3))
+    # Read in canonical components, whatever basis the vector is written in.
+    R = _rb_rotation(rng)
+    @test isparallel(Tens(transpose(R) * n, RotatedBasis(R)), n)
+    # A dual direction, compared on its value.
+    @test isparallel(ForwardDiff.Dual{:t}.(n, 1.0), n)
+    # Symbolic: structural, exact, never a false positive.
+    @syms θ::real
+    a = [sin(θ), cos(θ), 0]
+    @test isparallel(a, [2sin(θ), 2cos(θ), 0])
+    @test !isparallel(a, [cos(θ), sin(θ), 0])
+end

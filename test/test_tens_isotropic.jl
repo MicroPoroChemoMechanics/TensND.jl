@@ -247,3 +247,34 @@ end
     a, b = TensISO{3}(4.0), TensISO{3}(5.0)
     @test dcontract(a, b) ≈ dcontract(get_array(a), get_array(b)) ≈ 60
 end
+
+@testsection "Isotropic elastic moduli" begin
+    k, μ = 12.0, 5.0
+    ℂ = iso_stiffness(k, μ)
+    @test ℂ isa TensISO{4, 3}
+    @test all(k_mu(ℂ) .≈ (k, μ))
+    # Independent reference: the Lamé form, λ = k − 2μ/3,
+    # E = μ(3λ + 2μ)/(λ + μ), ν = λ/(2(λ + μ)).
+    λ = k - 2μ / 3
+    E, ν = E_nu(ℂ)
+    @test E ≈ μ * (3λ + 2μ) / (λ + μ)
+    @test ν ≈ λ / (2 * (λ + μ))
+    @test iso_stiffness_E_nu(E, ν) ≈ ℂ
+    # The stiffness is 3k 𝕁 + 2μ 𝕂, component by component.
+    @test get_array(ℂ) ≈ 3k * get_array(tens_J4(Val(3), Val(Float64))) + 2μ * get_array(tens_K4(Val(3), Val(Float64)))
+    # A compliance: the moduli of its inverse.
+    @test all(k_mu(inv(inv(ℂ))) .≈ (k, μ))
+
+    # Derivatives: dE/dμ = 27k²/(3k + μ)², d²E/dμ² = −54k²/(3k + μ)³.
+    Eμ(m) = E_nu(iso_stiffness(k, m))[1]
+    @test ForwardDiff.derivative(Eμ, μ) ≈ 27k^2 / (3k + μ)^2
+    @test ForwardDiff.derivative(m -> ForwardDiff.derivative(Eμ, m), μ) ≈ -54k^2 / (3k + μ)^3
+    @test ForwardDiff.derivative(e -> E_nu(iso_stiffness_E_nu(e, 0.3))[1], 7.0) ≈ 1
+
+    # Symbolic: the closed forms, exactly.
+    @syms ks::positive μs::positive
+    Es, νs = E_nu(iso_stiffness(ks, μs))
+    @test simplify(Es - 9ks * μs / (3ks + μs)) == 0
+    @test simplify(νs - (3ks - 2μs) / (2 * (3ks + μs))) == 0
+    @test all(simplify.(collect(k_mu(iso_stiffness(ks, μs))) .- [ks, μs]) .== 0)
+end

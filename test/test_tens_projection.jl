@@ -224,13 +224,13 @@
         @test R' * R ≈ I(3)  atol = atol_num
     end
 
-    @testsection "Projection helpers — _KM_rotation" begin
-        using TensND: _KM_rotation
-        Q0 = _KM_rotation(0.0, 0.0, 0.0)
+    @testsection "Projection helpers — KM_rotation" begin
+        using TensND: KM_rotation
+        Q0 = KM_rotation(0.0, 0.0, 0.0)
         @test Q0 ≈ I(6)  atol = atol_num
 
         # Q should be orthogonal for any angles
-        Q = _KM_rotation(0.3, 0.5, 0.7)
+        Q = KM_rotation(0.3, 0.5, 0.7)
         @test Q' * Q ≈ I(6)  atol = atol_num
         @test Q * Q' ≈ I(6)  atol = atol_num
     end

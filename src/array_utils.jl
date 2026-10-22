@@ -26,7 +26,7 @@ julia> isidentity([1.0 0.5; 0.0 1.0])
 false
 ```
 """
-isidentity(a::AbstractMatrix) = a ≈ I && !any(_carries_partials, a)
+isidentity(a::AbstractMatrix) = a ≈ I && !any(carries_partials, a)
 
 # ── Symbolic passes ──────────────────────────────────────────────────────────
 #
@@ -250,14 +250,14 @@ is_hard_numeric(x) = is_hard_numeric(typeof(x))
 isdiagonal(a::AbstractMatrix) = isdiag(a)
 function isdiagonal(a::AbstractMatrix{T}) where {T <: ApproxType}
     off = a - Diagonal(a)
-    return norm(off) <= _approx_eps(T) && !any(_carries_partials, off)
+    return norm(off) <= _approx_eps(T) && !any(carries_partials, off)
 end
 
 """
-    _carries_partials(x) -> Bool
+    carries_partials(x) -> Bool
 
 Whether `x` carries a nonzero derivative, at any nesting level of
-`ForwardDiff.Dual`.
+`ForwardDiff.Dual`. A plain number, or a symbolic one, carries none.
 
 The structural predicates [`isidentity`](@ref) and `isdiagonal` decide whether
 a basis collapses to a simpler one, and they compare **values** — `≈` and
@@ -266,10 +266,23 @@ identity in value, yet its derivative is the generator of the rotation:
 collapsing it to the canonical basis returned zero derivatives. The predicates
 therefore also require the derivatives to vanish.
 """
-_carries_partials(::Number) = false
-_carries_partials(x::ForwardDiff.Dual) =
-    any(p -> !iszero(p) || _carries_partials(p), ForwardDiff.partials(x)) ||
-    _carries_partials(ForwardDiff.value(x))
+carries_partials(::Number) = false
+carries_partials(x::ForwardDiff.Dual) =
+    any(p -> !iszero(p) || carries_partials(p), ForwardDiff.partials(x)) ||
+    carries_partials(ForwardDiff.value(x))
+
+"""
+    primal(x)
+
+`x` stripped of every level of `ForwardDiff.Dual`: the value a choice that must not
+depend on derivatives is made on (a quadrature order, a scaling, a bracket, a
+pivot), so that the derivatives stay where the mathematics puts them. Any other
+number, symbolic ones included, is returned as it is.
+
+See also [`carries_partials`](@ref).
+"""
+primal(x::ForwardDiff.Dual) = primal(ForwardDiff.value(x))
+primal(x) = x
 
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
@@ -617,7 +630,35 @@ const sboxtimes = otimesul
 
 export isidentity, contract, qcontract, otimesu, otimesul, sboxtimes, sotimes, ⊙, ⊠, ⊠ˢ, ⊗ˢ
 export tsimplify, tfactor, tsubs, tdiff, ttrigsimp, texpand_trig, tlimit
-export is_hard_numeric
+"""
+    isparallel(a, b; rtol = 1.0e-10) -> Bool
+
+Whether the directions `a` and `b` (3-vectors, tuples or 1st-order tensors, read in
+canonical components) are parallel, in the same or the opposite sense:
+``(\\underline{a}\\cdot\\underline{b})^2 = |\\underline{a}|^2\\,|\\underline{b}|^2``.
+
+For comparable numbers (`is_hard_numeric`), within the relative tolerance `rtol`;
+a `ForwardDiff.Dual` is compared on its value. For symbolic ones the test is
+structural: the difference is simplified and must vanish exactly, so a symbolic
+answer is never a false positive, and is `false` when the backend cannot decide.
+No `dot` and no `abs`: both conjugate a `SymPy.Sym`, and `Symbolics` does not
+fold `abs` of a literal.
+"""
+function isparallel(a, b; rtol::Real = 1.0e-10)
+    va, vb = _extract_vec(a), _extract_vec(b)
+    d = sum(va .* vb)
+    nn = sum(va .* va) * sum(vb .* vb)
+    return _isparallel(Val(is_hard_numeric(promote_type(typeof(d), typeof(nn)))), d^2, nn, rtol)
+end
+_isparallel(::Val{true}, dd, nn, rtol) = !iszero(nn) && abs(dd - nn) <= rtol * nn
+function _isparallel(::Val{false}, dd, nn, rtol)
+    verdict = iszero(_simplified(dd - nn))
+    return verdict isa Bool ? verdict : false
+end
+_simplified(x::SymType) = tsimplify(x)
+_simplified(x) = x
+
+export is_hard_numeric, carries_partials, primal, isparallel
 # `dotdot` belongs here too: its docstring offers `dotdot(n, ℂ, n)` as the
 # acoustic tensor, which a `using TensND` alone could not reach.
 export ⋅, ⊡, ⊗, dotdot

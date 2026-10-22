@@ -18,6 +18,7 @@ get_array
 pprint
 KM
 inv_KM
+KM_rotation
 diff_with_basis
 tens_basis
 ```

@@ -14,6 +14,15 @@ ISO
 iso_projectors
 ```
 
+## Isotropic elastic moduli
+
+```@docs
+iso_stiffness
+k_mu
+E_nu
+iso_stiffness_E_nu
+```
+
 `isotropify` is the exact rotation-group average, not a form of compact
 storage, so it is documented with the other averages under
 [Exact rotation-group averages](@ref api-projection).

@@ -624,4 +624,60 @@ LinearAlgebra.issymmetric(::TensISO) = true
 Tensors.isminorsymmetric(::TensISO{4}) = true
 Tensors.ismajorsymmetric(::TensISO{4}) = true
 
+# ── Isotropic elastic moduli ───────────────────────────────────────────────────
+#
+# A 3-D isotropic stiffness is ℂ = 3k 𝕁 + 2μ 𝕂: its coefficients on the two
+# projectors are 3k and 2μ. A compliance is the inverse, 𝕊 = 𝕁/(3k) + 𝕂/(2μ),
+# and `inv` is exact on `TensISO`, so the moduli of a compliance are those of
+# `inv(𝕊)`: no second family of functions. Defined in three dimensions only; the
+# meaning of (k, μ) for a 2-D isotropic tensor depends on the plane hypothesis.
+
+"""
+    iso_stiffness(k, μ) → TensISO{4,3}
+
+Isotropic stiffness ``\\mathbb{C} = 3k\\,\\mathbb{J} + 2\\mu\\,\\mathbb{K}`` from the bulk
+modulus `k` and the shear modulus `μ`; the reciprocal of [`k_mu`](@ref). The
+compliance is `inv(iso_stiffness(k, μ))`.
+
+See also [`iso_stiffness_E_nu`](@ref).
+"""
+iso_stiffness(k, μ) = TensISO{3}(3 * k, 2 * μ)
+
+"""
+    k_mu(ℂ::TensISO{4,3}) → (k, μ)
+
+Bulk and shear moduli of a 3-D isotropic **stiffness** ``\\mathbb{C} = 3k\\,\\mathbb{J} +
+2\\mu\\,\\mathbb{K}``. For a compliance ``\\mathbb{S}``, use `k_mu(inv(𝕊))`. For a tensor that
+is not a `TensISO`, take its isotropic part first: [`isotropify`](@ref) (the exact
+rotation average) or [`best_fit_iso`](@ref) (the closest isotropic tensor).
+"""
+function k_mu(ℂ::TensISO{4, 3})
+    α, β = get_data(ℂ)
+    return α / 3, β / 2
+end
+
+"""
+    E_nu(ℂ::TensISO{4,3}) → (E, ν)
+
+Young's modulus and Poisson's ratio of a 3-D isotropic **stiffness**:
+``E = 9k\\mu/(3k + \\mu)``, ``\\nu = (3k - 2\\mu)/(2(3k + \\mu))``. For a compliance, use
+`E_nu(inv(𝕊))`.
+
+See also [`k_mu`](@ref), [`iso_stiffness_E_nu`](@ref).
+"""
+function E_nu(ℂ::TensISO{4, 3})
+    k, μ = k_mu(ℂ)
+    return 9 * k * μ / (3 * k + μ), (3 * k - 2 * μ) / (2 * (3 * k + μ))
+end
+
+"""
+    iso_stiffness_E_nu(E, ν) → TensISO{4,3}
+
+Isotropic stiffness from Young's modulus and Poisson's ratio,
+``k = E/(3(1 - 2\\nu))`` and ``\\mu = E/(2(1 + \\nu))``; the reciprocal of
+[`E_nu`](@ref).
+"""
+iso_stiffness_E_nu(E, ν) = iso_stiffness(E / (3 * (1 - 2 * ν)), E / (2 * (1 + ν)))
+
 export TensISO, tens_Id2, tens_Id4, tens_J4, tens_K4, ISO, iso_projectors, isotropify, is_ISO, is_TI, is_ORTHO
+export iso_stiffness, k_mu, E_nu, iso_stiffness_E_nu
