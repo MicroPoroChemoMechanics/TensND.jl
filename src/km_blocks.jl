@@ -14,7 +14,7 @@
 # triclinic one tests it.
 #
 # Everything is written on static matrices with no pivoting and no SVD, so that it
-# holds for duals and for symbols: a 3×3 inverse by cofactors (StaticArrays), the
+# holds for duals and for symbols: a 3×3 inverse by cofactors (`_inv3`), the
 # 6×6 inverse by a Schur complement on the partition.
 
 """
@@ -94,6 +94,22 @@ in-plane / out-of-plane partition ([`KM_IP`](@ref), [`KM_OP`](@ref)).
     )
 end
 
+# The inverse of a 3×3 matrix by its cofactors and one determinant: no pivot, and
+# on symbols an expression of the size of the cofactors (the generic inverse of
+# StaticArrays swells symbolic results by orders of magnitude).
+@inline function _inv3(K::AbstractMatrix{T}) where {T}
+    return @inbounds begin
+        a11, a12, a13 = K[1, 1], K[1, 2], K[1, 3]
+        a21, a22, a23 = K[2, 1], K[2, 2], K[2, 3]
+        a31, a32, a33 = K[3, 1], K[3, 2], K[3, 3]
+        c11, c12, c13 = a22 * a33 - a23 * a32, a13 * a32 - a12 * a33, a12 * a23 - a13 * a22
+        c21, c22, c23 = a23 * a31 - a21 * a33, a11 * a33 - a13 * a31, a13 * a21 - a11 * a23
+        c31, c32, c33 = a21 * a32 - a22 * a31, a12 * a31 - a11 * a32, a11 * a22 - a12 * a21
+        d = inv(a11 * c11 + a12 * c21 + a13 * c31)
+        SMatrix{3, 3}(c11 * d, c21 * d, c31 * d, c12 * d, c22 * d, c32 * d, c13 * d, c23 * d, c33 * d)
+    end
+end
+
 """
     km_inv_schur(M) → SMatrix{6,6}
 
@@ -108,9 +124,9 @@ acoustic tensor about `n` is positive definite.
     A, D = km_ip_block(M), km_op_block(M)
     B = SMatrix{3, 3}(M[KM_IP, KM_OP])
     C = SMatrix{3, 3}(M[KM_OP, KM_IP])
-    Di = inv(D)
+    Di = _inv3(D)
     BDi, DiC = B * Di, Di * C
-    S = inv(A - BDi * C)
+    S = _inv3(A - BDi * C)
     return km_from_blocks(S, -S * BDi, -DiC * S, Di + DiC * S * BDi)
 end
 
@@ -126,7 +142,7 @@ supported on the out-of-plane subspace it is its pseudo-inverse. `plane_pinv2` i
 the order-2 counterpart for a 3×3 matrix written in the frame `(ℓ, m, n)`:
 `(1/K₃₃) n⊗n`. No SVD, so duals and symbols go through.
 """
-@inline plane_pinv(M::AbstractMatrix) = km_op_embed(inv(km_op_block(M)))
+@inline plane_pinv(M::AbstractMatrix) = km_op_embed(_inv3(km_op_block(M)))
 "The order-2 out-of-plane pseudo-inverse `(1/K₃₃) n⊗n`; see [`plane_pinv`](@ref)."
 @inline function plane_pinv2(K3::AbstractMatrix{T}) where {T}
     z = zero(T)
