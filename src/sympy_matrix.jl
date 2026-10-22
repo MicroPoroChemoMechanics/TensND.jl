@@ -13,11 +13,11 @@
 #  Python list, so that no Julia array of `PyObject`s exists at any point. The
 #  object reaching SymPy is the one it received before, and every operation
 #  above returns exactly what it returned: only the way the rows are assembled
-#  changes. The methods are more specific than SymPyCore's (a concrete element
-#  type), so they take precedence without overwriting them.
+#  changes. The methods are more specific than SymPyCore's (an exact element
+#  type), so they take precedence without overwriting them. Both element types
+#  occur: `Sym{PyObject}` (`[x y; 0 x]`), and `Sym` itself, which is not concrete
+#  (`Sym[1 0; 0 1]`).
 # =============================================================================
-
-const _SymPyObject = SymPy.Sym{SymPy.PyCall.PyObject}
 
 function _sympy_matrix(M::AbstractMatrix)
     PyCall = SymPy.PyCall
@@ -33,6 +33,12 @@ function _sympy_matrix(M::AbstractMatrix)
     return PyCall.pycall(SymPy.sympy.o."Matrix", PyCall.PyObject, rows)
 end
 
-SymPy.SymPyCore.:↓(M::AbstractMatrix{_SymPyObject}) = _sympy_matrix(M)
-# A vector is a column, as SymPyCore makes it.
-SymPy.SymPyCore.:↓(v::AbstractVector{_SymPyObject}) = _sympy_matrix(reshape(v, length(v), 1))
+for E in (SymPy.Sym, SymPy.Sym{SymPy.PyCall.PyObject})
+    @eval begin
+        SymPy.SymPyCore.:↓(M::AbstractMatrix{$E}) = _sympy_matrix(M)
+        # A vector is a column, as SymPyCore makes it. `Vector` as well as
+        # `AbstractVector`: SymPyCore's method is on `Vector{<:Sym}`.
+        SymPy.SymPyCore.:↓(v::AbstractVector{$E}) = _sympy_matrix(reshape(v, length(v), 1))
+        SymPy.SymPyCore.:↓(v::Vector{$E}) = _sympy_matrix(reshape(v, length(v), 1))
+    end
+end

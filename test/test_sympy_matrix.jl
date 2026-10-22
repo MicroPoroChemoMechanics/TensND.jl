@@ -12,6 +12,15 @@
     @test SymPy.SymPyCore.:↓(M).shape == (2, 2)
     @test SymPy.SymPyCore.:↓([a, b, c]).shape == (3, 1)
     @test SymPy.SymPyCore.:↓([a b c]).shape == (1, 3)
+    # `Sym` itself is not a concrete type: `Sym[...]` arrays take the same route.
+    for A in (Sym[1 0 0; 0 1 0; 0 1 1], Sym[1, 2, 3], view(Sym[1 0; 0 1], :, 1:2))
+        @test parentmodule(which(SymPy.SymPyCore.:↓, Tuple{typeof(A)})) === TensND
+    end
+    @test parentmodule(which(SymPy.SymPyCore.:↓, Tuple{typeof(M)})) === TensND
+    @test SymPy.SymPyCore.:↓(Sym[1, 2, 3]).shape == (3, 1)
+    @test transpose(Sym[1 0 0; 0 1 0; 0 1 1]) == Sym[1 0 0; 0 1 1; 0 0 1]
+    @test inv(Sym[1 0 0; 0 1 0; 0 1 1]) == Sym[1 0 0; 0 1 0; 0 -1 1]
+
     # The operations that go through it, against their closed forms.
     @test transpose(M) == [a c; b d]
     @test adjoint(M) == conj.([a c; b d])
