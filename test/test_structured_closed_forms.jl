@@ -228,6 +228,12 @@ end
         @test (K ⋅ v) isa Vec{3}
     end
     @test_throws DimensionMismatch TensTI{2}(2.0, 5.0, n) ⋅ [1.0, 2.0]
+    # Against a TensND vector, in a rotated basis: a tensor, the same as the
+    # generic contraction.
+    K = TensTI{2}(2.0, 5.0, n)
+    vt = change_tens(Tens(Vec{3}(Tuple(v))), RotatedBasis(0.3, 0.2, 0.1))
+    @test (K ⋅ vt) isa TensND.AbstractTens{1, 3}
+    @test Array(components_canon(K ⋅ vt)) ≈ Array(get_array(K)) * v
     @test ForwardDiff.derivative(a -> (TensTI{2}(a, 5.0, n) ⋅ v)[1], 2.0) ≈ (v - (transpose(collect(n)) * v) * collect(n))[1]
     @syms a::real b::real
     Ks = TensTI{2}(a, b, (0, 0, 1))

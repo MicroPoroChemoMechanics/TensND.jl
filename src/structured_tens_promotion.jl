@@ -467,6 +467,9 @@ function LinearAlgebra.dot(A::TensTI{2}, v::AbstractVector)
     nxv = (n[2] * v[3] - n[3] * v[2], n[3] * v[1] - n[1] * v[3], n[1] * v[2] - n[2] * v[1])
     return Vec{3}(ntuple(i -> a * (v[i] - nv * n[i]) + b * nv * n[i] + c * nxv[i], 3))
 end
+# A TensND vector is an `AbstractVector` too: its canonical components, and a
+# tensor back, as the generic contraction gives.
+LinearAlgebra.dot(A::TensTI{2}, v::AbstractTens{1, 3}) = Tens(A ⋅ Vec{3}(Tuple(components_canon(v))))
 _ti2_abc(A::TensTI{2, T, 2}) where {T} = (get_data(A)..., zero(T))
 _ti2_abc(A::TensTI{2, T, 3}) where {T} = get_data(A)
 
