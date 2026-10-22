@@ -321,7 +321,9 @@ end
 """
     change_tens_canon(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})
 
-Rewrite the same tensor with components corresponding to the canonical basis
+Rewrite the same tensor with components corresponding to the canonical basis.
+A `TensISO`, `TensTI`, `TensOrtho` or `TensCubic` has canonical components
+already and is returned as it is, in its class.
 
 ```julia
 julia> ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;

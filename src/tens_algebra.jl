@@ -184,6 +184,14 @@ LinearAlgebra.norm(t::AbstractTens{2, dim}) where {dim} = √(dcontract(t, t))
 
 LinearAlgebra.norm(t::AbstractTens{4, dim}) where {dim} = √(qcontract(t, t))
 
+# On complex components the norm is Hermitian, `√(t̄ ⋅ t)`: the contractions do
+# not conjugate (they are contractions), so the self-contraction of a complex
+# tensor is not the square of its norm. Real element types — duals and symbols
+# included — keep the forms above, with no `abs` in a symbolic result.
+LinearAlgebra.norm(u::AbstractTens{1, dim, <:Complex}) where {dim} = √(real(dot(conj(u), u)))
+LinearAlgebra.norm(t::AbstractTens{2, dim, <:Complex}) where {dim} = √(real(dcontract(conj(t), t)))
+LinearAlgebra.norm(t::AbstractTens{4, dim, <:Complex}) where {dim} = √(real(qcontract(conj(t), t)))
+
 """
     isapprox(t1::AbstractTens, t2::AbstractTens; kwargs...)
 

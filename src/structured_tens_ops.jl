@@ -100,6 +100,13 @@ components of the real part, so such a tensor comes back in the canonical basis.
 """
 Base.real(t::AbstractTens) = _part(real, t)
 Base.imag(t::AbstractTens) = _part(imag, t)
+"""
+    conj(t::AbstractTens)
+
+The complex conjugate of the tensor `t`, in its class, as `real` and
+`imag` are.
+"""
+Base.conj(t::AbstractTens) = _part(conj, t)
 
 _part(f, t::Union{TensISO, TensOrtho, TensCubic}) = _rebuild(t, map(f, get_data(t)))
 function _part(f, t::TensTI{order, T, N}) where {order, T, N}
@@ -182,3 +189,10 @@ from_vector(::AbstractTens{2}, v) = inv_KM(collect(v))
 from_vector(::AbstractTens{4}, v) = (n = isqrt(length(v)); inv_KM(reshape(collect(v), n, n)))
 
 export rebuild, param_norms, to_vector, from_vector
+
+# A structured tensor is written with its canonical components already (its
+# axis or frame is carried apart): rewriting it in the canonical basis is the
+# identity, and keeps its class.
+change_tens_canon(t::Union{TensISO, TensTI, TensOrtho, TensCubic}) = t
+
+export generic_tens

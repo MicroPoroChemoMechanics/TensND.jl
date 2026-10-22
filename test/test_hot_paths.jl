@@ -24,7 +24,7 @@
     # The product of a dual tensor with a plain one, both canonical: no change
     # of basis is needed, and none is dispatched at run time.
     TId = tens_TI(ForwardDiff.Dual{Nothing}(10.0, 1.0), 3.0, 2.5, 12.0, 2.0, [0.6, 0.0, 0.8])
-    Gd, Ga = TensND._generic_tens(TId), TensND._generic_tens(TI)
+    Gd, Ga = TensND.generic_tens(TId), TensND.generic_tens(TI)
     @inferred Gd ⊡ Ga
     @test _allocs(⊡, Gd, Ga) == 0
     # A static Kelvin-Mandel array carries its size in its type: the tensor

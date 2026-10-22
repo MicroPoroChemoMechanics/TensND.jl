@@ -359,7 +359,7 @@ anisotropic and the generic route is taken.
 """
 function Tensors.dcontract(A::TensCubic, B::TensCubic)
     _same_cube_frame(A, B) ||
-        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+        return Tensors.dcontract(generic_tens(A), generic_tens(B))
     return _rebuild(A, get_data(A) .* get_data(B))
 end
 

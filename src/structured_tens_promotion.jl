@@ -410,7 +410,7 @@ end
 
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 2})
     axis(A) == axis(B) ||
-        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+        return Tensors.dcontract(generic_tens(A), generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(A)
     a, b = get_data(B)
@@ -422,7 +422,7 @@ end
 
 function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensTI{4})
     axis(A) == axis(B) ||
-        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+        return Tensors.dcontract(generic_tens(A), generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(B)
     a, b = get_data(A)
@@ -447,7 +447,7 @@ end
 
 function LinearAlgebra.dot(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 2})
     axis(A) == axis(B) ||
-        return LinearAlgebra.dot(_generic_tens(A), _generic_tens(B))
+        return LinearAlgebra.dot(generic_tens(A), generic_tens(B))
     a₁, b₁ = get_data(A)
     a₂, b₂ = get_data(B)
     return TensTI{2}(a₁ * a₂, b₁ * b₂, axis(A))
@@ -486,10 +486,10 @@ end
 
 @inline Tensors.dcontract(A::TensCubic, B::TensOrtho) =
     frame(A) == frame(B) ? Tensors.dcontract(cubic_to_ortho(A), B) :
-    Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    Tensors.dcontract(generic_tens(A), generic_tens(B))
 @inline Tensors.dcontract(A::TensOrtho, B::TensCubic) =
     frame(A) == frame(B) ? Tensors.dcontract(A, cubic_to_ortho(B)) :
-    Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    Tensors.dcontract(generic_tens(A), generic_tens(B))
 
 # ── TensISO{4,3} ⊡ TensOrtho / TensOrtho ⊡ TensISO{4,3} ─────────────────────
 # An isotropic tensor is orthotropic in *every* frame, so promoting it onto the

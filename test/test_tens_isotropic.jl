@@ -140,7 +140,7 @@
                 @test get_basis(r) == b                     # basis preserved
             end
             # …and the value matches the dense route.
-            dense = TensND._generic_tens(ℂ) ⊡ 𝛆
+            dense = TensND.generic_tens(ℂ) ⊡ 𝛆
             @test get_array(ℂ ⊡ 𝛆) ≈ get_array(dense) atol = 1.0e-14
         end
 
@@ -152,7 +152,7 @@
         𝐯₂ = Tens(Vec{3}((0.5, -1.0, 2.0)))
         d = dotdot(𝐯₁, ℂ, 𝐯₂)
         @test d isa AbstractTens{2, 3}
-        @test get_array(d) ≈ get_array(dotdot(𝐯₁, TensND._generic_tens(ℂ), 𝐯₂)) atol = 1.0e-12
+        @test get_array(d) ≈ get_array(dotdot(𝐯₁, TensND.generic_tens(ℂ), 𝐯₂)) atol = 1.0e-12
 
         # Symbolic and ForwardDiff element types must survive the same path —
         # the `UniformScaling` route had its own `SymType` patches, so this is

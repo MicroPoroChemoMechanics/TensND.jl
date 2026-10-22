@@ -443,3 +443,22 @@ end
     @test TensND.scontract(Sym[a, b], Sym[1, 1]) == a + b
     @test_throws DimensionMismatch Tensors.dcontract(A2, ones(2, 2))
 end
+
+@testsection "Norm of a complex tensor: Hermitian" begin
+    # √(Σ |tᵢⱼ…|²) in an orthonormal basis, whatever the order or the class;
+    # the self-contraction of a complex tensor is not its squared norm.
+    rng = Xoshiro(20261024)
+    ℬ = RotatedBasis(0.7, -0.4, 1.1)
+    for a in (randn(rng, ComplexF64, 3), randn(rng, ComplexF64, 3, 3), randn(rng, ComplexF64, 3, 3, 3, 3))
+        ref = sqrt(sum(abs2, a))
+        @test norm(Tens(a)) ≈ ref
+        @test norm(Tens(a, ℬ)) ≈ ref
+        @test norm(Tens(a)) isa Float64
+    end
+    @test norm(TensISO{3}(1.0 + 2im, 3.0 - 1im)) ≈ sqrt(sum(abs2, Array(get_array(TensISO{3}(1.0 + 2im, 3.0 - 1im)))))
+    @test conj(Tens(ComplexF64[1 + 2im 0 0; 0 1 0; 0 0 1im]))[1, 1] == 1 - 2im
+    # Real element types are unchanged, symbols with no `abs`.
+    @test norm(Tens([1.0 2; 3 4][[1, 2, 2], [1, 2, 2]])) ≈ sqrt(sum(abs2, [1.0 2; 3 4][[1, 2, 2], [1, 2, 2]]))
+    @syms x::real
+    @test norm(Tens(Sym[x 0 0; 0 x 0; 0 0 x])) == sqrt(3x^2)
+end

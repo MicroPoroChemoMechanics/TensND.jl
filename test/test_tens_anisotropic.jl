@@ -940,7 +940,7 @@
 
     @testsection "TensOrtho — closed-form double contraction" begin
         dense(t) = [t[i, j, k, l] for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
-        ref(A, B) = Tensors.dcontract(TensND._generic_tens(A), TensND._generic_tens(B))
+        ref(A, B) = Tensors.dcontract(TensND.generic_tens(A), TensND.generic_tens(B))
 
         for angles in ((0.0, 0.0, 0.0), (0.7, -0.4, 1.1), (-1.3, 2.2, 0.35))
             ℬ = RotatedBasis(angles...)
@@ -957,7 +957,7 @@
             end
 
             # `A ⊡ inv(A)` is the identity on symmetric 2nd-order tensors.
-            @test maximum(abs, dense(A ⊡ inv(A)) - dense(TensND._generic_tens(TensISO{3}(1.0, 1.0)))) < 1.0e-12
+            @test maximum(abs, dense(A ⊡ inv(A)) - dense(TensND.generic_tens(TensISO{3}(1.0, 1.0)))) < 1.0e-12
         end
 
         # Different material frames: the product is generally fully anisotropic
@@ -999,7 +999,7 @@
                     TensTI{4}(2.0, 3.0, 1.0, 1.5, 4.0, 5.0, n),
                     TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ),
                 )
-                @test get_array(TensND._generic_tens(t)) isa Tensors.SymmetricTensor
+                @test get_array(TensND.generic_tens(t)) isa Tensors.SymmetricTensor
             end
         end
 
@@ -1013,10 +1013,10 @@
         @test get_array(δ(e₃)) ≈ get_array(δ(tilted)) atol = 1.0e-12
 
         𝕀 = TensISO{3}(1.0, 1.0)
-        ℙ = TensND._generic_tens(TensISO{3}(0.05, 0.03))
+        ℙ = TensND.generic_tens(TensISO{3}(0.05, 0.03))
         for n in (e₃, tilted)
             S = 𝕀 + ℙ ⊡ δ(n)
-            @test get_array(TensND._generic_tens(S)) isa Tensors.SymmetricTensor
+            @test get_array(TensND.generic_tens(S)) isa Tensors.SymmetricTensor
             A = inv(S)                      # this is what used to throw
             @test A ⊡ S ≈ 𝕀 atol = 1.0e-10
         end

@@ -317,7 +317,7 @@ If the axes differ, the operation falls back to the generic (unstructured)
 axes is generally fully anisotropic.
 """
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{4})
-    A.n == B.n || return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    A.n == B.n || return Tensors.dcontract(generic_tens(A), generic_tens(B))
     ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆ = get_ℓ(A)
     ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆ = get_ℓ(B)
     # 2×2 matrix rule: M_A × M_B where M = [[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]]
@@ -710,8 +710,16 @@ KM(t::TensTI{2}) = tomandel(_static_tensor(t))
 # different axes (the antisymmetric components ℓ₇, ℓ₈ and the order-2 `c`
 # coefficient are odd in `n`), falling back to the generic route.
 
-# Generic (unstructured) view of a structured tensor, used by all fallbacks.
-_generic_tens(t::AbstractTens) = Tens(_static_tensor(t))
+"""
+    generic_tens(t::AbstractTens)
+
+The tensor `t` as a generic `Tens` of its canonical components: a structured
+tensor (`TensISO`, `TensTI`, `TensOrtho`, `TensCubic`) forgets its class, so that
+it accepts any update — `zero(generic_tens(t))` is a zero of the same order,
+dimension and element type that a non-isotropic term can be added to, where
+`zero(t)` of a `TensTI` is a `TensISO`.
+"""
+generic_tens(t::AbstractTens) = Tens(_static_tensor(t))
 
 @inline _generic_binary(op, A::AbstractTens{order, dim}, B::AbstractTens{order, dim}) where {order, dim} =
     Tens(_static_tensor(broadcast(op, get_array(A), get_array(B)), Val(dim), Val(order)))
@@ -1260,7 +1268,7 @@ and the generic route is taken instead.
 """
 function Tensors.dcontract(A::TensOrtho, B::TensOrtho)
     frame(A) == frame(B) ||
-        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+        return Tensors.dcontract(generic_tens(A), generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
     E = vecbasis(frame(A), :cov)
     Q = _km_congruence(SMatrix{3, 3, T}(E))
@@ -1635,7 +1643,7 @@ Closed product rule in the 8-dim commutant algebra:
 and z₂ = ℓ₅ + iℓ₈ (m=2).
 """
 function Tensors.dcontract(A::TensTI{4, <:Any, 8}, B::TensTI{4, <:Any, 8})
-    A.n == B.n || return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    A.n == B.n || return Tensors.dcontract(generic_tens(A), generic_tens(B))
     ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆, ℓA₇, ℓA₈ = A.data
     ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆, ℓB₇, ℓB₈ = B.data
     n₁ = ℓA₁ * ℓB₁ + ℓA₃ * ℓB₄
@@ -1736,7 +1744,7 @@ end
 # the axial part like the scalar b.
 
 function LinearAlgebra.dot(A::TensTI{2, <:Any, 3}, B::TensTI{2, <:Any, 3})
-    axis(A) == axis(B) || return LinearAlgebra.dot(_generic_tens(A), _generic_tens(B))
+    axis(A) == axis(B) || return LinearAlgebra.dot(generic_tens(A), generic_tens(B))
     a₁, b₁, c₁ = get_data(A)
     a₂, b₂, c₂ = get_data(B)
     return TensTI{2}(a₁ * a₂ - c₁ * c₂, b₁ * b₂, a₁ * c₂ + c₁ * a₂, axis(A))

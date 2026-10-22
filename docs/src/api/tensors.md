@@ -10,6 +10,7 @@ components
 components_canon
 change_tens
 change_tens_canon
+generic_tens
 get_order
 get_basis
 get_var
@@ -52,6 +53,7 @@ TensND.Tensors.symmetric(::TensND.AbstractTens{2})
 
 ```@docs
 Base.real(::TensND.AbstractTens)
+Base.conj(::TensND.AbstractTens)
 ```
 
 ## Coefficients and flat vectors

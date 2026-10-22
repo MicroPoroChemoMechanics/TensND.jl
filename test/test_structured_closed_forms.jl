@@ -174,3 +174,20 @@ end
     @syms a::positive b::positive
     @test rebuild(TensISO{3}(3.0, 2.0), (a, b)) == TensISO{3}(a, b)
 end
+
+@testsection "generic_tens and change_tens_canon of structured tensors" begin
+    ℬ = RotatedBasis(0.7, -0.4, 1.1)
+    for t in (
+            TensISO{3}(3.0, 2.0), TensTI{4}(10.0, 7.0, 3.0, 4.0, 5.0, (0.6, 0.0, 0.8)),
+            TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ), TensCubic(60.0, 16.0, 10.0, ℬ),
+        )
+        @test change_tens_canon(t) === t
+        g = generic_tens(t)
+        @test get_basis(g) isa CanonicalBasis
+        @test Array(get_array(g)) ≈ Array(get_array(t))
+        z = zero(g)
+        @test iszero(Array(get_array(z))) && eltype(z) == eltype(t)
+        # A zero that accepts a term outside the class of `t`.
+        @test z + Tens(ones(3, 3, 3, 3)) ≈ Tens(ones(3, 3, 3, 3))
+    end
+end
