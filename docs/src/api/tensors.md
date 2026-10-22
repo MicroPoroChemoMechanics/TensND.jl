@@ -22,3 +22,18 @@ KM_rotation
 diff_with_basis
 tens_basis
 ```
+
+## Tensors.jl and the Voigt forms
+
+Components in the canonical basis, whatever basis a tensor is written in: the
+form a finite-element code (Ferrite among others) and an Abaqus-style interface
+expect.
+
+```@docs
+to_tensors
+from_tensors
+voigt_stress
+voigt_strain
+stress_from_voigt
+strain_from_voigt
+```

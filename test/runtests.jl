@@ -117,6 +117,7 @@ include("test_submanifold.jl")
 # Calls that tied a TensND method with one of a package it loads.
 include("test_third_party_ties.jl")
 include("test_sympy_matrix.jl")
+include("test_tensors_bridge.jl")
 # Pins the conventions the documentation asserts — the Walpole identities, the
 # Kelvin-Mandel congruence, the operator index placement, and so on — so that
 # the code cannot drift away from the docs unnoticed. See
