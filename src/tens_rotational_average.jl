@@ -327,6 +327,29 @@ function transverse_isotropify(t::TensTI{4}, n)
     return _transverse_isotropify(t, R, n̂)
 end
 
+"""
+    proj_tens(::Val{:TI6}, t, n) → (TensTI{4,T,6}, d, drel)
+
+Projection of a fourth-order tensor with the minor symmetries onto the
+transversely isotropic tensors about `n` **without** major symmetry: the six
+Walpole coefficients, ℓ₃ ≠ ℓ₄ allowed — the class of a strain or flux
+concentration tensor, where `proj_tens(Val(:TI), …)` returns the
+major-symmetric five. It is the exact average about `n`
+([`transverse_isotropify`](@ref)) without its two coefficients odd in `n`
+(ℓ₇, ℓ₈), which a reflection through the plane normal to `n` reverses: the
+orthogonal projection onto the tensors invariant under that reflection too.
+`d` is the Frobenius distance to `t`, `drel` its ratio to `‖t‖`.
+"""
+function proj_tens(::Val{:TI6}, t::AbstractTens{4, 3}, n)
+    a = transverse_isotropify(t, n)
+    ℓ = get_ℓ8(a)
+    B = TensTI{4}(ℓ[1], ℓ[2], ℓ[3], ℓ[4], ℓ[5], ℓ[6], axis(a))
+    d = norm(generic_tens(B) - t)
+    nt = norm(t)
+    return B, d, iszero(nt) ? d : d / nt
+end
+proj_tens(v::Val{:TI6}, A::AbstractArray{T, 4}, n) where {T} = proj_tens(v, Tens(A), n)
+
 function _transverse_isotropify(t::AbstractTens{4, 3}, R, n̂)
     # The averaging frame `R` (columns u, v, n̂ in canonical coordinates) is
     # brought into the orthonormal frame `t` is written in, a 3×3 product: the

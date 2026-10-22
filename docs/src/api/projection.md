@@ -13,6 +13,7 @@ is_ORTHO
 is_CUBIC
 ti_params_from_KM
 KM_from_ti_params
+ti2_params_from_matrix
 ortho_params_from_KM
 KM_from_ortho_params
 cubic_params_from_KM

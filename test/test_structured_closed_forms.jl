@@ -191,3 +191,67 @@ end
         @test z + Tens(ones(3, 3, 3, 3)) ≈ Tens(ones(3, 3, 3, 3))
     end
 end
+
+@testsection "Transverse isotropy: TI6 projection, TI2 ⋅ vector, order-2 read-off" begin
+    rng = Xoshiro(20261025)
+    n = Tuple(normalize(randn(rng, 3)))
+    # The TI6 projection is the orthogonal projection onto the six Walpole
+    # tensors: a TI6 tensor is its own projection, the residual of any
+    # minor-symmetric tensor is orthogonal to the six, and an eight-parameter
+    # form loses exactly ℓ₇ and ℓ₈.
+    A6 = TensTI{4}(10.0, 7.0, 3.0, 2.5, 4.0, 5.0, n)
+    B, d, drel = proj_tens(Val(:TI6), change_tens(Tens(Array(get_array(A6))), RotatedBasis(0.3, 0.2, 0.1)), n)
+    @test B isa TensTI{4, Float64, 6}
+    @test all(get_data(B) .≈ get_data(A6)) && d < 1.0e-12 && drel < 1.0e-13
+    X = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> randn(rng)) ⊡ SymmetricTensor{4, 3}((i, j, k, l) -> randn(rng)))
+    BX, dX, _ = proj_tens(:TI6, X, n)
+    R = generic_tens(BX) - X
+    for i in 1:6
+        Wi = generic_tens(rebuild(BX, ntuple(j -> Float64(j == i), 6)))
+        @test abs(qcontract(R, Wi)) < 1.0e-10 * norm(X)
+    end
+    @test dX ≈ norm(R)
+    A8 = TensND.TensTI{4, Float64, 8}((10.0, 7.0, 3.0, 2.5, 4.0, 5.0, 0.7, 0.3), n)
+    @test all(get_data(first(proj_tens(Val(:TI6), A8, n))) .≈ get_data(A8)[1:6])
+    @test first(proj_tens(Val(:TI6), Array(get_array(A6)), n)) ≈ A6
+    # TI2 ⋅ vector, against the matrix-vector product, for both forms.
+    v = randn(rng, 3)
+    for K in (TensTI{2}(2.0, 5.0, n), TensND.TensTI{2, Float64, 3}((2.0, 5.0, 0.7), n))
+        @test K ⋅ v ≈ Array(get_array(K)) * v
+        @test K ⋅ Vec{3}(Tuple(v)) ≈ Array(get_array(K)) * v
+        @test (K ⋅ v) isa Vec{3}
+    end
+    @test_throws DimensionMismatch TensTI{2}(2.0, 5.0, n) ⋅ [1.0, 2.0]
+    @test ForwardDiff.derivative(a -> (TensTI{2}(a, 5.0, n) ⋅ v)[1], 2.0) ≈ (v - (transpose(collect(n)) * v) * collect(n))[1]
+    @syms a::real b::real
+    Ks = TensTI{2}(a, b, (0, 0, 1))
+    @test collect(Ks ⋅ Sym[1, 2, 3]) == [a, 2a, 3b]
+    # The order-2 read-off in the frame of the axis.
+    M = Array(get_array(TensND.TensTI{2, Float64, 3}((2.0, 5.0, 0.7), (0.0, 0.0, 1.0))))
+    @test all(ti2_params_from_matrix(M) .≈ (2.0, 5.0, 0.7))
+    @test all(ti2_params_from_matrix(M + M') .≈ (4.0, 10.0, 0.0))
+end
+
+@testsection "Projections about an axis or a frame: derivatives at e₃, symbols" begin
+    # The axis or frame enters by its matrix, not by Euler angles: the
+    # derivative with respect to the axis is finite at e₃ (it was NaN), and a
+    # symbol not declared real is not conjugated. Reference: centered
+    # differences with a step at the cube root of eps.
+    A4 = Array(get_array(Tens(SymmetricTensor{4, 3}((i, j, k, l) -> 1.0 / (i + j + k + l)) + one(SymmetricTensor{4, 3}))))
+    A2 = [3.0 0.4 0.1; 0.4 2.0 0.3; 0.1 0.3 1.0]
+    h = cbrt(eps())
+    cfd(f, x) = (f(x + h) - f(x - h)) / (2h)
+    fti4(θ) = collect(get_data(first(proj_tens(Val(:TI), A4, (sin(θ), 0.0, cos(θ))))))
+    fti2(θ) = collect(get_data(first(proj_tens(Val(:TI), A2, (sin(θ), 0.0, cos(θ))))))
+    fortho(θ) = collect(get_data(first(proj_tens(Val(:ORTHO), A4, RotatedBasis(θ, 0.0, 0.0)))))
+    fcub(θ) = collect(get_data(first(proj_tens(Val(:CUBIC), A4, RotatedBasis(θ, 0.0, 0.0)))))
+    for f in (fti4, fti2, fortho, fcub), θ in (0.0, 0.4)
+        d = ForwardDiff.derivative(f, θ)
+        @test all(isfinite, d)
+        @test d ≈ cfd(f, θ) rtol = 1.0e-6 atol = 1.0e-8
+    end
+    @syms φ
+    B4 = first(proj_tens(Val(:TI), A4, (sin(φ), 0, cos(φ))))
+    @test !occursin("conjugate", string(get_data(B4)))
+    @test Float64.(subs.(collect(get_data(B4)), φ => 0.4)) ≈ fti4(0.4)
+end

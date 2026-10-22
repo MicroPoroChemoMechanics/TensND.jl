@@ -591,11 +591,12 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T, 4}, n) where {T}
         return TensTI{4}(z, z, z, z, z, n), z, z
     end
 
-    # Compute KM of A and rotate to frame where e₃ = n
-    C_KM = _KM_of_array(A)
-    θ, ϕ = _angles_from_n(n)
-    P₆ = KM_rotation(θ, ϕ, zero(T))
-    C_rot = P₆' * C_KM * P₆
+    # The Kelvin-Mandel matrix of A in a frame whose third axis is n, by the 6×6
+    # congruence of that frame: no Euler angles, whose inverse trigonometry has an
+    # infinite derivative at n = e₃ (a NaN through ForwardDiff), and no `'`, which
+    # conjugates a symbol not declared real. The projection does not depend on
+    # the in-plane axes the frame picks.
+    C_rot = _km_in_frame_of(_KM_of_array(A), first(_axis_frame(n)))
 
     # Project in the rotated frame
     ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆ = _project_TI_KM(C_rot)
@@ -639,14 +640,11 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T, 2}, n) where {T}
         return TensTI{2}(z, z, n), z, z
     end
 
-    # Rotate to frame where e₃ = n
-    θ, ϕ = _angles_from_n(n)
-    R = _rot3_raw(θ, ϕ, zero(T))
-    M_rot = transpose(R) * A * R      # `transpose`: `'` conjugates a symbol
-
-    # TI projection: average transverse, keep axial
-    a = (M_rot[1, 1] + M_rot[2, 2]) / 2
-    b = M_rot[3, 3]
+    # In a frame whose third axis is n (no Euler angles: their derivative is
+    # infinite at n = e₃; `transpose`: `'` conjugates a symbol), the transverse
+    # average and the axial component.
+    R = first(_axis_frame(n))
+    a, b, _ = ti2_params_from_matrix(transpose(R) * A * R)
 
     B = TensTI{2}(a, b, n)
 
@@ -682,20 +680,12 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}, frame::OrthonormalBasi
         return B, z, z
     end
 
-    # Compute KM of A and rotate to material frame
-    C_KM = _KM_of_array(A)
-    # Recover the Euler angles in the *frame's own* element type, not in `T`.
-    # The material frame is geometry supplied by the caller, not a differentiated
-    # quantity: forcing it to `T` turned a plain `Float64` frame into a `Dual` one
-    # with zero partials, and `angles` then evaluated its inverse trigonometry at
-    # the gimbal-lock point (θ = 0 for the canonical frame), where the derivative
-    # is infinite. The zero partials multiplied that infinity into `NaN`, so every
-    # ForwardDiff pass through an ORTHO projection returned `NaN`. Keeping the
-    # frame's own type leaves the angles exact and lets the promotion happen in the
-    # matrix products below, where it belongs.
-    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
-    P₆ = KM_rotation(angs.θ, angs.ϕ, angs.ψ)
-    C_rot = P₆' * C_KM * P₆
+    # The Kelvin-Mandel matrix of A in the material frame, by the 6×6 congruence
+    # of the frame matrix itself. Recovering Euler angles from the frame went
+    # through inverse trigonometry with an infinite derivative at the canonical
+    # frame (gimbal lock), a NaN under ForwardDiff for a frame that depends on a
+    # parameter, and `'` conjugated a symbol not declared real.
+    C_rot = _km_in_frame_of(_KM_of_array(A), Matrix(vecbasis(frame, :cov)))
 
     # Project
     C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆ = _project_ORTHO_KM(C_rot)
@@ -739,14 +729,8 @@ function proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 4}, frame::OrthonormalBasi
         z = zero(T)
         return TensCubic{T}((z, z, z), frame), z, z
     end
-    C_KM = _KM_of_array(A)
-    # The frame's own element type, deliberately — see the long comment on the
-    # ORTHO projection: forcing it to `T` turns a plain frame into a `Dual` one
-    # with zero partials and evaluates the inverse trigonometry at gimbal lock,
-    # which produced `NaN` through every ForwardDiff pass.
-    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
-    P₆ = KM_rotation(angs.θ, angs.ϕ, angs.ψ)
-    C_rot = P₆' * C_KM * P₆
+    # The material frame by its 6×6 congruence, as for the ORTHO projection.
+    C_rot = _km_in_frame_of(_KM_of_array(A), Matrix(vecbasis(frame, :cov)))
     α, β, γ = _project_CUBIC_KM(C_rot)
     B = TensCubic(α, β, γ, frame)
     d = _frobenius(get_array(B) - A)
@@ -1191,6 +1175,17 @@ coefficients. See [`proj_tens`](@ref) for the tensor-level equivalent.
 const ti_params_from_KM = _project_TI_KM
 
 """
+    ti2_params_from_matrix(M::AbstractMatrix) → (a, b, c)
+
+The transversely isotropic part of a 3×3 matrix written in a frame whose third
+axis is the symmetry axis: the transverse coefficient `a = (M₁₁ + M₂₂)/2`, the
+axial one `b = M₃₃` and the in-plane antisymmetric one `c = (M₂₁ − M₁₂)/2`, those
+of `a (𝟏 − n⊗n) + b n⊗n + c [n]ₓ` (see `TensTI{2}`). For a symmetric matrix
+`c = 0`. The order-2 counterpart of [`ti_params_from_KM`](@ref).
+"""
+ti2_params_from_matrix(M::AbstractMatrix) = ((M[1, 1] + M[2, 2]) / 2, M[3, 3], (M[2, 1] - M[1, 2]) / 2)
+
+"""
     KM_from_ti_params(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆) → SMatrix{6,6}
 
 Build a 6×6 Kelvin-Mandel matrix (in the frame where `e₃` is the TI axis)
@@ -1310,7 +1305,7 @@ best_fit_cubic(t::AbstractTens{2, 3}, frame) = proj_tens(Val(:CUBIC), t, frame)[
 # ── Exports ──────────────────────────────────────────────────────────────────
 
 export proj_tens
-export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params
+export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params, ti2_params_from_matrix
 export cubic_params_from_KM, KM_from_cubic_params
 export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic
 export is_CUBIC

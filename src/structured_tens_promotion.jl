@@ -453,6 +453,23 @@ function LinearAlgebra.dot(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 2})
     return TensTI{2}(a₁ * a₂, b₁ * b₂, axis(A))
 end
 
+# ── TensTI{2} · vector ──────────────────────────────────────────────────────
+# A vector given by its canonical components (a `Vector`, a `Vec`), in closed
+# form: `a (v − (n⋅v) n) + b (n⋅v) n + c n × v`. Without it the call fell
+# through to `LinearAlgebra.dot` of two arrays, an inner product of a 3×3
+# with a 3-vector.
+
+function LinearAlgebra.dot(A::TensTI{2}, v::AbstractVector)
+    length(v) == 3 || throw(DimensionMismatch("a vector of 3 components is contracted with a TensTI{2}; got $(length(v))"))
+    a, b, c = _ti2_abc(A)
+    n = axis(A)
+    nv = n[1] * v[1] + n[2] * v[2] + n[3] * v[3]
+    nxv = (n[2] * v[3] - n[3] * v[2], n[3] * v[1] - n[1] * v[3], n[1] * v[2] - n[2] * v[1])
+    return Vec{3}(ntuple(i -> a * (v[i] - nv * n[i]) + b * nv * n[i] + c * nxv[i], 3))
+end
+_ti2_abc(A::TensTI{2, T, 2}) where {T} = (get_data(A)..., zero(T))
+_ti2_abc(A::TensTI{2, T, 3}) where {T} = get_data(A)
+
 # ── TensTI{2} · TensISO{2,3} ────────────────────────────────────────────────
 # TensISO{2,3}(λ) ≡ λ·𝟏, so A·B = λ·A (TI output preserved).
 
