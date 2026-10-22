@@ -635,7 +635,7 @@ iso_stiffness(k, μ) = TensISO{3}(3 * k, 2 * μ)
 Bulk and shear moduli of an isotropic **stiffness** ``\\mathbb{C} = d\\,k\\,\\mathbb{J} +
 2\\mu\\,\\mathbb{K}`` in dimension ``d``: ``k`` relates the trace of the stress to the
 trace of the strain, ``\\mathrm{tr}\\,\\boldsymbol{\\sigma} = d\\,k\\,\\mathrm{tr}\\,\\boldsymbol{\\varepsilon}``.
-In 3-D it is the bulk modulus; in 2-D the in-plane (area) bulk modulus, ``λ + μ``
+In 3-D it is the bulk modulus; in 2-D the in-plane (area) bulk modulus, ``\\lambda + \\mu``
 for the plane-strain restriction of a 3-D material. For a compliance
 ``\\mathbb{S}``, use `k_mu(inv(𝕊))`. For a tensor that is not a `TensISO`, take its
 isotropic part first: [`isotropify`](@ref) (the exact rotation average) or

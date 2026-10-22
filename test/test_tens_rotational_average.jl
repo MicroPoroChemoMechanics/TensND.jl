@@ -198,3 +198,13 @@ end
     @syms s::real
     @test mandel33_minor(Array(get_array(TensISO{2}(s, 2s))))[3, 3] == 2s
 end
+
+@testsection "The average of a TI tensor about another axis" begin
+    # Not invariant about the new axis, so averaged in full: the same as the
+    # average of its generic form.
+    rng = Xoshiro(20261028)
+    n1, n2 = Tuple(normalize(randn(rng, 3))), Tuple(normalize(randn(rng, 3)))
+    A = TensTI{4}(10.0, 7.0, 3.0, 4.0, 5.0, n1)
+    @test transverse_isotropify(A, n2) ≈ transverse_isotropify(generic_tens(A), n2)
+    @test !(transverse_isotropify(A, n2) ≈ generic_tens(A))
+end
