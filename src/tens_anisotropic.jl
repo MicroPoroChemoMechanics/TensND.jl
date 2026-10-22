@@ -144,6 +144,8 @@ end
 
 # Extract a plain 3-vector from various input types
 _extract_vec(n::NTuple{3}) = n
+# Mixed element types (`(sin(θ), 0, cos(θ))`): promoted to one.
+_extract_vec(n::Tuple{Number, Number, Number}) = promote(n...)
 _extract_vec(n::AbstractVector) = (n[1], n[2], n[3])
 # Canonical components: an axis is canonical, whatever basis the vector that
 # gives it is written in.

@@ -461,3 +461,48 @@ export transverse_isotropify
 export mandel66_minor, array_from_mandel66
 export ti8_params_from_KM, KM_from_ti8_params
 export ti_average_mandel66, iso_average_mandel66
+
+"""
+    frame_from_axis(n; in_plane = nothing) -> RotatedBasis{3}
+
+The right-handed orthonormal basis ``(\\underline{\\ell}, \\underline{m}, \\underline{n})`` whose third vector is `n`
+normalized, `n` given by its canonical components (a 3-vector, a tuple or a
+first-order tensor). ``\\underline{\\ell}`` is the Gram–Schmidt projection of `in_plane` on the plane
+normal to ``\\underline{n}``, and ``\\underline{m} = \\underline{n}\\times\\underline{\\ell}``. Without `in_plane`, the reference is the
+canonical axis least aligned with `n` for comparable numbers, which never
+degenerates; for symbolic ones, the first canonical axis whose projection does
+not vanish identically. A frame equal to the canonical one is returned as the
+`CanonicalBasis` (see [`RotatedBasis`](@ref)).
+
+Symbolic components are simplified once here (`tsimplify`), rather than in
+every component of every tensor later written in the frame.
+"""
+function frame_from_axis(n; in_plane = nothing)
+    v = _extract_vec(n)
+    T = _float_like(promote_type(map(typeof, v)...))
+    nn = sqrt(v[1]^2 + v[2]^2 + v[3]^2)
+    _refuse_zero(nn, "frame_from_axis: the axis is zero")
+    n̂ = SVector{3, T}(v[1] / nn, v[2] / nn, v[3] / nn)
+    a = SVector{3, T}(in_plane === nothing ? _inplane_reference(Tuple(n̂), T) : _extract_vec(in_plane))
+    ℓ = a - sum(a .* n̂) * n̂
+    nℓ = sqrt(sum(ℓ .* ℓ))
+    _refuse_zero(nℓ, "frame_from_axis: `in_plane` is parallel to the axis")
+    ℓ̂ = ℓ / nℓ
+    m̂ = SVector{3, T}(n̂[2] * ℓ̂[3] - n̂[3] * ℓ̂[2], n̂[3] * ℓ̂[1] - n̂[1] * ℓ̂[3], n̂[1] * ℓ̂[2] - n̂[2] * ℓ̂[1])
+    # A typed comprehension rather than `hcat`, which Symbolics overloads.
+    cols = (ℓ̂, m̂, n̂)
+    return RotatedBasis(tsimplify(T[cols[c][i] for i in 1:3, c in 1:3]))
+end
+
+# Integers become floats; duals, symbols and floats stay as they are
+# (`float(Sym)` answers `Float64`, which a symbolic axis cannot be).
+_float_like(::Type{T}) where {T <: Integer} = float(T)
+_float_like(::Type{T}) where {T} = T
+
+# A zero length is refused where it can be decided; a symbolic one is the
+# caller's (no comparison answers on it).
+_refuse_zero(x, msg) = _refuse_zero(Val(is_hard_numeric(typeof(x))), x, msg)
+_refuse_zero(::Val{true}, x, msg) = iszero(x) ? throw(ArgumentError(msg)) : nothing
+_refuse_zero(::Val{false}, x, msg) = nothing
+
+export frame_from_axis

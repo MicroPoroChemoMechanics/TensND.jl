@@ -8,6 +8,7 @@ Basis types and their accessors. Theory:
 Basis
 CanonicalBasis
 RotatedBasis
+frame_from_axis
 OrthogonalBasis
 CylindricalBasis
 SphericalBasis
