@@ -106,6 +106,8 @@ include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
 # `KM` and `change_tens` of the structured classes in closed form.
 include("test_structured_closed_forms.jl")
+# Kelvin-Mandel block algebra about a normal (in-plane / out-of-plane).
+include("test_km_blocks.jl")
 include("test_tens_projection.jl")
 include("test_orientation_search.jl")
 include("test_tens_rotational_average.jl")

@@ -64,3 +64,25 @@ param_norms
 to_vector
 from_vector
 ```
+
+## Kelvin-Mandel blocks about a normal
+
+In a frame whose third axis is a normal `n`, the in-plane and out-of-plane
+symmetric tensors split the Kelvin-Mandel slots; the maps below work on that
+partition, with no pivoting and no SVD (duals and symbols go through).
+
+```@docs
+KM_IP
+KM_OP
+km_ip_block
+km_op_block
+km_ip_embed
+km_op_embed
+km_from_blocks
+km_inv_schur
+plane_pinv
+plane_pinv2
+acoustic_tensor
+compliance_op_block
+```
+
