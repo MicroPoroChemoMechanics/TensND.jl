@@ -9,6 +9,7 @@ Basis
 CanonicalBasis
 RotatedBasis
 frame_from_axis
+permute_basis
 OrthogonalBasis
 CylindricalBasis
 SphericalBasis
