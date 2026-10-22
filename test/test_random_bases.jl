@@ -238,6 +238,19 @@ end
     @test !carries_partials(1.5)
     @syms s
     @test !carries_partials(s) && primal(s) === s
+    # The float type under the duals, the depth, the channels.
+    @test primal_type(typeof(y)) === Float64
+    @test primal_type(ForwardDiff.Dual{:a, Float32, 1}) === Float32
+    @test primal_type(Int) === Float64 && primal_type(Rational{Int}) === Float64
+    @test primal_type(typeof(s)) === typeof(s)
+    @test dual_depth(typeof(y)) == 2 && dual_depth(typeof(x)) == 1 && dual_depth(Float64) == 0
+    # Value, then each partial recursively: x = 2 + 1ε, y = x + (0 + 0ε) ε'.
+    @test dual_channels(1.5) == (1.5,)
+    @test dual_channels(x) == (2.0, 1.0)
+    @test dual_channels(y) == (2.0, 1.0, 0.0, 0.0)
+    @test length(dual_channels(ForwardDiff.Dual{:c}(1.0, 2.0, 3.0))) == 3
+    @test float_like(Int) === Float64 && float_like(Float32) === Float32
+    @test float_like(typeof(s)) === typeof(s) && float_like(typeof(x)) === typeof(x)
 end
 
 @testset "isparallel, numeric, dual and symbolic" begin

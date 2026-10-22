@@ -284,6 +284,51 @@ See also [`carries_partials`](@ref).
 primal(x::ForwardDiff.Dual) = primal(ForwardDiff.value(x))
 primal(x) = x
 
+"""
+    primal_type(T) -> Type
+
+The floating-point type under every level of `ForwardDiff.Dual` in `T`: the type
+of `float(primal(x))` for `x::T`, to build a tolerance, a `typemax` or quadrature
+weights that carry no derivative. An integer or rational type gives its float
+type; any other (a complex or symbolic type) is returned as it is.
+"""
+primal_type(::Type{D}) where {D <: ForwardDiff.Dual} = primal_type(ForwardDiff.valtype(D))
+primal_type(::Type{T}) where {T <: Real} = is_hard_numeric(T) ? float(T) : T
+primal_type(::Type{T}) where {T} = T
+
+"""
+    dual_depth(T) -> Int
+
+The number of levels of `ForwardDiff.Dual` nested in `T`: 0 for a plain number, 2
+for a second derivative taken through nested `ForwardDiff` calls.
+"""
+dual_depth(::Type{<:ForwardDiff.Dual{<:Any, V}}) where {V} = 1 + dual_depth(V)
+dual_depth(::Type) = 0
+
+"""
+    dual_channels(x) -> Tuple
+
+The value of `x` followed by every partial, at every nesting level of
+`ForwardDiff.Dual`, flattened into one tuple: `(x,)` for a plain number. A
+convergence test that must hold for the derivatives as well as for the value
+measures each channel separately.
+"""
+dual_channels(x::Number) = (x,)
+dual_channels(d::ForwardDiff.Dual) = (
+    dual_channels(ForwardDiff.value(d))...,
+    foldl((a, b) -> (a..., b...), map(dual_channels, ForwardDiff.partials(d).values); init = ())...,
+)
+
+"""
+    float_like(T) -> Type
+
+`float(T)` for an integer type, `T` itself otherwise: a float, a dual or a
+symbolic type stays as it is (`float` of a SymPy type answers `Float64`, which a
+symbolic quantity cannot be converted to).
+"""
+float_like(::Type{T}) where {T <: Integer} = float(T)
+float_like(::Type{T}) where {T} = T
+
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
 
@@ -636,7 +681,7 @@ end
 _simplified(x::SymType) = tsimplify(x)
 _simplified(x) = x
 
-export is_hard_numeric, carries_partials, primal, isparallel
+export is_hard_numeric, carries_partials, primal, isparallel, primal_type, dual_depth, dual_channels, float_like
 # `dotdot` belongs here too: its docstring offers `dotdot(n, ℂ, n)` as the
 # acoustic tensor, which a `using TensND` alone could not reach.
 export ⋅, ⊡, ⊗, dotdot

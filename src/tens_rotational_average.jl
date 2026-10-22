@@ -446,7 +446,7 @@ every component of every tensor later written in the frame.
 """
 function frame_from_axis(n; in_plane = nothing)
     v = _extract_vec(n)
-    T = _float_like(promote_type(map(typeof, v)...))
+    T = float_like(promote_type(map(typeof, v)...))
     nn = sqrt(v[1]^2 + v[2]^2 + v[3]^2)
     _refuse_zero(nn, "frame_from_axis: the axis is zero")
     n̂ = SVector{3, T}(v[1] / nn, v[2] / nn, v[3] / nn)
@@ -461,10 +461,6 @@ function frame_from_axis(n; in_plane = nothing)
     return RotatedBasis(tsimplify(T[cols[c][i] for i in 1:3, c in 1:3]))
 end
 
-# Integers become floats; duals, symbols and floats stay as they are
-# (`float(Sym)` answers `Float64`, which a symbolic axis cannot be).
-_float_like(::Type{T}) where {T <: Integer} = float(T)
-_float_like(::Type{T}) where {T} = T
 
 # A zero length is refused where it can be decided; a symbolic one is the
 # caller's (no comparison answers on it).
