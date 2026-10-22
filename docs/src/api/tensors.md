@@ -44,6 +44,6 @@ Methods of the `Tensors.jl` functions, which keep the symmetry class of a
 structured tensor where the class allows it.
 
 ```@docs
-Tensors.majorsymmetric(::TensND.AbstractTens{4})
-Tensors.symmetric(::TensND.AbstractTens{2})
+TensND.Tensors.majorsymmetric(::TensND.AbstractTens{4})
+TensND.Tensors.symmetric(::TensND.AbstractTens{2})
 ```
