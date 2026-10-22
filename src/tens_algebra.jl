@@ -183,7 +183,7 @@ LinearAlgebra.norm(t::Union{AbstractTens{1}, AbstractTens{2}, AbstractTens{4}}) 
 """
     sqnorm(t::AbstractTens)
 
-The square of [`norm`](@ref)`(t)`, the self-contraction `uᵢuⁱ`, `tᵢⱼtⁱʲ` or
+The square of `norm(t)`, the self-contraction `uᵢuⁱ`, `tᵢⱼtⁱʲ` or
 `tᵢⱼₖₗtⁱʲᵏˡ`, computed without the square root: smooth at zero, where the
 derivative of `norm` is not, and exact for symbolic components. On complex
 components it is Hermitian, `t̄ ⋅ t`: the contractions do not conjugate (they
