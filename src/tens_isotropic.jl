@@ -291,20 +291,6 @@ function Base.show(io::IO, A::TensISO{2})
     return print(io, "(", get_data(A)[1], ") 𝟏")
 end
 
-for OP in (:show, :print, :display)
-    @eval function Base.$OP(A::TensISO{4})
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        println("(", get_data(A)[1], ") 𝕁 + (", get_data(A)[2], ") 𝕂")
-        print("→ KM: ")
-        return $OP(KM(A))
-    end
-    @eval function Base.$OP(A::TensISO{2})
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        return println("(", get_data(A)[1], ") 𝟏")
-    end
-end
 
 pprint(A::TensISO{4}) = println("(", get_data(A)[1], ") 𝕁 + (", get_data(A)[2], ") 𝕂")
 pprint(A::TensISO{2}) = println("(", get_data(A)[1], ") 𝟏")

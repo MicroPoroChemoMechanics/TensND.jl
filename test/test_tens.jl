@@ -412,3 +412,25 @@ end
     M = Tensor{4, 2, S.Num}((i, j, k, l) -> (i, j, k, l) == (1, 1, 2, 2) ? a : zero(a))
     @test Tensors.isminorsymmetric(M) && !Tensors.ismajorsymmetric(M)
 end
+
+@testsection "Rich display goes to the io it is given" begin
+    n = (0.0, 0.0, 1.0)
+    for x in (
+            TensISO{3}(3.0, 2.0), TensISO{3}(2.0), TensTI{4}(1.0, 2.0, 3.0, 4.0, 5.0, n),
+            TensTI{2}(1.0, 2.0, n), TensOrtho(9.0, 8.0, 7.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, CanonicalBasis{3, Float64}()),
+            TensCubic(9.0, 4.0, 3.0, CanonicalBasis{3, Float64}()),
+        )
+        rich = repr(MIME"text/plain"(), x)
+        @test startswith(rich, string(typeof(x)))
+        @test occursin("→ decomposition: " * sprint(show, x), rich)
+        @test occursin("→ KM", rich) == (ndims(x) == 4)
+        # `print` is the compact form, written where it is asked to.
+        @test sprint(print, x) == sprint(show, x)
+    end
+    @test occursin("KM (material frame)", repr(MIME"text/plain"(), TensOrtho(9.0, 8.0, 7.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, CanonicalBasis{3, Float64}())))
+    t = Tens([1.0 2.0; 3.0 4.0], Basis([1.0 0.5; 0.0 1.0]))
+    rich = repr(MIME"text/plain"(), t)
+    @test occursin("→ array: ", rich) && occursin("→ basis: ", rich) && occursin("→ var: ", rich)
+    @test occursin("→ KM: ", repr(MIME"text/plain"(), Tens(get_array(TensISO{3}(3.0, 2.0)))))
+    @test occursin("→ dual basis: ", repr(MIME"text/plain"(), Basis([1.0 0.5; 0.0 1.0])))
+end

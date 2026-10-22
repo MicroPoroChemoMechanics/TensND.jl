@@ -439,3 +439,24 @@ end
 ##############################################################################
 
 export TensCubic, tens_cubic, arg_cubic, cubic_anisotropy
+
+# Structured tensors: their decomposition (the compact `show`), then their
+# Kelvin–Mandel matrix.
+function Base.show(io::IO, ::MIME"text/plain", A::Union{TensISO, TensTI, TensOrtho, TensCubic})
+    println(io, typeof(A))
+    print(io, "→ decomposition: ")
+    show(io, A)
+    return _show_km(io, A)
+end
+
+_show_km(io::IO, A::AbstractTens{2}) = nothing
+function _show_km(io::IO, A::AbstractTens{4})
+    print(io, "\n→ KM: ")
+    return show(io, MIME"text/plain"(), KM(A))
+end
+function _show_km(io::IO, A::TensOrtho)
+    print(io, "\n→ KM (material frame): ")
+    show(io, MIME"text/plain"(), KM_material(A))
+    print(io, "\n→ KM (canonical frame): ")
+    return show(io, MIME"text/plain"(), KM(A))
+end

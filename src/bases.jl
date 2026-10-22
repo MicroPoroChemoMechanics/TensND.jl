@@ -615,20 +615,17 @@ end
 #####################
 # Display Functions #
 #####################
-for OP in (:show, :print, :display)
-    @eval begin
-        function Base.$OP(ℬ::AbstractBasis)
-            $OP(typeof(ℬ))
-            print("→ basis: ")
-            $OP(vecbasis(ℬ, :cov))
-            print("→ dual basis: ")
-            $OP(vecbasis(ℬ, :cont))
-            print("→ covariant metric tensor: ")
-            $OP(metric(ℬ, :cov))
-            print("→ contravariant metric tensor: ")
-            return $OP(metric(ℬ, :cont))
-        end
+function Base.show(io::IO, ::MIME"text/plain", ℬ::AbstractBasis)
+    println(io, typeof(ℬ))
+    for (label, M) in (
+            ("→ basis: ", vecbasis(ℬ, :cov)), ("\n→ dual basis: ", vecbasis(ℬ, :cont)),
+            ("\n→ covariant metric tensor: ", metric(ℬ, :cov)),
+            ("\n→ contravariant metric tensor: ", metric(ℬ, :cont)),
+        )
+        print(io, label)
+        show(io, MIME"text/plain"(), M)
     end
+    return nothing
 end
 
 export Basis, CanonicalBasis, RotatedBasis, CylindricalBasis, SphericalBasis, OrthogonalBasis, AllOrthogonalBasis

@@ -619,15 +619,6 @@ function pprint(A::TensTI{4, <:Any, 6})
     return println("  axis n = ", A.n)
 end
 
-for OP in (:show, :print, :display)
-    @eval function Base.$OP(A::TensTI{4})
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        pprint(A)
-        print("→ KM: ")
-        return $OP(KM(A))
-    end
-end
 
 ##############################################################################
 # TensTI — transversely isotropic tensor (parametric on order)              #
@@ -785,13 +776,6 @@ function pprint(A::TensTI{2})
     return println("  axis n = ", A.n)
 end
 
-for OP in (:show, :print, :display)
-    @eval function Base.$OP(A::TensTI{2})
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        return pprint(A)
-    end
-end
 
 # ── change_tens / components for TensTI ──────────────────────────────────────
 #
@@ -1352,17 +1336,6 @@ function pprint(A::TensOrtho)
     return println("  frame: ", vecbasis(A.frame, :cov))
 end
 
-for OP in (:show, :print, :display)
-    @eval function Base.$OP(A::TensOrtho)
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        pprint(A)
-        print("→ KM (material frame): ")
-        $OP(KM_material(A))
-        print("→ KM (canonical frame): ")
-        return $OP(KM(A))
-    end
-end
 
 ##############################################################################
 # Shared change_tens / components for TensTI{4} and TensOrtho

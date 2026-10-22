@@ -1,37 +1,35 @@
 # ── Displaying tensors ───────────────────────────────────────────────────────
 
-for OP in (:show, :print, :display)
-    @eval begin
-        function Base.$OP(t::AbstractTens)
-            $OP(typeof(t))
-            if ndims(t) == 4
-                print("→ KM: ")
-                $OP(KM(t))
-            else
-                print("→ array: ")
-                $OP(get_array(t))
-            end
-            print("→ basis: ")
-            $OP(vecbasis(get_basis(t)))
-            print("→ var: ")
-            return $OP(get_var(t))
-        end
-        function Base.$OP(t::TensOrthonormal)
-            $OP(typeof(t))
-            if ndims(t) == 4
-                print("→ KM: ")
-                $OP(KM(t))
-            else
-                print("→ array: ")
-                $OP(get_array(t))
-            end
-            print("→ basis: ")
-            return $OP(vecbasis(get_basis(t)))
-        end
+# The rich display (REPL, Documenter, `display`) is `show(io, ::MIME"text/plain", t)`,
+# written to the `io` it is given; `print(t)` and `show(io, t)` stay compact.
 
-        # Base.$OP(t::AbstractTens{order,dim,T}; vec = '𝐞', coords = ntuple(i -> i, dim)) where {order,dim,T} = pprint(t; vec= vec, coords = coords)
-    end
+function Base.show(io::IO, ::MIME"text/plain", t::AbstractTens)
+    println(io, typeof(t))
+    _show_components(io, t)
+    print(io, "\n→ basis: ")
+    show(io, MIME"text/plain"(), vecbasis(get_basis(t)))
+    print(io, "\n→ var: ")
+    return show(io, get_var(t))
 end
+
+function Base.show(io::IO, ::MIME"text/plain", t::TensOrthonormal)
+    println(io, typeof(t))
+    _show_components(io, t)
+    print(io, "\n→ basis: ")
+    return show(io, MIME"text/plain"(), vecbasis(get_basis(t)))
+end
+
+function _show_components(io::IO, t::AbstractTens)
+    if ndims(t) == 4
+        print(io, "→ KM: ")
+        show(io, MIME"text/plain"(), KM(t))
+    else
+        print(io, "→ array: ")
+        show(io, MIME"text/plain"(), get_array(t))
+    end
+    return nothing
+end
+
 
 # Prevent SymPy's ImmutableMatrix from receiving 4D Julia arrays as elements,
 # which triggers a SymPyDeprecationWarning for non-Expr objects in a Matrix.
