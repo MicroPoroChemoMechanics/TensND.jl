@@ -629,6 +629,48 @@ function Base.show(io::IO, ::MIME"text/plain", ℬ::AbstractBasis)
 end
 
 """
+    euler_basis(angles::Tuple; T = Float64) -> AbstractBasis{3}
+
+The orthonormal basis of the ZYZ Euler angles `angles`, zero to three of them:
+missing trailing angles are zero, and the angles are promoted to one type —
+`Int` or `Irrational` to a float, a dual staying a dual, a symbolic angle
+keeping its type. When every angle is zero the basis is the canonical one, of
+element type `Float64` for real numbers (duals included: its entries are exact
+zeros and ones) and of the symbolic type otherwise, promoted with `T` — the
+element type of the data the basis will carry.
+
+```julia
+julia> euler_basis(()) isa CanonicalBasis{3, Float64}
+true
+
+julia> euler_basis((π / 2,)) == RotatedBasis(π / 2, 0.0, 0.0)
+true
+```
+"""
+function euler_basis(angles::Tuple{Vararg{Number}}; T::Type = Float64)
+    n = length(angles)
+    n ≤ 3 || throw(ArgumentError("euler_basis: at most three ZYZ angles, got $n: $angles"))
+    θ = _euler_triple(angles)
+    return all(iszero, θ) ? CanonicalBasis{3, _canonical_eltype(promote_type(T, eltype(θ)))}() :
+        RotatedBasis(θ...)
+end
+
+# Three angles of one type: a float for numbers (`float` turns an `Int` or an
+# `Irrational` into one and leaves a dual a dual), the symbolic type otherwise
+# (`Symbolics.Num` subtypes `Real` without converting from `Float64`).
+function _euler_triple(angles::Tuple)
+    T0 = promote_type(map(typeof, angles)...)
+    T = is_hard_numeric(T0) ? float(T0) : T0
+    return ntuple(i -> i ≤ length(angles) ? convert(T, angles[i]) : zero(T), 3)
+end
+_euler_triple(::Tuple{}) = (0.0, 0.0, 0.0)
+
+# The element type of a canonical basis carrying data of type `T`: `Float64`
+# for any real number, the type itself for a symbolic or complex one.
+_canonical_eltype(::Type{T}) where {T <: Real} = Float64
+_canonical_eltype(::Type{T}) where {T <: Number} = T
+
+"""
     permute_basis(ℬ, σ; negate = dim) -> RotatedBasis
 
 The orthonormal basis whose `k`-th vector is the `σ[k]`-th vector of `ℬ`, with
@@ -653,4 +695,4 @@ function permute_basis(ℬ::AbstractBasis{dim, T}, σ::NTuple{dim, Int}; negate:
 end
 
 export Basis, CanonicalBasis, RotatedBasis, CylindricalBasis, SphericalBasis, OrthogonalBasis, AllOrthogonalBasis
-export get_dim, vecbasis, metric, angles, isorthogonal, isorthonormal, permute_basis
+export get_dim, vecbasis, metric, angles, isorthogonal, isorthonormal, permute_basis, euler_basis

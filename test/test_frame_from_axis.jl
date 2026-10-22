@@ -85,3 +85,26 @@ end
     Rn = cols(RotatedBasis(α))
     @test isequal(cols(permute_basis(RotatedBasis(α), (2, 1))), hcat(Rn[:, 2], -Rn[:, 1]))
 end
+
+@testsection "euler_basis and the element type of a canonical frame" begin
+    cols(ℬ) = Matrix(vecbasis(ℬ))
+    @test euler_basis(()) isa CanonicalBasis{3, Float64}
+    @test euler_basis((0, 0, 0)) isa CanonicalBasis{3, Float64}
+    @test cols(euler_basis((π / 2,))) ≈ cols(RotatedBasis(π / 2, 0.0, 0.0))
+    @test cols(euler_basis((0.3, 0.2))) ≈ cols(RotatedBasis(0.3, 0.2, 0.0))
+    @test cols(euler_basis((1, 2, 3))) ≈ cols(RotatedBasis(1.0, 2.0, 3.0))
+    @test_throws ArgumentError euler_basis((0.1, 0.2, 0.3, 0.4))
+    # The canonical frame follows the type of the data: Float64 for any real,
+    # duals included; the symbolic type for symbols.
+    @test euler_basis((); T = ForwardDiff.Dual{:t, Float64, 1}) isa CanonicalBasis{3, Float64}
+    @syms θ::real
+    @test euler_basis((); T = typeof(θ)) isa CanonicalBasis{3, typeof(θ)}
+    @test eltype(euler_basis((θ, 0, 0))) == typeof(θ)
+    # A dual angle keeps its derivative, even at zero.
+    D = ForwardDiff.derivative(t -> cols(euler_basis((t, 0.4))), 0.0)
+    @test D ≈ ForwardDiff.derivative(t -> cols(RotatedBasis(t, 0.4, 0.0)), 0.0)
+    # frame_from_axis: the canonical frame in the element type asked.
+    @test frame_from_axis((0.0, 0.0, 2.0)) isa CanonicalBasis
+    @test frame_from_axis((0.0, 0.0, 2.0); T = typeof(θ)) isa CanonicalBasis{3, typeof(θ)}
+    @test frame_from_axis((0.0, 1.0, 1.0); T = typeof(θ)) isa RotatedBasis
+end

@@ -430,7 +430,7 @@ export ti8_params_from_KM, KM_from_ti8_params
 export ti_average_mandel66, iso_average_mandel66
 
 """
-    frame_from_axis(n; in_plane = nothing) -> RotatedBasis{3}
+    frame_from_axis(n; in_plane = nothing, T = nothing) -> RotatedBasis{3}
 
 The right-handed orthonormal basis ``(\\underline{\\ell}, \\underline{m}, \\underline{n})`` whose third vector is `n`
 normalized, `n` given by its canonical components (a 3-vector, a tuple or a
@@ -439,12 +439,20 @@ normal to ``\\underline{n}``, and ``\\underline{m} = \\underline{n}\\times\\unde
 canonical axis least aligned with `n` for comparable numbers, which never
 degenerates; for symbolic ones, the first canonical axis whose projection does
 not vanish identically. A frame equal to the canonical one is returned as the
-`CanonicalBasis` (see [`RotatedBasis`](@ref)).
+`CanonicalBasis` (see [`RotatedBasis`](@ref)), of the element type that
+[`euler_basis`](@ref) gives the data type `T` when `T` is given: a symbolic `T`
+keeps a symbolic canonical frame, whose exact `0` and `1` add no float to an
+exact result.
 
 Symbolic components are simplified once here (`tsimplify`), rather than in
 every component of every tensor later written in the frame.
 """
-function frame_from_axis(n; in_plane = nothing)
+function frame_from_axis(n; in_plane = nothing, T = nothing)
+    ℬ = _frame_from_axis(n, in_plane)
+    return T === nothing || !(ℬ isa CanonicalBasis) ? ℬ : CanonicalBasis{3, _canonical_eltype(T)}()
+end
+
+function _frame_from_axis(n, in_plane)
     v = _extract_vec(n)
     T = float_like(promote_type(map(typeof, v)...))
     nn = sqrt(v[1]^2 + v[2]^2 + v[3]^2)
