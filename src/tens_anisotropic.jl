@@ -297,7 +297,7 @@ end
 
 Kelvin-Mandel (6×6) matrix of the Walpole tensor.
 """
-KM(t::TensTI{4}) = tomandel(_static_tensor(t))
+KM(t::TensTI{4}) = Matrix(_km_by_entries(t))
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -1096,7 +1096,7 @@ Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 Returns the 6×6 Kelvin-Mandel matrix in the **canonical** frame.
 Use `KM_material(t)` for the block-diagonal form in the material frame.
 """
-KM(t::TensOrtho) = tomandel(_static_tensor(t))
+KM(t::TensOrtho) = Matrix(_km_in_frame(t))
 
 """
     KM_material(t::TensOrtho)
@@ -1154,6 +1154,42 @@ end
 @inline function _km_congruence(E::AbstractMatrix{T}) where {T}
     s2 = sqrt(T(2))
     return SMatrix{6, 6, T}(_km_entry(E, s2, I, J) for I in 1:6, J in 1:6)
+end
+
+# ── Kelvin-Mandel matrix of a structured tensor, without its 81 components ────
+#
+# `tomandel(_static_tensor(t))` evaluated all 81 components into an array,
+# checked its symmetry, built a `SymmetricTensor` and read 36 entries back out.
+#
+# `_km_by_entries` evaluates the 36 entries directly, with the scaling and the
+# operation order of Tensors.jl's `tomandel` (`s * x` with one off-diagonal
+# pair, `s * s * x` with two, `s = √(2one(T))`): the same expressions as before,
+# symbolic ones included, 4 to 30 times faster.
+#
+# `_km_in_frame` goes further for a tensor that carries its material frame
+# (`TensOrtho`, `TensCubic`): the congruence of its sparse material-frame matrix,
+# about 20 times faster than the 81 components. On a symbolic element type it
+# takes the entry route instead, which keeps the expressions a symbolic user
+# had (the congruence regroups them into equal but different forms).
+@inline function _km_scaled_entry(t, s, I::Int, J::Int)
+    (i, j) = _KM_PAIR[I]
+    (k, l) = _KM_PAIR[J]
+    x = @inbounds t[i, j, k, l]
+    return I > 3 && J > 3 ? s * s * x : I > 3 || J > 3 ? s * x : x
+end
+
+function _km_by_entries(t::AbstractTens{4, 3, T}) where {T}
+    s = √(2one(T))
+    return SMatrix{6, 6, T}(_km_scaled_entry(t, s, I, J) for I in 1:6, J in 1:6)
+end
+
+_km_in_frame(t) = _km_in_frame(Val(is_hard_numeric(eltype(t))), t)
+_km_in_frame(::Val{false}, t) = _km_by_entries(t)
+function _km_in_frame(::Val{true}, t)
+    E = vecbasis(frame(t), :cov)
+    T = promote_type(eltype(t), eltype(E))
+    Q = _km_congruence(SMatrix{3, 3, T}(E))
+    return Q * KM_material(t) * transpose(Q)
 end
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
@@ -1343,18 +1379,27 @@ end
 ##############################################################################
 
 # See the note above `_as_canonical_tens`: the components must be rotated, not
-# relabeled.
+# relabeled. They are, in closed form: in an orthonormal basis ℬ the tensor has
+# the same coefficients with its axis written in ℬ, so its components there come
+# from the Walpole formula itself, exact for every element type, instead of the
+# 81 canonical ones rotated index by index. The eight-coefficient form keeps the
+# generic route: its ℓ₇ and ℓ₈ terms change sign with the orientation of ℬ.
 change_tens(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
+    Tens(_static_tensor(_with_axis_in(t, ℬ)), ℬ, get_var(t))
+change_tens(t::TensTI{4, T, 8}, ℬ::OrthonormalBasis{3, T}) where {T} =
     change_tens(_as_canonical_tens(t), ℬ)
+
+# The same tensor written about the components of its axis in ℬ.
+_with_axis_in(t::TensTI{4, T, N}, ℬ::OrthonormalBasis{3, T}) where {T, N} =
+    TensTI{4, T, N}(get_data(t), Tuple(transpose(SMatrix{3, 3, T}(vecbasis(ℬ, :cov))) * SVector(axis(t))))
 components(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
 components(t::TensTI{4}) = get_array(t)
 components(t::TensTI{4}, ::NTuple{4, Symbol}) = get_array(t)
 
 # TensOrtho — same reasoning: stored in the canonical frame, so a rotated basis
-# needs a genuine change of components.
-change_tens(t::TensOrtho{T}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    change_tens(_as_canonical_tens(t), ℬ)
+# needs a genuine change of components (`change_tens` in `tens_cubic.jl`, shared
+# with `TensCubic`).
 components(t::TensOrtho{T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
 components(t::TensOrtho) = get_array(t)

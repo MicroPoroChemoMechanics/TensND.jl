@@ -69,3 +69,11 @@ end
 @inline _check_same_reference(A::TensOrtho, B::TensOrtho) =
     frame(A) == frame(B) ||
     throw(ArgumentError("TensOrtho operation requires the same material frame"))
+
+# ── Tensors.jl form of a fourth-order structured tensor ──────────────────────
+# Minor-symmetric by construction, so the `SymmetricTensor` is built from its 36
+# independent components in closed form (`getindex`), instead of all 81 into an
+# array whose symmetry `_store_symmetric` then checks: the same storage,
+# `change_tens`, `⊡` and every path through `_static_tensor` without the detour.
+@inline _static_tensor(t::Union{TensTI{4}, TensOrtho, TensCubic}) =
+    SymmetricTensor{4, 3, eltype(t)}((i, j, k, l) -> @inbounds t[i, j, k, l])

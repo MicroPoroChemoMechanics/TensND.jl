@@ -234,7 +234,7 @@ Base.IndexStyle(::Type{<:TensCubic}) = IndexCartesian()
 The 6×6 Kelvin-Mandel matrix in the **canonical** frame. Use
 [`KM_material`](@ref) for the sparse form in the cube frame.
 """
-KM(t::TensCubic) = tomandel(_static_tensor(t))
+KM(t::TensCubic) = Matrix(_km_in_frame(t))
 
 """
     KM_material(t::TensCubic)
@@ -408,11 +408,27 @@ reference(t::TensCubic) = frame(t)
 # frame kept separately, so re-expressing it in another orthonormal basis is a
 # genuine multi-index rotation: wrapping the stored components in the new basis
 # would relabel them and silently return a different physical tensor. The
-# rotation is not re-derived here — the components are handed to the generic
-# `TensOrthonormal` path as a canonical `Tens`.
+# rotation is done in closed form, for `TensOrtho` as well: in an orthonormal
+# basis ℬ the tensor has the same coefficients with its frame written in ℬ, and
+# `_ortho_entry` gives its components there, exact for every element type,
+# without the 81 canonical ones rotated index by index. A left-handed ℬ needs no
+# care: each frame vector enters the formula an even number of times.
+function change_tens(t::Union{TensOrtho{T}, TensCubic{T}}, ℬ::OrthonormalBasis{3, T}) where {T}
+    F = vecbasis(frame(t), :cov)
+    Tf = promote_type(T, eltype(F))
+    E = transpose(SMatrix{3, 3, Tf}(vecbasis(ℬ, :cov))) * SMatrix{3, 3, Tf}(F)
+    C = _ortho_coefficients(t)
+    S = SymmetricTensor{4, 3}((i, j, k, l) -> @inbounds _ortho_entry(E, C..., i, j, k, l))
+    return Tens(S, ℬ, get_var(t))
+end
 
-change_tens(t::TensCubic{T}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    change_tens(_as_canonical_tens(t), ℬ)
+# The nine orthotropic coefficients, a cubic tensor being an orthotropic one
+# with C₁₁ = C₂₂ = C₃₃, C₁₂ = C₁₃ = C₂₃ and C₄₄ = C₅₅ = C₆₆.
+_ortho_coefficients(t::TensOrtho) = get_data(t)
+function _ortho_coefficients(t::TensCubic)
+    C₁₁, C₁₂, C₄₄ = arg_cubic(t)
+    return (C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄)
+end
 components(t::TensCubic{T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
 components(t::TensCubic) = get_array(t)
