@@ -16,6 +16,7 @@ get_basis
 get_var
 get_data
 get_array
+sqnorm
 pprint
 KM
 inv_KM

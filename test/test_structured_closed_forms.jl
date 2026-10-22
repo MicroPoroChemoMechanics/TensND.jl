@@ -165,6 +165,8 @@ end
     # Generic tensors: canonical Kelvin-Mandel coordinates, and back.
     G = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> Float64(i + j + k + l) + (i == k) * (j == l)), ℬ)
     @test length(to_vector(G)) == 36
+    @test param_norms(G) == ones(36)
+    @test norm(G) ≈ norm(param_norms(G) .* to_vector(G))
     @test to_vector(G) == vec(KM(G, CanonicalBasis{3, Float64}()))
     @test from_vector(G, to_vector(G)) ≈ G
     S2 = Tens(SymmetricTensor{2, 3}((i, j) -> Float64(i * j)), ℬ)

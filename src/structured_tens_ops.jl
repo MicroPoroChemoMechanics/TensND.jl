@@ -156,6 +156,8 @@ The Frobenius norms of the tensors the coefficients of `t` multiply,
 the Walpole, orthotropic or cubic basis tensors for the other classes. These
 bases are orthogonal, so `norm(t) == norm(param_norms(t) .* get_data(t))`: the
 weights that make the Euclidean norm of the coefficients the norm of the tensor.
+For a generic tensor, whose [`to_vector`](@ref) coordinates are orthonormal
+Kelvin-Mandel components, they are all one.
 """
 function param_norms(t::Union{TensISO, TensTI, TensOrtho, TensCubic})
     d = get_data(t)
@@ -163,6 +165,9 @@ function param_norms(t::Union{TensISO, TensTI, TensOrtho, TensCubic})
     o, z = one(eltype(d)), zero(eltype(d))
     return ntuple(i -> norm(rebuild(t, ntuple(j -> j == i ? o : z, N))), N)
 end
+# The coordinates of `to_vector` of a generic tensor are Kelvin-Mandel components,
+# orthonormal: every weight is one.
+param_norms(t::AbstractTens) = ones(primal_type(real(eltype(t))), length(to_vector(t)))
 
 """
     to_vector(t) → Vector

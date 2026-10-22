@@ -178,19 +178,27 @@ At order 2 this is the double contraction `⊡`, not the single contraction
 matrix rather than a number (and would then break `isapprox`, which needs a
 scalar distance).
 """
-LinearAlgebra.norm(u::AbstractTens{1, dim}) where {dim} = √(dot(u, u))
+LinearAlgebra.norm(t::Union{AbstractTens{1}, AbstractTens{2}, AbstractTens{4}}) = √(sqnorm(t))
 
-LinearAlgebra.norm(t::AbstractTens{2, dim}) where {dim} = √(dcontract(t, t))
+"""
+    sqnorm(t::AbstractTens)
 
-LinearAlgebra.norm(t::AbstractTens{4, dim}) where {dim} = √(qcontract(t, t))
+The square of [`norm`](@ref)`(t)`, the self-contraction `uᵢuⁱ`, `tᵢⱼtⁱʲ` or
+`tᵢⱼₖₗtⁱʲᵏˡ`, computed without the square root: smooth at zero, where the
+derivative of `norm` is not, and exact for symbolic components. On complex
+components it is Hermitian, `t̄ ⋅ t`: the contractions do not conjugate (they
+are contractions), so the self-contraction of a complex tensor is not its squared
+norm. Real element types, duals and symbols included, keep the plain
+self-contraction, with no `abs` in a symbolic result.
+"""
+sqnorm(u::AbstractTens{1}) = dot(u, u)
+sqnorm(t::AbstractTens{2}) = dcontract(t, t)
+sqnorm(t::AbstractTens{4}) = qcontract(t, t)
+sqnorm(u::AbstractTens{1, dim, <:Complex}) where {dim} = real(dot(conj(u), u))
+sqnorm(t::AbstractTens{2, dim, <:Complex}) where {dim} = real(dcontract(conj(t), t))
+sqnorm(t::AbstractTens{4, dim, <:Complex}) where {dim} = real(qcontract(conj(t), t))
 
-# On complex components the norm is Hermitian, `√(t̄ ⋅ t)`: the contractions do
-# not conjugate (they are contractions), so the self-contraction of a complex
-# tensor is not the square of its norm. Real element types — duals and symbols
-# included — keep the forms above, with no `abs` in a symbolic result.
-LinearAlgebra.norm(u::AbstractTens{1, dim, <:Complex}) where {dim} = √(real(dot(conj(u), u)))
-LinearAlgebra.norm(t::AbstractTens{2, dim, <:Complex}) where {dim} = √(real(dcontract(conj(t), t)))
-LinearAlgebra.norm(t::AbstractTens{4, dim, <:Complex}) where {dim} = √(real(qcontract(conj(t), t)))
+export sqnorm
 
 """
     isapprox(t1::AbstractTens, t2::AbstractTens; kwargs...)

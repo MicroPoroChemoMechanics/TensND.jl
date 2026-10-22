@@ -457,6 +457,11 @@ end
     end
     @test norm(TensISO{3}(1.0 + 2im, 3.0 - 1im)) ≈ sqrt(sum(abs2, Array(get_array(TensISO{3}(1.0 + 2im, 3.0 - 1im)))))
     @test conj(Tens(ComplexF64[1 + 2im 0 0; 0 1 0; 0 0 1im]))[1, 1] == 1 - 2im
+    # sqnorm: the square, without the root, smooth at zero.
+    @test sqnorm(Tens(randn(rng, ComplexF64, 3, 3))) isa Float64
+    a2 = randn(rng, 3, 3)
+    @test sqnorm(Tens(a2, ℬ)) ≈ sum(abs2, a2)
+    @test ForwardDiff.derivative(x -> sqnorm(Tens(x .* a2)), 0.0) == 0
     # Real element types are unchanged, symbols with no `abs`.
     @test norm(Tens([1.0 2; 3 4][[1, 2, 2], [1, 2, 2]])) ≈ sqrt(sum(abs2, [1.0 2; 3 4][[1, 2, 2], [1, 2, 2]]))
     @syms x::real
