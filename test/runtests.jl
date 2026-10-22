@@ -77,6 +77,10 @@ end
                 # `UniformScaling` and a `Tensors.AbstractTensor`, which is what
                 # makes `I + t` and `2I * t` work on tensors.
                 LinearAlgebra.UniformScaling,
+                # `sympy_matrix.jl` assembles the `sympy.Matrix` of a `Sym` array
+                # row by row instead of SymPyCore's one-piece conversion, which
+                # crashes the compiler of Julia 1.15-DEV (JuliaLang/julia#63672).
+                SymPy.SymPyCore.:↓,
             ],
         ),
         # No ambiguity is excluded. The package's own, seventeen of them, were
@@ -112,6 +116,7 @@ include("test_coorsystems_num.jl")
 include("test_submanifold.jl")
 # Calls that tied a TensND method with one of a package it loads.
 include("test_third_party_ties.jl")
+include("test_sympy_matrix.jl")
 # Pins the conventions the documentation asserts — the Walpole identities, the
 # Kelvin-Mandel congruence, the operator index placement, and so on — so that
 # the code cannot drift away from the docs unnoticed. See
