@@ -54,10 +54,11 @@ end
         # `array_utils.jl` extends `Tensors` and `LinearAlgebra` functions to
         # `Tensors.Tensor`, `SymmetricTensor` and plain `AbstractArray`s. Both
         # the function and the type belong elsewhere, so it is type piracy by
-        # definition, and it is deliberate: the float-tolerant predicates exist
-        # because the upstream ones compare with `==`, useless on `Float64`,
-        # `Dual`, `Num` or `Sym`, and the array-level operators are what let the
-        # tensor algebra accept ordinary arrays. Declared rather than hidden.
+        # definition, and it is deliberate: the array-level operators are what
+        # let the tensor algebra accept ordinary arrays. Declared rather than
+        # hidden. (The symmetry predicates are no longer among them: TensND's
+        # tolerant ones are internal, `_issym` and friends, and Tensors.jl's
+        # keep their exact meaning on Tensors.jl's types.)
         #
         # What the declaration does NOT fix: `Tensors.otimes(::AbstractArray,
         # ::AbstractArray)` applies to any array as soon as TensND is loaded,
@@ -69,8 +70,6 @@ end
                 # named or the whole alias counts as foreign.
                 Tensors.Tensor, Tensors.SymmetricTensor, Tensors.MixedTensor,
                 Tensors.AbstractTensor,
-                Tensors.ismajorsymmetric, Tensors.isminorsymmetric,
-                Tensors.majortranspose, LinearAlgebra.issymmetric,
                 Tensors.otimes, Tensors.otimesu, Tensors.otimesl,
                 Tensors.dcontract, Tensors.dotdot,
                 # `tens_isotropic.jl` also defines `+` and `*` between a

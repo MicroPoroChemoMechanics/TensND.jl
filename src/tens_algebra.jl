@@ -581,14 +581,14 @@ Base.transpose(t::TensOrthonormal{order, dim, T, <:FourthOrderTensor}) where {or
 
 Tensors.majortranspose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
     Tens(
-    majortranspose(get_array(t)),
+    _majortranspose(get_array(t)),
     get_basis(t),
     (get_var(t)[3], get_var(t)[4], get_var(t)[1], get_var(t)[2]),
 )
 
 Tensors.majortranspose(
     t::TensOrthonormal{order, dim, T, <:FourthOrderTensor},
-) where {order, dim, T} = Tens(majortranspose(get_array(t)), get_basis(t))
+) where {order, dim, T} = Tens(_majortranspose(get_array(t)), get_basis(t))
 
 Tensors.minortranspose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
     Tens(

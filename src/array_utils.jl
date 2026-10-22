@@ -287,12 +287,12 @@ primal(x) = x
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
 
-@inline LinearAlgebra.issymmetric(t::Tensor{2, 2, T}) where {T <: ApproxType} = @inbounds t[1, 2] ≈ t[2, 1]
-
-@inline function LinearAlgebra.issymmetric(t::Tensor{2, 3, T}) where {T <: ApproxType}
-    return @inbounds t[1, 2] ≈ t[2, 1] && t[1, 3] ≈ t[3, 1] && t[2, 3] ≈ t[3, 2]
-end
-
+# ── Index symmetries of a Tensors.jl array, as TensND needs them ─────────────
+#
+# For the storage decision (`_store_symmetric`) and nowhere else. They are
+# TensND's own functions: Tensors.jl's `issymmetric`, `isminorsymmetric` and
+# `ismajorsymmetric` keep their meaning on Tensors.jl's types (an exact
+# comparison) for everyone, TensND loaded or not.
 
 """
     _num_equal(a::Num, b::Num) -> Bool
@@ -317,60 +317,31 @@ storage, never correctness) must not cost an algebraic simplification.
 """
 @inline _num_equal(a, b) = isequal(a, b) || iszero(a - b)
 
-@inline LinearAlgebra.issymmetric(t::Tensor{2, 2, Num}) = @inbounds _num_equal(t[1, 2], t[2, 1])
+# Exact for exact element types (floats too: tolerance is `_store_symmetric`'s
+# business), structural for a `Num`, whose `==` is a symbolic equation.
+@inline _sym_eq(a, b) = a == b
+@inline _sym_eq(a::Num, b::Num) = _num_equal(a, b)
 
-@inline function LinearAlgebra.issymmetric(t::Tensor{2, 3, Num})
-    return @inbounds _num_equal(t[1, 2], t[2, 1]) && _num_equal(t[1, 3], t[3, 1]) &&
-        _num_equal(t[2, 3], t[3, 2])
-end
+_issym(::Tensors.SymmetricTensor) = true
+_issym(t::Tensors.Tensor{2, dim}) where {dim} =
+    all(_sym_eq(t[i, j], t[j, i]) for j in 1:dim for i in (j + 1):dim)
+_issym(t::Tensors.Tensor{4}) = _isminorsym(t)
 
-function Tensors.isminorsymmetric(t::Tensor{4, dim, T}) where {dim, T <: ApproxType}
-    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        if !(t[i, j, k, l] ≈ t[j, i, k, l]) || !(t[i, j, k, l] ≈ t[i, j, l, k])
-            return false
-        end
-    end
-    return true
-end
-
-function Tensors.isminorsymmetric(t::Tensor{4, dim, Num}) where {dim}
-    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        if !_num_equal(t[i, j, k, l], t[j, i, k, l]) ||
-                !_num_equal(t[i, j, k, l], t[i, j, l, k])
-            return false
-        end
-    end
-    return true
-end
-
-function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, T}) where {dim, T <: ApproxType}
-    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        if !(t[i, j, k, l] ≈ t[k, l, i, j])
-            return false
-        end
-    end
-    return true
-end
-
-function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, Num}) where {dim}
-    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        # Not `a - b == zero(Num)`: on a `Num` that builds a symbolic
-        # *equation* rather than answering, and `!(…)` of it throws
-        # `TypeError: non-boolean (Num) used in boolean context`.
-        if !_num_equal(t[i, j, k, l], t[k, l, i, j])
-            return false
-        end
-    end
-    return true
-end
-
-@inline function Tensors.majortranspose(S::SymmetricTensor{4, dim}) where {dim}
-    return SymmetricTensor{4, dim}(
-        @inline function (i, j, k, l)
-            return @inbounds S[k, l, i, j]
-        end
+_isminorsym(::Tensors.SymmetricTensor{4}) = true
+function _isminorsym(t::Tensors.Tensor{4, dim}) where {dim}
+    return all(
+        _sym_eq(t[i, j, k, l], t[j, i, k, l]) && _sym_eq(t[i, j, k, l], t[i, j, l, k])
+            for l in 1:dim for k in l:dim for j in 1:dim for i in j:dim
     )
 end
+_ismajorsym(t::Tensors.FourthOrderTensor{dim}) where {dim} =
+    all(_sym_eq(t[i, j, k, l], t[k, l, i, j]) for l in 1:dim for k in l:dim for j in 1:dim for i in j:dim)
+
+# The major transpose of a `SymmetricTensor{4}` (Tensors.jl defines it on
+# `Tensor{4}` only).
+_majortranspose(S::Tensors.SymmetricTensor{4, dim}) where {dim} =
+    Tensors.SymmetricTensor{4, dim}((i, j, k, l) -> @inbounds S[k, l, i, j])
+_majortranspose(t) = Tensors.majortranspose(t)
 
 """
     otimes(t1::AbstractArray, t2::AbstractArray)

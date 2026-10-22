@@ -210,9 +210,9 @@ end
     @test KM(An) isa Matrix
     @test KM(TensISO{3}(kn)) isa Vector
     @test repr(MIME"text/latex"(), An) isa String
-    # `ismajorsymmetric` on a `Num` used to throw rather than answer.
-    @test Tensors.ismajorsymmetric(Tensor{4, 3}(get_array(An)))
-    @test Tensors.isminorsymmetric(Tensor{4, 3}(get_array(An)))
+    # TensND's symmetry predicates answer on a `Num` (Tensors.jl's compare with `==`).
+    @test TensND._ismajorsym(Tensor{4, 3}(get_array(An)))
+    @test TensND._isminorsym(Tensor{4, 3}(get_array(An)))
 end
 
 @testsection "Isotropic tensors — exact and integer element types" begin
