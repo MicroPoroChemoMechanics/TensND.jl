@@ -278,3 +278,16 @@ end
     @test simplify(νs - (3ks - 2μs) / (2 * (3ks + μs))) == 0
     @test all(simplify.(collect(k_mu(iso_stiffness(ks, μs))) .- [ks, μs]) .== 0)
 end
+
+@testsection "Components of an isotropic tensor with variances" begin
+    # Canonical basis: covariant and contravariant components coincide, so the
+    # variance pattern changes nothing. The reference is the same tensor stored
+    # as a generic `Tens`, which goes through the general change of variance.
+    for (A, var) in (
+            (TensISO{3}(3 * 7.0, 2 * 3.0), (:cov, :cont, :cov, :cont)),
+            (TensISO{3}(2.0), (:cov, :cont)),
+        )
+        @test components(A, var) == get_array(A)
+        @test components(A, var) ≈ components(Tens(get_array(A)), var)
+    end
+end
