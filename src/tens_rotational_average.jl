@@ -83,6 +83,49 @@ function array_from_mandel66(M::AbstractMatrix{T}) where {T}
 end
 
 """
+    mandel66(arr::AbstractArray{T,4}) → Matrix{T} (6×6)
+    mandel66(t::AbstractTens{4,3}) → Matrix (6×6)
+
+Kelvin-Mandel 6×6 matrix of a 4th-order array (of a tensor: its canonical
+components) read as it is, with no averaging of the minor symmetries: entry
+`(I, J)` is `wᵢ wⱼ A[i,j,k,l]` for the pairs `(i,j)`, `(k,l)` of `I`, `J` in the
+order (11, 22, 33, 23, 13, 12), `w = √2` on the last three. On a minor-symmetric
+array it is [`mandel66_minor`](@ref) to the last bit of the averaging.
+"""
+function mandel66(arr::AbstractArray{T, 4}) where {T}
+    sq2 = sqrt(T(2))
+    w(I) = I ≤ 3 ? one(T) : sq2
+    return [w(I) * w(J) * arr[_MANDEL_IDX[I]..., _MANDEL_IDX[J]...] for I in 1:6, J in 1:6]
+end
+mandel66(t::AbstractTens{4, 3}) = mandel66(components_canon(t))
+
+const _MANDEL_IDX_2D = ((1, 1), (2, 2), (1, 2))
+
+"""
+    mandel33_minor(arr::AbstractArray{T,4}) → Matrix{T} (3×3)
+    array_from_mandel33(M::AbstractMatrix{T}) → Array{T,4} (2×2×2×2)
+
+The two-dimensional counterparts of [`mandel66_minor`](@ref) and
+[`array_from_mandel66`](@ref): the Kelvin-Mandel 3×3 matrix of a 2×2×2×2 array,
+minor-symmetrized on read, in the order (11, 22, 12) with weight `√2` on the
+last; and the minor-symmetric array it comes from.
+"""
+function mandel33_minor(arr::AbstractArray{T, 4}) where {T}
+    sq2 = sqrt(T(2))
+    Λ(I) = I ≤ 2 ? one(T) : sq2
+    v(i, j, k, l) = (arr[i, j, k, l] + arr[j, i, k, l] + arr[i, j, l, k] + arr[j, i, l, k]) / 4
+    return [Λ(I) * Λ(J) * v(_MANDEL_IDX_2D[I]..., _MANDEL_IDX_2D[J]...) for I in 1:3, J in 1:3]
+end
+
+"The minor-symmetric 2×2×2×2 array of a 3×3 Kelvin-Mandel matrix; see [`mandel33_minor`](@ref)."
+function array_from_mandel33(M::AbstractMatrix{T}) where {T}
+    sq2 = sqrt(T(2))
+    Λ(I) = I ≤ 2 ? one(T) : sq2
+    slot(i, j) = i == j ? i : 3
+    return [M[slot(i, j), slot(k, l)] / (Λ(slot(i, j)) * Λ(slot(k, l))) for i in 1:2, j in 1:2, k in 1:2, l in 1:2]
+end
+
+"""
     _axis_frame(n) → (R, n̂)
 
 Return an orthonormal, right-handed frame `(e₁′, e₂′, n̂)` as the columns of a
@@ -430,6 +473,16 @@ function ti_average_mandel66(M::AbstractMatrix, n)
 end
 
 """
+    ti_average_mat33(M::AbstractMatrix, n) → Matrix (3×3)
+
+Exact average about `n` of the second-order tensor whose canonical components
+are the 3×3 matrix `M`, returned as a matrix: `a (𝟏 − n⊗n) + b n⊗n + c [n]ₓ`,
+the in-plane antisymmetric part `c` kept (see [`transverse_isotropify`](@ref)).
+The order-2 counterpart of [`ti_average_mandel66`](@ref).
+"""
+ti_average_mat33(M::AbstractMatrix, n) = Array(get_array(transverse_isotropify(Tens(Matrix(M)), n)))
+
+"""
     iso_average_mandel66(M::AbstractMatrix{T}) → (α, β)
 
 Exact SO(3) average of the minor-symmetric tensor whose Kelvin-Mandel matrix is
@@ -450,7 +503,8 @@ end
 export transverse_isotropify
 export mandel66_minor, array_from_mandel66
 export ti8_params_from_KM, KM_from_ti8_params
-export ti_average_mandel66, iso_average_mandel66
+export ti_average_mandel66, iso_average_mandel66, ti_average_mat33
+export mandel66, mandel33_minor, array_from_mandel33
 
 """
     frame_from_axis(n; in_plane = nothing, T = nothing) -> RotatedBasis{3}

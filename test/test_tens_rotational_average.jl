@@ -170,3 +170,31 @@ end
         @test TensND.ti_average_mandel66(M, (1, 1, 1)) == TensND.ti_average_mandel66(M, (1.0, 1.0, 1.0))
     end
 end
+
+@testsection "Mandel matrices: without averaging, in 2-D, and the TI average of a 3×3" begin
+    rng = Xoshiro(20261027)
+    # mandel66 reads the components as they are: on a minor-symmetric tensor it
+    # is KM in the canonical basis; on a non-symmetric array it is not averaged.
+    C = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> randn(rng)), RotatedBasis(0.3, 0.2, 0.1))
+    @test mandel66(C) ≈ KM(C, CanonicalBasis{3, Float64}())
+    A = randn(rng, 3, 3, 3, 3)
+    M = mandel66(A)
+    @test M[4, 1] ≈ sqrt(2) * A[2, 3, 1, 1] && M[4, 4] ≈ 2 * A[2, 3, 2, 3]
+    @test mandel66(A) ≉ mandel66_minor(A)
+    @test mandel66(Array(array_from_mandel66(M))) ≈ M
+    # 2-D: the Kelvin-Mandel matrix of an isotropic 2-D tensor, and the round trip.
+    C2 = TensISO{2}(3.0, 2.0)
+    @test mandel33_minor(Array(get_array(C2))) ≈ KM(C2)
+    B = randn(rng, 2, 2, 2, 2)
+    @test mandel33_minor(array_from_mandel33(mandel33_minor(B))) ≈ mandel33_minor(B)
+    @test array_from_mandel33(KM(C2)) ≈ Array(get_array(C2))
+    # TI average of a 3×3 block, against the tensor-level average.
+    n = Tuple(normalize(randn(rng, 3)))
+    G = randn(rng, 3, 3)
+    @test ti_average_mat33(G, n) ≈ Array(get_array(transverse_isotropify(Tens(G), n)))
+    @test ti_average_mat33(ti_average_mat33(G, n), n) ≈ ti_average_mat33(G, n)
+    # Duals and symbols.
+    @test ForwardDiff.derivative(x -> mandel66(A .* x)[4, 4], 2.0) ≈ 2 * A[2, 3, 2, 3]
+    @syms s::real
+    @test mandel33_minor(Array(get_array(TensISO{2}(s, 2s))))[3, 3] == 2s
+end

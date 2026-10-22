@@ -38,8 +38,12 @@ isotropify
 transverse_isotropify
 mandel66_minor
 array_from_mandel66
+mandel66
+mandel33_minor
+array_from_mandel33
 ti8_params_from_KM
 KM_from_ti8_params
 ti_average_mandel66
+ti_average_mat33
 iso_average_mandel66
 ```
