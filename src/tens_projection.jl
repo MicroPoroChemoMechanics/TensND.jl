@@ -642,7 +642,7 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T, 2}, n) where {T}
     # Rotate to frame where e₃ = n
     θ, ϕ = _angles_from_n(n)
     R = _rot3_raw(θ, ϕ, zero(T))
-    M_rot = R' * A * R
+    M_rot = transpose(R) * A * R      # `transpose`: `'` conjugates a symbol
 
     # TI projection: average transverse, keep axial
     a = (M_rot[1, 1] + M_rot[2, 2]) / 2
@@ -797,28 +797,14 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}, frame::OrthonormalBasi
         return B, z, z
     end
 
-    # Rotate to material frame
-    # Recover the Euler angles in the *frame's own* element type, not in `T`.
-    # The material frame is geometry supplied by the caller, not a differentiated
-    # quantity: forcing it to `T` turned a plain `Float64` frame into a `Dual` one
-    # with zero partials, and `angles` then evaluated its inverse trigonometry at
-    # the gimbal-lock point (θ = 0 for the canonical frame), where the derivative
-    # is infinite. The zero partials multiplied that infinity into `NaN`, so every
-    # ForwardDiff pass through an ORTHO projection returned `NaN`. Keeping the
-    # frame's own type leaves the angles exact and lets the promotion happen in the
-    # matrix products below, where it belongs.
-    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
-    R = _rot3_raw(angs.θ, angs.ϕ, angs.ψ)
-    M_rot = R' * A * R
-
-    # ORTHO projection: keep diagonal only
-    B_rot = zeros(T, 3, 3)
-    for i in 1:3
-        B_rot[i, i] = M_rot[i, i]
-    end
-
-    # Rotate back to canonical frame
-    B = R * B_rot * R'
+    # The frame's own matrix (columns: its vectors in canonical components):
+    # exact, in the frame's element type, and with no round trip through Euler
+    # angles, whose inverse trigonometry has an infinite derivative at the
+    # gimbal-lock point (the canonical frame itself).
+    R = Matrix(vecbasis(frame, :cov))
+    M_rot = transpose(R) * A * R
+    # ORTHO projection: the diagonal in the material frame, rotated back.
+    B = R * Diagonal(diag(M_rot)) * transpose(R)
 
     d = _frobenius(B - A)
     return B, d, d / nA
