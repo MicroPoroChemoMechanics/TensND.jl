@@ -130,3 +130,47 @@ end
     @syms a::real b::real
     @test get_data(real(TensISO{3}(a + im * b, a))) == (a, a)
 end
+
+@testsection "Coefficients: rebuild, param_norms, flat vectors" begin
+    ℬ = RotatedBasis(0.7, -0.4, 1.1)
+    n = (0.6, 0.0, 0.8)
+    structured = (
+        TensISO{3}(3.0, 2.0), TensISO{3}(2.0), TensISO{2}(3.0, 2.0),
+        TensTI{4}(10.0, 7.0, 3.0, 4.0, 5.0, n), TensTI{4}(10.0, 7.0, 3.0, 2.5, 4.0, 5.0, n),
+        TensND.TensTI{4, Float64, 8}((10.0, 7.0, 3.0, 2.5, 4.0, 5.0, 0.7, 0.3), n),
+        TensTI{2}(1.0, 2.0, n),
+        TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ),
+        TensCubic(60.0, 16.0, 10.0, ℬ),
+    )
+    for t in structured
+        d = get_data(t)
+        # The same tensor from its own coefficients, and the class kept.
+        @test rebuild(t, d) == t
+        @test rebuild(t, collect(d)) == t
+        @test from_vector(t, to_vector(t)) == t
+        @test to_vector(t) == collect(d)
+        # The coefficient basis is orthogonal and `param_norms` makes it an
+        # isometry: the norm of the tensor from its weighted coefficients.
+        w = param_norms(t)
+        @test norm(t) ≈ norm(collect(w) .* collect(d))
+        q = collect(1.0:length(d))
+        @test norm(rebuild(t, q)) ≈ norm(collect(w) .* q)
+    end
+    @test all(param_norms(TensISO{3}(3.0, 2.0)) .≈ (1, sqrt(5)))
+    # Mixed coefficient types are promoted; a TI axis follows its coefficients.
+    td = rebuild(TensTI{4}(10.0, 7.0, 3.0, 4.0, 5.0, n), (ForwardDiff.Dual(10.0, 1.0), 7.0, 3.0, 4.0, 5.0))
+    @test eltype(td) <: ForwardDiff.Dual
+    @test ForwardDiff.value.(axis(td)) == n
+    @test ForwardDiff.derivative(x -> get_data(rebuild(TensISO{3}(3.0, 2.0), (x, 2x)))[2], 1.0) == 2
+    # Generic tensors: canonical Kelvin-Mandel coordinates, and back.
+    G = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> Float64(i + j + k + l) + (i == k) * (j == l)), ℬ)
+    @test length(to_vector(G)) == 36
+    @test to_vector(G) == vec(KM(G, CanonicalBasis{3, Float64}()))
+    @test from_vector(G, to_vector(G)) ≈ G
+    S2 = Tens(SymmetricTensor{2, 3}((i, j) -> Float64(i * j)), ℬ)
+    @test length(to_vector(S2)) == 6
+    @test from_vector(S2, to_vector(S2)) ≈ S2
+    # Symbols.
+    @syms a::positive b::positive
+    @test rebuild(TensISO{3}(3.0, 2.0), (a, b)) == TensISO{3}(a, b)
+end

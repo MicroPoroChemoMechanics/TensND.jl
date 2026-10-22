@@ -111,3 +111,74 @@ _part(f, t::AbstractTens, ℬ::Union{CanonicalBasis, AbstractBasis{<:Any, <:Real
     Tens(f.(Array(get_array(t))), ℬ, get_var(t))
 _part(f, t::AbstractTens{order, dim}, ::AbstractBasis) where {order, dim} =
     Tens(f.(Array(components_canon(t))), CanonicalBasis{dim, real(eltype(t))}())
+
+# ── Coefficients: rebuild, norms of the coefficient basis, flat vectors ──────
+
+"""
+    rebuild(t, data)
+
+The tensor of the class of `t` — same order, same axis or frame — whose
+coefficients ([`get_data`](@ref), in the same order) are `data`, a tuple or a
+vector. The coefficients are promoted to a common type; a transversely isotropic
+tensor also promotes its axis, which shares their type. A `TensTI` given six or
+eight coefficients becomes the six- or eight-parameter form.
+
+```julia
+julia> rebuild(TensISO{3}(3.0, 2.0), (1.0, 4.0)) == TensISO{3}(1.0, 4.0)
+true
+```
+"""
+rebuild(t::Union{TensISO, TensOrtho, TensCubic}, data) = _rebuild(t, _common_tuple(data))
+function rebuild(t::TensTI, data)
+    d = _common_tuple(data)
+    T = promote_type(eltype(d), eltype(t))
+    return _rebuild(t, map(x -> convert(T, x), d))
+end
+
+function _common_tuple(data)
+    d = Tuple(data)
+    T = mapreduce(typeof, promote_type, d)
+    return map(x -> convert(T, x), d)
+end
+
+"""
+    param_norms(t) → NTuple
+
+The Frobenius norms of the tensors the coefficients of `t` multiply,
+`‖rebuild(t, eᵢ)‖`: `(1, √5)` for the isotropic `(𝕁, 𝕂)` in 3-D, the norms of
+the Walpole, orthotropic or cubic basis tensors for the other classes. These
+bases are orthogonal, so `norm(t) == norm(param_norms(t) .* get_data(t))`: the
+weights that make the Euclidean norm of the coefficients the norm of the tensor.
+"""
+function param_norms(t::Union{TensISO, TensTI, TensOrtho, TensCubic})
+    d = get_data(t)
+    N = length(d)
+    o, z = one(eltype(d)), zero(eltype(d))
+    return ntuple(i -> norm(rebuild(t, ntuple(j -> j == i ? o : z, N))), N)
+end
+
+"""
+    to_vector(t) → Vector
+    from_vector(prototype, v)
+
+A tensor as a flat vector of real coordinates, and back: its coefficients
+([`get_data`](@ref)) for a `TensISO`, `TensTI`, `TensOrtho` or `TensCubic`, the
+Kelvin-Mandel components in the canonical basis otherwise (6 or 9 at order 2, 36
+or 81 at order 4). `from_vector` rebuilds a tensor of the class of `prototype`,
+with its axis or frame; a generic tensor comes back in the canonical basis. Both
+are linear, for an ODE state, a nonlinear solver or a sequence accelerator.
+"""
+to_vector(t::Union{TensISO, TensTI, TensOrtho, TensCubic}) = collect(get_data(t))
+to_vector(t::AbstractTens{order, dim}) where {order, dim} = vec(collect(KM(t, CanonicalBasis{dim, eltype(t)}())))
+
+"""
+    from_vector(prototype, v)
+
+The tensor whose flat vector ([`to_vector`](@ref)) is `v`: of the class of
+`prototype`, with its axis or frame, or in the canonical basis for a generic one.
+"""
+from_vector(prototype::Union{TensISO, TensTI, TensOrtho, TensCubic}, v) = rebuild(prototype, v)
+from_vector(::AbstractTens{2}, v) = inv_KM(collect(v))
+from_vector(::AbstractTens{4}, v) = (n = isqrt(length(v)); inv_KM(reshape(collect(v), n, n)))
+
+export rebuild, param_norms, to_vector, from_vector

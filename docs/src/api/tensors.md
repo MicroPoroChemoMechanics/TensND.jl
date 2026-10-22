@@ -53,3 +53,12 @@ TensND.Tensors.symmetric(::TensND.AbstractTens{2})
 ```@docs
 Base.real(::TensND.AbstractTens)
 ```
+
+## Coefficients and flat vectors
+
+```@docs
+rebuild
+param_norms
+to_vector
+from_vector
+```
