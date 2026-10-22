@@ -100,6 +100,17 @@ _rb_canon(A::AbstractArray) = Array(A)
         @test _rb_canon(Pf) ≈ ti
     end
 
+    @testset "an isotropic tensor written in a rotated basis" begin
+        iso = Array(get_array(TensISO{3}(3 * 7.0, 2 * 3.0)))
+        t = _rb_rotated(iso, R)
+        # The angle search is the path that brings each candidate back from the
+        # tensor's frame, the isotropic one included.
+        Pb, _, _, sym = best_sym_tens(t; optimize_angles = true)
+        @test sym === :ISO
+        @test Pb isa TensISO
+        @test _rb_canon(Pb) ≈ iso
+    end
+
     @testset "an exactly orthotropic tensor about a random frame" begin
         o = Array(get_array(TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, F)))
         t = _rb_rotated(o, R)
