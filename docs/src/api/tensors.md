@@ -37,3 +37,13 @@ voigt_strain
 stress_from_voigt
 strain_from_voigt
 ```
+
+## Symmetric parts
+
+Methods of the `Tensors.jl` functions, which keep the symmetry class of a
+structured tensor where the class allows it.
+
+```@docs
+Tensors.majorsymmetric(::TensND.AbstractTens{4})
+Tensors.symmetric(::TensND.AbstractTens{2})
+```
