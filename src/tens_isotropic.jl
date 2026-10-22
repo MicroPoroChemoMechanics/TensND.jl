@@ -630,30 +630,63 @@ See also [`iso_stiffness_E_nu`](@ref).
 iso_stiffness(k, μ) = TensISO{3}(3 * k, 2 * μ)
 
 """
-    k_mu(ℂ::TensISO{4,3}) → (k, μ)
+    k_mu(ℂ::TensISO{4,dim}) → (k, μ)
 
-Bulk and shear moduli of a 3-D isotropic **stiffness** ``\\mathbb{C} = 3k\\,\\mathbb{J} +
-2\\mu\\,\\mathbb{K}``. For a compliance ``\\mathbb{S}``, use `k_mu(inv(𝕊))`. For a tensor that
-is not a `TensISO`, take its isotropic part first: [`isotropify`](@ref) (the exact
-rotation average) or [`best_fit_iso`](@ref) (the closest isotropic tensor).
+Bulk and shear moduli of an isotropic **stiffness** ``\\mathbb{C} = d\\,k\\,\\mathbb{J} +
+2\\mu\\,\\mathbb{K}`` in dimension ``d``: ``k`` relates the trace of the stress to the
+trace of the strain, ``\\mathrm{tr}\\,\\boldsymbol{\\sigma} = d\\,k\\,\\mathrm{tr}\\,\\boldsymbol{\\varepsilon}``.
+In 3-D it is the bulk modulus; in 2-D the in-plane (area) bulk modulus, ``λ + μ``
+for the plane-strain restriction of a 3-D material. For a compliance
+``\\mathbb{S}``, use `k_mu(inv(𝕊))`. For a tensor that is not a `TensISO`, take its
+isotropic part first: [`isotropify`](@ref) (the exact rotation average) or
+[`best_fit_iso`](@ref) (the closest isotropic tensor).
 """
-function k_mu(ℂ::TensISO{4, 3})
+function k_mu(ℂ::TensISO{4, dim}) where {dim}
     α, β = get_data(ℂ)
-    return α / 3, β / 2
+    return α / dim, β / 2
 end
 
 """
+    poisson_ratio(k, μ) → ν
+
+Poisson's ratio of a 3-D isotropic material from its bulk and shear moduli,
+``\\nu = (3k - 2\\mu)/(2(3k + \\mu))``.
+"""
+poisson_ratio(k, μ) = (3 * k - 2 * μ) / (2 * (3 * k + μ))
+
+"""
     E_nu(ℂ::TensISO{4,3}) → (E, ν)
+    E_nu(ℂ::TensISO{4,2}) → (E, ν)
 
-Young's modulus and Poisson's ratio of a 3-D isotropic **stiffness**:
-``E = 9k\\mu/(3k + \\mu)``, ``\\nu = (3k - 2\\mu)/(2(3k + \\mu))``. For a compliance, use
-`E_nu(inv(𝕊))`.
+Young's modulus and Poisson's ratio of an isotropic **stiffness**. In 3-D,
+``E = 9k\\mu/(3k + \\mu)`` and ``\\nu`` = [`poisson_ratio`](@ref)`(k, μ)`. In 2-D, those
+of the 3-D material whose plane-strain stiffness is ``\\mathbb{C}``: with
+``\\mathbb{C} = \\alpha\\,\\mathbb{J} + \\beta\\,\\mathbb{K}``, ``\\nu = (\\alpha - \\beta)/(2\\alpha)``
+and ``E = 2\\mu(1 + \\nu)``, ``\\mu = \\beta/2``. For a compliance, use `E_nu(inv(𝕊))`.
 
-See also [`k_mu`](@ref), [`iso_stiffness_E_nu`](@ref).
+See also [`k_mu`](@ref), [`mu_nu`](@ref), [`iso_stiffness_E_nu`](@ref).
 """
 function E_nu(ℂ::TensISO{4, 3})
     k, μ = k_mu(ℂ)
-    return 9 * k * μ / (3 * k + μ), (3 * k - 2 * μ) / (2 * (3 * k + μ))
+    return 9 * k * μ / (3 * k + μ), poisson_ratio(k, μ)
+end
+function E_nu(ℂ::TensISO{4, 2})
+    μ, ν = mu_nu(ℂ)
+    return 2 * μ * (1 + ν), ν
+end
+
+"""
+    mu_nu(ℂ::TensISO{4,dim}) → (μ, ν)
+
+Shear modulus and Poisson's ratio of an isotropic **stiffness**, the pair the
+Kelvin and plane-strain Green functions are written with; in 2-D, ``\\nu`` is
+that of the 3-D material whose plane-strain stiffness is ``\\mathbb{C}`` (see
+[`E_nu`](@ref)).
+"""
+mu_nu(ℂ::TensISO{4, 3}) = (k_mu(ℂ)[2], E_nu(ℂ)[2])
+function mu_nu(ℂ::TensISO{4, 2})
+    α, β = get_data(ℂ)
+    return β / 2, (α - β) / (2 * α)
 end
 
 """
@@ -666,4 +699,4 @@ Isotropic stiffness from Young's modulus and Poisson's ratio,
 iso_stiffness_E_nu(E, ν) = iso_stiffness(E / (3 * (1 - 2 * ν)), E / (2 * (1 + ν)))
 
 export TensISO, tens_Id2, tens_Id4, tens_J4, tens_K4, ISO, iso_projectors, isotropify, is_ISO, is_TI, is_ORTHO
-export iso_stiffness, k_mu, E_nu, iso_stiffness_E_nu
+export iso_stiffness, k_mu, E_nu, iso_stiffness_E_nu, poisson_ratio, mu_nu

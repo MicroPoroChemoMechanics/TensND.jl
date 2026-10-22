@@ -277,6 +277,32 @@ end
     @test simplify(Es - 9ks * μs / (3ks + μs)) == 0
     @test simplify(νs - (3ks - 2μs) / (2 * (3ks + μs))) == 0
     @test all(simplify.(collect(k_mu(iso_stiffness(ks, μs))) .- [ks, μs]) .== 0)
+    @test simplify(poisson_ratio(ks, μs) - νs) == 0
+    @test all(mu_nu(ℂ) .≈ (μ, ν))
+end
+
+@testsection "Isotropic moduli in 2-D: the plane-strain restriction" begin
+    # Independent reference: the in-plane components of a 3-D isotropic
+    # stiffness, read back as a 2-D isotropic tensor α 𝕁 + β 𝕂 by
+    # α = C₁₁₁₁ + C₁₁₂₂, β = C₁₁₁₁ − C₁₁₂₂. Its moduli are those of the 3-D
+    # material: ν, E and μ, and the in-plane bulk modulus λ + μ.
+    for (k, μ) in ((12.0, 5.0), (3.0, 2.5), (40.0, 1.0))
+        C3 = get_array(iso_stiffness(k, μ))
+        C2 = TensISO{2}(C3[1, 1, 1, 1] + C3[1, 1, 2, 2], C3[1, 1, 1, 1] - C3[1, 1, 2, 2])
+        @test C2 isa TensISO{4, 2}
+        @test all(E_nu(C2) .≈ E_nu(iso_stiffness(k, μ)))
+        @test all(mu_nu(C2) .≈ mu_nu(iso_stiffness(k, μ)))
+        @test all(k_mu(C2) .≈ (k - 2μ / 3 + μ, μ))
+        # The 2-D tensor is the restriction, component by component.
+        @test get_array(C2) ≈ C3[1:2, 1:2, 1:2, 1:2]
+    end
+    # Derivatives along k, through the restriction; symbols, exactly.
+    ν2(k) = mu_nu(TensISO{2}(2 * (k + 5.0 / 3), 10.0))[2]
+    @test ForwardDiff.derivative(ν2, 12.0) ≈ ForwardDiff.derivative(k -> poisson_ratio(k, 5.0), 12.0)
+    @syms ks::positive μs::positive
+    a, b = 2 * (ks + μs / 3), 2μs
+    @test simplify(mu_nu(TensISO{2}(a, b))[2] - poisson_ratio(ks, μs)) == 0
+    @test simplify(E_nu(TensISO{2}(a, b))[1] - E_nu(iso_stiffness(ks, μs))[1]) == 0
 end
 
 @testsection "Components of an isotropic tensor with variances" begin

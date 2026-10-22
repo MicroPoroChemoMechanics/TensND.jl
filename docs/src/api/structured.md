@@ -20,6 +20,8 @@ iso_projectors
 iso_stiffness
 k_mu
 E_nu
+mu_nu
+poisson_ratio
 iso_stiffness_E_nu
 ```
 
