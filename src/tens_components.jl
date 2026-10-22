@@ -182,7 +182,7 @@ function components(
         ℬ::OrthonormalBasis{dim},
     ) where {order, dim, T}
     isequal(ℬ, get_basis(t)) && return get_array(t)
-    return _as_array(_orthonormal_components(get_array(t), t, ℬ))
+    return _as_array(_components_in_orthonormal(get_array(t), t, ℬ))
 end
 
 # The components of `t` in another orthonormal basis ℬ. With `R` the transpose
@@ -191,7 +191,7 @@ end
 # operations, about seven times faster than four contractions of an `Array`,
 # and of a type known at compile time. The orders Tensors.jl has no type for
 # keep the contractions.
-function _orthonormal_components(
+function _components_in_orthonormal(
         x::Union{Vec{dim}, Tensor{2, dim}, SymmetricTensor{2, dim}, Tensor{4, dim}, SymmetricTensor{4, dim}},
         t::TensOrthonormal{order, dim, T},
         ℬ::OrthonormalBasis{dim},
@@ -200,7 +200,7 @@ function _orthonormal_components(
     bb = transpose(vecbasis(get_basis(t))) * vecbasis(ℬ)
     return _rotate_components(x, Tensor{2, dim, Tc}(transpose(bb)))
 end
-function _orthonormal_components(
+function _components_in_orthonormal(
         x::AbstractArray, t::TensOrthonormal{order, dim, T}, ℬ::OrthonormalBasis{dim}
     ) where {order, dim, T}
     bb = transpose(vecbasis(get_basis(t))) * vecbasis(ℬ)
@@ -229,7 +229,7 @@ _as_array(x::AbstractArray) = x
 # then that of its storage, known at compile time.
 function change_tens(t::TensOrthonormal{order, dim}, ℬ::OrthonormalBasis{dim}) where {order, dim}
     isequal(ℬ, get_basis(t)) && return t
-    return Tens(_orthonormal_components(get_array(t), t, ℬ), ℬ)
+    return Tens(_components_in_orthonormal(get_array(t), t, ℬ), ℬ)
 end
 # Covariant and contravariant components coincide in an orthonormal basis.
 change_tens(t::TensOrthonormal{order, dim}, ℬ::OrthonormalBasis{dim}, ::NTuple{order, Symbol}) where {order, dim} =

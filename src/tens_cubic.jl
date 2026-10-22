@@ -196,17 +196,7 @@ Evaluated through `_ortho_entry` with `C₁₁ = C₂₂ = C₃₃`, `C₁₂ = 
 `C₄₄ = C₅₅ = C₆₆`, which is what a cubic tensor *is* as an orthotropic one — no
 second copy of that algebra.
 """
-function get_array(t::TensCubic{T}) where {T}
-    C₁₁, C₁₂, C₄₄ = arg_cubic(t)
-    E = vecbasis(t.frame, :cov)
-    result = Array{T, 4}(undef, 3, 3, 3, 3)
-    @inbounds for i in 1:3, j in 1:3, k in 1:3, l in 1:3
-        result[i, j, k, l] = _ortho_entry(
-            E, C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄, i, j, k, l
-        )
-    end
-    return result
-end
+get_array(t::TensCubic) = Array(_static_tensor(t))
 
 """
     getindex(t::TensCubic, i, j, k, l)

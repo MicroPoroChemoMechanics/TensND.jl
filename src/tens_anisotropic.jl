@@ -1011,11 +1011,6 @@ end
 
 # ── get_array ─────────────────────────────────────────────────────────────────
 
-"""
-    get_array(t::TensOrtho{T}) → Array{T,4}
-
-Compute the 3×3×3×3 component array in the canonical frame.
-"""
 # One entry of the canonical-frame component array.  Factored out of
 # `get_array` so that `getindex` can evaluate a SINGLE component without
 # materializing all 81 — see the comment on `getindex(::TensOrtho, …)`.
@@ -1058,16 +1053,15 @@ Compute the 3×3×3×3 component array in the canonical frame.
     end
 end
 
-function get_array(t::TensOrtho{T}) where {T}
-    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(t)
-    E = vecbasis(t.frame, :cov)
-    result = Array{T, 4}(undef, 3, 3, 3, 3)
-    @inbounds for i in 1:3, j in 1:3, k in 1:3, l in 1:3
-        result[i, j, k, l] =
-            _ortho_entry(E, C11, C22, C33, C12, C13, C23, C44, C55, C66, i, j, k, l)
-    end
-    return result
-end
+"""
+    get_array(t::TensOrtho{T}) → Array{T,4}
+
+Compute the 3×3×3×3 component array in the canonical frame.
+"""
+# Its 36 independent components, through `_static_tensor`: a third faster than
+# the 81 evaluated one by one, and exactly minor-symmetric. (The TI forms keep
+# their loops, measured faster: `getindex` repeats a setup the loop shares.)
+get_array(t::TensOrtho) = Array(_static_tensor(t))
 
 """
     getindex(t::TensOrtho, i, j, k, l)

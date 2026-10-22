@@ -132,44 +132,14 @@ function _inplane_reference(n̂::NTuple{3, T}, ::Type{T}) where {T}
     return (one(T), zero(T), zero(T))
 end
 
-# Components of a 4th-order array in the frame whose COLUMNS are given by R:
-# arr′[a,b,c,d] = R[i,a] R[j,b] R[k,c] R[l,d] arr[i,j,k,l], via four successive
-# single-index contractions (cost 4·3⁵ instead of 3⁸).
-function _rotate4(arr::AbstractArray{TA, 4}, R::AbstractMatrix{TR}) where {TA, TR}
-    T = promote_type(TA, TR)
-    t1 = zeros(T, 3, 3, 3, 3)
-    @inbounds for a in 1:3, j in 1:3, k in 1:3, l in 1:3
-        s = zero(T)
-        for i in 1:3
-            s += R[i, a] * arr[i, j, k, l]
-        end
-        t1[a, j, k, l] = s
-    end
-    t2 = zeros(T, 3, 3, 3, 3)
-    @inbounds for a in 1:3, b in 1:3, k in 1:3, l in 1:3
-        s = zero(T)
-        for j in 1:3
-            s += R[j, b] * t1[a, j, k, l]
-        end
-        t2[a, b, k, l] = s
-    end
-    t1 .= 0
-    @inbounds for a in 1:3, b in 1:3, c in 1:3, l in 1:3
-        s = zero(T)
-        for k in 1:3
-            s += R[k, c] * t2[a, b, k, l]
-        end
-        t1[a, b, c, l] = s
-    end
-    t2 .= 0
-    @inbounds for a in 1:3, b in 1:3, c in 1:3, d in 1:3
-        s = zero(T)
-        for l in 1:3
-            s += R[l, d] * t1[a, b, c, l]
-        end
-        t2[a, b, c, d] = s
-    end
-    return t2
+# The Kelvin-Mandel matrix `M` of a minor-symmetric tensor, written in the frame
+# whose columns are `E`: `Qᵀ M Q`, `Q` the Kelvin-Mandel matrix of `E ⊠ˢ E`
+# (`_km_congruence`), orthogonal for any orthogonal `E`, left-handed included.
+# A 6×6 congruence instead of the 81 components rotated index by index, and
+# minor symmetrization (`mandel66_minor`) commutes with it.
+function _km_in_frame_of(M::AbstractMatrix, E::AbstractMatrix)
+    Q = _km_congruence(E)
+    return transpose(Q) * SMatrix{6, 6}(M) * Q
 end
 
 # ── Closed-form azimuthal average about e₃ (Kelvin-Mandel, Tensors order) ────
@@ -362,8 +332,7 @@ function _transverse_isotropify(t::AbstractTens{4, 3}, R, n̂)
     # brought into the orthonormal frame `t` is written in, a 3×3 product: the
     # components of `t` are rotated once, into `R`, and never to canonical first.
     arr, Q = _orthonormal_components(t)
-    arr_ez = _rotate4(arr, _frame_in(Q, R))
-    p = ti8_params_from_KM(mandel66_minor(arr_ez))
+    p = ti8_params_from_KM(_km_in_frame_of(mandel66_minor(arr), _frame_in(Q, R)))
     return TensTI{4}(p..., n̂)
 end
 
@@ -429,14 +398,12 @@ Exact azimuthal average about `n` of the minor-symmetric tensor whose 6×6
 Kelvin-Mandel matrix (Tensors.jl order) is `M`, returned as a 6×6 matrix.
 """
 function ti_average_mandel66(M::AbstractMatrix, n)
-    R, n̂ = _axis_frame(n)
-    arr_ez = _rotate4(array_from_mandel66(M), R)
-    p = ti8_params_from_KM(mandel66_minor(arr_ez))
-    M_ez = KM_from_ti8_params(p)
-    # rotate back to the canonical frame: columns of R are (e₁′, e₂′, n̂), so
-    # the inverse basis change uses Rᵀ.
-    Rt = permutedims(R)
-    return mandel66_minor(_rotate4(array_from_mandel66(M_ez), Rt))
+    R, _ = _axis_frame(n)
+    # Into the frame (e₁′, e₂′, n̂) of the columns of R, averaged there, and back:
+    # `Q` is orthogonal, so the way back is its transpose.
+    Q = _km_congruence(R)
+    p = ti8_params_from_KM(_km_in_frame_of(M, R))
+    return Matrix(Q * SMatrix{6, 6}(KM_from_ti8_params(p)) * transpose(Q))
 end
 
 """
