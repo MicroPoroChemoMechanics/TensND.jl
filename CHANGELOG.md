@@ -1,5 +1,149 @@
 # Changelog
 
+## v0.7.0 — tensors read in the basis they are written in
+
+A minor release. Several routines read the components of a tensor in its own
+basis (`get_array`, `t[i, j, …]`) as if they were canonical, which is right for
+the structured types and for a tensor in the canonical basis, and wrong for any
+tensor written in a rotated basis: projections about a canonical axis or frame,
+symmetry search, rotational averages, `dotdot`. They now work in the basis the
+tensor is written in, bringing the cheap object (an axis, a frame, a 3×3
+rotation) into it rather than the components out of it, so a tensor in the
+canonical basis pays nothing. Comparisons follow the same rule. Every check runs
+with each operand in its own random basis, rotated or not orthonormal.
+
+The release also gathers here the generic tensor code MeanFieldHomogenization
+carried (isotropic moduli, coefficient vectors, dual-number helpers, frames, the
+Kelvin-Mandel block algebra about a normal, the Tensors.jl bridge and Voigt
+forms), stops redefining Tensors.jl's symmetry predicates, makes the change of
+basis and the Kelvin-Mandel matrices of the structured classes several times
+faster and type-stable, and keeps Julia's development version (1.15-DEV) from
+crashing on SymPy matrices.
+
+### Breaking changes
+
+- The minor version: `TensND = "0.6"` does not accept 0.7, downstream packages
+  widen their bound.
+- Results change for tensors written in a rotated basis, where they were wrong:
+  `proj_tens`, `is_ISO`/`is_TI`/`is_ORTHO`/`is_CUBIC`, `best_fit_*`,
+  `best_sym_tens`, `isotropify` (non-orthonormal bases), `transverse_isotropify`,
+  `dotdot`, and `(α𝕁 + β𝕂) ⊡ B` for a non-symmetric `B`.
+- `RotatedBasis(R)` refuses a matrix that is not orthogonal (comparable element
+  types); `Basis(R)` is the general basis.
+- `isapprox` between tensors compares in their common basis instead of the
+  canonical one: same verdict for orthonormal bases, the tolerance applies to the
+  components in that basis.
+- TensND no longer redefines Tensors.jl's `issymmetric`, `isminorsymmetric`,
+  `ismajorsymmetric` and `majortranspose` on Tensors.jl's own types (type
+  piracy). Loading TensND used to make them tolerant to round-off for everyone;
+  they are exact again, as Tensors.jl defines them. The methods on TensND's own
+  tensors are unchanged.
+- `arg_TI` of a six- or eight-parameter `TensTI` is refused unless the tensor is
+  major-symmetric (see *Fixed*).
+- `change_tens_canon` of a `TensISO`, `TensTI`, `TensOrtho` or `TensCubic`
+  returns it as it is (its components are canonical already) instead of a
+  generic `Tens`; use `generic_tens` for the generic form.
+- `norm` of a tensor with complex components is now real (Hermitian); it was the
+  complex square root of the self-contraction.
+- Rich display goes through `show(io, ::MIME"text/plain", x)`: a tensor or a
+  basis printed into a buffer, a file or an `IOContext` is printed there, where
+  it used to go to `stdout` whatever the stream.
+
+### Fixed
+
+- **Projections and symmetry search of a tensor in a rotated basis** projected
+  about a canonical axis or frame the components of another frame. The golden
+  case `gen_rot/best_fit_ti` moved accordingly: the old projection was 21.95 away
+  from the tensor, the new one 15.16.
+- **The TI, ORTHO and CUBIC projections, and the second-order ones,** went
+  through the Euler angles of the axis or frame, whose derivative is infinite at
+  e₃ and at the canonical frame (NaN under ForwardDiff), and conjugated a SymPy
+  symbol not declared real (`'`); they use the 6×6 congruence of the frame
+  matrix.
+- **`coorsys_spherical_num`**: the second component of 𝐞ᶿ was `sin θ cos ϕ`
+  instead of `cos θ sin ϕ`, so the "normalized" basis was not normed and every
+  tensor written in it was wrong.
+- **`dotdot`** left one operand in another basis than the others, and threw on a
+  structured tensor (it read its coefficient tuple as components).
+- **`(α𝕁 + β𝕂) ⊡ B`** took β B instead of β sym(B).
+- **`_KM_of_array`** returned a 9×9 matrix for an array slightly off minor
+  symmetry, which broke the projections.
+- **`_extract_vec`** of a vector tensor (an axis given as a `Vec`) read its own
+  basis.
+- The change of basis of components used `'`, which conjugates complex and
+  non-real symbolic bases; `transpose` now.
+- **`arg_TI` of a six- or eight-parameter `TensTI`** ignored ℓ₄, ℓ₇ and ℓ₈, so a
+  tensor that is not major-symmetric got five constants that were not its own
+  (and so did `arg_TI_eng`, `arg_TI_Hoenig`).
+- **`dcontract`, `qcontract` and `scontract` of plain arrays conjugated** their
+  first argument (they went through `dot`, the Hermitian product): wrong on
+  complex components, and `conjugate(a)` on a SymPy symbol not declared real.
+  The tensor route (`⊡` on TensND tensors) was not affected.
+- **`norm` of a complex tensor** returned a complex number; it is now the
+  Hermitian norm (`sqnorm` gives its square).
+- **Julia 1.15-DEV (and 1.14 once JuliaLang/julia#63672 is backported) crashed**
+  with a segmentation fault as soon as SymPy converted a matrix of `Sym`
+  (`transpose`, `inv`, `det`, `norm`, …): the compiler fails on SymPyCore's
+  one-piece conversion. The `sympy.Matrix` is now assembled row by row; SymPy
+  receives the same object and every result is unchanged.
+
+### Added
+
+Most of these were MeanFieldHomogenization's, and are of use to any user of
+TensND.
+
+- Isotropic moduli: `iso_stiffness(k, μ)`, `iso_stiffness_E_nu`, `k_mu`, `E_nu`
+  (3-D, and plane strain for a `TensISO{4,2}`), `poisson_ratio`, `mu_nu`.
+- Coefficients: `rebuild`, `param_norms`, `to_vector`, `from_vector`, `sqnorm`,
+  `generic_tens`; `real`, `imag` and `conj` of a tensor in its class.
+- Bases: `frame_from_axis(n; in_plane, T)`, `permute_basis(ℬ, σ; negate)`,
+  `euler_basis(angles; T)`, `canonical_eltype`; `KM_rotation(R)` (formerly the
+  private `_KM_rotation`), the 6×6 Kelvin-Mandel matrix of a rotation.
+- Dual numbers and element types: `primal`, `carries_partials`, `primal_type`,
+  `dual_depth`, `dual_channels`, `float_like`; `isparallel(a, b; rtol)`, by a
+  relative tolerance on comparable numbers and an exact structural test on
+  symbolic ones.
+- Transverse isotropy: `proj_tens(Val(:TI6), …)`, `dot(::TensTI{2}, vector)`,
+  `ti2_params_from_matrix`, `ti_average_mat33`.
+- The Kelvin-Mandel block algebra about a normal: `KM_IP`, `KM_OP`,
+  `km_ip_block`, `km_op_block`, `km_ip_embed`, `km_op_embed`, `km_from_blocks`,
+  `km_inv_schur`, `plane_pinv`, `plane_pinv2`, `acoustic_tensor`,
+  `compliance_op_block`, written without pivoting so that duals and symbols go
+  through; `mandel66`, `mandel33_minor`, `array_from_mandel33`.
+- The Tensors.jl bridge and the Voigt forms: `to_tensors`, `from_tensors`,
+  `voigt_stress`, `voigt_strain`, `stress_from_voigt`, `strain_from_voigt`,
+  canonical components whatever the basis.
+- `Tensors.majorsymmetric` and `Tensors.symmetric` on TensND tensors, keeping
+  the symmetry class (a six- or eight-parameter `TensTI` gives its
+  five-parameter form).
+
+### Changed
+
+- `KM` and `change_tens` of a `TensTI{4}`, `TensOrtho` or `TensCubic` no longer
+  go through the 81 canonical components: `KM` evaluates its 36 entries (or,
+  for `TensOrtho` and `TensCubic`, the congruence of the material-frame matrix),
+  and `change_tens` into an orthonormal basis writes the axis or frame in that
+  basis. `KM` is 4 to 30 times faster (1.4 µs → 86 ns for an orthotropic
+  tensor), `change_tens` 6 to 15 times faster and allocation-free; results agree
+  with the former route to one ulp, symbolic expressions are unchanged for `KM`.
+- A change between orthonormal bases uses Tensors.jl's static operations
+  instead of four index contractions of an array: `change_tens` of a symmetric
+  fourth-order tensor is twelve times faster (2.05 µs → 171 ns), and products,
+  sums and changes of basis of tensors written in rotated bases are now
+  type-stable (they were inferred as `Any`). `components` still returns an
+  `Array`.
+- The product, sum and difference of an isotropic and a transversely isotropic
+  tensor are inferred as a `TensTI`: the isotropic operand is lifted onto the
+  other's axis, so the run-time axis comparison and its generic fallback are
+  skipped. Without it, a chain such as `C₁ ⊡ inv(𝕀 + ℙ ⊡ δℂ)` with a TI `ℙ` was
+  inferred as `Any`. An isotropic tensor added to or contracted with a generic
+  one gives a result at the static dimension of the types.
+- `get_array` of `TensOrtho` and `TensCubic` is exactly minor-symmetric and a
+  third faster; `ti_average_mandel66` and `transverse_isotropify` rotate in
+  Kelvin-Mandel space (3.4 and 1.6 times faster).
+- An isotropic tensor changes orthonormal basis without rotating its components,
+  whatever the element type of the basis.
+
 ## v0.6.2 — no tie with Symbolics, LinearAlgebra or MutableArithmetics
 
 A patch release. Thirteen pairs of methods, each made of a method of TensND and
