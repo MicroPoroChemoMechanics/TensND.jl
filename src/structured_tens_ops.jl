@@ -136,10 +136,12 @@ true
 ```
 """
 rebuild(t::Union{TensISO, TensOrtho, TensCubic}, data) = _rebuild(t, _common_tuple(data))
-function rebuild(t::TensTI, data)
+function rebuild(t::TensTI{order}, data) where {order}
     d = _common_tuple(data)
-    T = promote_type(eltype(d), eltype(t))
-    return _rebuild(t, map(x -> convert(T, x), d))
+    # The axis is a real geometry stored in the type of the coefficients: a
+    # complex prototype rebuilt from real coefficients is real, as `real` gives.
+    T = promote_type(eltype(d), real(eltype(t)))
+    return TensTI{order, T, length(d)}(map(x -> convert(T, x), d), map(x -> convert(T, real(x)), axis(t)))
 end
 
 function _common_tuple(data)

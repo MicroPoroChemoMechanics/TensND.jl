@@ -161,6 +161,11 @@ end
     td = rebuild(TensTI{4}(10.0, 7.0, 3.0, 4.0, 5.0, n), (ForwardDiff.Dual(10.0, 1.0), 7.0, 3.0, 4.0, 5.0))
     @test eltype(td) <: ForwardDiff.Dual
     @test ForwardDiff.value.(axis(td)) == n
+    # A complex prototype (a Laplace-domain value) rebuilt from real
+    # coefficients is real, its axis included, as `real` of it is.
+    tc = TensTI{4}(10.0 + 1im, 7.0 + 0im, 3.0 + 0im, 4.0 + 0im, 5.0 + 2im, n)
+    tr = from_vector(tc, real.(to_vector(tc)))
+    @test eltype(tr) === Float64 && tr == real(tc) && axis(tr) == n
     @test ForwardDiff.derivative(x -> get_data(rebuild(TensISO{3}(3.0, 2.0), (x, 2x)))[2], 1.0) == 2
     # Generic tensors: canonical Kelvin-Mandel coordinates, and back.
     G = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> Float64(i + j + k + l) + (i == k) * (j == l)), ℬ)
