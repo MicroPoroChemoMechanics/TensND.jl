@@ -200,21 +200,25 @@ get_basis(::TensISO{order, dim, T}) where {order, dim, T} = CanonicalBasis{dim, 
 get_var(::TensISO{order}) where {order} = ntuple(_ -> :cont, Val(order))
 get_var(::TensISO, i::Integer) = :cont
 components(t::TensISO{order, dim, T}) where {order, dim, T} = get_array(t)
+# An isotropic tensor has the same components in every orthonormal basis, whatever
+# the element type of that basis: no rotation, ever. Requiring the basis to share
+# the tensor's element type sent a dual tensor in a `Float64` frame through the full
+# change of basis of its components, right but needless.
 components(
-    t::TensISO{order, dim, T},
-    ::OrthonormalBasis{dim, T},
+    t::TensISO{order, dim},
+    ::OrthonormalBasis{dim},
     ::NTuple{order, Symbol},
-) where {order, dim, T} = get_array(t)
+) where {order, dim} = get_array(t)
 components(t::TensISO{order, dim, T}, ::NTuple{order, Symbol}) where {order, dim, T} =
     get_array(t)
 
-change_tens(t::TensISO{order, dim, T}, ℬ::OrthonormalBasis{dim, T}) where {order, dim, T} =
-    Tens(get_array(t), ℬ)
+change_tens(t::TensISO{order, dim}, ℬ::OrthonormalBasis{dim}) where {order, dim} =
+    Tens(_static_tensor(t), ℬ)
 change_tens(
-    t::TensISO{order, dim, T},
-    ℬ::OrthonormalBasis{dim, T},
+    t::TensISO{order, dim},
+    ℬ::OrthonormalBasis{dim},
     ::NTuple{order, Symbol},
-) where {order, dim, T} = Tens(get_array(t), ℬ)
+) where {order, dim} = Tens(_static_tensor(t), ℬ)
 
 # Scalar arithmetic (-, α*A, A*α, A/α) defined in structured_tens_ops.jl
 for OP in (:+, :-, :*)
@@ -235,14 +239,14 @@ for OP in (:+, :-, :*)
             A2::AbstractTens{order, dim},
         ) where {order, dim, T, N}
         m1 = components(A1, get_basis(A2), get_var(A2))
-        return Tens($OP(m1, get_array(A2)), get_basis(A2), get_var(A2))
+        return Tens(_static_tensor($OP(m1, get_array(A2)), Val(dim), Val(order)), get_basis(A2), get_var(A2))
     end
     @eval @inline function Base.$OP(
             A1::AbstractTens{order, dim},
             A2::TensISO{order, dim, T, N},
         ) where {order, dim, T, N}
         m2 = components(A2, get_basis(A1), get_var(A1))
-        return Tens($OP(get_array(A1), m2), get_basis(A1), get_var(A1))
+        return Tens(_static_tensor($OP(get_array(A1), m2), Val(dim), Val(order)), get_basis(A1), get_var(A1))
     end
 end
 for OP in (:(==), :(<=), :(>=), :(<), :(>))
@@ -287,20 +291,6 @@ function Base.show(io::IO, A::TensISO{2})
     return print(io, "(", get_data(A)[1], ") 𝟏")
 end
 
-for OP in (:show, :print, :display)
-    @eval function Base.$OP(A::TensISO{4})
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        println("(", get_data(A)[1], ") 𝕁 + (", get_data(A)[2], ") 𝕂")
-        print("→ KM: ")
-        return $OP(KM(A))
-    end
-    @eval function Base.$OP(A::TensISO{2})
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        return println("(", get_data(A)[1], ") 𝟏")
-    end
-end
 
 pprint(A::TensISO{4}) = println("(", get_data(A)[1], ") 𝕁 + (", get_data(A)[2], ") 𝕂")
 pprint(A::TensISO{2}) = println("(", get_data(A)[1], ") 𝟏")
@@ -441,15 +431,17 @@ were given in.
 _id2_like(t::AbstractTens{order, dim}) where {order, dim} =
     Tens(Id2{dim, eltype(t)}(), get_basis(t))
 
-# `(α𝕁 + β𝕂) ⊡ 𝐚 = β 𝐚 + ((α−β)/dim) (tr 𝐚) 𝛅`, kept in `𝐚`'s basis.
+# `(α𝕁 + β𝕂) ⊡ 𝐚 = β sym(𝐚) + ((α−β)/dim) (tr 𝐚) 𝛅`, kept in `𝐚`'s basis: 𝕂
+# carries the minor symmetries, so it sees only the symmetric part of `𝐚`. For a
+# symmetric `𝐚`, `(𝐚 + 𝐚ᵀ)/2` is `𝐚` to the bit.
 function Tensors.dcontract(A::TensISO{4, dim}, B::TensOrthonormal{2}) where {dim}
     α, β = get_data(A)[1], get_data(A)[2]
-    return β * B + ((α - β) * tr(B) / dim) * _id2_like(B)
+    return β * ((B + transpose(B)) / 2) + ((α - β) * tr(B) / dim) * _id2_like(B)
 end
 
 function Tensors.dcontract(A::TensOrthonormal{2}, B::TensISO{4, dim}) where {dim}
     α, β = get_data(B)[1], get_data(B)[2]
-    return β * A + ((α - β) * tr(A) / dim) * _id2_like(A)
+    return β * ((A + transpose(A)) / 2) + ((α - β) * tr(A) / dim) * _id2_like(A)
 end
 
 function Tensors.dcontract(
@@ -465,7 +457,7 @@ function Tensors.dcontract(
     newm =
         get_data(A)[2] * (m + m2) / 2 +
         (get_data(A)[1] - get_data(A)[2]) * Id2{dim, T}() ⊗ contract(m, 1, 2) / dim
-    return Tens(newm, get_basis(nB))
+    return Tens(_static_tensor(newm, Val(dim), Val(order)), get_basis(nB))
 end
 
 function Tensors.dcontract(
@@ -480,7 +472,7 @@ function Tensors.dcontract(
     newm =
         (m + m2) * get_data(B)[2] / 2 +
         contract(m, order - 1, order) ⊗ Id2{dim, T}() * (get_data(B)[1] - get_data(B)[2]) / dim
-    return Tens(newm, get_basis(nA))
+    return Tens(_static_tensor(newm, Val(dim), Val(order)), get_basis(nA))
 end
 
 for order in (2, 4)
@@ -618,4 +610,93 @@ LinearAlgebra.issymmetric(::TensISO) = true
 Tensors.isminorsymmetric(::TensISO{4}) = true
 Tensors.ismajorsymmetric(::TensISO{4}) = true
 
+# ── Isotropic elastic moduli ───────────────────────────────────────────────────
+#
+# A 3-D isotropic stiffness is ℂ = 3k 𝕁 + 2μ 𝕂: its coefficients on the two
+# projectors are 3k and 2μ. A compliance is the inverse, 𝕊 = 𝕁/(3k) + 𝕂/(2μ),
+# and `inv` is exact on `TensISO`, so the moduli of a compliance are those of
+# `inv(𝕊)`: no second family of functions. Defined in three dimensions only; the
+# meaning of (k, μ) for a 2-D isotropic tensor depends on the plane hypothesis.
+
+"""
+    iso_stiffness(k, μ) → TensISO{4,3}
+
+Isotropic stiffness ``\\mathbb{C} = 3k\\,\\mathbb{J} + 2\\mu\\,\\mathbb{K}`` from the bulk
+modulus `k` and the shear modulus `μ`; the reciprocal of [`k_mu`](@ref). The
+compliance is `inv(iso_stiffness(k, μ))`.
+
+See also [`iso_stiffness_E_nu`](@ref).
+"""
+iso_stiffness(k, μ) = TensISO{3}(3 * k, 2 * μ)
+
+"""
+    k_mu(ℂ::TensISO{4,dim}) → (k, μ)
+
+Bulk and shear moduli of an isotropic **stiffness** ``\\mathbb{C} = d\\,k\\,\\mathbb{J} +
+2\\mu\\,\\mathbb{K}`` in dimension ``d``: ``k`` relates the trace of the stress to the
+trace of the strain, ``\\mathrm{tr}\\,\\boldsymbol{\\sigma} = d\\,k\\,\\mathrm{tr}\\,\\boldsymbol{\\varepsilon}``.
+In 3-D it is the bulk modulus; in 2-D the in-plane (area) bulk modulus, ``\\lambda + \\mu``
+for the plane-strain restriction of a 3-D material. For a compliance
+``\\mathbb{S}``, use `k_mu(inv(𝕊))`. For a tensor that is not a `TensISO`, take its
+isotropic part first: [`isotropify`](@ref) (the exact rotation average) or
+[`best_fit_iso`](@ref) (the closest isotropic tensor).
+"""
+function k_mu(ℂ::TensISO{4, dim}) where {dim}
+    α, β = get_data(ℂ)
+    return α / dim, β / 2
+end
+
+"""
+    poisson_ratio(k, μ) → ν
+
+Poisson's ratio of a 3-D isotropic material from its bulk and shear moduli,
+``\\nu = (3k - 2\\mu)/(2(3k + \\mu))``.
+"""
+poisson_ratio(k, μ) = (3 * k - 2 * μ) / (2 * (3 * k + μ))
+
+"""
+    E_nu(ℂ::TensISO{4,3}) → (E, ν)
+    E_nu(ℂ::TensISO{4,2}) → (E, ν)
+
+Young's modulus and Poisson's ratio of an isotropic **stiffness**. In 3-D,
+``E = 9k\\mu/(3k + \\mu)`` and ``\\nu`` = [`poisson_ratio`](@ref)`(k, μ)`. In 2-D, those
+of the 3-D material whose plane-strain stiffness is ``\\mathbb{C}``: with
+``\\mathbb{C} = \\alpha\\,\\mathbb{J} + \\beta\\,\\mathbb{K}``, ``\\nu = (\\alpha - \\beta)/(2\\alpha)``
+and ``E = 2\\mu(1 + \\nu)``, ``\\mu = \\beta/2``. For a compliance, use `E_nu(inv(𝕊))`.
+
+See also [`k_mu`](@ref), [`mu_nu`](@ref), [`iso_stiffness_E_nu`](@ref).
+"""
+function E_nu(ℂ::TensISO{4, 3})
+    k, μ = k_mu(ℂ)
+    return 9 * k * μ / (3 * k + μ), poisson_ratio(k, μ)
+end
+function E_nu(ℂ::TensISO{4, 2})
+    μ, ν = mu_nu(ℂ)
+    return 2 * μ * (1 + ν), ν
+end
+
+"""
+    mu_nu(ℂ::TensISO{4,dim}) → (μ, ν)
+
+Shear modulus and Poisson's ratio of an isotropic **stiffness**, the pair the
+Kelvin and plane-strain Green functions are written with; in 2-D, ``\\nu`` is
+that of the 3-D material whose plane-strain stiffness is ``\\mathbb{C}`` (see
+[`E_nu`](@ref)).
+"""
+mu_nu(ℂ::TensISO{4, 3}) = (k_mu(ℂ)[2], E_nu(ℂ)[2])
+function mu_nu(ℂ::TensISO{4, 2})
+    α, β = get_data(ℂ)
+    return β / 2, (α - β) / (2 * α)
+end
+
+"""
+    iso_stiffness_E_nu(E, ν) → TensISO{4,3}
+
+Isotropic stiffness from Young's modulus and Poisson's ratio,
+``k = E/(3(1 - 2\\nu))`` and ``\\mu = E/(2(1 + \\nu))``; the reciprocal of
+[`E_nu`](@ref).
+"""
+iso_stiffness_E_nu(E, ν) = iso_stiffness(E / (3 * (1 - 2 * ν)), E / (2 * (1 + ν)))
+
 export TensISO, tens_Id2, tens_Id4, tens_J4, tens_K4, ISO, iso_projectors, isotropify, is_ISO, is_TI, is_ORTHO
+export iso_stiffness, k_mu, E_nu, iso_stiffness_E_nu, poisson_ratio, mu_nu

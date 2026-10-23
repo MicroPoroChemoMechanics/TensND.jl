@@ -140,7 +140,7 @@
                 @test get_basis(r) == b                     # basis preserved
             end
             # …and the value matches the dense route.
-            dense = TensND._generic_tens(ℂ) ⊡ 𝛆
+            dense = TensND.generic_tens(ℂ) ⊡ 𝛆
             @test get_array(ℂ ⊡ 𝛆) ≈ get_array(dense) atol = 1.0e-14
         end
 
@@ -152,7 +152,7 @@
         𝐯₂ = Tens(Vec{3}((0.5, -1.0, 2.0)))
         d = dotdot(𝐯₁, ℂ, 𝐯₂)
         @test d isa AbstractTens{2, 3}
-        @test get_array(d) ≈ get_array(dotdot(𝐯₁, TensND._generic_tens(ℂ), 𝐯₂)) atol = 1.0e-12
+        @test get_array(d) ≈ get_array(dotdot(𝐯₁, TensND.generic_tens(ℂ), 𝐯₂)) atol = 1.0e-12
 
         # Symbolic and ForwardDiff element types must survive the same path —
         # the `UniformScaling` route had its own `SymType` patches, so this is
@@ -210,9 +210,9 @@ end
     @test KM(An) isa Matrix
     @test KM(TensISO{3}(kn)) isa Vector
     @test repr(MIME"text/latex"(), An) isa String
-    # `ismajorsymmetric` on a `Num` used to throw rather than answer.
-    @test Tensors.ismajorsymmetric(Tensor{4, 3}(get_array(An)))
-    @test Tensors.isminorsymmetric(Tensor{4, 3}(get_array(An)))
+    # TensND's symmetry predicates answer on a `Num` (Tensors.jl's compare with `==`).
+    @test TensND._ismajorsym(Tensor{4, 3}(get_array(An)))
+    @test TensND._isminorsym(Tensor{4, 3}(get_array(An)))
 end
 
 @testsection "Isotropic tensors — exact and integer element types" begin
@@ -246,4 +246,74 @@ end
     @test Array(get_array(A * 3I)) ≈ 3 .* Array(get_array(A))
     a, b = TensISO{3}(4.0), TensISO{3}(5.0)
     @test dcontract(a, b) ≈ dcontract(get_array(a), get_array(b)) ≈ 60
+end
+
+@testsection "Isotropic elastic moduli" begin
+    k, μ = 12.0, 5.0
+    ℂ = iso_stiffness(k, μ)
+    @test ℂ isa TensISO{4, 3}
+    @test all(k_mu(ℂ) .≈ (k, μ))
+    # Independent reference: the Lamé form, λ = k − 2μ/3,
+    # E = μ(3λ + 2μ)/(λ + μ), ν = λ/(2(λ + μ)).
+    λ = k - 2μ / 3
+    E, ν = E_nu(ℂ)
+    @test E ≈ μ * (3λ + 2μ) / (λ + μ)
+    @test ν ≈ λ / (2 * (λ + μ))
+    @test iso_stiffness_E_nu(E, ν) ≈ ℂ
+    # The stiffness is 3k 𝕁 + 2μ 𝕂, component by component.
+    @test get_array(ℂ) ≈ 3k * get_array(tens_J4(Val(3), Val(Float64))) + 2μ * get_array(tens_K4(Val(3), Val(Float64)))
+    # A compliance: the moduli of its inverse.
+    @test all(k_mu(inv(inv(ℂ))) .≈ (k, μ))
+
+    # Derivatives: dE/dμ = 27k²/(3k + μ)², d²E/dμ² = −54k²/(3k + μ)³.
+    Eμ(m) = E_nu(iso_stiffness(k, m))[1]
+    @test ForwardDiff.derivative(Eμ, μ) ≈ 27k^2 / (3k + μ)^2
+    @test ForwardDiff.derivative(m -> ForwardDiff.derivative(Eμ, m), μ) ≈ -54k^2 / (3k + μ)^3
+    @test ForwardDiff.derivative(e -> E_nu(iso_stiffness_E_nu(e, 0.3))[1], 7.0) ≈ 1
+
+    # Symbolic: the closed forms, exactly.
+    @syms ks::positive μs::positive
+    Es, νs = E_nu(iso_stiffness(ks, μs))
+    @test simplify(Es - 9ks * μs / (3ks + μs)) == 0
+    @test simplify(νs - (3ks - 2μs) / (2 * (3ks + μs))) == 0
+    @test all(simplify.(collect(k_mu(iso_stiffness(ks, μs))) .- [ks, μs]) .== 0)
+    @test simplify(poisson_ratio(ks, μs) - νs) == 0
+    @test all(mu_nu(ℂ) .≈ (μ, ν))
+end
+
+@testsection "Isotropic moduli in 2-D: the plane-strain restriction" begin
+    # Independent reference: the in-plane components of a 3-D isotropic
+    # stiffness, read back as a 2-D isotropic tensor α 𝕁 + β 𝕂 by
+    # α = C₁₁₁₁ + C₁₁₂₂, β = C₁₁₁₁ − C₁₁₂₂. Its moduli are those of the 3-D
+    # material: ν, E and μ, and the in-plane bulk modulus λ + μ.
+    for (k, μ) in ((12.0, 5.0), (3.0, 2.5), (40.0, 1.0))
+        C3 = get_array(iso_stiffness(k, μ))
+        C2 = TensISO{2}(C3[1, 1, 1, 1] + C3[1, 1, 2, 2], C3[1, 1, 1, 1] - C3[1, 1, 2, 2])
+        @test C2 isa TensISO{4, 2}
+        @test all(E_nu(C2) .≈ E_nu(iso_stiffness(k, μ)))
+        @test all(mu_nu(C2) .≈ mu_nu(iso_stiffness(k, μ)))
+        @test all(k_mu(C2) .≈ (k - 2μ / 3 + μ, μ))
+        # The 2-D tensor is the restriction, component by component.
+        @test get_array(C2) ≈ C3[1:2, 1:2, 1:2, 1:2]
+    end
+    # Derivatives along k, through the restriction; symbols, exactly.
+    ν2(k) = mu_nu(TensISO{2}(2 * (k + 5.0 / 3), 10.0))[2]
+    @test ForwardDiff.derivative(ν2, 12.0) ≈ ForwardDiff.derivative(k -> poisson_ratio(k, 5.0), 12.0)
+    @syms ks::positive μs::positive
+    a, b = 2 * (ks + μs / 3), 2μs
+    @test simplify(mu_nu(TensISO{2}(a, b))[2] - poisson_ratio(ks, μs)) == 0
+    @test simplify(E_nu(TensISO{2}(a, b))[1] - E_nu(iso_stiffness(ks, μs))[1]) == 0
+end
+
+@testsection "Components of an isotropic tensor with variances" begin
+    # Canonical basis: covariant and contravariant components coincide, so the
+    # variance pattern changes nothing. The reference is the same tensor stored
+    # as a generic `Tens`, which goes through the general change of variance.
+    for (A, var) in (
+            (TensISO{3}(3 * 7.0, 2 * 3.0), (:cov, :cont, :cov, :cont)),
+            (TensISO{3}(2.0), (:cov, :cont)),
+        )
+        @test components(A, var) == get_array(A)
+        @test components(A, var) ≈ components(Tens(get_array(A)), var)
+    end
 end

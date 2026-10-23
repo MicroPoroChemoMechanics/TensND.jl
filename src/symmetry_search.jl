@@ -78,8 +78,13 @@ for order in (2, 4)
             basis = relevant_OrthonormalBasis(get_basis(t))
             newt = change_tens(t, basis)
             A = Array(get_array(newt))
+            # `A` is read in the orthonormal frame `basis`; `Q` takes that frame
+            # to the canonical one (`nothing` when it is canonical). Candidates
+            # and projections live in that frame, and only the axis or frame of
+            # the result is brought back: the 81 components are never rotated.
+            Q = _rotation_to_canon(basis)
             if optimize_angles
-                return _best_sym_loop(newt, proj, ε, sym -> proj_tens(sym, A))
+                return _best_sym_loop(newt, proj, ε, sym -> _from_frame(Q, proj_tens(sym, A)))
             else
                 # Cheap path: the axis or frame a structured container carries,
                 # otherwise a candidate from the eigendecomposition of the trace
@@ -94,18 +99,18 @@ for order in (2, 4)
                 # own; anything else falls back to the canonical frame, which
                 # finds an axis-aligned cube and nothing else. Detecting a
                 # *rotated* cubic tensor needs `optimize_angles = true`.
-                cube_default = :CUBIC in proj ? _cube_frame_or_canonical(t, A) : nothing
+                cube_default = :CUBIC in proj ? _to_frame(Q, _cube_frame_or_canonical(t, A)) : nothing
                 return _best_sym_loop(
                     newt, proj, ε,
                     function (sym)
                         if sym === :ISO
                             return proj_tens(sym, A)
                         elseif sym === :TI
-                            return proj_tens(sym, A, n_default)
+                            return _from_frame(Q, proj_tens(sym, A, n_default))
                         elseif sym === :CUBIC
-                            return proj_tens(sym, A, cube_default)
+                            return _from_frame(Q, proj_tens(sym, A, cube_default))
                         else    # :ORTHO
-                            return proj_tens(sym, A, frame_default)
+                            return _from_frame(Q, proj_tens(sym, A, frame_default))
                         end
                     end,
                 )
@@ -150,6 +155,11 @@ for order in (2, 4)
             basis = relevant_OrthonormalBasis(get_basis(t))
             newt = change_tens(t, basis)
             A = Array(get_array(newt))
+            # `A` is read in the orthonormal frame `basis`; `Q` takes that frame
+            # to the canonical one (`nothing` when it is canonical). Candidates
+            # and projections live in that frame, and only the axis or frame of
+            # the result is brought back: the 81 components are never rotated.
+            Q = _rotation_to_canon(basis)
             # `:TI` wants an axis, `:ORTHO` and `:CUBIC` a frame, and there is
             # one argument for both. Rather than let the mismatch surface as a
             # `MethodError` from deep inside `proj_tens` — which is what
@@ -157,9 +167,11 @@ for order in (2, 4)
             # with an axis — the classes the argument cannot serve are dropped,
             # and the docstring says so.
             usable = _classes_served(n_or_frame, proj)
+            local_arg = _to_frame(Q, n_or_frame)
             return _best_sym_loop(
                 newt, usable, ε,
-                sym -> sym == :ISO ? proj_tens(sym, A) : proj_tens(sym, A, n_or_frame)
+                sym -> sym == :ISO ? proj_tens(sym, A) :
+                    _from_frame(Q, proj_tens(sym, A, local_arg))
             )
         end
     end

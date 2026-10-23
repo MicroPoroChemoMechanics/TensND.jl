@@ -224,13 +224,13 @@
         @test R' * R ≈ I(3)  atol = atol_num
     end
 
-    @testsection "Projection helpers — _KM_rotation" begin
-        using TensND: _KM_rotation
-        Q0 = _KM_rotation(0.0, 0.0, 0.0)
+    @testsection "Projection helpers — KM_rotation" begin
+        using TensND: KM_rotation
+        Q0 = KM_rotation(0.0, 0.0, 0.0)
         @test Q0 ≈ I(6)  atol = atol_num
 
         # Q should be orthogonal for any angles
-        Q = _KM_rotation(0.3, 0.5, 0.7)
+        Q = KM_rotation(0.3, 0.5, 0.7)
         @test Q' * Q ≈ I(6)  atol = atol_num
         @test Q * Q' ≈ I(6)  atol = atol_num
     end
@@ -423,4 +423,23 @@ end
     @test is_TI(get_array(W); optimize_angles = true)
     O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame)
     @test !is_TI(get_array(O); optimize_angles = true)
+end
+
+@testsection "Second-order projections: symbols are not conjugated, frames read exactly" begin
+    # A symbol of unknown realness: `'` would turn it into `conjugate(a)`.
+    @syms a b
+    n = (0.0, 0.0, 1.0)
+    P, _, _ = proj_tens(:TI, Sym[a b 0; b a 0; 0 0 a], n)
+    @test !occursin("conjugate", string(get_data(P)))
+    B, _, _ = proj_tens(:ORTHO, Sym[a b 0; b a 0; 0 0 a], CanonicalBasis{3, Sym}())
+    @test !occursin("conjugate", string(B))
+    @test B == Sym[a 0 0; 0 a 0; 0 0 a]
+    # The ORTHO projection reads the frame's matrix: a derivative through it at
+    # the canonical frame (gimbal lock for Euler angles) is finite and exact.
+    A = [5.0 1.0 0.5; 1.0 8.0 2.0; 0.5 2.0 12.0]
+    d = ForwardDiff.derivative(x -> proj_tens(:ORTHO, x * A, CanonicalBasis{3, Float64}())[1], 1.0)
+    @test d ≈ Diagonal(diag(A))
+    R = Matrix(qr(randn(Xoshiro(3), 3, 3)).Q); det(R) < 0 && (R[:, 1] .*= -1)
+    Br, _, _ = proj_tens(:ORTHO, A, RotatedBasis(R))
+    @test Br ≈ R * Diagonal(diag(transpose(R) * A * R)) * transpose(R)
 end

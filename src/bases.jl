@@ -251,6 +251,18 @@ struct CanonicalBasis{dim, T} <: AbstractBasis{dim, T} end
 CanonicalBasis() = CanonicalBasis{3, Sym}()
 
 
+_check_orthogonal(R::AbstractMatrix{T}) where {T} = _check_orthogonal(R, Val(is_hard_numeric(T)))
+_check_orthogonal(::AbstractMatrix, ::Val{false}) = nothing
+function _check_orthogonal(R::AbstractMatrix, ::Val{true})
+    transpose(R) * R ≈ I || throw(
+        ArgumentError(
+            "RotatedBasis needs an orthogonal matrix, got one with RᵀR = " *
+                "$(transpose(R) * R); use `Basis(R)` for a general basis"
+        )
+    )
+    return nothing
+end
+
 """
     RotatedBasis(θ::T<:Number, ϕ::T<:Number, ψ::T<:Number)
     RotatedBasis(θ::T<:Number)
@@ -275,6 +287,10 @@ struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
     function RotatedBasis(R::AbstractMatrix{T}) where {T <: Number}
         dim = size(R, 1)
         isidentity(R) && return CanonicalBasis{dim, T}()
+        # The dual basis is taken to be `R` itself, which holds only for an
+        # orthogonal `R`. Checked where a comparison means something; a
+        # symbolic `R` is the caller's responsibility.
+        _check_orthogonal(R)
         eᵢ = eⁱ = Matrix(R)
         return new{dim, T}(eᵢ, eⁱ, angles(R))
     end
@@ -599,21 +615,95 @@ end
 #####################
 # Display Functions #
 #####################
-for OP in (:show, :print, :display)
-    @eval begin
-        function Base.$OP(ℬ::AbstractBasis)
-            $OP(typeof(ℬ))
-            print("→ basis: ")
-            $OP(vecbasis(ℬ, :cov))
-            print("→ dual basis: ")
-            $OP(vecbasis(ℬ, :cont))
-            print("→ covariant metric tensor: ")
-            $OP(metric(ℬ, :cov))
-            print("→ contravariant metric tensor: ")
-            return $OP(metric(ℬ, :cont))
-        end
+function Base.show(io::IO, ::MIME"text/plain", ℬ::AbstractBasis)
+    println(io, typeof(ℬ))
+    for (label, M) in (
+            ("→ basis: ", vecbasis(ℬ, :cov)), ("\n→ dual basis: ", vecbasis(ℬ, :cont)),
+            ("\n→ covariant metric tensor: ", metric(ℬ, :cov)),
+            ("\n→ contravariant metric tensor: ", metric(ℬ, :cont)),
+        )
+        print(io, label)
+        show(io, MIME"text/plain"(), M)
     end
+    return nothing
+end
+
+"""
+    euler_basis(angles::Tuple; T = Float64) -> AbstractBasis{3}
+
+The orthonormal basis of the ZYZ Euler angles `angles`, zero to three of them:
+missing trailing angles are zero, and the angles are promoted to one type —
+`Int` or `Irrational` to a float, a dual staying a dual, a symbolic angle
+keeping its type. When every angle is zero the basis is the canonical one, of
+element type `Float64` for real numbers (duals included: its entries are exact
+zeros and ones) and of the symbolic type otherwise, promoted with `T` — the
+element type of the data the basis will carry.
+
+```julia
+julia> euler_basis(()) isa CanonicalBasis{3, Float64}
+true
+
+julia> euler_basis((π / 2,)) == RotatedBasis(π / 2, 0.0, 0.0)
+true
+```
+"""
+function euler_basis(angles::Tuple{Vararg{Number}}; T::Type = Float64)
+    n = length(angles)
+    n ≤ 3 || throw(ArgumentError("euler_basis: at most three ZYZ angles, got $n: $angles"))
+    θ = _euler_triple(angles)
+    return all(iszero, θ) ? CanonicalBasis{3, canonical_eltype(promote_type(T, eltype(θ)))}() :
+        RotatedBasis(θ...)
+end
+
+# Three angles of one type: a float for numbers (`float` turns an `Int` or an
+# `Irrational` into one and leaves a dual a dual), the symbolic type otherwise
+# (`Symbolics.Num` subtypes `Real` without converting from `Float64`).
+function _euler_triple(angles::Tuple)
+    T0 = promote_type(map(typeof, angles)...)
+    T = is_hard_numeric(T0) ? float(T0) : T0
+    return ntuple(i -> i ≤ length(angles) ? convert(T, angles[i]) : zero(T), 3)
+end
+_euler_triple(::Tuple{}) = (0.0, 0.0, 0.0)
+
+"""
+    canonical_eltype(T) -> Type
+
+The element type of the canonical basis that carries data of type `T`, the rule
+[`euler_basis`](@ref) follows: `Float64` for any real number (duals included: the
+entries of the canonical basis are exact zeros and ones), `T` itself for a
+symbolic or complex type, whose exact `0` and `1` add no float to an exact result.
+
+```julia
+julia> canonical_eltype(Int)
+Float64
+```
+"""
+canonical_eltype(::Type{T}) where {T <: Real} = Float64
+canonical_eltype(::Type{T}) where {T <: Number} = T
+
+"""
+    permute_basis(ℬ, σ; negate = dim) -> RotatedBasis
+
+The orthonormal basis whose `k`-th vector is the `σ[k]`-th vector of `ℬ`, with
+the orientation of `ℬ`: an odd permutation reverses the orientation, so the
+vector of index `negate` (the last one by default) is reversed as well. A shape
+invariant under the reflections of its own axes (an ellipsoid, a crack) is the
+same shape in the permuted basis, its semi-axes permuted by `σ`. A basis that
+is not orthonormal is refused, as by [`RotatedBasis`](@ref).
+
+```julia
+julia> permute_basis(RotatedBasis(0.3, 0.2, 0.1), (2, 1, 3)) ;   # e₂, e₁, -e₃
+```
+"""
+function permute_basis(ℬ::AbstractBasis{dim, T}, σ::NTuple{dim, Int}; negate::Int = dim) where {dim, T}
+    isperm(σ) || throw(ArgumentError("permute_basis: $σ is not a permutation of 1:$dim"))
+    1 ≤ negate ≤ dim || throw(ArgumentError("permute_basis: no vector of index $negate in dimension $dim"))
+    odd = isodd(count(σ[i] > σ[j] for i in 1:dim for j in (i + 1):dim))
+    E = vecbasis(ℬ, :cov)
+    s(k) = odd && k == negate ? -one(T) : one(T)
+    # A typed comprehension rather than `hcat`, which Symbolics overloads.
+    return RotatedBasis(T[s(k) * E[i, σ[k]] for i in 1:dim, k in 1:dim])
 end
 
 export Basis, CanonicalBasis, RotatedBasis, CylindricalBasis, SphericalBasis, OrthogonalBasis, AllOrthogonalBasis
-export get_dim, vecbasis, metric, angles, isorthogonal, isorthonormal
+export get_dim, vecbasis, metric, angles, isorthogonal, isorthonormal, permute_basis, euler_basis, canonical_eltype

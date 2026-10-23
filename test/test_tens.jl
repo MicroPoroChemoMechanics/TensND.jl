@@ -403,12 +403,44 @@ end
     # A macro is resolved before the testset runs: name it by its module path.
     TensND.Symbolics.@variables a b
     S = TensND.Symbolics
-    @test issymmetric(Tensor{2, 2, S.Num}((a, b, b, a)))
-    @test !issymmetric(Tensor{2, 2, S.Num}((a, b, a, a)))
+    # TensND's own predicates (Tensors.jl's are not redefined on its types).
+    @test TensND._issym(Tensor{2, 2, S.Num}((a, b, b, a)))
+    @test !TensND._issym(Tensor{2, 2, S.Num}((a, b, a, a)))
     # Order 4: one component without its minor partner, then one without its
     # major partner.
     m = Tensor{4, 2, S.Num}((i, j, k, l) -> (i, j, k, l) == (1, 2, 1, 1) ? a : zero(a))
-    @test !Tensors.isminorsymmetric(m)
+    @test !TensND._isminorsym(m)
     M = Tensor{4, 2, S.Num}((i, j, k, l) -> (i, j, k, l) == (1, 1, 2, 2) ? a : zero(a))
-    @test Tensors.isminorsymmetric(M) && !Tensors.ismajorsymmetric(M)
+    @test TensND._isminorsym(M)
+    @test !TensND._ismajorsym(M)
+    # A symmetric symbolic array is stored symmetric, a tensor built from it too.
+    @test get_array(Tens([a b; b a])) isa SymmetricTensor{2, 2}
+    # Loading TensND leaves Tensors.jl's own predicates exact on floats.
+    @test !issymmetric(Tensor{2, 2}((1.0, 2.0, 2.0 + 1.0e-15, 1.0)))
+    S4 = SymmetricTensor{4, 2}((i, j, k, l) -> 10i + j + 0.1k + 0.01l)
+    S4ᵀ = TensND._majortranspose(S4)
+    @test S4ᵀ isa SymmetricTensor{4, 2}
+    @test all(S4ᵀ[i, j, k, l] == S4[k, l, i, j] for i in 1:2, j in 1:2, k in 1:2, l in 1:2)
+end
+
+@testsection "Rich display goes to the io it is given" begin
+    n = (0.0, 0.0, 1.0)
+    for x in (
+            TensISO{3}(3.0, 2.0), TensISO{3}(2.0), TensTI{4}(1.0, 2.0, 3.0, 4.0, 5.0, n),
+            TensTI{2}(1.0, 2.0, n), TensOrtho(9.0, 8.0, 7.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, CanonicalBasis{3, Float64}()),
+            TensCubic(9.0, 4.0, 3.0, CanonicalBasis{3, Float64}()),
+        )
+        rich = repr(MIME"text/plain"(), x)
+        @test startswith(rich, string(typeof(x)))
+        @test occursin("→ decomposition: " * sprint(show, x), rich)
+        @test occursin("→ KM", rich) == (ndims(x) == 4)
+        # `print` is the compact form, written where it is asked to.
+        @test sprint(print, x) == sprint(show, x)
+    end
+    @test occursin("KM (material frame)", repr(MIME"text/plain"(), TensOrtho(9.0, 8.0, 7.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, CanonicalBasis{3, Float64}())))
+    t = Tens([1.0 2.0; 3.0 4.0], Basis([1.0 0.5; 0.0 1.0]))
+    rich = repr(MIME"text/plain"(), t)
+    @test occursin("→ array: ", rich) && occursin("→ basis: ", rich) && occursin("→ var: ", rich)
+    @test occursin("→ KM: ", repr(MIME"text/plain"(), Tens(get_array(TensISO{3}(3.0, 2.0)))))
+    @test occursin("→ dual basis: ", repr(MIME"text/plain"(), Basis([1.0 0.5; 0.0 1.0])))
 end

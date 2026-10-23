@@ -50,14 +50,14 @@ function _rot3_raw(θ, ϕ, ψ)
 end
 
 """
-    _KM_rotation(θ, ϕ, ψ) → SMatrix{6,6}
-    _KM_rotation(R::AbstractMatrix) → SMatrix{6,6}
+    KM_rotation(θ, ϕ, ψ) → SMatrix{6,6}
+    KM_rotation(R::AbstractMatrix) → SMatrix{6,6}
 
 6×6 Kelvin-Mandel (Bond) rotation matrix, from ZYZ Euler angles `(θ, ϕ, ψ)`
 or directly from a 3×3 rotation matrix `R` whose **columns** are the new
 basis vectors.
 
-Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = _KM_rotation(…)`;
+Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = KM_rotation(…)`;
 `Q` is orthogonal.
 
 Built entirely with `SMatrix` / `ntuple`, so it is compatible with
@@ -67,15 +67,17 @@ even be constructed.
 
 # Examples
 ```julia
-julia> Q = _KM_rotation(0.3, 0.5, 0.0);
+julia> Q = KM_rotation(0.3, 0.5, 0.0);
 
 julia> size(Q)
 (6, 6)
 ```
 """
-_KM_rotation(θ, ϕ, ψ) = _KM_rotation(_rot3_raw(θ, ϕ, ψ))
+KM_rotation(θ, ϕ, ψ) = KM_rotation(_rot3_raw(θ, ϕ, ψ))
 
-function _KM_rotation(R::AbstractMatrix{T}) where {T}
+export KM_rotation
+
+function KM_rotation(R::AbstractMatrix{T}) where {T}
     sq2 = sqrt(2 * one(T))
     return SMatrix{6, 6, T}(
         ntuple(Val(36)) do n
@@ -103,8 +105,15 @@ end
 Compute the 6×6 Kelvin-Mandel matrix of a 3×3×3×3 array.
 """
 function _KM_of_array(A::AbstractArray{T, 4}) where {T}
-    return tomandel(tensor_or_array(A))
+    return _km66(tensor_or_array(A), A)
 end
+
+# The 6×6 matrix whether or not `tensor_or_array` recognized the minor
+# symmetries: past its tolerance it returns a full `Tensor`, whose `tomandel` is
+# 9×9 and broke every 6×6 product of the projections. The minor-symmetric part
+# is what those projections act on.
+_km66(t::Tensors.SymmetricTensor{4}, A) = tomandel(t)
+_km66(t, A) = mandel66_minor(A)
 
 """
     _KM_of_array(A::AbstractArray{T,2}) → Matrix{T}
@@ -582,11 +591,12 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T, 4}, n) where {T}
         return TensTI{4}(z, z, z, z, z, n), z, z
     end
 
-    # Compute KM of A and rotate to frame where e₃ = n
-    C_KM = _KM_of_array(A)
-    θ, ϕ = _angles_from_n(n)
-    P₆ = _KM_rotation(θ, ϕ, zero(T))
-    C_rot = P₆' * C_KM * P₆
+    # The Kelvin-Mandel matrix of A in a frame whose third axis is n, by the 6×6
+    # congruence of that frame: no Euler angles, whose inverse trigonometry has an
+    # infinite derivative at n = e₃ (a NaN through ForwardDiff), and no `'`, which
+    # conjugates a symbol not declared real. The projection does not depend on
+    # the in-plane axes the frame picks.
+    C_rot = _km_in_frame_of(_KM_of_array(A), first(_axis_frame(n)))
 
     # Project in the rotated frame
     ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆ = _project_TI_KM(C_rot)
@@ -630,14 +640,11 @@ function proj_tens(::Val{:TI}, A::AbstractArray{T, 2}, n) where {T}
         return TensTI{2}(z, z, n), z, z
     end
 
-    # Rotate to frame where e₃ = n
-    θ, ϕ = _angles_from_n(n)
-    R = _rot3_raw(θ, ϕ, zero(T))
-    M_rot = R' * A * R
-
-    # TI projection: average transverse, keep axial
-    a = (M_rot[1, 1] + M_rot[2, 2]) / 2
-    b = M_rot[3, 3]
+    # In a frame whose third axis is n (no Euler angles: their derivative is
+    # infinite at n = e₃; `transpose`: `'` conjugates a symbol), the transverse
+    # average and the axial component.
+    R = first(_axis_frame(n))
+    a, b, _ = ti2_params_from_matrix(transpose(R) * A * R)
 
     B = TensTI{2}(a, b, n)
 
@@ -673,20 +680,12 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 4}, frame::OrthonormalBasi
         return B, z, z
     end
 
-    # Compute KM of A and rotate to material frame
-    C_KM = _KM_of_array(A)
-    # Recover the Euler angles in the *frame's own* element type, not in `T`.
-    # The material frame is geometry supplied by the caller, not a differentiated
-    # quantity: forcing it to `T` turned a plain `Float64` frame into a `Dual` one
-    # with zero partials, and `angles` then evaluated its inverse trigonometry at
-    # the gimbal-lock point (θ = 0 for the canonical frame), where the derivative
-    # is infinite. The zero partials multiplied that infinity into `NaN`, so every
-    # ForwardDiff pass through an ORTHO projection returned `NaN`. Keeping the
-    # frame's own type leaves the angles exact and lets the promotion happen in the
-    # matrix products below, where it belongs.
-    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
-    P₆ = _KM_rotation(angs.θ, angs.ϕ, angs.ψ)
-    C_rot = P₆' * C_KM * P₆
+    # The Kelvin-Mandel matrix of A in the material frame, by the 6×6 congruence
+    # of the frame matrix itself. Recovering Euler angles from the frame went
+    # through inverse trigonometry with an infinite derivative at the canonical
+    # frame (gimbal lock), a NaN under ForwardDiff for a frame that depends on a
+    # parameter, and `'` conjugated a symbol not declared real.
+    C_rot = _km_in_frame_of(_KM_of_array(A), Matrix(vecbasis(frame, :cov)))
 
     # Project
     C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆ = _project_ORTHO_KM(C_rot)
@@ -730,14 +729,8 @@ function proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 4}, frame::OrthonormalBasi
         z = zero(T)
         return TensCubic{T}((z, z, z), frame), z, z
     end
-    C_KM = _KM_of_array(A)
-    # The frame's own element type, deliberately — see the long comment on the
-    # ORTHO projection: forcing it to `T` turns a plain frame into a `Dual` one
-    # with zero partials and evaluates the inverse trigonometry at gimbal lock,
-    # which produced `NaN` through every ForwardDiff pass.
-    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
-    P₆ = _KM_rotation(angs.θ, angs.ϕ, angs.ψ)
-    C_rot = P₆' * C_KM * P₆
+    # The material frame by its 6×6 congruence, as for the ORTHO projection.
+    C_rot = _km_in_frame_of(_KM_of_array(A), Matrix(vecbasis(frame, :cov)))
     α, β, γ = _project_CUBIC_KM(C_rot)
     B = TensCubic(α, β, γ, frame)
     d = _frobenius(get_array(B) - A)
@@ -788,28 +781,14 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}, frame::OrthonormalBasi
         return B, z, z
     end
 
-    # Rotate to material frame
-    # Recover the Euler angles in the *frame's own* element type, not in `T`.
-    # The material frame is geometry supplied by the caller, not a differentiated
-    # quantity: forcing it to `T` turned a plain `Float64` frame into a `Dual` one
-    # with zero partials, and `angles` then evaluated its inverse trigonometry at
-    # the gimbal-lock point (θ = 0 for the canonical frame), where the derivative
-    # is infinite. The zero partials multiplied that infinity into `NaN`, so every
-    # ForwardDiff pass through an ORTHO projection returned `NaN`. Keeping the
-    # frame's own type leaves the angles exact and lets the promotion happen in the
-    # matrix products below, where it belongs.
-    angs = angles(Matrix(vecbasis(frame, :cov)), Val(3))
-    R = _rot3_raw(angs.θ, angs.ϕ, angs.ψ)
-    M_rot = R' * A * R
-
-    # ORTHO projection: keep diagonal only
-    B_rot = zeros(T, 3, 3)
-    for i in 1:3
-        B_rot[i, i] = M_rot[i, i]
-    end
-
-    # Rotate back to canonical frame
-    B = R * B_rot * R'
+    # The frame's own matrix (columns: its vectors in canonical components):
+    # exact, in the frame's element type, and with no round trip through Euler
+    # angles, whose inverse trigonometry has an infinite derivative at the
+    # gimbal-lock point (the canonical frame itself).
+    R = Matrix(vecbasis(frame, :cov))
+    M_rot = transpose(R) * A * R
+    # ORTHO projection: the diagonal in the material frame, rotated back.
+    B = R * Diagonal(diag(M_rot)) * transpose(R)
 
     d = _frobenius(B - A)
     return B, d, d / nA
@@ -1027,28 +1006,96 @@ end
 # AbstractTens-dispatching convenience wrappers
 # ──────────────────────────────────────────────────────────────────────────────
 #
-# Every `proj_tens`/`is_ISO`/`is_TI`/`is_ORTHO` method above operates on a raw
-# `AbstractArray` (the caller must `get_array(t)` first). These thin wrappers
-# let them be called directly on any `TensND.AbstractTens` (order 2 or 4) —
-# the analog of echoes' `.paramsym(sym)` attached to the tensor itself.
-# They dispatch below the type-specific `is_ISO(::TensISO)`, `is_ISO(::TensTI)`,
-# `is_ISO(::TensOrtho)`, … predicates already defined in `tens_isotropic.jl` /
-# `tens_anisotropic.jl` (those remain the more specific, and cheaper, match for
-# structured types) — in practice these wrappers fire for the fully generic
-# `Tens{4,3}` / `Tens{2,3}` (no assumed symmetry), which is exactly the case
-# that needs a best-fit projection rather than a type-level answer.
+# The kernels above work on an array and read an axis or a frame in the
+# coordinates of that array. A tensor is projected in the orthonormal frame its
+# components are written in: an axis or a frame given in canonical coordinates
+# is brought into that frame (a 3-vector or a 3×3 product), never the 81
+# components out of it, and the axis or frame of the result is taken back to
+# canonical coordinates. A tensor written in the canonical basis pays nothing
+# for this, and the structured types keep their cheaper type-level predicates
+# (`is_ISO(::TensISO)`, …), which are more specific than these wrappers.
+#
+# `get_array(t)` alone, read as canonical, was wrong for every tensor written in
+# a rotated basis: the projection about a canonical axis was computed about that
+# axis expressed in the wrong frame.
 
-proj_tens(v::Val{:ISO}, t::AbstractTens) = proj_tens(v, get_array(t))
-proj_tens(v::Val{:TI}, t::AbstractTens{4, dim, T}, n) where {dim, T} = proj_tens(v, get_array(t), n)
-proj_tens(v::Val{:TI}, t::AbstractTens{2, dim, T}, n) where {dim, T} = proj_tens(v, get_array(t), n)
+"""
+    _orthonormal_components(t) -> (A, Q)
+
+Components `A` of `t` in an orthonormal frame, and the rotation `Q` from that
+frame to the canonical one (its columns are the frame's vectors in canonical
+coordinates), or `nothing` when the frame is canonical.
+
+A tensor written in an orthonormal basis is read as it is: covariant and
+contravariant components coincide there, so its stored array is the answer.
+Only an orthogonal or a general basis changes the components, through the
+metric and the variances of each index (`components`), to its orthonormal
+parent or to the canonical basis.
+"""
+_orthonormal_components(t::AbstractTens) = _orthonormal_components(t, get_basis(t))
+_orthonormal_components(t::AbstractTens, ::CanonicalBasis) = (get_array(t), nothing)
+_orthonormal_components(t::AbstractTens, ℬ::OrthonormalBasis) = (get_array(t), _rotation_to_canon(ℬ))
+function _orthonormal_components(t::AbstractTens, ℬ::AbstractBasis)
+    ℬo = relevant_OrthonormalBasis(ℬ)
+    return components(t, ℬo), _rotation_to_canon(ℬo)
+end
+
+_rotation_to_canon(::CanonicalBasis) = nothing
+_rotation_to_canon(ℬ::OrthonormalBasis) = Matrix(vecbasis(ℬ))
+
+_frame_matrix(::CanonicalBasis{3, T}) where {T} = Matrix{T}(I, 3, 3)
+_frame_matrix(ℬ::OrthonormalBasis{3}) = Matrix(vecbasis(ℬ))
+
+# A canonical axis or frame, in the frame of `Q`.
+_to_frame(::Nothing, x) = x
+_to_frame(Q::AbstractMatrix, n) = transpose(Q) * collect(_extract_vec(n))
+_to_frame(Q::AbstractMatrix, f::OrthonormalBasis{3}) =
+    RotatedBasis(transpose(Q) * _frame_matrix(f))
+
+# A projection computed in the frame of `Q`, with its axis or frame in canonical
+# coordinates. The coefficients do not depend on the frame.
+_from_frame(::Nothing, P) = P
+_from_frame(::AbstractMatrix, P::TensISO) = P
+function _from_frame(Q::AbstractMatrix, P::TensTI{order, T, N}) where {order, T, N}
+    T2 = promote_type(T, eltype(Q))
+    n = Q * collect(axis(P))
+    return TensTI{order, T2, N}(map(T2, get_data(P)), (T2(n[1]), T2(n[2]), T2(n[3])))
+end
+_from_frame(Q::AbstractMatrix, P::TensOrtho) =
+    TensOrtho{eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
+_from_frame(Q::AbstractMatrix, P::TensCubic) =
+    TensCubic{eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
+# The order-2 orthotropic kernels return the projected matrix itself.
+_from_frame(Q::AbstractMatrix, P::AbstractMatrix) = Q * P * transpose(Q)
+
+_from_frame(Q::AbstractMatrix, (P, d, drel)::Tuple) = (_from_frame(Q, P), d, drel)
+
+function _proj_in_frame(v::Val, t::AbstractTens, args...)
+    A, Q = _orthonormal_components(t)
+    return _from_frame(Q, proj_tens(v, A, map(x -> _to_frame(Q, x), args)...))
+end
+
+proj_tens(v::Val{:ISO}, t::AbstractTens) = proj_tens(v, first(_orthonormal_components(t)))
+proj_tens(v::Val{:TI}, t::AbstractTens{4, dim, T}, n) where {dim, T} = _proj_in_frame(v, t, n)
+proj_tens(v::Val{:TI}, t::AbstractTens{2, dim, T}, n) where {dim, T} = _proj_in_frame(v, t, n)
 proj_tens(v::Val{:ORTHO}, t::AbstractTens{4, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
-    proj_tens(v, get_array(t), frame)
+    _proj_in_frame(v, t, frame)
 proj_tens(v::Val{:ORTHO}, t::AbstractTens{2, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
-    proj_tens(v, get_array(t), frame)
+    _proj_in_frame(v, t, frame)
 proj_tens(v::Val{:CUBIC}, t::AbstractTens{4, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
-    proj_tens(v, get_array(t), frame)
+    _proj_in_frame(v, t, frame)
 proj_tens(v::Val{:CUBIC}, t::AbstractTens{2, dim, T}, frame::OrthonormalBasis{3}) where {dim, T} =
-    proj_tens(v, get_array(t), frame)
+    _proj_in_frame(v, t, frame)
+# The searches, axis or frame free. Without these, `proj_tens(:TI, t)` reached
+# the array kernel with `t` itself, read in its own basis as if canonical. The
+# element-type bound matches the kernels', so each wrapper is strictly more
+# specific than the kernel it unwraps for.
+proj_tens(v::Val{:TI}, t::AbstractTens{4, dim, T}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
+proj_tens(v::Val{:TI}, t::AbstractTens{2, dim, T}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
+proj_tens(v::Val{:ORTHO}, t::AbstractTens{4, dim, T}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
+proj_tens(v::Val{:ORTHO}, t::AbstractTens{2, dim, T}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
+proj_tens(v::Val{:CUBIC}, t::AbstractTens{4, dim, T}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
+proj_tens(::Val{:CUBIC}, t::AbstractTens{2}) = proj_tens(Val(:ISO), t)
 proj_tens(sym::Symbol, t::AbstractTens, args...) = proj_tens(Val(sym), t, args...)
 
 """
@@ -1083,23 +1130,31 @@ function is_CUBIC(A::AbstractArray; ε = 1.0e-6)
     return drel ≤ ε
 end
 
-is_ISO(t::AbstractTens; kwargs...) = is_ISO(get_array(t); kwargs...)
-is_TI(t::AbstractTens, n; kwargs...) = is_TI(get_array(t), n; kwargs...)
-is_TI(t::AbstractTens; kwargs...) = is_TI(get_array(t); kwargs...)
-is_ORTHO(t::AbstractTens, frame; kwargs...) = is_ORTHO(get_array(t), frame; kwargs...)
+# The predicates: a distance, which no rotation changes, so only the axis or the
+# frame is brought into the tensor's frame.
+function _in_frame(t::AbstractTens, f::F) where {F}
+    A, Q = _orthonormal_components(t)
+    return f(A, Q)
+end
+is_ISO(t::AbstractTens; kwargs...) = is_ISO(first(_orthonormal_components(t)); kwargs...)
+is_TI(t::AbstractTens, n; kwargs...) = _in_frame(t, (A, Q) -> is_TI(A, _to_frame(Q, n); kwargs...))
+is_TI(t::AbstractTens; kwargs...) = is_TI(first(_orthonormal_components(t)); kwargs...)
+is_ORTHO(t::AbstractTens, frame; kwargs...) =
+    _in_frame(t, (A, Q) -> is_ORTHO(A, _to_frame(Q, frame); kwargs...))
 # `AbstractTens <: AbstractArray`, so this wrapper and the closed-form worker
 # taking an `OrthonormalBasis{3}` are each more specific on one argument and
 # less on the other. Unwrapping first is what the wrapper is for; saying it for
 # this combination resolves the pair.
 is_ORTHO(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
-    is_ORTHO(get_array(t), frame; kwargs...)
-is_ORTHO(t::AbstractTens; kwargs...) = is_ORTHO(get_array(t); kwargs...)
-is_CUBIC(t::AbstractTens, frame; kwargs...) = is_CUBIC(get_array(t), frame; kwargs...)
+    _in_frame(t, (A, Q) -> is_ORTHO(A, _to_frame(Q, frame); kwargs...))
+is_ORTHO(t::AbstractTens; kwargs...) = is_ORTHO(first(_orthonormal_components(t)); kwargs...)
+is_CUBIC(t::AbstractTens, frame; kwargs...) =
+    _in_frame(t, (A, Q) -> is_CUBIC(A, _to_frame(Q, frame); kwargs...))
 # Same disambiguation as `is_ORTHO` just above: `AbstractTens <: AbstractArray`,
 # so the wrapper and the worker are each more specific on one argument.
 is_CUBIC(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
-    is_CUBIC(get_array(t), frame; kwargs...)
-is_CUBIC(t::AbstractTens; kwargs...) = is_CUBIC(get_array(t); kwargs...)
+    _in_frame(t, (A, Q) -> is_CUBIC(A, _to_frame(Q, frame); kwargs...))
+is_CUBIC(t::AbstractTens; kwargs...) = is_CUBIC(first(_orthonormal_components(t)); kwargs...)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public aliases for the per-block Kelvin-Mandel ↔ symmetry-parameter
@@ -1118,6 +1173,17 @@ axis) onto the major-symmetric TI subspace, returning the 5 Walpole
 coefficients. See [`proj_tens`](@ref) for the tensor-level equivalent.
 """
 const ti_params_from_KM = _project_TI_KM
+
+"""
+    ti2_params_from_matrix(M::AbstractMatrix) → (a, b, c)
+
+The transversely isotropic part of a 3×3 matrix written in a frame whose third
+axis is the symmetry axis: the transverse coefficient `a = (M₁₁ + M₂₂)/2`, the
+axial one `b = M₃₃` and the in-plane antisymmetric one `c = (M₂₁ − M₁₂)/2`, those
+of `a (𝟏 − n⊗n) + b n⊗n + c [n]ₓ` (see `TensTI{2}`). For a symmetric matrix
+`c = 0`. The order-2 counterpart of [`ti_params_from_KM`](@ref).
+"""
+ti2_params_from_matrix(M::AbstractMatrix) = ((M[1, 1] + M[2, 2]) / 2, M[3, 3], (M[2, 1] - M[1, 2]) / 2)
 
 """
     KM_from_ti_params(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆) → SMatrix{6,6}
@@ -1239,7 +1305,7 @@ best_fit_cubic(t::AbstractTens{2, 3}, frame) = proj_tens(Val(:CUBIC), t, frame)[
 # ── Exports ──────────────────────────────────────────────────────────────────
 
 export proj_tens
-export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params
+export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params, ti2_params_from_matrix
 export cubic_params_from_KM, KM_from_cubic_params
 export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic
 export is_CUBIC

@@ -8,6 +8,10 @@ Basis types and their accessors. Theory:
 Basis
 CanonicalBasis
 RotatedBasis
+frame_from_axis
+permute_basis
+euler_basis
+canonical_eltype
 OrthogonalBasis
 CylindricalBasis
 SphericalBasis

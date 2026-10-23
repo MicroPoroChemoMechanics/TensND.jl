@@ -323,16 +323,16 @@ end
 
 for OP in (:+, :-)
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 5})
-        return $OP(fromISO(A, axis(B)), B)
+        return _coaxial_binary($OP, fromISO(A, axis(B)), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensISO{4, 3})
-        return $OP(A, fromISO(B, axis(A)))
+        return _coaxial_binary($OP, A, fromISO(B, axis(A)))
     end
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 6})
-        return $OP(_lift_walpole_N6(fromISO(A, axis(B))), B)
+        return _coaxial_binary($OP, _lift_walpole_N6(fromISO(A, axis(B))), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 6}, B::TensISO{4, 3})
-        return $OP(A, _lift_walpole_N6(fromISO(B, axis(A))))
+        return _coaxial_binary($OP, A, _lift_walpole_N6(fromISO(B, axis(A))))
     end
 end
 
@@ -410,7 +410,7 @@ end
 
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 2})
     axis(A) == axis(B) ||
-        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+        return Tensors.dcontract(generic_tens(A), generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(A)
     a, b = get_data(B)
@@ -422,7 +422,7 @@ end
 
 function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensTI{4})
     axis(A) == axis(B) ||
-        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+        return Tensors.dcontract(generic_tens(A), generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(B)
     a, b = get_data(A)
@@ -447,11 +447,31 @@ end
 
 function LinearAlgebra.dot(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 2})
     axis(A) == axis(B) ||
-        return LinearAlgebra.dot(_generic_tens(A), _generic_tens(B))
+        return LinearAlgebra.dot(generic_tens(A), generic_tens(B))
     a₁, b₁ = get_data(A)
     a₂, b₂ = get_data(B)
     return TensTI{2}(a₁ * a₂, b₁ * b₂, axis(A))
 end
+
+# ── TensTI{2} · vector ──────────────────────────────────────────────────────
+# A vector given by its canonical components (a `Vector`, a `Vec`), in closed
+# form: `a (v − (n⋅v) n) + b (n⋅v) n + c n × v`. Without it the call fell
+# through to `LinearAlgebra.dot` of two arrays, an inner product of a 3×3
+# with a 3-vector.
+
+function LinearAlgebra.dot(A::TensTI{2}, v::AbstractVector)
+    length(v) == 3 || throw(DimensionMismatch("a vector of 3 components is contracted with a TensTI{2}; got $(length(v))"))
+    a, b, c = _ti2_abc(A)
+    n = axis(A)
+    nv = n[1] * v[1] + n[2] * v[2] + n[3] * v[3]
+    nxv = (n[2] * v[3] - n[3] * v[2], n[3] * v[1] - n[1] * v[3], n[1] * v[2] - n[2] * v[1])
+    return Vec{3}(ntuple(i -> a * (v[i] - nv * n[i]) + b * nv * n[i] + c * nxv[i], 3))
+end
+# A TensND vector is an `AbstractVector` too: its canonical components, and a
+# tensor back, as the generic contraction gives.
+LinearAlgebra.dot(A::TensTI{2}, v::AbstractTens{1, 3}) = Tens(A ⋅ Vec{3}(Tuple(components_canon(v))))
+_ti2_abc(A::TensTI{2, T, 2}) where {T} = (get_data(A)..., zero(T))
+_ti2_abc(A::TensTI{2, T, 3}) where {T} = get_data(A)
 
 # ── TensTI{2} · TensISO{2,3} ────────────────────────────────────────────────
 # TensISO{2,3}(λ) ≡ λ·𝟏, so A·B = λ·A (TI output preserved).
@@ -486,10 +506,10 @@ end
 
 @inline Tensors.dcontract(A::TensCubic, B::TensOrtho) =
     frame(A) == frame(B) ? Tensors.dcontract(cubic_to_ortho(A), B) :
-    Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    Tensors.dcontract(generic_tens(A), generic_tens(B))
 @inline Tensors.dcontract(A::TensOrtho, B::TensCubic) =
     frame(A) == frame(B) ? Tensors.dcontract(A, cubic_to_ortho(B)) :
-    Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    Tensors.dcontract(generic_tens(A), generic_tens(B))
 
 # ── TensISO{4,3} ⊡ TensOrtho / TensOrtho ⊡ TensISO{4,3} ─────────────────────
 # An isotropic tensor is orthotropic in *every* frame, so promoting it onto the

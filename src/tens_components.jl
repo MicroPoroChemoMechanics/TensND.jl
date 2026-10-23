@@ -150,7 +150,7 @@ function components(
             # to the one asked: computed here rather than stored in a
             # `Dict{…, AbstractMatrix}`, whose abstract values every use read
             # at run time.
-            c = vecbasis(get_basis(t), invvar(get_var(t, i)))' * vecbasis(ℬ, var[i])
+            c = transpose(vecbasis(get_basis(t), invvar(get_var(t, i)))) * vecbasis(ℬ, var[i])
             if c ≠ 1I
                 m = _narrow_eltype(Tc, _contract_index(m, c, i))
             end
@@ -181,20 +181,59 @@ function components(
         t::TensOrthonormal{order, dim, T},
         ℬ::OrthonormalBasis{dim},
     ) where {order, dim, T}
-    if isequal(ℬ, get_basis(t))
-        return get_array(t)
-    else
-        bb = vecbasis(get_basis(t))' * vecbasis(ℬ)
-        Tc = _components_eltype(T, get_basis(t), ℬ)
-        m = _narrow_eltype(Tc, Array(get_array(t)))
-        if bb ≠ 1I
-            for i in 1:order
-                m = _narrow_eltype(Tc, _contract_index(m, bb, i))
-            end
-        end
-        return m
-    end
+    isequal(ℬ, get_basis(t)) && return get_array(t)
+    return _as_array(_components_in_orthonormal(get_array(t), t, ℬ))
 end
+
+# The components of `t` in another orthonormal basis ℬ. With `R` the transpose
+# of the change matrix `bb` (`bb[i, a] = eᵢ ⋅ e′ₐ`), they are `R ⋅ x ⋅ Rᵀ` at
+# order 2 and `(R ⊠ R) ⊡ x ⊡ (Rᵀ ⊠ Rᵀ)` at order 4: Tensors.jl's static
+# operations, about seven times faster than four contractions of an `Array`,
+# and of a type known at compile time. The orders Tensors.jl has no type for
+# keep the contractions.
+function _components_in_orthonormal(
+        x::Union{Vec{dim}, Tensor{2, dim}, SymmetricTensor{2, dim}, Tensor{4, dim}, SymmetricTensor{4, dim}},
+        t::TensOrthonormal{order, dim, T},
+        ℬ::OrthonormalBasis{dim},
+    ) where {order, dim, T}
+    Tc = _components_eltype(T, get_basis(t), ℬ)
+    bb = transpose(vecbasis(get_basis(t))) * vecbasis(ℬ)
+    return _rotate_components(x, Tensor{2, dim, Tc}(transpose(bb)))
+end
+function _components_in_orthonormal(
+        x::AbstractArray, t::TensOrthonormal{order, dim, T}, ℬ::OrthonormalBasis{dim}
+    ) where {order, dim, T}
+    bb = transpose(vecbasis(get_basis(t))) * vecbasis(ℬ)
+    Tc = _components_eltype(T, get_basis(t), ℬ)
+    m = _narrow_eltype(Tc, Array(x))
+    if bb ≠ 1I
+        for i in 1:order
+            m = _narrow_eltype(Tc, _contract_index(m, bb, i))
+        end
+    end
+    return m
+end
+
+_rotate_components(x::Vec, R) = R ⋅ x
+_rotate_components(x::Tensor{2}, R) = R ⋅ x ⋅ transpose(R)
+_rotate_components(x::SymmetricTensor{2}, R) = Tensors.unsafe_symmetric(R ⋅ x ⋅ transpose(R))
+_rotate_components(x::Tensor{4}, R) = otimesu(R, R) ⊡ x ⊡ otimesu(transpose(R), transpose(R))
+_rotate_components(x::SymmetricTensor{4}, R) =
+    Tensors.unsafe_symmetric(otimesu(R, R) ⊡ x ⊡ otimesu(transpose(R), transpose(R)))
+
+# `components` has always returned a plain `Array` after a change of basis.
+_as_array(x::Tensors.AbstractTensor) = Array(x)
+_as_array(x::AbstractArray) = x
+
+# The same change, kept in its Tensors.jl form: the type of the new tensor is
+# then that of its storage, known at compile time.
+function change_tens(t::TensOrthonormal{order, dim}, ℬ::OrthonormalBasis{dim}) where {order, dim}
+    isequal(ℬ, get_basis(t)) && return t
+    return Tens(_components_in_orthonormal(get_array(t), t, ℬ), ℬ)
+end
+# Covariant and contravariant components coincide in an orthonormal basis.
+change_tens(t::TensOrthonormal{order, dim}, ℬ::OrthonormalBasis{dim}, ::NTuple{order, Symbol}) where {order, dim} =
+    change_tens(t, ℬ)
 
 components(
     t::TensOrthonormal{order, dim, T},
@@ -282,7 +321,9 @@ end
 """
     change_tens_canon(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})
 
-Rewrite the same tensor with components corresponding to the canonical basis
+Rewrite the same tensor with components corresponding to the canonical basis.
+A `TensISO`, `TensTI`, `TensOrtho` or `TensCubic` has canonical components
+already and is returned as it is, in its class.
 
 ```julia
 julia> ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;

@@ -87,7 +87,7 @@ so a change of frame is an **orthogonal congruence**
 \mathrm{Mat}(\mathbb{A})\;\longmapsto\;{}^{t}Q\,\mathrm{Mat}(\mathbb{A})\,Q .
 ```
 
-`TensND` builds it either from Euler angles (`_KM_rotation(θ, ϕ, ψ)`) or
+`TensND` builds it either from Euler angles (`KM_rotation(θ, ϕ, ψ)`) or
 directly from a frame (`_km_congruence`, in `src/tens_anisotropic.jl`); the latter
 is what relates the two views of an orthotropic tensor,
 

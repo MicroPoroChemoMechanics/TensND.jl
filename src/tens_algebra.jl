@@ -112,7 +112,7 @@ Tensors.otimes(t::TensOrthonormal{2, dim}) where {dim} =
 scontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(1))
 
 scontract(t1::AbstractArray{T1, 1}, t2::AbstractArray{T2, 1}) where {T1, T2} =
-    dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
+    _full_contraction(t1, t2)
 
 for TT1 in (Vec, SecondOrderTensor), TT2 in (Vec, SecondOrderTensor)
     @eval scontract(S1::$TT1, S2::$TT2) = dot(S1, S2)
@@ -178,30 +178,52 @@ At order 2 this is the double contraction `⊡`, not the single contraction
 matrix rather than a number (and would then break `isapprox`, which needs a
 scalar distance).
 """
-LinearAlgebra.norm(u::AbstractTens{1, dim}) where {dim} = √(dot(u, u))
+LinearAlgebra.norm(t::Union{AbstractTens{1}, AbstractTens{2}, AbstractTens{4}}) = √(sqnorm(t))
 
-LinearAlgebra.norm(t::AbstractTens{2, dim}) where {dim} = √(dcontract(t, t))
+"""
+    sqnorm(t::AbstractTens)
 
-LinearAlgebra.norm(t::AbstractTens{4, dim}) where {dim} = √(qcontract(t, t))
+The square of `norm(t)`, the self-contraction `uᵢuⁱ`, `tᵢⱼtⁱʲ` or
+`tᵢⱼₖₗtⁱʲᵏˡ`, computed without the square root: smooth at zero, where the
+derivative of `norm` is not, and exact for symbolic components. On complex
+components it is Hermitian, `t̄ ⋅ t`: the contractions do not conjugate (they
+are contractions), so the self-contraction of a complex tensor is not its squared
+norm. Real element types, duals and symbols included, keep the plain
+self-contraction, with no `abs` in a symbolic result.
+"""
+sqnorm(u::AbstractTens{1}) = dot(u, u)
+sqnorm(t::AbstractTens{2}) = dcontract(t, t)
+sqnorm(t::AbstractTens{4}) = qcontract(t, t)
+sqnorm(u::AbstractTens{1, dim, <:Complex}) where {dim} = real(dot(conj(u), u))
+sqnorm(t::AbstractTens{2, dim, <:Complex}) where {dim} = real(dcontract(conj(t), t))
+sqnorm(t::AbstractTens{4, dim, <:Complex}) where {dim} = real(qcontract(conj(t), t))
+
+export sqnorm
 
 """
     isapprox(t1::AbstractTens, t2::AbstractTens; kwargs...)
 
-Approximate equality of two tensors, compared **component-wise in the
-canonical basis**. Two tensors expressed in different bases, or stored in
-different concrete types (a `TensISO`, a `TensTI` and a plain `Tens` may all
-denote the same tensor), therefore compare equal whenever they are the same
-tensor — which the generic `AbstractArray` fallback cannot guarantee, since
-it subtracts the stored components.
+Approximate equality of two tensors as mathematical objects: two tensors written
+in different bases, or stored in different concrete types (a `TensISO`, a `TensTI`
+and a plain `Tens` may denote the same tensor), compare equal whenever they are
+the same tensor — which the generic `AbstractArray` fallback cannot guarantee,
+since it subtracts the stored components.
 
-`kwargs` are forwarded to the underlying `isapprox` (`atol`, `rtol`, `nans`).
+The comparison is made exactly as `==` makes it, in one basis with one set of
+variances (`same_basis_same_var`): two tensors already written in the same basis
+with the same variances, orthonormal or not, are compared by their arrays with no
+change at all; otherwise the second is written in the basis `choose_best_basis`
+picks, never in the canonical basis by default (in a moving frame, a curvilinear
+one above all, its components are the costly ones).
+
+`kwargs` are forwarded to the array `isapprox` (`atol`, `rtol`, `nans`): the
+tolerance applies to the components in that common basis.
 """
 function Base.isapprox(
         t1::AbstractTens{order, dim}, t2::AbstractTens{order, dim}; kwargs...
     ) where {order, dim}
-    return isapprox(
-        Array(components_canon(t1)), Array(components_canon(t2)); kwargs...
-    )
+    a, b = same_basis_same_var(t1, t2)
+    return isapprox(get_array(a), get_array(b); kwargs...)
 end
 
 """
@@ -314,13 +336,12 @@ function Tensors.dotdot(
         S::AbstractTens{orderS, dim},
         v2::AbstractTens{order2, dim},
     ) where {order1, orderS, order2, dim}
-    nS, nv1 = same_basis(S, v1)
-    nS, nv2 = same_basis(S, v2)
+    nS, nv1, nv2 = _same_basis3(S, v1, v2)
     var = (invvar(get_var(nS)[begin]),)
     nv1 = change_tens(nv1, get_basis(nv1), var)
     var = (invvar(get_var(nS)[end]),)
     nv2 = change_tens(nv2, get_basis(nv2), var)
-    data = dotdot(nv1.data, nS.data, nv2.data)
+    data = dotdot(get_array(nv1), get_array(nS), get_array(nv2))
     var = (get_var(nS)[begin + 1], get_var(nS)[end - 1])
     return Tens(data, get_basis(nS), var)
 end
@@ -330,10 +351,19 @@ function Tensors.dotdot(
         S::TensOrthonormal{orderS, dim},
         v2::TensOrthonormal{order2, dim},
     ) where {order1, orderS, order2, dim}
-    nS, nv1 = same_basis(S, v1)
-    nS, nv2 = same_basis(S, v2)
-    data = dotdot(nv1.data, nS.data, nv2.data)
+    nS, nv1, nv2 = _same_basis3(S, v1, v2)
+    data = dotdot(get_array(nv1), get_array(nS), get_array(nv2))
     return Tens(data, get_basis(nS))
+end
+
+# The three operands in one basis. Two calls to `same_basis(S, ⋅)` could each
+# move `S` to another basis, leaving `v1` in the first and `S` in the second.
+# `get_array` rather than `.data`: the data of a structured tensor is its
+# coefficient tuple, not its components.
+function _same_basis3(S::AbstractTens, v1::AbstractTens, v2::AbstractTens)
+    nS, nv1 = same_basis(S, v1)
+    nS, nv2 = same_basis(nS, v2)
+    return nS, change_tens(nv1, get_basis(nS)), nv2
 end
 
 """
@@ -567,14 +597,14 @@ Base.transpose(t::TensOrthonormal{order, dim, T, <:FourthOrderTensor}) where {or
 
 Tensors.majortranspose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
     Tens(
-    majortranspose(get_array(t)),
+    _majortranspose(get_array(t)),
     get_basis(t),
     (get_var(t)[3], get_var(t)[4], get_var(t)[1], get_var(t)[2]),
 )
 
 Tensors.majortranspose(
     t::TensOrthonormal{order, dim, T, <:FourthOrderTensor},
-) where {order, dim, T} = Tens(majortranspose(get_array(t)), get_basis(t))
+) where {order, dim, T} = Tens(_majortranspose(get_array(t)), get_basis(t))
 
 Tensors.minortranspose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
     Tens(

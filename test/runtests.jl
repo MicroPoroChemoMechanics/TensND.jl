@@ -54,10 +54,11 @@ end
         # `array_utils.jl` extends `Tensors` and `LinearAlgebra` functions to
         # `Tensors.Tensor`, `SymmetricTensor` and plain `AbstractArray`s. Both
         # the function and the type belong elsewhere, so it is type piracy by
-        # definition, and it is deliberate: the float-tolerant predicates exist
-        # because the upstream ones compare with `==`, useless on `Float64`,
-        # `Dual`, `Num` or `Sym`, and the array-level operators are what let the
-        # tensor algebra accept ordinary arrays. Declared rather than hidden.
+        # definition, and it is deliberate: the array-level operators are what
+        # let the tensor algebra accept ordinary arrays. Declared rather than
+        # hidden. (The symmetry predicates are no longer among them: TensND's
+        # tolerant ones are internal, `_issym` and friends, and Tensors.jl's
+        # keep their exact meaning on Tensors.jl's types.)
         #
         # What the declaration does NOT fix: `Tensors.otimes(::AbstractArray,
         # ::AbstractArray)` applies to any array as soon as TensND is loaded,
@@ -69,14 +70,16 @@ end
                 # named or the whole alias counts as foreign.
                 Tensors.Tensor, Tensors.SymmetricTensor, Tensors.MixedTensor,
                 Tensors.AbstractTensor,
-                Tensors.ismajorsymmetric, Tensors.isminorsymmetric,
-                Tensors.majortranspose, LinearAlgebra.issymmetric,
                 Tensors.otimes, Tensors.otimesu, Tensors.otimesl,
                 Tensors.dcontract, Tensors.dotdot,
                 # `tens_isotropic.jl` also defines `+` and `*` between a
                 # `UniformScaling` and a `Tensors.AbstractTensor`, which is what
                 # makes `I + t` and `2I * t` work on tensors.
                 LinearAlgebra.UniformScaling,
+                # `sympy_matrix.jl` assembles the `sympy.Matrix` of a `Sym` array
+                # row by row instead of SymPyCore's one-piece conversion, which
+                # crashes the compiler of Julia 1.15-DEV (JuliaLang/julia#63672).
+                SymPy.SymPyCore.:↓,
             ],
         ),
         # No ambiguity is excluded. The package's own, seventeen of them, were
@@ -101,15 +104,25 @@ include("test_hot_paths.jl")
 include("test_tens_isotropic.jl")
 include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
+# `KM` and `change_tens` of the structured classes in closed form.
+include("test_structured_closed_forms.jl")
+# Kelvin-Mandel block algebra about a normal (in-plane / out-of-plane).
+include("test_km_blocks.jl")
 include("test_tens_projection.jl")
 include("test_orientation_search.jl")
 include("test_tens_rotational_average.jl")
+# Every operation, with each operand written in its own random basis.
+include("test_random_bases.jl")
 include("test_special_tens.jl")
 include("test_coorsystems.jl")
 include("test_coorsystems_num.jl")
 include("test_submanifold.jl")
 # Calls that tied a TensND method with one of a package it loads.
 include("test_third_party_ties.jl")
+include("test_sympy_matrix.jl")
+include("test_tensors_bridge.jl")
+include("test_symmetric_parts.jl")
+include("test_frame_from_axis.jl")
 # Pins the conventions the documentation asserts — the Walpole identities, the
 # Kelvin-Mandel congruence, the operator index placement, and so on — so that
 # the code cannot drift away from the docs unnoticed. See

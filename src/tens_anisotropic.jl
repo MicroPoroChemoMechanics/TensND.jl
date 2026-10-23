@@ -144,8 +144,12 @@ end
 
 # Extract a plain 3-vector from various input types
 _extract_vec(n::NTuple{3}) = n
+# Mixed element types (`(sin(θ), 0, cos(θ))`): promoted to one.
+_extract_vec(n::Tuple{Number, Number, Number}) = promote(n...)
 _extract_vec(n::AbstractVector) = (n[1], n[2], n[3])
-_extract_vec(n::AbstractTens) = _extract_vec(get_array(n))
+# Canonical components: an axis is canonical, whatever basis the vector that
+# gives it is written in.
+_extract_vec(n::AbstractTens) = _extract_vec(components_canon(n))
 _extract_vec(n::Vec{3}) = (n[1], n[2], n[3])
 _extract_vec(n::AbstractArray) = (n[1], n[2], n[3])
 
@@ -293,7 +297,7 @@ end
 
 Kelvin-Mandel (6×6) matrix of the Walpole tensor.
 """
-KM(t::TensTI{4}) = tomandel(_static_tensor(t))
+KM(t::TensTI{4}) = Matrix(_km_by_entries(t))
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -313,7 +317,14 @@ If the axes differ, the operation falls back to the generic (unstructured)
 axes is generally fully anisotropic.
 """
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{4})
-    A.n == B.n || return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    A.n == B.n || return Tensors.dcontract(generic_tens(A), generic_tens(B))
+    return _dcontract_coaxial(A, B)
+end
+
+# The Walpole product of two TI tensors sharing their axis (not checked): the
+# callers that build one operand on the other's axis call it directly, so that
+# the result is inferred as a `TensTI` rather than a union with the generic route.
+function _dcontract_coaxial(A::TensTI{4}, B::TensTI{4})
     ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆ = get_ℓ(A)
     ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆ = get_ℓ(B)
     # 2×2 matrix rule: M_A × M_B where M = [[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]]
@@ -384,10 +395,10 @@ end
     dcontract(A::TensISO{4,3}, B::TensTI{4}) → TensTI{4, T, 6}
 """
 function Tensors.dcontract(A::TensTI{4}, B::TensISO{4, 3})
-    return Tensors.dcontract(A, fromISO(B, A.n))
+    return _dcontract_coaxial(A, fromISO(B, A.n))
 end
 function Tensors.dcontract(A::TensISO{4, 3}, B::TensTI{4})
-    return Tensors.dcontract(fromISO(A, B.n), B)
+    return _dcontract_coaxial(fromISO(A, B.n), B)
 end
 
 # ── TI convenience constructors ──────────────────────────────────────────────
@@ -435,11 +446,28 @@ Inverse of [`tens_TI`](@ref):
 - `C₁₁₃₃ = ℓ₃/√2`
 - `C₂₃₂₃ = ℓ₆/2`
 
+A six- or eight-parameter tensor (a product of TI tensors lands there) has
+these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
+``\\ell_7 = \\ell_8 = 0``: exactly for symbolic coefficients, to rounding for
+numbers. Otherwise it is refused, rather than read as if `ℓ₄`, `ℓ₇` and `ℓ₈` were
+not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant.
+
 See also [`arg_TI_eng`](@ref).
 """
 function arg_TI(t::TensTI{4})
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = get_ℓ8(t)
+    _major_symmetric_ti(ℓ₃ - ℓ₄, ℓ₇, ℓ₈, max(abs(ℓ₁), abs(ℓ₂), abs(ℓ₃), abs(ℓ₅), abs(ℓ₆))) || throw(
+        ArgumentError(
+            "arg_TI: the tensor is not major-symmetric (ℓ₃ ≠ ℓ₄, or ℓ₇, ℓ₈ ≠ 0), so it has " *
+                "no five TI constants; take `Tensors.majorsymmetric(t)` first if its " *
+                "symmetric part is meant"
+        )
+    )
+    return arg_TI(TensTI{4, eltype(t), 5}((ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆), axis(t)))
+end
+
+function arg_TI(t::TensTI{4, T, 5}) where {T}
     ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(t)
-    T = eltype(t)
     sq2 = sqrt(T(2))
     C₃₃₃₃ = ℓ₁
     C₁₁₁₁ = (ℓ₂ + ℓ₅) / 2
@@ -448,6 +476,14 @@ function arg_TI(t::TensTI{4})
     C₂₃₂₃ = ℓ₆ / 2
     return (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
 end
+
+# Whether the major-antisymmetric generators vanish: to rounding against the
+# scale `s` for comparable numbers, structurally for symbolic ones.
+_major_symmetric_ti(d, ℓ₇, ℓ₈, s) = _major_symmetric_ti(Val(is_hard_numeric(typeof(d))), d, ℓ₇, ℓ₈, s)
+_major_symmetric_ti(::Val{true}, d, ℓ₇, ℓ₈, s) =
+    max(abs(d), abs(ℓ₇), abs(ℓ₈)) <= 16 * eps(float(primal(s)))      # 16 ulps of the scale
+_major_symmetric_ti(::Val{false}, d, ℓ₇, ℓ₈, s) =
+    all(x -> isequal(tsimplify(x), zero(x)), (d, ℓ₇, ℓ₈))
 
 """
     tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n) → TensTI{4, T, 5}
@@ -590,15 +626,6 @@ function pprint(A::TensTI{4, <:Any, 6})
     return println("  axis n = ", A.n)
 end
 
-for OP in (:show, :print, :display)
-    @eval function Base.$OP(A::TensTI{4})
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        pprint(A)
-        print("→ KM: ")
-        return $OP(KM(A))
-    end
-end
 
 ##############################################################################
 # TensTI — transversely isotropic tensor (parametric on order)              #
@@ -690,20 +717,34 @@ KM(t::TensTI{2}) = tomandel(_static_tensor(t))
 # different axes (the antisymmetric components ℓ₇, ℓ₈ and the order-2 `c`
 # coefficient are odd in `n`), falling back to the generic route.
 
-# Generic (unstructured) view of a structured tensor, used by all fallbacks.
-_generic_tens(t::AbstractTens) = Tens(_static_tensor(t))
+"""
+    generic_tens(t::AbstractTens)
+
+The tensor `t` as a generic `Tens` of its canonical components: a structured
+tensor (`TensISO`, `TensTI`, `TensOrtho`, `TensCubic`) forgets its class, so that
+it accepts any update — `zero(generic_tens(t))` is a zero of the same order,
+dimension and element type that a non-isotropic term can be added to, where
+`zero(t)` of a `TensTI` is a `TensISO`.
+"""
+generic_tens(t::AbstractTens) = Tens(_static_tensor(t))
 
 @inline _generic_binary(op, A::AbstractTens{order, dim}, B::AbstractTens{order, dim}) where {order, dim} =
     Tens(_static_tensor(broadcast(op, get_array(A), get_array(B)), Val(dim), Val(order)))
 
 @inline function Base.:+(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
     axis(A) == axis(B) || return _generic_binary(+, A, B)
-    return _rebuild(A, get_data(A) .+ get_data(B))
+    return _coaxial_binary(+, A, B)
 end
 @inline function Base.:-(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
     axis(A) == axis(B) || return _generic_binary(-, A, B)
-    return _rebuild(A, get_data(A) .- get_data(B))
+    return _coaxial_binary(-, A, B)
 end
+
+# The data-wise sum or difference of two TI tensors of the same parametrization
+# sharing their axis (not checked): an isotropic operand lifted onto the other's
+# axis goes straight here, so that the result is inferred as a `TensTI`.
+@inline _coaxial_binary(op::F, A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {F, order, N} =
+    _rebuild(A, broadcast(op, get_data(A), get_data(B)))
 
 # ── Inverse (order 2) ───────────────────────────────────────────────────────
 
@@ -756,13 +797,6 @@ function pprint(A::TensTI{2})
     return println("  axis n = ", A.n)
 end
 
-for OP in (:show, :print, :display)
-    @eval function Base.$OP(A::TensTI{2})
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        return pprint(A)
-    end
-end
 
 # ── change_tens / components for TensTI ──────────────────────────────────────
 #
@@ -998,11 +1032,6 @@ end
 
 # ── get_array ─────────────────────────────────────────────────────────────────
 
-"""
-    get_array(t::TensOrtho{T}) → Array{T,4}
-
-Compute the 3×3×3×3 component array in the canonical frame.
-"""
 # One entry of the canonical-frame component array.  Factored out of
 # `get_array` so that `getindex` can evaluate a SINGLE component without
 # materializing all 81 — see the comment on `getindex(::TensOrtho, …)`.
@@ -1045,16 +1074,15 @@ Compute the 3×3×3×3 component array in the canonical frame.
     end
 end
 
-function get_array(t::TensOrtho{T}) where {T}
-    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(t)
-    E = vecbasis(t.frame, :cov)
-    result = Array{T, 4}(undef, 3, 3, 3, 3)
-    @inbounds for i in 1:3, j in 1:3, k in 1:3, l in 1:3
-        result[i, j, k, l] =
-            _ortho_entry(E, C11, C22, C33, C12, C13, C23, C44, C55, C66, i, j, k, l)
-    end
-    return result
-end
+"""
+    get_array(t::TensOrtho{T}) → Array{T,4}
+
+Compute the 3×3×3×3 component array in the canonical frame.
+"""
+# Its 36 independent components, through `_static_tensor`: a third faster than
+# the 81 evaluated one by one, and exactly minor-symmetric. (The TI forms keep
+# their loops, measured faster: `getindex` repeats a setup the loop shares.)
+get_array(t::TensOrtho) = Array(_static_tensor(t))
 
 """
     getindex(t::TensOrtho, i, j, k, l)
@@ -1083,7 +1111,7 @@ Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 Returns the 6×6 Kelvin-Mandel matrix in the **canonical** frame.
 Use `KM_material(t)` for the block-diagonal form in the material frame.
 """
-KM(t::TensOrtho) = tomandel(_static_tensor(t))
+KM(t::TensOrtho) = Matrix(_km_in_frame(t))
 
 """
     KM_material(t::TensOrtho)
@@ -1141,6 +1169,42 @@ end
 @inline function _km_congruence(E::AbstractMatrix{T}) where {T}
     s2 = sqrt(T(2))
     return SMatrix{6, 6, T}(_km_entry(E, s2, I, J) for I in 1:6, J in 1:6)
+end
+
+# ── Kelvin-Mandel matrix of a structured tensor, without its 81 components ────
+#
+# `tomandel(_static_tensor(t))` evaluated all 81 components into an array,
+# checked its symmetry, built a `SymmetricTensor` and read 36 entries back out.
+#
+# `_km_by_entries` evaluates the 36 entries directly, with the scaling and the
+# operation order of Tensors.jl's `tomandel` (`s * x` with one off-diagonal
+# pair, `s * s * x` with two, `s = √(2one(T))`): the same expressions as before,
+# symbolic ones included, 4 to 30 times faster.
+#
+# `_km_in_frame` goes further for a tensor that carries its material frame
+# (`TensOrtho`, `TensCubic`): the congruence of its sparse material-frame matrix,
+# about 20 times faster than the 81 components. On a symbolic element type it
+# takes the entry route instead, which keeps the expressions a symbolic user
+# had (the congruence regroups them into equal but different forms).
+@inline function _km_scaled_entry(t, s, I::Int, J::Int)
+    (i, j) = _KM_PAIR[I]
+    (k, l) = _KM_PAIR[J]
+    x = @inbounds t[i, j, k, l]
+    return I > 3 && J > 3 ? s * s * x : I > 3 || J > 3 ? s * x : x
+end
+
+function _km_by_entries(t::AbstractTens{4, 3, T}) where {T}
+    s = √(2one(T))
+    return SMatrix{6, 6, T}(_km_scaled_entry(t, s, I, J) for I in 1:6, J in 1:6)
+end
+
+_km_in_frame(t) = _km_in_frame(Val(is_hard_numeric(eltype(t))), t)
+_km_in_frame(::Val{false}, t) = _km_by_entries(t)
+function _km_in_frame(::Val{true}, t)
+    E = vecbasis(frame(t), :cov)
+    T = promote_type(eltype(t), eltype(E))
+    Q = _km_congruence(SMatrix{3, 3, T}(E))
+    return Q * KM_material(t) * transpose(Q)
 end
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
@@ -1217,7 +1281,7 @@ and the generic route is taken instead.
 """
 function Tensors.dcontract(A::TensOrtho, B::TensOrtho)
     frame(A) == frame(B) ||
-        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+        return Tensors.dcontract(generic_tens(A), generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
     E = vecbasis(frame(A), :cov)
     Q = _km_congruence(SMatrix{3, 3, T}(E))
@@ -1323,17 +1387,6 @@ function pprint(A::TensOrtho)
     return println("  frame: ", vecbasis(A.frame, :cov))
 end
 
-for OP in (:show, :print, :display)
-    @eval function Base.$OP(A::TensOrtho)
-        $OP(typeof(A))
-        print("→ decomposition: ")
-        pprint(A)
-        print("→ KM (material frame): ")
-        $OP(KM_material(A))
-        print("→ KM (canonical frame): ")
-        return $OP(KM(A))
-    end
-end
 
 ##############################################################################
 # Shared change_tens / components for TensTI{4} and TensOrtho
@@ -1341,18 +1394,27 @@ end
 ##############################################################################
 
 # See the note above `_as_canonical_tens`: the components must be rotated, not
-# relabeled.
+# relabeled. They are, in closed form: in an orthonormal basis ℬ the tensor has
+# the same coefficients with its axis written in ℬ, so its components there come
+# from the Walpole formula itself, exact for every element type, instead of the
+# 81 canonical ones rotated index by index. The eight-coefficient form keeps the
+# generic route: its ℓ₇ and ℓ₈ terms change sign with the orientation of ℬ.
 change_tens(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
+    Tens(_static_tensor(_with_axis_in(t, ℬ)), ℬ, get_var(t))
+change_tens(t::TensTI{4, T, 8}, ℬ::OrthonormalBasis{3, T}) where {T} =
     change_tens(_as_canonical_tens(t), ℬ)
+
+# The same tensor written about the components of its axis in ℬ.
+_with_axis_in(t::TensTI{4, T, N}, ℬ::OrthonormalBasis{3, T}) where {T, N} =
+    TensTI{4, T, N}(get_data(t), Tuple(transpose(SMatrix{3, 3, T}(vecbasis(ℬ, :cov))) * SVector(axis(t))))
 components(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
 components(t::TensTI{4}) = get_array(t)
 components(t::TensTI{4}, ::NTuple{4, Symbol}) = get_array(t)
 
 # TensOrtho — same reasoning: stored in the canonical frame, so a rotated basis
-# needs a genuine change of components.
-change_tens(t::TensOrtho{T}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    change_tens(_as_canonical_tens(t), ℬ)
+# needs a genuine change of components (`change_tens` in `tens_cubic.jl`, shared
+# with `TensCubic`).
 components(t::TensOrtho{T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
 components(t::TensOrtho) = get_array(t)
@@ -1594,7 +1656,11 @@ Closed product rule in the 8-dim commutant algebra:
 and z₂ = ℓ₅ + iℓ₈ (m=2).
 """
 function Tensors.dcontract(A::TensTI{4, <:Any, 8}, B::TensTI{4, <:Any, 8})
-    A.n == B.n || return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+    A.n == B.n || return Tensors.dcontract(generic_tens(A), generic_tens(B))
+    return _dcontract_coaxial(A, B)
+end
+
+function _dcontract_coaxial(A::TensTI{4, <:Any, 8}, B::TensTI{4, <:Any, 8})
     ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆, ℓA₇, ℓA₈ = A.data
     ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆, ℓB₇, ℓB₈ = B.data
     n₁ = ℓA₁ * ℓB₁ + ℓA₃ * ℓB₄
@@ -1615,6 +1681,8 @@ Tensors.dcontract(A::TensTI{4, <:Any, 8}, B::TensTI{4}) =
     Tensors.dcontract(A, _lift_walpole_N8(B))
 Tensors.dcontract(A::TensTI{4}, B::TensTI{4, <:Any, 8}) =
     Tensors.dcontract(_lift_walpole_N8(A), B)
+_dcontract_coaxial(A::TensTI{4, <:Any, 8}, B::TensTI{4}) = _dcontract_coaxial(A, _lift_walpole_N8(B))
+_dcontract_coaxial(A::TensTI{4}, B::TensTI{4, <:Any, 8}) = _dcontract_coaxial(_lift_walpole_N8(A), B)
 
 # ── Inverse ──────────────────────────────────────────────────────────────────
 
@@ -1669,10 +1737,10 @@ for OP in (:+, :-)
     @eval Base.$OP(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 3}) =
         $OP(_lift_ti2_N3(A), B)
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 8})
-        return $OP(_lift_walpole_N8(fromISO(A, axis(B))), B)
+        return _coaxial_binary($OP, _lift_walpole_N8(fromISO(A, axis(B))), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 8}, B::TensISO{4, 3})
-        return $OP(A, _lift_walpole_N8(fromISO(B, axis(A))))
+        return _coaxial_binary($OP, A, _lift_walpole_N8(fromISO(B, axis(A))))
     end
     @eval function Base.$OP(A::TensISO{2, 3}, B::TensTI{2, <:Any, 3})
         λ = get_data(A)[1]
@@ -1695,7 +1763,7 @@ end
 # the axial part like the scalar b.
 
 function LinearAlgebra.dot(A::TensTI{2, <:Any, 3}, B::TensTI{2, <:Any, 3})
-    axis(A) == axis(B) || return LinearAlgebra.dot(_generic_tens(A), _generic_tens(B))
+    axis(A) == axis(B) || return LinearAlgebra.dot(generic_tens(A), generic_tens(B))
     a₁, b₁, c₁ = get_data(A)
     a₂, b₂, c₂ = get_data(B)
     return TensTI{2}(a₁ * a₂ - c₁ * c₂, b₁ * b₂, a₁ * c₂ + c₁ * a₂, axis(A))

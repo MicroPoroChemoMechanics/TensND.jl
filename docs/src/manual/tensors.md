@@ -58,6 +58,17 @@ components(V, ℬ, (:cov,))
     [`change_tens`](@ref) first. This is a real source of bugs; a worked
     example is on [Submanifolds](@ref th-submanifolds).
 
+    Indexing, `t[i, j, …]`, reads the same stored array. The structured types
+    (`TensISO`, `TensTI`, `TensOrtho`, `TensCubic`) store their coefficients and
+    answer in the canonical basis, while a plain `Tens` answers in its own: code
+    tried only on structured or canonical tensors looks right, and is wrong for a
+    tensor written in a rotated basis. Test such code with tensors written in
+    bases drawn at random, each operand in its own.
+
+    `==` and `≈` compare tensors, not arrays: in the basis the two share, with no
+    change at all when they are written in the same basis with the same
+    variances, and otherwise in the common basis `same_basis_same_var` chooses.
+
 ## Changing basis
 
 [`change_tens`](@ref) returns a *tensor* re-expressed on another basis, where

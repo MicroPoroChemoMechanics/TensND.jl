@@ -15,6 +15,13 @@ texpand_trig
 tlimit
 TensND.ApproxType
 TensND.is_hard_numeric
+carries_partials
+primal
+primal_type
+dual_depth
+dual_channels
+float_like
+isparallel
 contract
 qcontract
 dotdot

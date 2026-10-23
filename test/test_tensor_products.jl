@@ -422,3 +422,48 @@ end
     @test dotdot(v1, A, v2) ≈ ref
     @test dotdot(v1, A[:, :, :, 1], v2) ≈ [sum(v1[i] * A[i, j, k, 1] * v2[k] for i in 1:3, k in 1:3) for j in 1:3]
 end
+
+@testsection "Full contractions of plain arrays do not conjugate" begin
+    # `Σ aᵢ bᵢ`, the contraction: `dot`, the Hermitian product, gave `Σ āᵢ bᵢ`.
+    rng = Xoshiro(20261023)
+    A2, B2 = randn(rng, ComplexF64, 3, 3), randn(rng, 3, 3)
+    A4, B4 = randn(rng, ComplexF64, 3, 3, 3, 3), randn(rng, ComplexF64, 3, 3, 3, 3)
+    a1, b1 = randn(rng, ComplexF64, 3), randn(rng, ComplexF64, 3)
+    @test Tensors.dcontract(A2, B2) ≈ sum(A2[i, j] * B2[i, j] for i in 1:3, j in 1:3)
+    @test qcontract(A4, B4) ≈ sum(A4[I] * B4[I] for I in CartesianIndices(A4))
+    @test TensND.scontract(a1, b1) ≈ sum(a1 .* b1)
+    # The same on real arrays, and the plain-array route agrees with the
+    # tensor one.
+    R2 = real(A2)
+    @test Tensors.dcontract(R2, B2) ≈ get_array(Tens(R2)) ⊡ get_array(Tens(B2))
+    @test Tensors.dcontract(R2, B2) ≈ Tens(R2) ⊡ Tens(B2)
+    # A symbol of unknown reality is not conjugated either.
+    @syms a b
+    @test Tensors.dcontract(Sym[a 0; 0 b], Sym[1 0; 0 2]) == a + 2b
+    @test TensND.scontract(Sym[a, b], Sym[1, 1]) == a + b
+    @test_throws DimensionMismatch Tensors.dcontract(A2, ones(2, 2))
+end
+
+@testsection "Norm of a complex tensor: Hermitian" begin
+    # √(Σ |tᵢⱼ…|²) in an orthonormal basis, whatever the order or the class;
+    # the self-contraction of a complex tensor is not its squared norm.
+    rng = Xoshiro(20261024)
+    ℬ = RotatedBasis(0.7, -0.4, 1.1)
+    for a in (randn(rng, ComplexF64, 3), randn(rng, ComplexF64, 3, 3), randn(rng, ComplexF64, 3, 3, 3, 3))
+        ref = sqrt(sum(abs2, a))
+        @test norm(Tens(a)) ≈ ref
+        @test norm(Tens(a, ℬ)) ≈ ref
+        @test norm(Tens(a)) isa Float64
+    end
+    @test norm(TensISO{3}(1.0 + 2im, 3.0 - 1im)) ≈ sqrt(sum(abs2, Array(get_array(TensISO{3}(1.0 + 2im, 3.0 - 1im)))))
+    @test conj(Tens(ComplexF64[1 + 2im 0 0; 0 1 0; 0 0 1im]))[1, 1] == 1 - 2im
+    # sqnorm: the square, without the root, smooth at zero.
+    @test sqnorm(Tens(randn(rng, ComplexF64, 3, 3))) isa Float64
+    a2 = randn(rng, 3, 3)
+    @test sqnorm(Tens(a2, ℬ)) ≈ sum(abs2, a2)
+    @test ForwardDiff.derivative(x -> sqnorm(Tens(x .* a2)), 0.0) == 0
+    # Real element types are unchanged, symbols with no `abs`.
+    @test norm(Tens([1.0 2; 3 4][[1, 2, 2], [1, 2, 2]])) ≈ sqrt(sum(abs2, [1.0 2; 3 4][[1, 2, 2], [1, 2, 2]]))
+    @syms x::real
+    @test norm(Tens(Sym[x 0 0; 0 x 0; 0 0 x])) == sqrt(3x^2)
+end

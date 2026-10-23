@@ -138,7 +138,7 @@
 
     @testset "the KM rotation is orthogonal, and the congruence holds" begin
         θ, ϕ, ψ = 0.37, 0.83, 0.29
-        Q = TensND._KM_rotation(θ, ϕ, ψ)
+        Q = TensND.KM_rotation(θ, ϕ, ψ)
         @test Q'Q ≈ I
         @test Q ≈ KM(rot6(θ, ϕ, ψ))
         @test arr(rot6(θ, ϕ, ψ)) ≈ arr(Tens(Matrix(rot3(θ, ϕ, ψ))) ⊠ˢ Tens(Matrix(rot3(θ, ϕ, ψ))))

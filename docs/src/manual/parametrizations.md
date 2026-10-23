@@ -5,6 +5,21 @@ between the conventions, and how to go in and out of the Kelvin–Mandel matrix.
 The matrices themselves are on
 [TI parametrizations](@ref th-ti-parametrizations).
 
+## Isotropic moduli
+
+A 3-D isotropic stiffness is ``\mathbb{C} = 3k\,\mathbb{J} + 2\mu\,\mathbb{K}``:
+[`iso_stiffness`](@ref) builds it from the bulk and shear moduli, and
+[`iso_stiffness_E_nu`](@ref) from Young's modulus and Poisson's ratio;
+[`k_mu`](@ref) and [`E_nu`](@ref) read them back. A compliance is the inverse,
+exact in the class, so its moduli are those of `inv(𝕊)`.
+
+```@example par
+using TensND, LinearAlgebra
+
+ℂ = iso_stiffness_E_nu(70.0, 0.33)   # an aluminum, GPa
+k_mu(ℂ), E_nu(ℂ)
+```
+
 ## The three TI conventions
 
 | Constructor | Extractor | Parameters | Builds |
@@ -17,8 +32,6 @@ All three take the symmetry axis as their last argument and return a
 `TensTI{4,T,5}`.
 
 ```@example par
-using TensND, LinearAlgebra
-
 n = [0.0, 0.0, 1.0]
 𝕊 = tens_TI_eng(9.0, 140.0, 0.40, 0.30, 4.6, n)   # a carbon/epoxy ply, GPa
 ℂ = inv(𝕊)

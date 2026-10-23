@@ -196,17 +196,7 @@ Evaluated through `_ortho_entry` with `C₁₁ = C₂₂ = C₃₃`, `C₁₂ = 
 `C₄₄ = C₅₅ = C₆₆`, which is what a cubic tensor *is* as an orthotropic one — no
 second copy of that algebra.
 """
-function get_array(t::TensCubic{T}) where {T}
-    C₁₁, C₁₂, C₄₄ = arg_cubic(t)
-    E = vecbasis(t.frame, :cov)
-    result = Array{T, 4}(undef, 3, 3, 3, 3)
-    @inbounds for i in 1:3, j in 1:3, k in 1:3, l in 1:3
-        result[i, j, k, l] = _ortho_entry(
-            E, C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄, i, j, k, l
-        )
-    end
-    return result
-end
+get_array(t::TensCubic) = Array(_static_tensor(t))
 
 """
     getindex(t::TensCubic, i, j, k, l)
@@ -234,7 +224,7 @@ Base.IndexStyle(::Type{<:TensCubic}) = IndexCartesian()
 The 6×6 Kelvin-Mandel matrix in the **canonical** frame. Use
 [`KM_material`](@ref) for the sparse form in the cube frame.
 """
-KM(t::TensCubic) = tomandel(_static_tensor(t))
+KM(t::TensCubic) = Matrix(_km_in_frame(t))
 
 """
     KM_material(t::TensCubic)
@@ -369,7 +359,7 @@ anisotropic and the generic route is taken.
 """
 function Tensors.dcontract(A::TensCubic, B::TensCubic)
     _same_cube_frame(A, B) ||
-        return Tensors.dcontract(_generic_tens(A), _generic_tens(B))
+        return Tensors.dcontract(generic_tens(A), generic_tens(B))
     return _rebuild(A, get_data(A) .* get_data(B))
 end
 
@@ -408,11 +398,27 @@ reference(t::TensCubic) = frame(t)
 # frame kept separately, so re-expressing it in another orthonormal basis is a
 # genuine multi-index rotation: wrapping the stored components in the new basis
 # would relabel them and silently return a different physical tensor. The
-# rotation is not re-derived here — the components are handed to the generic
-# `TensOrthonormal` path as a canonical `Tens`.
+# rotation is done in closed form, for `TensOrtho` as well: in an orthonormal
+# basis ℬ the tensor has the same coefficients with its frame written in ℬ, and
+# `_ortho_entry` gives its components there, exact for every element type,
+# without the 81 canonical ones rotated index by index. A left-handed ℬ needs no
+# care: each frame vector enters the formula an even number of times.
+function change_tens(t::Union{TensOrtho{T}, TensCubic{T}}, ℬ::OrthonormalBasis{3, T}) where {T}
+    F = vecbasis(frame(t), :cov)
+    Tf = promote_type(T, eltype(F))
+    E = transpose(SMatrix{3, 3, Tf}(vecbasis(ℬ, :cov))) * SMatrix{3, 3, Tf}(F)
+    C = _ortho_coefficients(t)
+    S = SymmetricTensor{4, 3}((i, j, k, l) -> @inbounds _ortho_entry(E, C..., i, j, k, l))
+    return Tens(S, ℬ, get_var(t))
+end
 
-change_tens(t::TensCubic{T}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    change_tens(_as_canonical_tens(t), ℬ)
+# The nine orthotropic coefficients, a cubic tensor being an orthotropic one
+# with C₁₁ = C₂₂ = C₃₃, C₁₂ = C₁₃ = C₂₃ and C₄₄ = C₅₅ = C₆₆.
+_ortho_coefficients(t::TensOrtho) = get_data(t)
+function _ortho_coefficients(t::TensCubic)
+    C₁₁, C₁₂, C₄₄ = arg_cubic(t)
+    return (C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄)
+end
 components(t::TensCubic{T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
 components(t::TensCubic) = get_array(t)
@@ -439,3 +445,24 @@ end
 ##############################################################################
 
 export TensCubic, tens_cubic, arg_cubic, cubic_anisotropy
+
+# Structured tensors: their decomposition (the compact `show`), then their
+# Kelvin–Mandel matrix.
+function Base.show(io::IO, ::MIME"text/plain", A::Union{TensISO, TensTI, TensOrtho, TensCubic})
+    println(io, typeof(A))
+    print(io, "→ decomposition: ")
+    show(io, A)
+    return _show_km(io, A)
+end
+
+_show_km(io::IO, A::AbstractTens{2}) = nothing
+function _show_km(io::IO, A::AbstractTens{4})
+    print(io, "\n→ KM: ")
+    return show(io, MIME"text/plain"(), KM(A))
+end
+function _show_km(io::IO, A::TensOrtho)
+    print(io, "\n→ KM (material frame): ")
+    show(io, MIME"text/plain"(), KM_material(A))
+    print(io, "\n→ KM (canonical frame): ")
+    return show(io, MIME"text/plain"(), KM(A))
+end

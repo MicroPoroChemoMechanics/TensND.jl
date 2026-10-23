@@ -26,7 +26,7 @@ julia> isidentity([1.0 0.5; 0.0 1.0])
 false
 ```
 """
-isidentity(a::AbstractMatrix) = a ≈ I && !any(_carries_partials, a)
+isidentity(a::AbstractMatrix) = a ≈ I && !any(carries_partials, a)
 
 # ── Symbolic passes ──────────────────────────────────────────────────────────
 #
@@ -250,14 +250,14 @@ is_hard_numeric(x) = is_hard_numeric(typeof(x))
 isdiagonal(a::AbstractMatrix) = isdiag(a)
 function isdiagonal(a::AbstractMatrix{T}) where {T <: ApproxType}
     off = a - Diagonal(a)
-    return norm(off) <= _approx_eps(T) && !any(_carries_partials, off)
+    return norm(off) <= _approx_eps(T) && !any(carries_partials, off)
 end
 
 """
-    _carries_partials(x) -> Bool
+    carries_partials(x) -> Bool
 
 Whether `x` carries a nonzero derivative, at any nesting level of
-`ForwardDiff.Dual`.
+`ForwardDiff.Dual`. A plain number, or a symbolic one, carries none.
 
 The structural predicates [`isidentity`](@ref) and `isdiagonal` decide whether
 a basis collapses to a simpler one, and they compare **values** — `≈` and
@@ -266,20 +266,78 @@ identity in value, yet its derivative is the generator of the rotation:
 collapsing it to the canonical basis returned zero derivatives. The predicates
 therefore also require the derivatives to vanish.
 """
-_carries_partials(::Number) = false
-_carries_partials(x::ForwardDiff.Dual) =
-    any(p -> !iszero(p) || _carries_partials(p), ForwardDiff.partials(x)) ||
-    _carries_partials(ForwardDiff.value(x))
+carries_partials(::Number) = false
+carries_partials(x::ForwardDiff.Dual) =
+    any(p -> !iszero(p) || carries_partials(p), ForwardDiff.partials(x)) ||
+    carries_partials(ForwardDiff.value(x))
+
+"""
+    primal(x)
+
+`x` stripped of every level of `ForwardDiff.Dual`: the value a choice that must not
+depend on derivatives is made on (a quadrature order, a scaling, a bracket, a
+pivot), so that the derivatives stay where the mathematics puts them. Any other
+number, symbolic ones included, is returned as it is.
+
+See also [`carries_partials`](@ref).
+"""
+primal(x::ForwardDiff.Dual) = primal(ForwardDiff.value(x))
+primal(x) = x
+
+"""
+    primal_type(T) -> Type
+
+The floating-point type under every level of `ForwardDiff.Dual` in `T`: the type
+of `float(primal(x))` for `x::T`, to build a tolerance, a `typemax` or quadrature
+weights that carry no derivative. An integer or rational type gives its float
+type; any other (a complex or symbolic type) is returned as it is.
+"""
+primal_type(::Type{D}) where {D <: ForwardDiff.Dual} = primal_type(ForwardDiff.valtype(D))
+primal_type(::Type{T}) where {T <: Real} = is_hard_numeric(T) ? float(T) : T
+primal_type(::Type{T}) where {T} = T
+
+"""
+    dual_depth(T) -> Int
+
+The number of levels of `ForwardDiff.Dual` nested in `T`: 0 for a plain number, 2
+for a second derivative taken through nested `ForwardDiff` calls.
+"""
+dual_depth(::Type{<:ForwardDiff.Dual{<:Any, V}}) where {V} = 1 + dual_depth(V)
+dual_depth(::Type) = 0
+
+"""
+    dual_channels(x) -> Tuple
+
+The value of `x` followed by every partial, at every nesting level of
+`ForwardDiff.Dual`, flattened into one tuple: `(x,)` for a plain number. A
+convergence test that must hold for the derivatives as well as for the value
+measures each channel separately.
+"""
+dual_channels(x::Number) = (x,)
+dual_channels(d::ForwardDiff.Dual) = (
+    dual_channels(ForwardDiff.value(d))...,
+    foldl((a, b) -> (a..., b...), map(dual_channels, ForwardDiff.partials(d).values); init = ())...,
+)
+
+"""
+    float_like(T) -> Type
+
+`float(T)` for an integer type, `T` itself otherwise: a float, a dual or a
+symbolic type stays as it is (`float` of a SymPy type answers `Float64`, which a
+symbolic quantity cannot be converted to).
+"""
+float_like(::Type{T}) where {T <: Integer} = float(T)
+float_like(::Type{T}) where {T} = T
 
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
 
-@inline LinearAlgebra.issymmetric(t::Tensor{2, 2, T}) where {T <: ApproxType} = @inbounds t[1, 2] ≈ t[2, 1]
-
-@inline function LinearAlgebra.issymmetric(t::Tensor{2, 3, T}) where {T <: ApproxType}
-    return @inbounds t[1, 2] ≈ t[2, 1] && t[1, 3] ≈ t[3, 1] && t[2, 3] ≈ t[3, 2]
-end
-
+# ── Index symmetries of a Tensors.jl array, as TensND needs them ─────────────
+#
+# For the storage decision (`_store_symmetric`) and nowhere else. They are
+# TensND's own functions: Tensors.jl's `issymmetric`, `isminorsymmetric` and
+# `ismajorsymmetric` keep their meaning on Tensors.jl's types (an exact
+# comparison) for everyone, TensND loaded or not.
 
 """
     _num_equal(a::Num, b::Num) -> Bool
@@ -304,60 +362,31 @@ storage, never correctness) must not cost an algebraic simplification.
 """
 @inline _num_equal(a, b) = isequal(a, b) || iszero(a - b)
 
-@inline LinearAlgebra.issymmetric(t::Tensor{2, 2, Num}) = @inbounds _num_equal(t[1, 2], t[2, 1])
+# Exact for exact element types (floats too: tolerance is `_store_symmetric`'s
+# business), structural for a `Num`, whose `==` is a symbolic equation.
+@inline _sym_eq(a, b) = a == b
+@inline _sym_eq(a::Num, b::Num) = _num_equal(a, b)
 
-@inline function LinearAlgebra.issymmetric(t::Tensor{2, 3, Num})
-    return @inbounds _num_equal(t[1, 2], t[2, 1]) && _num_equal(t[1, 3], t[3, 1]) &&
-        _num_equal(t[2, 3], t[3, 2])
-end
+_issym(::Tensors.SymmetricTensor) = true
+_issym(t::Tensors.Tensor{2, dim}) where {dim} =
+    all(_sym_eq(t[i, j], t[j, i]) for j in 1:dim for i in (j + 1):dim)
+_issym(t::Tensors.Tensor{4}) = _isminorsym(t)
 
-function Tensors.isminorsymmetric(t::Tensor{4, dim, T}) where {dim, T <: ApproxType}
-    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        if !(t[i, j, k, l] ≈ t[j, i, k, l]) || !(t[i, j, k, l] ≈ t[i, j, l, k])
-            return false
-        end
-    end
-    return true
-end
-
-function Tensors.isminorsymmetric(t::Tensor{4, dim, Num}) where {dim}
-    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        if !_num_equal(t[i, j, k, l], t[j, i, k, l]) ||
-                !_num_equal(t[i, j, k, l], t[i, j, l, k])
-            return false
-        end
-    end
-    return true
-end
-
-function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, T}) where {dim, T <: ApproxType}
-    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        if !(t[i, j, k, l] ≈ t[k, l, i, j])
-            return false
-        end
-    end
-    return true
-end
-
-function Tensors.ismajorsymmetric(t::FourthOrderTensor{dim, Num}) where {dim}
-    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
-        # Not `a - b == zero(Num)`: on a `Num` that builds a symbolic
-        # *equation* rather than answering, and `!(…)` of it throws
-        # `TypeError: non-boolean (Num) used in boolean context`.
-        if !_num_equal(t[i, j, k, l], t[k, l, i, j])
-            return false
-        end
-    end
-    return true
-end
-
-@inline function Tensors.majortranspose(S::SymmetricTensor{4, dim}) where {dim}
-    return SymmetricTensor{4, dim}(
-        @inline function (i, j, k, l)
-            return @inbounds S[k, l, i, j]
-        end
+_isminorsym(::Tensors.SymmetricTensor{4}) = true
+function _isminorsym(t::Tensors.Tensor{4, dim}) where {dim}
+    return all(
+        _sym_eq(t[i, j, k, l], t[j, i, k, l]) && _sym_eq(t[i, j, k, l], t[i, j, l, k])
+            for l in 1:dim for k in l:dim for j in 1:dim for i in j:dim
     )
 end
+_ismajorsym(t::Tensors.FourthOrderTensor{dim}) where {dim} =
+    all(_sym_eq(t[i, j, k, l], t[k, l, i, j]) for l in 1:dim for k in l:dim for j in 1:dim for i in j:dim)
+
+# The major transpose of a `SymmetricTensor{4}` (Tensors.jl defines it on
+# `Tensor{4}` only).
+_majortranspose(S::Tensors.SymmetricTensor{4, dim}) where {dim} =
+    Tensors.SymmetricTensor{4, dim}((i, j, k, l) -> @inbounds S[k, l, i, j])
+_majortranspose(t) = Tensors.majortranspose(t)
 
 """
     otimes(t1::AbstractArray, t2::AbstractArray)
@@ -423,8 +452,15 @@ contract(t::AbstractArray{T, 2}, ::Integer, ::Integer) where {T} = tr(t)
 
 Tensors.dcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(2))
 
+# `Σ aᵢ bᵢ` over all the components, as every contraction is. Not `dot`, which
+# conjugates its first argument (the Hermitian product): it gave `Σ āᵢⱼ bᵢⱼ` on
+# complex components and `conjugate(a)` on a `SymPy.Sym` not declared real.
+# `vec` also keeps a TensND tensor, itself an `AbstractArray`, away from the
+# tensor `dot`, which is a single contraction.
+_full_contraction(t1::AbstractArray, t2::AbstractArray) = transpose(vec(t1)) * vec(t2)
+
 Tensors.dcontract(t1::AbstractArray{T1, 2}, t2::AbstractArray{T2, 2}) where {T1, T2} =
-    dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
+    _full_contraction(t1, t2)
 
 Tensors.dotdot(v1::AbstractArray, S::AbstractArray, v2::AbstractArray) =
     _contract_trailing(_contract_trailing(v1, S, Val(1)), v2, Val(1))
@@ -456,7 +492,7 @@ See also `dcontract`, [`contract`](@ref).
 qcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1, t2, Val(4))
 
 qcontract(t1::AbstractArray{T1, 4}, t2::AbstractArray{T2, 4}) where {T1, T2} =
-    dot(AbstractArray{T1}(t1), AbstractArray{T2}(t2))
+    _full_contraction(t1, t2)
 
 """
     _interleaved_otimes(t1, t2, ec1, ec2, Val(n))
@@ -617,7 +653,35 @@ const sboxtimes = otimesul
 
 export isidentity, contract, qcontract, otimesu, otimesul, sboxtimes, sotimes, ⊙, ⊠, ⊠ˢ, ⊗ˢ
 export tsimplify, tfactor, tsubs, tdiff, ttrigsimp, texpand_trig, tlimit
-export is_hard_numeric
+"""
+    isparallel(a, b; rtol = 1.0e-10) -> Bool
+
+Whether the directions `a` and `b` (3-vectors, tuples or 1st-order tensors, read in
+canonical components) are parallel, in the same or the opposite sense:
+``(\\underline{a}\\cdot\\underline{b})^2 = |\\underline{a}|^2\\,|\\underline{b}|^2``.
+
+For comparable numbers (`is_hard_numeric`), within the relative tolerance `rtol`;
+a `ForwardDiff.Dual` is compared on its value. For symbolic ones the test is
+structural: the difference is simplified and must vanish exactly, so a symbolic
+answer is never a false positive, and is `false` when the backend cannot decide.
+No `dot` and no `abs`: both conjugate a `SymPy.Sym`, and `Symbolics` does not
+fold `abs` of a literal.
+"""
+function isparallel(a, b; rtol::Real = 1.0e-10)
+    va, vb = _extract_vec(a), _extract_vec(b)
+    d = sum(va .* vb)
+    nn = sum(va .* va) * sum(vb .* vb)
+    return _isparallel(Val(is_hard_numeric(promote_type(typeof(d), typeof(nn)))), d^2, nn, rtol)
+end
+_isparallel(::Val{true}, dd, nn, rtol) = !iszero(nn) && abs(dd - nn) <= rtol * nn
+function _isparallel(::Val{false}, dd, nn, rtol)
+    verdict = iszero(_simplified(dd - nn))
+    return verdict isa Bool ? verdict : false
+end
+_simplified(x::SymType) = tsimplify(x)
+_simplified(x) = x
+
+export is_hard_numeric, carries_partials, primal, isparallel, primal_type, dual_depth, dual_channels, float_like
 # `dotdot` belongs here too: its docstring offers `dotdot(n, ℂ, n)` as the
 # acoustic tensor, which a `using TensND` alone could not reach.
 export ⋅, ⊡, ⊗, dotdot

@@ -262,12 +262,12 @@ structured tensor written about a non-canonical axis: `KM` of a `Dual`-valued
 `TensISO` in a `RotatedBasis` returned a 9×9 matrix where the same tensor in
 `Float64` returned a 6×6 one.
 """
-@inline _store_symmetric(t::Tensors.AbstractTensor) = Tensors.issymmetric(t)
+@inline _store_symmetric(t::Tensors.AbstractTensor) = _issym(t)
 
 @inline function _store_symmetric(
         t::Tensors.AbstractTensor{order, dim, T}
     ) where {order, dim, T <: ApproxType}
-    Tensors.issymmetric(t) && return true
+    _issym(t) && return true
     scale = maximum(abs, t)
     iszero(scale) && return true
     return maximum(abs, t - Tensor{order, dim}(Tensors.symmetric(t))) <= 16 * _approx_eps(T) * scale
@@ -293,12 +293,9 @@ for order in (2, 4)
         dim == 2 && return _to_tensor(tab, Val(2), Val($order))
         dim == 1 || return tab
         newtab = Tensor{$order, dim}(tab)
-        if Tensors.issymmetric(newtab)
-            newtab = convert(SymmetricTensor{$order, dim}, newtab)
-        end
-        return newtab
+        return _store_symmetric(newtab) ? Tensors.symmetric(newtab) : newtab
     end
-    @eval tensor_or_array(tab::Tensor{$order, dim}) where {dim} = Tensors.issymmetric(tab) ? convert(SymmetricTensor{$order, dim}, tab) : tab
+    @eval tensor_or_array(tab::Tensor{$order, dim}) where {dim} = _store_symmetric(tab) ? Tensors.symmetric(tab) : tab
 end
 tensor_or_array(tab::Tensors.AllTensors) = tab
 tensor_or_array(tab::AbstractArray) = tab

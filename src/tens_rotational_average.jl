@@ -83,6 +83,49 @@ function array_from_mandel66(M::AbstractMatrix{T}) where {T}
 end
 
 """
+    mandel66(arr::AbstractArray{T,4}) → Matrix{T} (6×6)
+    mandel66(t::AbstractTens{4,3}) → Matrix (6×6)
+
+Kelvin-Mandel 6×6 matrix of a 4th-order array (of a tensor: its canonical
+components) read as it is, with no averaging of the minor symmetries: entry
+`(I, J)` is `wᵢ wⱼ A[i,j,k,l]` for the pairs `(i,j)`, `(k,l)` of `I`, `J` in the
+order (11, 22, 33, 23, 13, 12), `w = √2` on the last three. On a minor-symmetric
+array it is [`mandel66_minor`](@ref) to the last bit of the averaging.
+"""
+function mandel66(arr::AbstractArray{T, 4}) where {T}
+    sq2 = sqrt(T(2))
+    w(I) = I ≤ 3 ? one(T) : sq2
+    return [w(I) * w(J) * arr[_MANDEL_IDX[I]..., _MANDEL_IDX[J]...] for I in 1:6, J in 1:6]
+end
+mandel66(t::AbstractTens{4, 3}) = mandel66(components_canon(t))
+
+const _MANDEL_IDX_2D = ((1, 1), (2, 2), (1, 2))
+
+"""
+    mandel33_minor(arr::AbstractArray{T,4}) → Matrix{T} (3×3)
+    array_from_mandel33(M::AbstractMatrix{T}) → Array{T,4} (2×2×2×2)
+
+The two-dimensional counterparts of [`mandel66_minor`](@ref) and
+[`array_from_mandel66`](@ref): the Kelvin-Mandel 3×3 matrix of a 2×2×2×2 array,
+minor-symmetrized on read, in the order (11, 22, 12) with weight `√2` on the
+last; and the minor-symmetric array it comes from.
+"""
+function mandel33_minor(arr::AbstractArray{T, 4}) where {T}
+    sq2 = sqrt(T(2))
+    Λ(I) = I ≤ 2 ? one(T) : sq2
+    v(i, j, k, l) = (arr[i, j, k, l] + arr[j, i, k, l] + arr[i, j, l, k] + arr[j, i, l, k]) / 4
+    return [Λ(I) * Λ(J) * v(_MANDEL_IDX_2D[I]..., _MANDEL_IDX_2D[J]...) for I in 1:3, J in 1:3]
+end
+
+"The minor-symmetric 2×2×2×2 array of a 3×3 Kelvin-Mandel matrix; see [`mandel33_minor`](@ref)."
+function array_from_mandel33(M::AbstractMatrix{T}) where {T}
+    sq2 = sqrt(T(2))
+    Λ(I) = I ≤ 2 ? one(T) : sq2
+    slot(i, j) = i == j ? i : 3
+    return [M[slot(i, j), slot(k, l)] / (Λ(slot(i, j)) * Λ(slot(k, l))) for i in 1:2, j in 1:2, k in 1:2, l in 1:2]
+end
+
+"""
     _axis_frame(n) → (R, n̂)
 
 Return an orthonormal, right-handed frame `(e₁′, e₂′, n̂)` as the columns of a
@@ -132,44 +175,14 @@ function _inplane_reference(n̂::NTuple{3, T}, ::Type{T}) where {T}
     return (one(T), zero(T), zero(T))
 end
 
-# Components of a 4th-order array in the frame whose COLUMNS are given by R:
-# arr′[a,b,c,d] = R[i,a] R[j,b] R[k,c] R[l,d] arr[i,j,k,l], via four successive
-# single-index contractions (cost 4·3⁵ instead of 3⁸).
-function _rotate4(arr::AbstractArray{TA, 4}, R::AbstractMatrix{TR}) where {TA, TR}
-    T = promote_type(TA, TR)
-    t1 = zeros(T, 3, 3, 3, 3)
-    @inbounds for a in 1:3, j in 1:3, k in 1:3, l in 1:3
-        s = zero(T)
-        for i in 1:3
-            s += R[i, a] * arr[i, j, k, l]
-        end
-        t1[a, j, k, l] = s
-    end
-    t2 = zeros(T, 3, 3, 3, 3)
-    @inbounds for a in 1:3, b in 1:3, k in 1:3, l in 1:3
-        s = zero(T)
-        for j in 1:3
-            s += R[j, b] * t1[a, j, k, l]
-        end
-        t2[a, b, k, l] = s
-    end
-    t1 .= 0
-    @inbounds for a in 1:3, b in 1:3, c in 1:3, l in 1:3
-        s = zero(T)
-        for k in 1:3
-            s += R[k, c] * t2[a, b, k, l]
-        end
-        t1[a, b, c, l] = s
-    end
-    t2 .= 0
-    @inbounds for a in 1:3, b in 1:3, c in 1:3, d in 1:3
-        s = zero(T)
-        for l in 1:3
-            s += R[l, d] * t1[a, b, c, l]
-        end
-        t2[a, b, c, d] = s
-    end
-    return t2
+# The Kelvin-Mandel matrix `M` of a minor-symmetric tensor, written in the frame
+# whose columns are `E`: `Qᵀ M Q`, `Q` the Kelvin-Mandel matrix of `E ⊠ˢ E`
+# (`_km_congruence`), orthogonal for any orthogonal `E`, left-handed included.
+# A 6×6 congruence instead of the 81 components rotated index by index, and
+# minor symmetrization (`mandel66_minor`) commutes with it.
+function _km_in_frame_of(M::AbstractMatrix, E::AbstractMatrix)
+    Q = _km_congruence(E)
+    return transpose(Q) * SMatrix{6, 6}(M) * Q
 end
 
 # ── Closed-form azimuthal average about e₃ (Kelvin-Mandel, Tensors order) ────
@@ -249,7 +262,9 @@ subspace is `{𝕁, 𝕂}` in both cases), which is what distinguishes it from t
 coincide exactly on minor-symmetric input.
 """
 function isotropify(t::AbstractTens{4, 3})
-    arr = get_array(t)
+    # Traces: the same in every orthonormal frame, so `t` is read in its own
+    # (only a non-orthonormal basis needs its components changed).
+    arr = first(_orthonormal_components(t))
     α = sum(arr[i, i, j, j] for i in 1:3, j in 1:3) / 3
     full_trace = sum(arr[i, j, i, j] for i in 1:3, j in 1:3)
     β = (full_trace - α) / 5
@@ -326,7 +341,7 @@ end
 Exact SO(3) average of a 2nd-order tensor: `(tr t / 3) 𝟏`.
 """
 function isotropify(t::AbstractTens{2, 3})
-    arr = get_array(t)
+    arr = first(_orthonormal_components(t))   # a trace: any orthonormal frame
     λ = (arr[1, 1] + arr[2, 2] + arr[3, 3]) / 3
     return TensISO{3}(λ)
 end
@@ -355,10 +370,35 @@ function transverse_isotropify(t::TensTI{4}, n)
     return _transverse_isotropify(t, R, n̂)
 end
 
+"""
+    proj_tens(::Val{:TI6}, t, n) → (TensTI{4,T,6}, d, drel)
+
+Projection of a fourth-order tensor with the minor symmetries onto the
+transversely isotropic tensors about `n` **without** major symmetry: the six
+Walpole coefficients, ℓ₃ ≠ ℓ₄ allowed — the class of a strain or flux
+concentration tensor, where `proj_tens(Val(:TI), …)` returns the
+major-symmetric five. It is the exact average about `n`
+([`transverse_isotropify`](@ref)) without its two coefficients odd in `n`
+(ℓ₇, ℓ₈), which a reflection through the plane normal to `n` reverses: the
+orthogonal projection onto the tensors invariant under that reflection too.
+`d` is the Frobenius distance to `t`, `drel` its ratio to `‖t‖`.
+"""
+function proj_tens(::Val{:TI6}, t::AbstractTens{4, 3}, n)
+    a = transverse_isotropify(t, n)
+    ℓ = get_ℓ8(a)
+    B = TensTI{4}(ℓ[1], ℓ[2], ℓ[3], ℓ[4], ℓ[5], ℓ[6], axis(a))
+    d = norm(generic_tens(B) - t)
+    nt = norm(t)
+    return B, d, iszero(nt) ? d : d / nt
+end
+proj_tens(v::Val{:TI6}, A::AbstractArray{T, 4}, n) where {T} = proj_tens(v, Tens(A), n)
+
 function _transverse_isotropify(t::AbstractTens{4, 3}, R, n̂)
-    arr = get_array(t)
-    arr_ez = _rotate4(arr, R)
-    p = ti8_params_from_KM(mandel66_minor(arr_ez))
+    # The averaging frame `R` (columns u, v, n̂ in canonical coordinates) is
+    # brought into the orthonormal frame `t` is written in, a 3×3 product: the
+    # components of `t` are rotated once, into `R`, and never to canonical first.
+    arr, Q = _orthonormal_components(t)
+    p = ti8_params_from_KM(_km_in_frame_of(mandel66_minor(arr), _frame_in(Q, R)))
     return TensTI{4}(p..., n̂)
 end
 
@@ -372,29 +412,49 @@ in-plane part `c` is preserved (a symmetric TI parametrization would silently
 drop it).
 """
 function transverse_isotropify(t::AbstractTens{2, 3}, n)
-    arr = get_array(t)
+    # `t` is read in its own orthonormal frame and the axis brought into it.
+    arr, Q = _orthonormal_components(t)
     T0 = eltype(arr)
     nn = sqrt(n[1]^2 + n[2]^2 + n[3]^2)
     T = promote_type(T0, typeof(nn))
     n̂ = (T(n[1] / nn), T(n[2] / nn), T(n[3] / nn))
+    m = _vector_in(Q, n̂)
     b = zero(T)
     @inbounds for i in 1:3, j in 1:3
-        b += n̂[i] * arr[i, j] * n̂[j]
+        b += m[i] * arr[i, j] * m[j]
     end
     a = ((arr[1, 1] + arr[2, 2] + arr[3, 3]) - b) / 2
-    # c = (1/2) Σ w[i,j] t[i,j],  w[i,j] = ε[i,k,j] n̂[k]
-    c = (
-        n̂[1] * (arr[3, 2] - arr[2, 3]) +
-            n̂[2] * (arr[1, 3] - arr[3, 1]) +
-            n̂[3] * (arr[2, 1] - arr[1, 2])
-    ) / 2
+    c = _azimuthal_coupling(Q, n̂, arr)
     return TensTI{2}(a, b, c, n̂)
+end
+
+# The averaging frame, or the axis, in the orthonormal frame of a tensor whose
+# rotation to canonical is `Q` (`nothing`: the canonical frame itself).
+_frame_in(::Nothing, R) = R
+_frame_in(Q::AbstractMatrix, R) = transpose(Q) * R
+_vector_in(::Nothing, n̂) = n̂
+_vector_in(Q::AbstractMatrix, n̂) = transpose(Q) * collect(n̂)
+
+# c = (1/2) w : t, with w the generator `p ↦ n̂ × p` in canonical coordinates,
+# w[i,j] = ε[i,k,j] n̂[k].
+_azimuthal_coupling(::Nothing, n̂, arr) = (
+    n̂[1] * (arr[3, 2] - arr[2, 3]) +
+        n̂[2] * (arr[1, 3] - arr[3, 1]) +
+        n̂[3] * (arr[2, 1] - arr[1, 2])
+) / 2
+# In the frame of `t`, w is `Qᵀ w Q`. The cross product with `Qᵀ n̂` would equal
+# it only for a proper rotation (it flips sign in a left-handed frame), so the
+# generator itself is carried over.
+function _azimuthal_coupling(Q::AbstractMatrix, n̂, arr)
+    z = zero(n̂[1])
+    w = [z -n̂[3] n̂[2]; n̂[3] z -n̂[1]; -n̂[2] n̂[1] z]
+    return tr(transpose(transpose(Q) * w * Q) * arr) / 2
 end
 
 # ── Kelvin-Mandel block helpers ─────────────────────────────────────────────
 #
 # For callers working directly on 6×6 blocks rather than on tensors — the
-# ageing-viscoelastic Volterra matrices of MeanFieldHomogenization.jl are the
+# aging-viscoelastic Volterra matrices of MeanFieldHomogenization.jl are the
 # motivating case.
 
 """
@@ -404,15 +464,23 @@ Exact azimuthal average about `n` of the minor-symmetric tensor whose 6×6
 Kelvin-Mandel matrix (Tensors.jl order) is `M`, returned as a 6×6 matrix.
 """
 function ti_average_mandel66(M::AbstractMatrix, n)
-    R, n̂ = _axis_frame(n)
-    arr_ez = _rotate4(array_from_mandel66(M), R)
-    p = ti8_params_from_KM(mandel66_minor(arr_ez))
-    M_ez = KM_from_ti8_params(p)
-    # rotate back to the canonical frame: columns of R are (e₁′, e₂′, n̂), so
-    # the inverse basis change uses Rᵀ.
-    Rt = permutedims(R)
-    return mandel66_minor(_rotate4(array_from_mandel66(M_ez), Rt))
+    R, _ = _axis_frame(n)
+    # Into the frame (e₁′, e₂′, n̂) of the columns of R, averaged there, and back:
+    # `Q` is orthogonal, so the way back is its transpose.
+    Q = _km_congruence(R)
+    p = ti8_params_from_KM(_km_in_frame_of(M, R))
+    return Matrix(Q * SMatrix{6, 6}(KM_from_ti8_params(p)) * transpose(Q))
 end
+
+"""
+    ti_average_mat33(M::AbstractMatrix, n) → Matrix (3×3)
+
+Exact average about `n` of the second-order tensor whose canonical components
+are the 3×3 matrix `M`, returned as a matrix: `a (𝟏 − n⊗n) + b n⊗n + c [n]ₓ`,
+the in-plane antisymmetric part `c` kept (see [`transverse_isotropify`](@ref)).
+The order-2 counterpart of [`ti_average_mandel66`](@ref).
+"""
+ti_average_mat33(M::AbstractMatrix, n) = Array(get_array(transverse_isotropify(Tens(Matrix(M)), n)))
 
 """
     iso_average_mandel66(M::AbstractMatrix{T}) → (α, β)
@@ -435,4 +503,54 @@ end
 export transverse_isotropify
 export mandel66_minor, array_from_mandel66
 export ti8_params_from_KM, KM_from_ti8_params
-export ti_average_mandel66, iso_average_mandel66
+export ti_average_mandel66, iso_average_mandel66, ti_average_mat33
+export mandel66, mandel33_minor, array_from_mandel33
+
+"""
+    frame_from_axis(n; in_plane = nothing, T = nothing) -> RotatedBasis{3}
+
+The right-handed orthonormal basis ``(\\underline{\\ell}, \\underline{m}, \\underline{n})`` whose third vector is `n`
+normalized, `n` given by its canonical components (a 3-vector, a tuple or a
+first-order tensor). ``\\underline{\\ell}`` is the Gram–Schmidt projection of `in_plane` on the plane
+normal to ``\\underline{n}``, and ``\\underline{m} = \\underline{n}\\times\\underline{\\ell}``. Without `in_plane`, the reference is the
+canonical axis least aligned with `n` for comparable numbers, which never
+degenerates; for symbolic ones, the first canonical axis whose projection does
+not vanish identically. A frame equal to the canonical one is returned as the
+`CanonicalBasis` (see [`RotatedBasis`](@ref)), of the element type that
+[`euler_basis`](@ref) gives the data type `T` when `T` is given: a symbolic `T`
+keeps a symbolic canonical frame, whose exact `0` and `1` add no float to an
+exact result.
+
+Symbolic components are simplified once here (`tsimplify`), rather than in
+every component of every tensor later written in the frame.
+"""
+function frame_from_axis(n; in_plane = nothing, T = nothing)
+    ℬ = _frame_from_axis(n, in_plane)
+    return T === nothing || !(ℬ isa CanonicalBasis) ? ℬ : CanonicalBasis{3, canonical_eltype(T)}()
+end
+
+function _frame_from_axis(n, in_plane)
+    v = _extract_vec(n)
+    T = float_like(promote_type(map(typeof, v)...))
+    nn = sqrt(v[1]^2 + v[2]^2 + v[3]^2)
+    _refuse_zero(nn, "frame_from_axis: the axis is zero")
+    n̂ = SVector{3, T}(v[1] / nn, v[2] / nn, v[3] / nn)
+    a = SVector{3, T}(in_plane === nothing ? _inplane_reference(Tuple(n̂), T) : _extract_vec(in_plane))
+    ℓ = a - sum(a .* n̂) * n̂
+    nℓ = sqrt(sum(ℓ .* ℓ))
+    _refuse_zero(nℓ, "frame_from_axis: `in_plane` is parallel to the axis")
+    ℓ̂ = ℓ / nℓ
+    m̂ = SVector{3, T}(n̂[2] * ℓ̂[3] - n̂[3] * ℓ̂[2], n̂[3] * ℓ̂[1] - n̂[1] * ℓ̂[3], n̂[1] * ℓ̂[2] - n̂[2] * ℓ̂[1])
+    # A typed comprehension rather than `hcat`, which Symbolics overloads.
+    cols = (ℓ̂, m̂, n̂)
+    return RotatedBasis(tsimplify(T[cols[c][i] for i in 1:3, c in 1:3]))
+end
+
+
+# A zero length is refused where it can be decided; a symbolic one is the
+# caller's (no comparison answers on it).
+_refuse_zero(x, msg) = _refuse_zero(Val(is_hard_numeric(typeof(x))), x, msg)
+_refuse_zero(::Val{true}, x, msg) = iszero(x) ? throw(ArgumentError(msg)) : nothing
+_refuse_zero(::Val{false}, x, msg) = nothing
+
+export frame_from_axis
