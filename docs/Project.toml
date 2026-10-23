@@ -17,34 +17,12 @@ TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 TensND = "474b5345-2588-4284-8a58-2430a1a40cb0"
 Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 
-# Relative to this file, never absolute: `Pkg.develop` writes the path of the
-# machine it ran on into this section, so a local `Pkg.develop` followed by a
-# commit puts a `/home/...` path here that exists on no runner.  The
-# documentation workflow happens to rewrite it (`Pkg.develop(path = pwd())`
-# before `make.jl`), which is the only reason the absolute path that used to sit
-# here did not turn the job red.
-[sources]
-TensND = {path = ".."}
+[sources.TensND]
+path = ".."
 
 [compat]
 BenchmarkTools = "1"
 Documenter = "1.17"
-# Bounded on the major only, deliberately: the 1.x ceiling belongs to
-# DocumenterVitepress and is already declared there.
-#
-# Its registry entry carries a weak dependency `DocumenterCitations = "1 - 1.4"`
-# for every version from 0.0.21 on, so 1.5 and 0.3.x cannot be resolved together
-# — Pkg puts it as "restricted by compatibility requirements with
-# DocumenterVitepress to versions 1.0.0 - 1.4.1". Writing `"1.4"` here would
-# repeat that ceiling and then need an edit the day DocumenterVitepress raises
-# it. `"1"` lets the resolver take the newest version both packages accept: 1.4.1
-# today, 1.5 and beyond by itself later, with no change to this file. The
-# `CitationSiteNode` override in `make.jl` is guarded so it starts applying on the
-# same day.
-#
-# For the record, since nothing in this repository caused the breakage: the docs
-# environment is resolved afresh on every CI run, so the release of
-# DocumenterCitations 1.5.0 broke a job that had passed the day before.
 DocumenterCitations = "1"
 DocumenterVitepress = "0.3"
 ForwardDiff = "0.10, 1"
@@ -52,22 +30,12 @@ JSON = "1"
 LinearAlgebra = "1"
 Literate = "2"
 Printf = "1"
-# PyCall 1.97.0, registered on 2026-10-19, reaches Python without the GIL from
-# the `hash` SymPy.jl defines: segmentation faults in the tests and documentation
-# of MeanFieldHomogenization the day it came out. This bound excludes that
-# release only, so that any later one is taken as soon as it is registered.
-PyCall = "< 1.97.0, >= 1.97.1"
+PyCall = "1"
 Rotations = "1"
 StaticArrays = "1"
 SymPy = "2"
 Symbolics = "6, 7"
 TOML = "1"
-# The package itself is built from `..`, so this bound is never used to pick a
-# version — it exists only so CompatHelper stops opening a pull request asking
-# for one.  It is deliberately open across the whole 0.x series: pinning the
-# current minor (`"0.4"`) would make this environment fail to resolve the day
-# the package is bumped to 0.5, with "empty intersection between TensND@0.5.0
-# and project compatibility 0.4".  Widen to `"0, 1"` when 1.0 is released.
 TensND = "0"
 Tensors = "1"
 julia = "1.12"
