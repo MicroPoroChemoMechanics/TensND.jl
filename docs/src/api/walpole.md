@@ -10,7 +10,6 @@ TI parametrizations. Theory: [The Walpole basis](@ref th-walpole),
 ```@docs
 TensTI
 TensOrtho
-Walpole
 walpole_basis
 walpole_basis_sym
 tens_W1

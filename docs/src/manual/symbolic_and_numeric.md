@@ -112,12 +112,12 @@ expression size — not operation count — dominates. Three practical consequen
 
 - **simplify early and often.** An unsimplified intermediate propagates into
   every later expression. This is what the `rules` / `tmp_var` / `to_coords`
-  machinery of [`CoorSystemSym`](@ref) exists for.
+  machinery of [`CoordinateSystem`](@ref) exists for.
 - **derive symbolically, evaluate numerically.** Obtain the closed form once,
   then substitute with [`tsubs`](@ref) or generate a numeric function from it.
 - **prefer a structured type over a dense array** whenever the physics allows —
   the measured gains are one to three orders of magnitude, see
   [Performance of the structured types](@ref).
 
-For pointwise numerical work, [`CoorSystemNum`](@ref) avoids the symbolic layer
+For pointwise numerical work, the pointwise [`CoordinateSystem`](@ref) avoids the symbolic layer
 entirely and costs a constant amount per point.

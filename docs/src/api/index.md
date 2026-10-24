@@ -13,9 +13,9 @@ curated, so a newly exported symbol can never go undocumented.
 | [Cubic symmetry](cubic.md) | `TensCubic`, three constants and a cube frame |
 | [Projection](projection.md) | `proj_tens`, `best_sym_tens`, predicates |
 | [Special tensors](special.md) | Levi-Civita, rotations, unit vectors |
-| [Coordinate systems](coorsystems.md) | `CoorSystemSym` and the operators |
-| [Numerical coordinate systems](coorsystems_num.md) | `CoorSystemNum` |
-| [Submanifolds](submanifold.md) | `SubManifoldSym` and its accessors |
+| [Coordinate systems](coorsystems.md) | `CoordinateSystem`, its exact geometry and the operators |
+| [Numerical coordinate systems](coorsystems_num.md) | `PointwiseGeometry` |
+| [Submanifolds](submanifold.md) | `Submanifold` and its accessors |
 | [Symbolic helpers](symbolic.md) | `tsimplify`, `tsubs`, and the array algebra |
 | [Full index](full_index.md) | everything, alphabetically |
 
@@ -43,6 +43,9 @@ warning.
 | `LeviCivita` | [`levi_civita`](@ref) |
 | `Christoffel`, `Lame`, `getOM` | [`christoffel`](@ref), [`lame_coefficients`](@ref), [`position_vector`](@ref) |
 | `GRAD`, `SYMGRAD`, `DIV`, `LAPLACE`, `HESS` | [`grad`](@ref), [`symgrad`](@ref), [`divergence`](@ref), [`laplacian`](@ref), [`hess`](@ref) |
+| `CoorSystemSym`, `CoorSystemNum` (types and constructors) | [`CoordinateSystem`](@ref), of an [`ExactGeometry`](@ref) or a [`PointwiseGeometry`](@ref) |
+| `coorsys_cartesian_num`, `coorsys_polar_num`, `coorsys_cylindrical_num`, `coorsys_spherical_num` | `coorsys_cartesian(PointwiseGeometry)`, … (with an optional element type, `coorsys_polar(PointwiseGeometry, Float32)`) |
+| `SubManifoldSym` | [`Submanifold`](@ref) |
 | `E_nu`, `k_mu`, `mu_nu`, `iso_stiffness_E_nu` | [`young_poisson`](@ref), [`bulk_shear`](@ref), [`shear_poisson`](@ref), [`iso_stiffness_young_poisson`](@ref); the former names stay as aliases |
 
 `divergence` is Tensors.jl's function, extended to the coordinate systems, so

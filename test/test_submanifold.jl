@@ -1,6 +1,6 @@
 @testsection "Submanifolds" begin
 
-    # `SubManifoldSym` builds the induced geometry of a hypersurface given by a
+    # `Submanifold` builds the induced geometry of a hypersurface given by a
     # symbolic parametrization `OM(coords)`: unit normal, first fundamental
     # form (`submetric`), second fundamental form (`curvature`) and the
     # connection coefficients (`connection`).
@@ -17,9 +17,9 @@
         R = symbols("R", positive = true)
         θ, ϕ = symbols("θ ϕ", real = true)
         OM = R * Tens(Vec{3}([sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]))
-        SM = SubManifoldSym(OM, (θ, ϕ))
+        SM = Submanifold(OM, (θ, ϕ))
 
-        @test SM isa SubManifoldSym{3}
+        @test SM isa Submanifold{3}
 
         n = components_canon(normal(SM))
         # Unit normal.
@@ -58,7 +58,7 @@
         R = symbols("R", positive = true)
         θ, ϕ = symbols("θ ϕ", real = true)
         OM = R * Tens(Vec{3}([sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]))
-        SM = SubManifoldSym(OM, (θ, ϕ))
+        SM = Submanifold(OM, (θ, ϕ))
 
         Γ = connection(SM)
         @test size(Γ) == (2, 2, 2)
@@ -77,7 +77,7 @@
         R = symbols("R", positive = true)
         ϕ, z = symbols("ϕ z", real = true)
         OM = Tens(Vec{3}([R * cos(ϕ), R * sin(ϕ), z]))
-        SM = SubManifoldSym(OM, (ϕ, z))
+        SM = Submanifold(OM, (ϕ, z))
 
         a = Array(components(submetric(SM)))
         b = Array(components(curvature(SM)))
@@ -101,7 +101,7 @@
     @testsection "Plane — flat submanifold" begin
         x, y = symbols("x y", real = true)
         OM = Tens(Vec{3}([x, y, Sym(0)]))
-        SM = SubManifoldSym(OM, (x, y))
+        SM = Submanifold(OM, (x, y))
 
         a = Array(components(submetric(SM)))
         b = Array(components(curvature(SM)))
@@ -129,7 +129,7 @@
         # Cartesian ones — the cheapest non-trivial check of ∂/grad/divergence/laplacian.
         x, y = symbols("x y", real = true)
         OM = Tens(Vec{3}([x, y, Sym(0)]))
-        SM = SubManifoldSym(OM, (x, y))
+        SM = Submanifold(OM, (x, y))
 
         f = x^2 * y + 3y
         @test tsimplify(∂(f, 1, SM) - 2x * y) == 0

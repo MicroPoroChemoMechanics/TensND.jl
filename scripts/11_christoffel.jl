@@ -97,12 +97,12 @@ get_array(𝐞ʳ), tsimplify(divergence(𝐞ʳ))
 
 # ## Symbolic and numerical routes agree
 #
-# [`CoorSystemNum`](@ref) evaluates the same geometry pointwise with
+# the pointwise [`CoordinateSystem`](@ref) evaluates the same geometry pointwise with
 # `ForwardDiff` instead of SymPy. The Christoffel closure uses the same
 # ``\Gamma[i,j,k]=\Gamma^k_{ij}`` convention, so the two can be compared
 # directly.
 
-CSnum = coorsys_spherical_num()
+CSnum = coorsys_spherical(PointwiseGeometry)
 x₀ = [0.7, 1.1, 2.3]                       # (θ, ϕ, r)
 
 Γnum = christoffel(CSnum, x₀)
@@ -118,7 +118,7 @@ println("‖Γ_num − Γ_sym‖ at (θ,ϕ,r) = ", x₀, " : ", norm(Γnum - Γs
 # ## A custom chart: prolate spheroidal coordinates
 #
 # Non-trivial charts produce metric expressions SymPy will not reduce on its
-# own. [`CoorSystemSym`](@ref) therefore accepts auxiliary variables and rewrite
+# own. [`CoordinateSystem`](@ref) therefore accepts auxiliary variables and rewrite
 # rules — `tmp_coords` standing for compound expressions, `tmp_var` substituting
 # them in, and `to_coords` eliminating them again before differentiation.
 #
@@ -167,7 +167,7 @@ end
 # ## Building a chart from an `OM` function alone
 #
 # The numerical route needs no symbolic setup at all: hand
-# [`CoorSystemNum`](@ref) a differentiable position map and it derives the Lamé
+# the pointwise [`CoordinateSystem`](@ref) a differentiable position map and it derives the Lamé
 # coefficients, the rotation to the normalized frame and the Christoffel symbols
 # by automatic differentiation.
 #
@@ -176,7 +176,7 @@ end
 
 a_ell = 2.0
 OM_elliptic = x -> [a_ell * cosh(x[1]) * cos(x[2]), a_ell * sinh(x[1]) * sin(x[2])]
-CS_ell = CoorSystemNum(OM_elliptic, 2)
+CS_ell = CoordinateSystem(OM_elliptic, 2)
 
 x_ell = [1.0, 0.8]
 χ_ell = lame_coefficients(CS_ell, x_ell)

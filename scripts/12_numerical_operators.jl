@@ -8,7 +8,7 @@
 #
 # Theory: [Curvilinear differential calculus](@ref th-curvilinear).
 #
-# A [`CoorSystemNum`](@ref) stores its geometry as three closures — the Lamé
+# A pointwise [`CoordinateSystem`](@ref) stores its geometry as three closures — the Lamé
 # coefficients, the rotation to the normalized frame, and the Christoffel
 # symbols — all evaluated at the point of interest. A field is an ordinary Julia
 # function of the coordinate vector, and an operator returns a **function**,
@@ -31,7 +31,7 @@ using ForwardDiff
 # The exact result is ``(n^2-m^2)\,r^{n-2}\sin m\theta``, so the harmonic case
 # ``n=m`` must vanish.
 
-CS_polar = coorsys_polar_num()
+CS_polar = coorsys_polar(PointwiseGeometry)
 r₀, θ₀ = 2.5, 0.7
 
 println("  n  m       numerical        exact")
@@ -48,7 +48,7 @@ end
 # **third**. The exact results are ``\nabla(r^n)=n r^{n-1}\underline{e}^r`` and
 # ``\nabla^2(r^n)=n(n+1)r^{n-2}``.
 
-CS_sph = coorsys_spherical_num()
+CS_sph = coorsys_spherical(PointwiseGeometry)
 x₀ = [π / 4, π / 3, 3.0]
 
 println("   n     ∇[e_r]         exact          ∇²             exact")
@@ -187,7 +187,7 @@ dε_ad = ForwardDiff.derivative(εθθ_of_p, p_i)
 # for which ``\chi_1=\chi_2=a\sqrt{\sinh^2\mu+\sin^2\nu}``:
 
 a_ell = 2.0
-CS_ell = CoorSystemNum(x -> [a_ell * cosh(x[1]) * cos(x[2]), a_ell * sinh(x[1]) * sin(x[2])], 2)
+CS_ell = CoordinateSystem(x -> [a_ell * cosh(x[1]) * cos(x[2]), a_ell * sinh(x[1]) * sin(x[2])], 2)
 x_ell = [1.0, 0.8]
 
 (lame_coefficients(CS_ell, x_ell), a_ell * sqrt(sinh(x_ell[1])^2 + sin(x_ell[2])^2))

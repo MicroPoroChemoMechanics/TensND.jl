@@ -6,11 +6,11 @@
     # Cartesian 3D
     # ─────────────────────────────────────────────────────────────
     @testsection "Cartesian (numeric)" begin
-        CS = coorsys_cartesian_num()
+        CS = coorsys_cartesian(PointwiseGeometry)
         x₀ = [1.0, 2.0, 3.0]
 
         # Christoffel symbols vanish in Cartesian
-        Γ = CS.Γ_func(x₀)
+        Γ = christoffel(CS, x₀)
         @test all(abs.(Γ) .< tol)
 
         # normalized_basis returns a CanonicalBasis (identity rotation)
@@ -55,13 +55,13 @@
     # Polar 2D
     # ─────────────────────────────────────────────────────────────
     @testsection "Polar (numeric)" begin
-        CS = coorsys_polar_num()
+        CS = coorsys_polar(PointwiseGeometry)
         r₀, θ₀ = 2.0, π / 4
         x₀ = [r₀, θ₀]
 
         # Christoffel symbols for polar: Γ²₁₂ = Γ²₂₁ = 1/r, Γ¹₂₂ = -r
         # Convention: Γ[i,j,k] = Γᵏᵢⱼ
-        Γ = CS.Γ_func(x₀)
+        Γ = christoffel(CS, x₀)
         @test Γ[2, 2, 1] ≈ -r₀   atol = tol   # Γ¹₂₂ = -r
         @test Γ[1, 2, 2] ≈ 1 / r₀  atol = tol   # Γ²₁₂ = 1/r
         @test Γ[2, 1, 2] ≈ 1 / r₀  atol = tol   # Γ²₂₁ = 1/r
@@ -99,12 +99,12 @@
     # Spherical 3D — consistency with symbolic results
     # ─────────────────────────────────────────────────────────────
     @testsection "Spherical (numeric)" begin
-        CS = coorsys_spherical_num()
+        CS = coorsys_spherical(PointwiseGeometry)
         θ₀, ϕ₀, r₀ = π / 3, π / 4, 2.0
         x₀ = [θ₀, ϕ₀, r₀]
 
         # Christoffel symbols (non-zero for spherical, coords = θ,ϕ,r)
-        Γ = CS.Γ_func(x₀)
+        Γ = christoffel(CS, x₀)
 
         # Known non-zero Christoffel symbols for spherical (θ,ϕ,r) ordering,
         # Lamé = (r, r·sinθ, 1):
@@ -199,18 +199,18 @@
     @testsection "Generic OM constructor — cylindrical" begin
         # Build cylindrical from OM(r,θ,z) = (r·cosθ, r·sinθ, z)
         OM_cyl = x -> [x[1] * cos(x[2]), x[1] * sin(x[2]), x[3]]
-        CS_gen = CoorSystemNum(OM_cyl, 3)
-        CS_ref = coorsys_cylindrical_num()
+        CS_gen = CoordinateSystem(OM_cyl, 3)
+        CS_ref = coorsys_cylindrical(PointwiseGeometry)
 
         r₀, θ₀, z₀ = 2.0, π / 6, 1.0
         x₀ = [r₀, θ₀, z₀]
 
-        Γ_gen = CS_gen.Γ_func(x₀)
-        Γ_ref = CS_ref.Γ_func(x₀)
+        Γ_gen = christoffel(CS_gen, x₀)
+        Γ_ref = christoffel(CS_ref, x₀)
         @test Γ_gen ≈ Γ_ref atol = 1.0e-8
 
-        χ_gen = CS_gen.χ_func(x₀)
-        χ_ref = CS_ref.χ_func(x₀)
+        χ_gen = lame_coefficients(CS_gen, x₀)
+        χ_ref = lame_coefficients(CS_ref, x₀)
         @test χ_gen ≈ χ_ref atol = 1.0e-10
 
         # Laplacian of r² in cylindrical = 4

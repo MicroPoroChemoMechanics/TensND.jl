@@ -255,7 +255,7 @@ of a Cartesian chart.
     [`christoffel`](@ref) returns a ``d\times d\times d`` array indexed
     ``\Gamma[i,j,k]=\Gamma^k_{ij}``: the **contravariant index is last**. The
     same convention is used by the `Γ_func` closure of
-    [`CoorSystemNum`](@ref).
+    the pointwise [`CoordinateSystem`](@ref).
 
 ## The five operators
 
@@ -300,7 +300,7 @@ a displacement field it is directly the linearized strain tensor.
 The operators have the same names and meaning whether the derivatives are taken
 symbolically or by automatic differentiation.
 
-| | [`CoorSystemSym`](@ref) | [`CoorSystemNum`](@ref) |
+| | [`CoordinateSystem`](@ref) | the pointwise [`CoordinateSystem`](@ref) |
 | :--- | :--- | :--- |
 | derivatives | SymPy / Symbolics, exact | `ForwardDiff`, machine precision |
 | stores | ``\underline{OM}``, bases, ``\chi_i``, ``\Gamma`` as **expressions** | ``\chi``, ``R``, ``\Gamma`` as **closures**, evaluated pointwise |
@@ -309,7 +309,7 @@ symbolically or by automatic differentiation.
 | needs | a symbolic ``\underline{OM}`` | any differentiable `OM(x)` |
 | best for | deriving and simplifying closed forms | evaluating fields, sweeps, gradients |
 
-`CoorSystemNum` stores its geometry as three closures — `χ_func` (Lamé),
+A [`PointwiseGeometry`](@ref) stores the geometry as three closures — `χ_func` (Lamé),
 `R_func` (the rotation to the normalized frame) and `Γ_func` (Christoffel, with
 the ``\Gamma[i,j,k]=\Gamma^k_{ij}`` convention) — so a custom system needs only a
 differentiable position map, with no symbolic setup at all.
@@ -325,7 +325,7 @@ coordinate system is handled correctly.
 ## Simplification machinery
 
 Non-trivial symbolic charts — the spheroidal one is the standard example —
-produce metric expressions that SymPy will not reduce on its own. `CoorSystemSym`
+produce metric expressions that SymPy will not reduce on its own. The exact `CoordinateSystem`
 therefore accepts:
 
 | Argument | Role |

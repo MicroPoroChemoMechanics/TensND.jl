@@ -1,42 +1,45 @@
 using ForwardDiff
 
 """
-    CoorSystemNum{dim,T<:Real} <: AbstractCoorSystem{dim,T}
+    PointwiseGeometry{X,R,G} <: AbstractGeometry
 
-Numerical coordinate system for automatic-differentiation-based differential operators.
+The geometry of a chart as three functions of the point `x` (an `AbstractVector`
+of coordinates), for differential operators by automatic differentiation:
 
-Stores three point-wise functions:
-- `χ_func(x)` : Lamé coefficients at point `x`
-- `R_func(x)`  : rotation matrix (columns = unit vectors of the normalized basis) at `x`
-- `Γ_func(x)`  : Christoffel symbols at `x` → `Array{T,3}` with `Γ[i,j,k] = Γᵏᵢⱼ`
+- `χ_func(x)` : the Lamé coefficients at `x`;
+- `R_func(x)` : the rotation matrix whose columns are the unit vectors of the
+  normalized basis at `x`, in Cartesian components;
+- `Γ_func(x)` : the Christoffel symbols at `x`, `Γ[i,j,k] = Γᵏᵢⱼ`.
 
-All three functions accept an `AbstractVector` of coordinates and are called at each
-evaluation point. Predefined constructors are available:
+A [`CoordinateSystem`](@ref) of this geometry takes fields as functions of the
+point and returns functions of the point: `grad(f, CS)` is `x₀ -> ∇f(x₀)`. The
+bases and the Lamé coefficients depend on the point too, and are read with it:
+`normalized_basis(CS, x₀)`, `lame_coefficients(CS, x₀)`, ….
 
-    coorsys_cartesian_num(T=Float64)
-    coorsys_polar_num(T=Float64)
-    coorsys_cylindrical_num(T=Float64)
-    coorsys_spherical_num(T=Float64)
-
-A generic constructor from an `OM::Function` (position vector) is also provided:
-
-    CoorSystemNum(OM::Function, dim::Integer, T::Type=Float64)
-
-Unlike `CoorSystemSym`, the normalized basis, natural basis vectors, Lamé coefficients,
-and Christoffel symbols all depend on the evaluation point `x₀` and are accessed via
-point-wise accessors `normalized_basis(CS, x₀)`, `natural_basis(CS, x₀)`, etc.
+Predefined: `coorsys_cartesian(PointwiseGeometry)`, `coorsys_polar(PointwiseGeometry)`,
+`coorsys_cylindrical(PointwiseGeometry)`, `coorsys_spherical(PointwiseGeometry)`,
+each with an optional element type (`Float64` by default); any chart from its
+position vector with `CoordinateSystem(OM_func, dim, T)`.
 """
-struct CoorSystemNum{dim, T <: Real, X, R, G} <: AbstractCoorSystem{dim, T}
+struct PointwiseGeometry{X, R, G} <: AbstractGeometry
+    # The three functions are type parameters rather than `::Function` fields,
+    # so that what they return is inferred.
     χ_func::X   # x -> Vector of Lamé coefficients
     R_func::R   # x -> Matrix  (columns = unit vectors eᵢ in Cartesian frame)
     Γ_func::G   # x -> Array{T,3}  Γ[i,j,k] = Γᵏᵢⱼ
-    # The three functions are type parameters rather than `::Function` fields,
-    # so that what they return is inferred.
-    CoorSystemNum{dim, T}(χ_func::X, R_func::R, Γ_func::G) where {dim, T <: Real, X, R, G} =
-        new{dim, T, X, R, G}(χ_func, R_func, Γ_func)
 end
 
-get_dim(::CoorSystemNum{dim}) where {dim} = dim
+# The pointwise systems, and how a dimension and an element type make one.
+const _PointwiseSystem{dim, T} = CoordinateSystem{dim, T, <:PointwiseGeometry}
+CoordinateSystem{dim, T}(g::PointwiseGeometry) where {dim, T <: Real} =
+    CoordinateSystem{dim, T, typeof(g)}(g)
+_pointwise_system(::Val{dim}, ::Type{T}, χ_func, R_func, Γ_func) where {dim, T} =
+    CoordinateSystem{dim, T}(PointwiseGeometry(χ_func, R_func, Γ_func))
+
+# The three functions of a pointwise system.
+_χ_func(CS::_PointwiseSystem) = getfield(CS, :geometry).χ_func
+_R_func(CS::_PointwiseSystem) = getfield(CS, :geometry).R_func
+_Γ_func(CS::_PointwiseSystem) = getfield(CS, :geometry).Γ_func
 
 # ─────────────────────────────────────────────────────────────────
 # Christoffel symbol helpers
@@ -156,7 +159,7 @@ _plain_value(v) = v
 _plain_field(f) = x -> _plain_value(f(x))
 
 """
-    ∂(f::Function, i::Integer, CS::CoorSystemNum, x₀)
+    ∂(f::Function, i::Integer, CS::_PointwiseSystem, x₀)
 
 Covariant derivative of `f` with respect to the `i`-th coordinate, evaluated at `x₀`.
 
@@ -167,7 +170,7 @@ Returns a plain scalar or plain `Array` (suitable for further `ForwardDiff` diff
 See also `grad`, `divergence`, `laplacian`, `hess`, `symgrad` for high-level operators that wrap
 results in `AbstractTens`.
 """
-function ∂(f::Function, i::Integer, CS::CoorSystemNum{dim, T}, x₀::AbstractVector) where {dim, T}
+function ∂(f::Function, i::Integer, CS::_PointwiseSystem{dim, T}, x₀::AbstractVector) where {dim, T}
     f_arr = _plain_field(f)
     return _∂(f_arr(x₀), f_arr, i, CS, x₀)
 end
@@ -179,80 +182,80 @@ function _∂(::Number, f_arr, i, CS, x₀)
 end
 
 function _∂(val::AbstractArray, f_arr, i, CS, x₀)
-    χ₀ = CS.χ_func(x₀)
+    χ₀ = _χ_func(CS)(x₀)
     order = ndims(val)
     # Convert to natural contravariant components: t_nat = t_phys / (χᵢ₁ ⋯ χᵢₙ)
-    f_nat = x -> f_arr(x) ./ _χ_outer(CS.χ_func(x), order)
+    f_nat = x -> f_arr(x) ./ _χ_outer(_χ_func(CS)(x), order)
     Jac_nat = ForwardDiff.jacobian(x -> vec(f_nat(x)), collect(x₀))
     ∂_nat = reshape(Jac_nat[:, i], size(val))
     # Christoffel correction in natural contravariant frame
     val_nat = val ./ _χ_outer(χ₀, order)
-    Γᵢ = CS.Γ_func(x₀)[i, :, :]
+    Γᵢ = _Γ_func(CS)(x₀)[i, :, :]
     correction_nat = _apply_christoffel(Array(val_nat), Γᵢ)
     # Convert back to physical (normalized) components
     return (∂_nat .+ correction_nat) .* _χ_outer(χ₀, order)
 end
 
 # ─────────────────────────────────────────────────────────────────
-# Point-wise basis accessors (analogues of CoorSystemSym fields)
+# Point-wise basis accessors (the exact geometry stores them as fields)
 # ─────────────────────────────────────────────────────────────────
 
 """
-    normalized_basis(CS::CoorSystemNum, x₀) → AbstractBasis
+    normalized_basis(CS::_PointwiseSystem, x₀) → AbstractBasis
 
 Return the normalized (orthonormal) basis at point `x₀` as a `RotatedBasis` or
 `CanonicalBasis` (when the system is Cartesian at that point).
 """
-function normalized_basis(CS::CoorSystemNum{dim, T}, x₀::AbstractVector) where {dim, T}
-    R = CS.R_func(x₀)
+function normalized_basis(CS::_PointwiseSystem{dim, T}, x₀::AbstractVector) where {dim, T}
+    R = _R_func(CS)(x₀)
     ET = eltype(R)
     return RotatedBasis(Matrix{ET}(R))
 end
 
 """
-    natural_basis(CS::CoorSystemNum, x₀) → AbstractBasis
+    natural_basis(CS::_PointwiseSystem, x₀) → AbstractBasis
 
 Return the natural (non-normalized) basis at point `x₀` as an `OrthogonalBasis`
 (i.e. a `RotatedBasis` scaled by the Lamé coefficients).
 """
-function natural_basis(CS::CoorSystemNum{dim, T}, x₀::AbstractVector) where {dim, T}
+function natural_basis(CS::_PointwiseSystem{dim, T}, x₀::AbstractVector) where {dim, T}
     ℬnorm = normalized_basis(CS, x₀)
-    χ = CS.χ_func(x₀)
+    χ = _χ_func(CS)(x₀)
     ET = eltype(χ)
     return Basis(ℬnorm, Vector{ET}(χ))
 end
 
 """
-    natvec(CS::CoorSystemNum, x₀, i, var=:cov) → AbstractTens
+    natvec(CS::_PointwiseSystem, x₀, i, var=:cov) → AbstractTens
 
 Return the `i`-th natural basis vector at point `x₀`, either covariant (`var=:cov`,
 proportional to `χᵢ`) or contravariant (`var=:cont`, proportional to `1/χᵢ`).
 """
-natvec(CS::CoorSystemNum, x₀::AbstractVector, i::Integer, var::Symbol = :cov) =
+natvec(CS::_PointwiseSystem, x₀::AbstractVector, i::Integer, var::Symbol = :cov) =
     _by_variance(natvec, var, CS, x₀, i)
 
-function natvec(CS::CoorSystemNum{dim}, x₀::AbstractVector, i::Integer, ::Val{:cov}) where {dim}
-    χ = CS.χ_func(x₀)
+function natvec(CS::_PointwiseSystem{dim}, x₀::AbstractVector, i::Integer, ::Val{:cov}) where {dim}
+    χ = _χ_func(CS)(x₀)
     ET = eltype(χ)
     data = Vec{dim}(j -> j == i ? χ[i] : zero(ET))
     return Tens(data, normalized_basis(CS, x₀), (:cov,))
 end
 
-function natvec(CS::CoorSystemNum{dim}, x₀::AbstractVector, i::Integer, ::Val{:cont}) where {dim}
-    χ = CS.χ_func(x₀)
+function natvec(CS::_PointwiseSystem{dim}, x₀::AbstractVector, i::Integer, ::Val{:cont}) where {dim}
+    χ = _χ_func(CS)(x₀)
     ET = eltype(χ)
     data = Vec{dim}(j -> j == i ? one(ET) / χ[i] : zero(ET))
     return Tens(data, normalized_basis(CS, x₀), (:cont,))
 end
 
 """
-    unitvec(CS::CoorSystemNum, x₀, i) → AbstractTens
+    unitvec(CS::_PointwiseSystem, x₀, i) → AbstractTens
 
 Return the `i`-th unit vector of the normalized basis at point `x₀`.
 """
-function unitvec(CS::CoorSystemNum{dim, T}, x₀::AbstractVector, i::Integer) where {dim, T}
+function unitvec(CS::_PointwiseSystem{dim, T}, x₀::AbstractVector, i::Integer) where {dim, T}
     ℬnorm = normalized_basis(CS, x₀)
-    ET = eltype(CS.χ_func(x₀))
+    ET = eltype(_χ_func(CS)(x₀))
     data = Vec{dim}(j -> j == i ? one(ET) : zero(ET))
     return Tens(data, ℬnorm, (:cov,))
 end
@@ -261,19 +264,19 @@ end
 # Point-wise accessors (override AbstractCoorSystem field access)
 # ─────────────────────────────────────────────────────────────────
 
-lame_coefficients(CS::CoorSystemNum, x::AbstractVector) = CS.χ_func(x)
-christoffel(CS::CoorSystemNum, x::AbstractVector) = CS.Γ_func(x)
+lame_coefficients(CS::_PointwiseSystem, x::AbstractVector) = _χ_func(CS)(x)
+christoffel(CS::_PointwiseSystem, x::AbstractVector) = _Γ_func(CS)(x)
 
 # ─────────────────────────────────────────────────────────────────
 # Internal raw operators — return plain Arrays (ForwardDiff-safe)
 # Used internally by laplacian and hess to avoid creating bases with Dual numbers
 # ─────────────────────────────────────────────────────────────────
 
-function _grad_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function _grad_raw(f::Function, CS::_PointwiseSystem{dim}) where {dim}
     return function (x₀::AbstractVector)
         f_arr = _plain_field(f)
         val = f_arr(x₀)
-        χ = CS.χ_func(x₀)
+        χ = _χ_func(CS)(x₀)
         # The buffer must hold both the geometry (χ, from the coordinate system)
         # and the field value. Taking `eltype(χ)` alone makes the operators
         # undifferentiable with respect to a parameter carried by the *field*:
@@ -284,12 +287,12 @@ function _grad_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
     end
 end
 
-function _grad_at(::Number, f_arr, CS::CoorSystemNum{dim}, χ, ET, x₀) where {dim}
+function _grad_at(::Number, f_arr, CS::_PointwiseSystem{dim}, χ, ET, x₀) where {dim}
     Jac = ForwardDiff.jacobian(x -> [f_arr(x)], collect(x₀))
     return [Jac[1, i] / χ[i] for i in 1:dim]
 end
 
-function _grad_at(val::AbstractArray, f_arr, CS::CoorSystemNum{dim}, χ, ET, x₀) where {dim}
+function _grad_at(val::AbstractArray, f_arr, CS::_PointwiseSystem{dim}, χ, ET, x₀) where {dim}
     order = ndims(val)
     result = zeros(ET, size(val)..., dim)
     for i in 1:dim
@@ -298,11 +301,11 @@ function _grad_at(val::AbstractArray, f_arr, CS::CoorSystemNum{dim}, χ, ET, x�
     return result
 end
 
-function _div_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function _div_raw(f::Function, CS::_PointwiseSystem{dim}) where {dim}
     return function (x₀::AbstractVector)
         f_arr = _plain_field(f)
         val = f_arr(x₀)
-        χ = CS.χ_func(x₀)
+        χ = _χ_func(CS)(x₀)
         order = ndims(val)
         result_size = size(val)[1:(end - 1)]
         # Same promotion as in `_grad_raw`: the buffer holds geometry *and*
@@ -322,13 +325,13 @@ end
 # ─────────────────────────────────────────────────────────────────
 
 """
-    grad(f::Function, CS::CoorSystemNum) -> Function
+    grad(f::Function, CS::_PointwiseSystem) -> Function
 
 Return a function `x₀ -> gradient` as an `AbstractTens` in the normalized basis at `x₀`.
 - If `f` returns a scalar, the gradient is a rank-1 `AbstractTens`.
 - If `f` returns a rank-`n` `AbstractTens` or array, the gradient is a rank-`n+1` `AbstractTens`.
 """
-function grad(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function grad(f::Function, CS::_PointwiseSystem{dim}) where {dim}
     return function (x₀::AbstractVector)
         f_arr = _plain_field(f)
         val = f_arr(x₀)
@@ -342,12 +345,12 @@ _grad_tens(::Number, G, ℬ::AbstractBasis{dim}) where {dim} = Tens(Vec{dim}(i -
 _grad_tens(val::AbstractArray, G, ℬ) = Tens(G, ℬ, ntuple(_ -> :cont, ndims(val) + 1))
 
 """
-    symgrad(f::Function, CS::CoorSystemNum) -> Function
+    symgrad(f::Function, CS::_PointwiseSystem) -> Function
 
 Return a function `x₀ -> symmetric gradient` as an `AbstractTens{2}` in the normalized
 basis at `x₀`. Applies to vector-valued functions `f`.
 """
-function symgrad(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function symgrad(f::Function, CS::_PointwiseSystem{dim}) where {dim}
     return function (x₀::AbstractVector)
         f_arr = _plain_field(f)
         G = _grad_raw(f_arr, CS)(x₀)   # dim×dim plain matrix
@@ -358,14 +361,14 @@ function symgrad(f::Function, CS::CoorSystemNum{dim}) where {dim}
 end
 
 """
-    divergence(f::Function, CS::CoorSystemNum) -> Function
+    divergence(f::Function, CS::_PointwiseSystem) -> Function
 
 Return a function `x₀ -> divergence` as a scalar (if `f` is a vector field) or
 `AbstractTens` (if `f` is a tensor field of order ≥ 2).
 
 `f` may return a plain `Array` or an `AbstractTens` (components are extracted via `Array`).
 """
-function divergence(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function divergence(f::Function, CS::_PointwiseSystem{dim}) where {dim}
     return function (x₀::AbstractVector)
         return _div_tens(_div_raw(f, CS)(x₀), CS, x₀)
     end
@@ -376,23 +379,23 @@ _div_tens(d::Number, CS, x₀) = d
 _div_tens(d::AbstractArray, CS, x₀) = Tens(d, normalized_basis(CS, x₀), ntuple(_ -> :cont, ndims(d)))
 
 """
-    laplacian(f::Function, CS::CoorSystemNum) -> Function
+    laplacian(f::Function, CS::_PointwiseSystem) -> Function
 
 Return a function `x₀ -> Laplacian` (scalar). Uses the raw (plain-array) gradient and
 divergence internally, so it is fully compatible with `ForwardDiff` differentiation.
 """
-function laplacian(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function laplacian(f::Function, CS::_PointwiseSystem{dim}) where {dim}
     f_arr = _plain_field(f)
     return x₀ -> _div_raw(_grad_raw(f_arr, CS), CS)(x₀)
 end
 
 """
-    hess(f::Function, CS::CoorSystemNum) -> Function
+    hess(f::Function, CS::_PointwiseSystem) -> Function
 
 Return a function `x₀ -> Hessian` as an `AbstractTens{2}` in the normalized basis.
 Uses the raw (plain-array) double gradient internally.
 """
-function hess(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function hess(f::Function, CS::_PointwiseSystem{dim}) where {dim}
     f_arr = _plain_field(f)
     return function (x₀::AbstractVector)
         H = _grad_raw(_grad_raw(f_arr, CS), CS)(x₀)
@@ -406,24 +409,24 @@ end
 # ─────────────────────────────────────────────────────────────────
 
 """
-    coorsys_cartesian_num(T=Float64)
+    coorsys_cartesian(PointwiseGeometry, T = Float64)
 
 Numerical Cartesian coordinate system in 3D. Coordinates: (x, y, z).
 """
-function coorsys_cartesian_num(::Type{T} = Float64) where {T <: Real}
+function coorsys_cartesian(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real}
     dim = 3
     χ_func = x -> fill(one(x[1]), dim)
     R_func = x -> [i == j ? one(x[1]) : zero(x[1]) for i in 1:dim, j in 1:dim]
     Γ_func = x -> zeros(typeof(x[1]), dim, dim, dim)
-    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
+    return _PointwiseSystem{dim, T}(χ_func, R_func, Γ_func)
 end
 
 """
-    coorsys_polar_num(T=Float64)
+    coorsys_polar(PointwiseGeometry, T = Float64)
 
 Numerical polar coordinate system. Coordinates: (r, θ). Lamé coefficients: (1, r).
 """
-function coorsys_polar_num(::Type{T} = Float64) where {T <: Real}
+function coorsys_polar(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real}
     dim = 2
     χ_func = (x::AbstractVector{<:Number}) -> [one(x[1]), x[1]]          # (1, r)
     R_func = (x::AbstractVector{<:Number}) -> begin
@@ -435,15 +438,15 @@ function coorsys_polar_num(::Type{T} = Float64) where {T <: Real}
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
+    return _PointwiseSystem{dim, T}(χ_func, R_func, Γ_func)
 end
 
 """
-    coorsys_cylindrical_num(T=Float64)
+    coorsys_cylindrical(PointwiseGeometry, T = Float64)
 
 Numerical cylindrical coordinate system. Coordinates: (r, θ, z). Lamé coefficients: (1, r, 1).
 """
-function coorsys_cylindrical_num(::Type{T} = Float64) where {T <: Real}
+function coorsys_cylindrical(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real}
     dim = 3
     χ_func = (x::AbstractVector{<:Number}) -> [one(x[1]), x[1], one(x[1])]  # (1, r, 1)
     R_func = (x::AbstractVector{<:Number}) -> begin
@@ -456,16 +459,16 @@ function coorsys_cylindrical_num(::Type{T} = Float64) where {T <: Real}
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
+    return _PointwiseSystem{dim, T}(χ_func, R_func, Γ_func)
 end
 
 """
-    coorsys_spherical_num(T=Float64)
+    coorsys_spherical(PointwiseGeometry, T = Float64)
 
 Numerical spherical coordinate system. Coordinates: (θ, ϕ, r) — same convention as
 `coorsys_spherical()`. Lamé coefficients: (r, r·sin(θ), 1).
 """
-function coorsys_spherical_num(::Type{T} = Float64) where {T <: Real}
+function coorsys_spherical(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real}
     dim = 3
     # coords = (θ, ϕ, r)
     χ_func = (x::AbstractVector{<:Number}) -> [x[3], x[3] * sin(x[1]), one(x[1])]
@@ -486,18 +489,19 @@ function coorsys_spherical_num(::Type{T} = Float64) where {T <: Real}
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
+    return _PointwiseSystem{dim, T}(χ_func, R_func, Γ_func)
 end
 
 """
-    CoorSystemNum(OM_func::Function, dim::Integer, T::Type=Float64)
+    CoordinateSystem(OM_func::Function, dim::Integer, T::Type = Float64)
 
-Generic constructor: build a `CoorSystemNum` from a position-vector function.
-`OM_func(x)` must return a `Vector` of Cartesian components given a coordinate vector `x`
-of length `dim`. Christoffel symbols are computed by nested automatic differentiation
-of the metric tensor `g = J'J` where `J = ∂OM/∂x`.
+A pointwise system from its position vector: `OM_func(x)` returns the Cartesian
+components of the point of coordinates `x` (a vector of length `dim`). The Lamé
+coefficients and the normalized basis come from the Jacobian of `OM_func`, the
+Christoffel symbols from the derivatives of the metric `g = JᵀJ`, all by
+automatic differentiation.
 """
-function CoorSystemNum(OM_func::Function, dim::Integer, ::Type{T} = Float64) where {T <: Real}
+function CoordinateSystem(OM_func::Function, dim::Integer, ::Type{T} = Float64) where {T <: Real}
     χ_func = x -> begin
         J = ForwardDiff.jacobian(OM_func, collect(x))
         g = J' * J
@@ -510,8 +514,5 @@ function CoorSystemNum(OM_func::Function, dim::Integer, ::Type{T} = Float64) whe
         hcat([J[:, i] / sqrt(g[i, i]) for i in 1:dim]...)
     end
     Γ_func = x -> _christoffel_from_OM(OM_func, collect(x))
-    return CoorSystemNum{dim, T}(χ_func, R_func, Γ_func)
+    return CoordinateSystem{dim, T}(PointwiseGeometry(χ_func, R_func, Γ_func))
 end
-
-export CoorSystemNum
-export coorsys_cartesian_num, coorsys_polar_num, coorsys_cylindrical_num, coorsys_spherical_num

@@ -18,7 +18,7 @@ get_data
 get_array
 sqnorm
 pprint
-KM
+mandel
 from_mandel
 mandel_rotation
 diff_with_basis

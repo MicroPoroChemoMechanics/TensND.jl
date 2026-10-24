@@ -282,7 +282,7 @@
         # vector instead of ∂OM/∂qⁱ and the Laplacian of a harmonic function
         # came out nonzero on any skew chart.
         u, v = symbols("u v", real = true)
-        CS = CoorSystemSym(Tens([u + v^2, v]), (u, v))          # x = u+v², y = v
+        CS = CoordinateSystem(Tens([u + v^2, v]), (u, v))          # x = u+v², y = v
 
         @test !isorthonormal(normalized_basis(CS))               # genuinely skew
 
@@ -320,7 +320,7 @@
                 coorsys_cartesian(),
                 coorsys_polar(),
                 coorsys_spherical(),
-                CoorSystemSym(Tens([uu + vv^2, vv]), (uu, vv)),   # non-orthogonal
+                CoordinateSystem(Tens([uu + vv^2, vv]), (uu, vv)),   # non-orthogonal
             )
             d = get_dim(CS)
             q = getcoords(CS)
@@ -369,11 +369,11 @@
         θs, ϕs, rs = getcoords(CS)
         Γ = christoffel(CS)
         x₀ = [0.7, 1.1, 2.3]
-        Γnum = christoffel(coorsys_spherical_num(), x₀)
+        Γnum = christoffel(coorsys_spherical(PointwiseGeometry), x₀)
         at_x₀ = Dict(θs => x₀[1], ϕs => x₀[2], rs => x₀[3])
         Γsym = map(γ -> Float64(tsimplify(γ).subs(at_x₀)), Γ)
         @test Γnum ≈ Γsym
-        @test collect(lame_coefficients(coorsys_spherical_num(), x₀)) ≈ [x₀[3], x₀[3] * sin(x₀[1]), 1.0]
+        @test collect(lame_coefficients(coorsys_spherical(PointwiseGeometry), x₀)) ≈ [x₀[3], x₀[3] * sin(x₀[1]), 1.0]
     end
 
     # ── Submanifolds ─────────────────────────────────────────────────────────
@@ -383,7 +383,7 @@
         R = symbols("R", positive = true)
         θ = symbols("θ", positive = true)
         ϕ = symbols("ϕ", real = true)
-        Sphere = SubManifoldSym(
+        Sphere = Submanifold(
             Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,);
             rules = Dict(abs(sin(θ)) => sin(θ)),
         )

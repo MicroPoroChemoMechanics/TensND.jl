@@ -35,8 +35,8 @@ chart. The same code runs **symbolically** (via
 - **Tensor algebra**: products (`⊗`, `⊗ˢ`, `⊠`, `⊠ˢ`, `⋅`, `⊡`, `⊙`), change of basis, variance management
 - **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI`), cubic (`TensCubic`), orthotropic (`TensOrtho`) — 2, 5, 3 and 9 stored scalars instead of 81 components, with closed-form products and inverses one to three orders of magnitude faster than the dense route
 - **Symmetry projection**: closest ISO, TI, CUBIC or ORTHO tensor, with the orientation given or searched — deterministically, with no external optimizer, and in closed form at order 2
-- **Differential operators**: `grad`, `symgrad`, `divergence`, `laplacian`, `hess` in curvilinear coordinates — symbolically (`CoorSystemSym`) or pointwise by automatic differentiation (`CoorSystemNum`), on orthogonal **and genuinely non-orthogonal** charts
-- **Submanifolds**: embedded hypersurfaces (`SubManifoldSym`) with their first and second fundamental forms, connection coefficients and curvatures
+- **Differential operators**: `grad`, `symgrad`, `divergence`, `laplacian`, `hess` in curvilinear coordinates — symbolically or pointwise by automatic differentiation (`CoordinateSystem` with an `ExactGeometry` or a `PointwiseGeometry`), on orthogonal **and genuinely non-orthogonal** charts
+- **Submanifolds**: embedded hypersurfaces (`Submanifold`) with their first and second fundamental forms, connection coefficients and curvatures
 - **Generic type system**: works with `Float64`, symbolic types (`Sym`, `Num`), and `ForwardDiff.Dual` for automatic differentiation
 
 The implementation is inspired by the Maple library [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) developed by Jean Garrigues.

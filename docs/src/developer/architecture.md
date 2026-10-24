@@ -26,9 +26,9 @@ flowchart TB
     SYM["<b>symmetry_search.jl</b><br/>best_sym_tens"]
     RA["<b>tens_rotational_average.jl</b><br/>isotropic and transverse averages"]
     SPE["<b>special_tens.jl</b><br/>levi_civita, rot2/3/6, init_*"]
-    CSS["<b>coorsystems.jl</b><br/>CoorSystemSym"]
-    CSN["<b>coorsystems_num.jl</b><br/>CoorSystemNum"]
-    SUB["<b>submanifold.jl</b><br/>SubManifoldSym"]
+    CSS["<b>coorsystems.jl</b><br/>CoordinateSystem, ExactGeometry"]
+    CSN["<b>coorsystems_num.jl</b><br/>PointwiseGeometry"]
+    SUB["<b>submanifold.jl</b><br/>Submanifold"]
     CK --> AU --> BA --> TE --> TD --> TC --> KMF --> TA --> ISO --> ANI --> CUB --> OPS --> PRO --> PRJ --> ORI --> SYM --> RA --> SPE --> CSS --> CSN --> SUB
 ```
 
@@ -70,7 +70,7 @@ along — the [`nderiv`](@ref) trait, `dim` for a chart and `dim-1` for a surfac
 a verbatim copy of all six definitions, which is how one bug fix had to be
 applied twice and one variance bug survived in the copy.
 
-Both types hold the same internal `ChartCore` — position vector, coordinates, the
+Both types hold the same internal `ExactGeometry` — position vector, coordinates, the
 two bases, the natural and dual frames, Lamé coefficients, connection array and
 simplification settings — and a submanifold adds only the two fundamental forms.
 

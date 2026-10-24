@@ -10,7 +10,6 @@ tens_Id2
 tens_Id4
 tens_J4
 tens_K4
-ISO
 iso_projectors
 ```
 

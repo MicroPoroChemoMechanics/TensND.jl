@@ -53,7 +53,7 @@ argument; without it, pass the system explicitly, `laplacian(f, Polar)`.
     Earlier versions had `@set_coorsys` **define methods** in the `TensND`
     module, including one for `∂(t, x)`. That method was more specific than the
     plain-derivative fallback, so the same call silently changed meaning — and
-    since both `CoorSystemSym` and `SubManifoldSym` differentiate a position
+    since both `CoordinateSystem` and `Submanifold` differentiate a position
     vector while being built, constructing *any* new chart after a
     `@set_coorsys` failed. The default is now simply stored, and the
     single-argument operator methods are defined once.
@@ -97,7 +97,7 @@ christoffel(Spherical)[1, 1, 3]     # Γʳ_θθ = −r
 ## Custom systems
 
 ```julia
-CoorSystemSym(OM, coords, tmp_coords = (), params = ();
+CoordinateSystem(OM, coords, tmp_coords = (), params = ();
               rules = Dict(), tmp_var = Dict(), to_coords = Dict())
 ```
 
@@ -110,7 +110,7 @@ using TensND, SymPy
 
 x, y = symbols("x y", real = true)
 a = symbols("a", positive = true)
-Parabolic = CoorSystemSym(Tens([(x^2 - y^2) / 2, x * y]), (x, y))
+Parabolic = CoordinateSystem(Tens([(x^2 - y^2) / 2, x * y]), (x, y))
 lame_coefficients(Parabolic)
 ```
 
@@ -147,6 +147,6 @@ SymPy cannot reduce without knowing that ``\theta\in(0,\pi)`` — see
 ## Symbolic or numerical?
 
 For pointwise evaluation, sweeps and gradients, use
-[`CoorSystemNum`](@ref) instead — same operator names, derivatives by automatic
+the pointwise [`CoordinateSystem`](@ref) instead — same operator names, derivatives by automatic
 differentiation. See
 [Numerical coordinate systems](@ref man-coorsystems-num).

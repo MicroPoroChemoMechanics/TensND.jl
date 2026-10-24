@@ -40,7 +40,7 @@ charts = [
     "cartesian" => coorsys_cartesian(),
     "polar" => coorsys_polar(),
     "spherical" => coorsys_spherical(),
-    "non-orthogonal" => CoorSystemSym(Tens([u + v^2, v]), (u, v)),
+    "non-orthogonal" => CoordinateSystem(Tens([u + v^2, v]), (u, v)),
 ]
 
 for (name, CS) in charts

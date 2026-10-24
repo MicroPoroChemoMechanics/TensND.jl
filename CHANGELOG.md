@@ -55,6 +55,21 @@ frame (the counterpart of `TensTI{2, T, 2}`). Products stay in the class.
   SymPy exports a `hessian` of its own. `E_nu`, `k_mu`, `mu_nu` and
   `iso_stiffness_E_nu` are now aliases of `young_poisson`, `bulk_shear`,
   `shear_poisson` and `iso_stiffness_young_poisson`, without a warning.
+- The coordinate systems are one type, `CoordinateSystem{dim, T, G}`, of two
+  geometries: `ExactGeometry` (closed-form expressions of SymPy or Symbolics
+  coordinates, what `CoorSystemSym` was) and `PointwiseGeometry` (functions of
+  the point, by automatic differentiation, what `CoorSystemNum` was). The
+  pointwise predefined systems are the exact ones' constructors with
+  `PointwiseGeometry` first: `coorsys_polar(PointwiseGeometry)` for
+  `coorsys_polar_num()`, `coorsys_spherical(PointwiseGeometry, Float32)` for
+  `coorsys_spherical_num(Float32)`, and `CoordinateSystem(OM_func, dim)` for
+  `CoorSystemNum(OM_func, dim)`. `SubManifoldSym` is `Submanifold`. The former
+  types and constructors still work, with a deprecation warning; the operators,
+  accessors and results are unchanged. The exact and pointwise operators keep
+  their two implementations, chosen by the geometry: the exact ones work on
+  expressions of the coordinate symbols, the pointwise ones on functions of the
+  point, and one implementation for both would have imposed one form on the
+  other.
 
 ### Added
 

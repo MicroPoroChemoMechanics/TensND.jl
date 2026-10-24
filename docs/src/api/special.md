@@ -4,7 +4,7 @@ Levi-Civita symbol, rotation tensors and predefined unit vectors. Theory:
 [Rotations and Euler angles](@ref th-rotations).
 
 ```@docs
-LeviCivita
+levi_civita
 rot2
 rot3
 rot6

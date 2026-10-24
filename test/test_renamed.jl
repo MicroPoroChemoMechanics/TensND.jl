@@ -82,3 +82,45 @@ end
     @test E ≈ 200.0 && ν ≈ 0.3
     @test all(bulk_shear(C) .≈ (200.0 / (3 * (1 - 0.6)), 200.0 / 2.6))
 end
+
+@testsection "Coordinate systems: one type, two geometries" begin
+    S = coorsys_spherical()
+    P = coorsys_spherical(PointwiseGeometry)
+    @test S isa CoordinateSystem{3, <:Any, <:ExactGeometry}
+    @test P isa CoordinateSystem{3, Float64, <:PointwiseGeometry}
+    @test coorsys_polar(PointwiseGeometry, Float32) isa CoordinateSystem{2, Float32, <:PointwiseGeometry}
+    # The former pointwise constructors warn and build the same system.
+    x₀ = [0.7, 0.3, 2.0]
+    f = x -> x[3]^2 * cos(x[1])
+    for (old, new) in (
+            (() -> coorsys_spherical_num(), () -> P),
+            (() -> coorsys_spherical_num(Float64), () -> P),
+        )
+        CS = @test_deprecated old()
+        @test grad(f, CS)(x₀) == grad(f, new())(x₀)
+    end
+    for chart in (:cartesian, :polar, :cylindrical)
+        old, new = getfield(TensND, Symbol(:coorsys_, chart, :_num)), getfield(TensND, Symbol(:coorsys_, chart))
+        @test typeof(@test_deprecated(old())) == typeof(new(PointwiseGeometry))
+    end
+    # The former types: deprecated bindings, still the two geometries, still
+    # constructors (the warning comes where the name is resolved).
+    @test Base.isdeprecated(TensND, :CoorSystemSym) && Base.isdeprecated(TensND, :CoorSystemNum)
+    @test Base.isdeprecated(TensND, :SubManifoldSym) && TensND.SubManifoldSym === Submanifold
+    @test S isa TensND.CoorSystemSym && P isa TensND.CoorSystemNum
+    @test !(P isa TensND.CoorSystemSym) && !(S isa TensND.CoorSystemNum)
+    u, v = symbols("u v", real = true)
+    OM = Tens([u + v^2, v])
+    @test isequal(lame_coefficients(TensND.CoorSystemSym(OM, (u, v))), lame_coefficients(CoordinateSystem(OM, (u, v))))
+    OMf = x -> [x[1] * cos(x[2]), x[1] * sin(x[2])]
+    @test lame_coefficients(TensND.CoorSystemNum(OMf, 2), [2.0, 0.5]) ≈ lame_coefficients(CoordinateSystem(OMf, 2), [2.0, 0.5])
+    Pp = coorsys_polar(PointwiseGeometry)
+    g = Pp.geometry
+    @test TensND.CoorSystemNum{2, Float64}(g.χ_func, g.R_func, g.Γ_func) isa CoordinateSystem{2, Float64, <:PointwiseGeometry}
+    # The three functions it stored as fields, now those of its geometry.
+    y₀ = [2.0, 0.5]
+    @test @test_deprecated(Pp.χ_func)(y₀) == lame_coefficients(Pp, y₀)
+    @test @test_deprecated(Pp.Γ_func)(y₀) == christoffel(Pp, y₀)
+    @test @test_deprecated(Pp.R_func) === g.R_func
+    @test Pp.geometry === g
+end

@@ -7,7 +7,7 @@ curvature, and differential operators on them. The geometry is on
 ## Construction
 
 ```julia
-SubManifoldSym(OM, coords, tmp_coords = (), params = ();
+Submanifold(OM, coords, tmp_coords = (), params = ();
                rules = Dict(), tmp_var = Dict(), to_coords = Dict())
 ```
 
@@ -22,7 +22,7 @@ R = symbols("R", positive = true)
 θ = symbols("θ", positive = true)
 ϕ = symbols("ϕ", real = true)
 
-Sphere = SubManifoldSym(
+Sphere = Submanifold(
     Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,);
     rules = Dict(abs(sin(θ)) => sin(θ)),
 )
@@ -102,7 +102,7 @@ S = tsimplify.(inv(a2) * b2)
 
 ## Differential operators on the surface
 
-A `SubManifoldSym` is an `AbstractCoorSystem`, so [`grad`](@ref),
+A `Submanifold` is an `AbstractCoorSystem`, so [`grad`](@ref),
 [`divergence`](@ref) and [`laplacian`](@ref) apply to fields defined on it, with the
 intrinsic connection. The identity linking the two geometries is the Weingarten
 relation read as a gradient,

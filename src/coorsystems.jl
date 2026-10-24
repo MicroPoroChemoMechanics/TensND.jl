@@ -1,5 +1,14 @@
 abstract type AbstractCoorSystem{dim, T <: Number} <: Any end
 
+"""
+    AbstractGeometry
+
+What a [`CoordinateSystem`](@ref) knows of its chart, and so how its differential
+operators work: [`ExactGeometry`](@ref) holds closed-form expressions of the
+coordinate symbols, [`PointwiseGeometry`](@ref) functions of the point.
+"""
+abstract type AbstractGeometry end
+
 
 # Build the canonical basis vectors (eᵢ), natural covariant (aᵢ) and
 # contravariant (aⁱ) vectors from the normalized basis and Lamé coefficients.
@@ -26,13 +35,15 @@ function _build_basis_vectors(normalized_basis::AbstractBasis{dim, T}, χᵢ::NT
 end
 
 """
-    ChartCore{dim,T,VEC,BNORM,BNAT}
+    ExactGeometry{dim,T,VEC,BNORM,BNAT} <: AbstractGeometry
 
-The geometry shared by every symbolic coordinate system: the position vector,
-the coordinates, the two bases, the natural and dual frames, the Lamé
-coefficients, the connection array, and the symbolic-simplification settings.
+The geometry of a chart in closed form, as expressions of its coordinate symbols
+(SymPy's `Sym` or Symbolics' `Num`): the position vector, the coordinates, the
+two bases, the natural and dual frames, the Lamé coefficients, the connection
+array, and the symbolic-simplification settings. Differential operators on it
+take and return expressions.
 
-Held by both [`CoorSystemSym`](@ref) and [`SubManifoldSym`](@ref) — which
+Held by both a [`CoordinateSystem`](@ref) and a [`Submanifold`](@ref) — which
 differ only in what they *add* to it (a submanifold adds the two fundamental
 forms) and in how many directions they differentiate along ([`nderiv`](@ref)).
 Declaring the block once keeps the two in step: a fix to one is a fix to
@@ -41,7 +52,7 @@ the other.
 Reached through [`core`](@ref); user code should go through the accessors
 ([`getcoords`](@ref), [`lame_coefficients`](@ref), [`christoffel`](@ref), …) instead.
 """
-struct ChartCore{dim, T, VEC, BNORM, BNAT}
+struct ExactGeometry{dim, T, VEC, BNORM, BNAT} <: AbstractGeometry
     OM::VEC
     coords::NTuple
     normalized_basis::BNORM
@@ -59,43 +70,49 @@ struct ChartCore{dim, T, VEC, BNORM, BNAT}
 end
 
 """
-    core(CS::AbstractCoorSystem) → ChartCore
+    core(CS::AbstractCoorSystem) → ExactGeometry
 
-The shared geometry block of `CS`. Internal: prefer the named accessors.
+The closed-form geometry of `CS`. Internal: prefer the named accessors.
 """
-core(CS::AbstractCoorSystem) = CS.core
+core(CS::AbstractCoorSystem) = CS.geometry
 
 """
-    CoorSystemSym{dim,T,VEC,BNORM,BNAT}
+    CoordinateSystem{dim,T,G<:AbstractGeometry} <: AbstractCoorSystem{dim,T}
 
-Curvilinear coordinate system with **exact symbolic** derivatives.
+Curvilinear coordinate system of the `dim`-dimensional space, of one of two
+geometries:
 
-Stores the position vector, the coordinate symbols, the natural and normalized
-bases, the Lamé coefficients and the Christoffel symbols as expressions, so the
-differential operators [`grad`](@ref), [`symgrad`](@ref), [`divergence`](@ref),
-[`laplacian`](@ref) and [`hess`](@ref) return closed-form results valid
-everywhere, not values at a point.
+| Geometry | Fields | Operators |
+|:--|:--|:--|
+| [`ExactGeometry`](@ref) | expressions of the coordinate symbols (`Sym` or `Num`) | take and return expressions, closed-form results valid everywhere |
+| [`PointwiseGeometry`](@ref) | functions of the point | take a function of the point, return one, by automatic differentiation |
+
+The differential operators [`grad`](@ref), [`symgrad`](@ref), [`divergence`](@ref),
+[`laplacian`](@ref) and [`hess`](@ref) have the same names and meaning on both.
 
 Predefined systems: [`coorsys_cartesian`](@ref), [`coorsys_polar`](@ref),
 [`coorsys_cylindrical`](@ref), [`coorsys_spherical`](@ref),
-[`coorsys_spheroidal`](@ref). [`@set_coorsys`](@ref) makes one the default so
-the operators take a single argument.
-
-For pointwise evaluation by automatic differentiation, use
-[`CoorSystemNum`](@ref) instead; the operators have the same names and meaning.
+[`coorsys_spheroidal`](@ref) — exact by default, pointwise with
+`PointwiseGeometry` as first argument (e.g. `coorsys_polar(PointwiseGeometry)`).
+[`@set_coorsys`](@ref) makes an exact one the default so the operators take a
+single argument.
 
 # Construction
 
-    CoorSystemSym(OM, coords, tmp_coords = (), params = ();
-                  rules = Dict(), tmp_var = Dict(), to_coords = Dict())
-    CoorSystemSym(OM, coords, bnorm, χᵢ, tmp_coords = (), params = (); ...)
+    CoordinateSystem(OM, coords, tmp_coords = (), params = ();
+                     rules = Dict(), tmp_var = Dict(), to_coords = Dict())
+    CoordinateSystem(OM, coords, bnorm, χᵢ, tmp_coords = (), params = (); ...)
+    CoordinateSystem(OM_func::Function, dim::Integer, T::Type = Float64)
 
-The first form derives the natural basis from `𝐚ᵢ = ∂ᵢOM`; the second takes the
-normalized basis and the Lamé coefficients directly, which is much faster when
-they are known in closed form.
+The first two build an exact system from the position vector `OM`, an
+expression of the coordinate symbols `coords`. The first derives the natural
+basis from `𝐚ᵢ = ∂ᵢOM`; the second takes the normalized basis and the Lamé
+coefficients directly, which is much faster when they are known in closed form.
+The third builds a pointwise system from `OM_func`, a function of the point
+returning its Cartesian components, by automatic differentiation.
 
-The optional arguments drive symbolic simplification, without which a
-non-trivial chart produces correct but unusable nested radicals:
+The optional arguments of the exact forms drive symbolic simplification,
+without which a non-trivial chart produces correct but unusable nested radicals:
 
 | Argument | Role |
 |:--|:--|
@@ -107,110 +124,95 @@ non-trivial chart produces correct but unusable nested radicals:
 
 See [Adding a coordinate system](@ref dev-adding-coorsystem) for the recipe and
 [`coorsys_spheroidal`](@ref) for a worked example.
+
+!!! note "Renamed in 0.8"
+    `CoorSystemSym` and `CoorSystemNum` are the two geometries of this one type;
+    the former names still work, with a deprecation warning.
 """
-struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{dim, T}
-    core::ChartCore{dim, T, VEC, BNORM, BNAT}
-    function CoorSystemSym(
-            OM::VEC,
-            coords::NTuple{dim, T},
-            normalized_basis::AbstractBasis{dim, T},
-            χᵢ::NTuple{dim},
-            tmp_coords::NTuple = (),
-            params::NTuple = ();
-            rules::Dict = Dict(),
-            tmp_var::Dict = Dict(),
-            to_coords::Dict = Dict()
-        ) where {dim, T, VEC}
-        simp(t) = length(rules) > 0 ? tsimplify(tsubs(tsimplify(t), rules...)) : tsimplify(t)
-        eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
-        Γ = simp(
-            compute_Christoffel(
-                coords,
-                χᵢ,
-                metric(normalized_basis, :cov),
-                metric(normalized_basis, :cont),
-            )
-        )
-        natural_basis = Basis(normalized_basis, χᵢ)
-        return new{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
-            ChartCore{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
-                OM,
-                coords,
-                normalized_basis,
-                natural_basis,
-                aᵢ,
-                χᵢ,
-                aⁱ,
-                eᵢ,
-                Γ,
-                tmp_coords,
-                params,
-                rules,
-                tmp_var,
-                to_coords,
-            )
-        )
-    end
-    # `Tuple{T, Vararg{T, M}}` rather than `NTuple{dim, T}`: a coordinate system
-    # with no coordinate is not a thing, and the empty tuple the latter also
-    # accepts leaves `T` bound by nothing.
-    function CoorSystemSym(
-            OM::VEC,
-            coords::Tuple{T, Vararg{T, M}},
-            tmp_coords::NTuple = (),
-            params::NTuple = ();
-            rules::Dict = Dict(),
-            tmp_var::Dict = Dict(),
-            to_coords::Dict = Dict()
-        ) where {T, M, VEC}
-        dim = M + 1
-        simp(t) = length(rules) > 0 ? tsimplify(tsubs(t, rules...)) : tsimplify(t)
-        chvar(t, d) = length(d) > 0 ? tsubs(t, d...) : t
-        OMc = chvar(OM, to_coords)
-        # Plain componentwise derivative of the position vector — deliberately
-        # NOT the two-argument `∂`.
-        #
-        # The natural vectors are the derivatives of the canonical components
-        # of the position vector, taken here directly: what they are must not
-        # depend on any method a chart adds to `∂`. `SubManifoldSym` does the
-        # same.
-        ∂coord(t, xᵢ) = change_tens(Tens(tdiff(components_canon(t), xᵢ)), get_basis(t), get_var(t))
-        aᵢ = ntuple(i -> simp(chvar(∂coord(OMc, coords[i]), tmp_var)), dim)
-        χᵢ = ntuple(i -> simp(norm(aᵢ[i])), dim)
-        eᵢ = ntuple(i -> simp(aᵢ[i] / χᵢ[i]), dim)
-        χᵢ = ntuple(i -> simp(chvar(χᵢ[i], to_coords)), dim)
-        eᵢ = ntuple(i -> simp(chvar(eᵢ[i], to_coords)), dim)
-        normalized_basis = Basis(tsimplify(hcat(components_canon.(eᵢ)...)))
-        eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
-        Γ = compute_Christoffel(
+struct CoordinateSystem{dim, T <: Number, G <: AbstractGeometry} <: AbstractCoorSystem{dim, T}
+    geometry::G
+end
+
+# The exact systems: a closed-form geometry, built by the two constructors below.
+const _ExactSystem{dim, T} = CoordinateSystem{dim, T, <:ExactGeometry}
+_exact_system(g::ExactGeometry{dim, T}) where {dim, T} = CoordinateSystem{dim, T, typeof(g)}(g)
+
+function CoordinateSystem(
+        OM::VEC,
+        coords::NTuple{dim, T},
+        normalized_basis::AbstractBasis{dim, T},
+        χᵢ::NTuple{dim},
+        tmp_coords::NTuple = (),
+        params::NTuple = ();
+        rules::Dict = Dict(),
+        tmp_var::Dict = Dict(),
+        to_coords::Dict = Dict()
+    ) where {dim, T, VEC}
+    simp(t) = length(rules) > 0 ? tsimplify(tsubs(tsimplify(t), rules...)) : tsimplify(t)
+    eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
+    Γ = simp(
+        compute_Christoffel(
             coords,
             χᵢ,
             metric(normalized_basis, :cov),
             metric(normalized_basis, :cont),
         )
-        natural_basis = Basis(normalized_basis, χᵢ)
-        return new{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
-            ChartCore{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
-                OMc,
-                coords,
-                normalized_basis,
-                natural_basis,
-                aᵢ,
-                χᵢ,
-                aⁱ,
-                eᵢ,
-                Γ,
-                tmp_coords,
-                params,
-                rules,
-                tmp_var,
-                to_coords,
-            )
+    )
+    natural_basis = Basis(normalized_basis, χᵢ)
+    return _exact_system(
+        ExactGeometry{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
+            OM, coords, normalized_basis, natural_basis, aᵢ, χᵢ, aⁱ, eᵢ, Γ,
+            tmp_coords, params, rules, tmp_var, to_coords,
         )
-    end
+    )
 end
 
-# On `AbstractCoorSystem`, like every accessor below: `SubManifoldSym` carries
+# `Tuple{T, Vararg{T, M}}` rather than `NTuple{dim, T}`: a coordinate system
+# with no coordinate is not a thing, and the empty tuple the latter also
+# accepts leaves `T` bound by nothing.
+function CoordinateSystem(
+        OM::VEC,
+        coords::Tuple{T, Vararg{T, M}},
+        tmp_coords::NTuple = (),
+        params::NTuple = ();
+        rules::Dict = Dict(),
+        tmp_var::Dict = Dict(),
+        to_coords::Dict = Dict()
+    ) where {T, M, VEC}
+    dim = M + 1
+    simp(t) = length(rules) > 0 ? tsimplify(tsubs(t, rules...)) : tsimplify(t)
+    chvar(t, d) = length(d) > 0 ? tsubs(t, d...) : t
+    OMc = chvar(OM, to_coords)
+    # Plain componentwise derivative of the position vector — deliberately
+    # NOT the two-argument `∂`.
+    #
+    # The natural vectors are the derivatives of the canonical components
+    # of the position vector, taken here directly: what they are must not
+    # depend on any method a chart adds to `∂`. `Submanifold` does the same.
+    ∂coord(t, xᵢ) = change_tens(Tens(tdiff(components_canon(t), xᵢ)), get_basis(t), get_var(t))
+    aᵢ = ntuple(i -> simp(chvar(∂coord(OMc, coords[i]), tmp_var)), dim)
+    χᵢ = ntuple(i -> simp(norm(aᵢ[i])), dim)
+    eᵢ = ntuple(i -> simp(aᵢ[i] / χᵢ[i]), dim)
+    χᵢ = ntuple(i -> simp(chvar(χᵢ[i], to_coords)), dim)
+    eᵢ = ntuple(i -> simp(chvar(eᵢ[i], to_coords)), dim)
+    normalized_basis = Basis(tsimplify(hcat(components_canon.(eᵢ)...)))
+    eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
+    Γ = compute_Christoffel(
+        coords,
+        χᵢ,
+        metric(normalized_basis, :cov),
+        metric(normalized_basis, :cont),
+    )
+    natural_basis = Basis(normalized_basis, χᵢ)
+    return _exact_system(
+        ExactGeometry{dim, T, VEC, typeof(normalized_basis), typeof(natural_basis)}(
+            OMc, coords, normalized_basis, natural_basis, aᵢ, χᵢ, aⁱ, eᵢ, Γ,
+            tmp_coords, params, rules, tmp_var, to_coords,
+        )
+    )
+end
+
+# On `AbstractCoorSystem`, like every accessor below: `Submanifold` carries
 # the same fields, and `∂`/`grad`/`divergence`/`laplacian`/`hess` on a submanifold reach
 # `only_coords`.
 only_coords(CS::AbstractCoorSystem, t) = length(core(CS).to_coords) > 0 ? tsubs(t, core(CS).to_coords...) : t
@@ -234,7 +236,7 @@ get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
 
 Number of independent differentiation directions of `CS`.
 
-`dim` for a chart of the whole space, `dim-1` for a [`SubManifoldSym`](@ref),
+`dim` for a chart of the whole space, `dim-1` for a [`Submanifold`](@ref),
 which differentiates along its surface coordinates only. Every differential
 operator loops to `nderiv(CS)`, which is what lets a single implementation serve
 both.
@@ -254,13 +256,13 @@ natural_basis(CS::AbstractCoorSystem) = core(CS).natural_basis
 
 """
     lame_coefficients(CS::AbstractCoorSystem) → NTuple
-    lame_coefficients(CS::CoorSystemNum, x₀::AbstractVector) → Vector
+    lame_coefficients(CS::CoordinateSystem{dim,T,<:PointwiseGeometry}, x₀::AbstractVector) → Vector
 
 Lamé coefficients `χᵢ = ‖𝐚ᵢ‖`, the norms of the natural basis vectors.
 
 They relate the natural and normalized bases, `𝐞ᵢ = 𝐚ᵢ/χᵢ`, and for an
 orthogonal system give the line element `ds² = Σᵢ χᵢ² (dqⁱ)²`. Symbolic systems
-return expressions; [`CoorSystemNum`](@ref) evaluates them at a point.
+return expressions; a [`PointwiseGeometry`](@ref) evaluates them at a point.
 
 `lame_coefficients(coorsys_spherical())` is `(r, r sin(θ), 1)`.
 
@@ -269,14 +271,14 @@ See also [Curvilinear differential calculus](@ref th-curvilinear).
 lame_coefficients(CS::AbstractCoorSystem) = core(CS).χᵢ
 """
     christoffel(CS::AbstractCoorSystem) → Array{T,3}
-    christoffel(CS::CoorSystemNum, x₀::AbstractVector) → Array{T,3}
+    christoffel(CS::CoordinateSystem{dim,T,<:PointwiseGeometry}, x₀::AbstractVector) → Array{T,3}
 
 Christoffel symbols of `CS`, `Γᵏᵢⱼ = ∂ᵢ𝐚ⱼ ⋅ 𝐚ᵏ`, symmetric in `(i,j)`.
 
 !!! note "Storage convention"
     The array is indexed `Γ[i,j,k]` `= Γᵏᵢⱼ` — the **contravariant index last**.
     The same convention is used by the `Γ_func` closure of
-    [`CoorSystemNum`](@ref).
+    [`PointwiseGeometry`](@ref).
 
 They are what distinguishes a derivative on a curvilinear chart from a plain
 partial derivative; every one of them vanishes exactly for a Cartesian chart.
@@ -384,7 +386,7 @@ end
 # and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
 # `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
-    grad(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    grad(t::Union{T,AbstractTens{order,dim,T}}, CS::CoordinateSystem{dim,T,<:ExactGeometry}) where {order,dim,T<:SymType}
 
 Gradient of the scalar or tensor field `t` with respect to the coordinate
 system `CS`, raising the order by one:
@@ -425,7 +427,7 @@ grad(t::SymType, CS::AbstractCoorSystem) =
 # and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
 # `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
-    symgrad(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    symgrad(t::Union{T,AbstractTens{order,dim,T}}, CS::CoordinateSystem{dim,T,<:ExactGeometry}) where {order,dim,T<:SymType}
 
 Symmetrized gradient of `t` with respect to the coordinate system `CS`:
 
@@ -458,7 +460,7 @@ symgrad(t::SymType, CS::AbstractCoorSystem) =
 
 
 """
-    divergence(t::AbstractTens{order,dim,T}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    divergence(t::AbstractTens{order,dim,T}, CS::CoordinateSystem{dim,T,<:ExactGeometry}) where {order,dim,T<:SymType}
 
 Divergence of the tensor field `t` (of order ≥ 1) with respect to the coordinate
 system `CS`, lowering the order by one:
@@ -498,7 +500,7 @@ divergence(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem{dim}) where {o
 # and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
 # `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
-    laplacian(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    laplacian(t::Union{T,AbstractTens{order,dim,T}}, CS::CoordinateSystem{dim,T,<:ExactGeometry}) where {order,dim,T<:SymType}
 
 Laplacian of the scalar or tensor field `t`, defined as the composition
 
@@ -529,7 +531,7 @@ laplacian(t::SymType, CS::AbstractCoorSystem) = divergence(grad(t, CS), CS)
 # and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
 # `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
-    hess(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    hess(t::Union{T,AbstractTens{order,dim,T}}, CS::CoordinateSystem{dim,T,<:ExactGeometry}) where {order,dim,T<:SymType}
 
 Hessian of `t`, defined as the second gradient
 
@@ -594,7 +596,7 @@ function coorsys_cartesian(
     𝐗, 𝐄, ℬ = init_cartesian(coords)
     OM = sum([𝐗[i] * 𝐄[i] for i in 1:dim])
     χᵢ = ntuple(_ -> one(eltype(coords)), dim)
-    return CoorSystemSym(OM, coords, ℬ, χᵢ)
+    return CoordinateSystem(OM, coords, ℬ, χᵢ)
 end
 coorsys_cartesian(::Val{<:Sym}, coords = symbols("x y z", real = true)) = coorsys_cartesian(coords)
 coorsys_cartesian(::Val{Num}, coords = Tuple(@variables x y z)) = coorsys_cartesian(coords)
@@ -630,7 +632,7 @@ function coorsys_polar(
     ) where {T <: SymType}
     (r, θ), (𝐞ʳ, 𝐞ᶿ), ℬᵖ = init_polar(coords, canonical = canonical)
     OM = r * 𝐞ʳ
-    return CoorSystemSym(OM, coords, ℬᵖ, (one(eltype(coords)), r))
+    return CoordinateSystem(OM, coords, ℬᵖ, (one(eltype(coords)), r))
 end
 coorsys_polar(
     ::Val{<:Sym}, coords = (
@@ -671,7 +673,7 @@ function coorsys_cylindrical(
     (r, θ, z), (𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ), ℬᶜ = init_cylindrical(coords, canonical = canonical)
     OM = r * 𝐞ʳ + z * 𝐞ᶻ
 
-    return CoorSystemSym(OM, coords, ℬᶜ, (one(eltype(coords)), r, one(eltype(coords))))
+    return CoordinateSystem(OM, coords, ℬᶜ, (one(eltype(coords)), r, one(eltype(coords))))
 end
 coorsys_cylindrical(
     ::Val{<:Sym}, coords = (
@@ -724,7 +726,7 @@ function coorsys_spherical(
     (θ, ϕ, r), (𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ), ℬˢ = init_spherical(coords, canonical = canonical)
     OM = r * 𝐞ʳ
     rules = Dict(abs(sin(θ)) => sin(θ), transpose(tan(θ)) => tan(θ), 1 // 1 => 1, 2 // 1 => 2)
-    return CoorSystemSym(OM, coords, ℬˢ, (r, r * sin(θ), one(eltype(coords))); rules = rules)
+    return CoordinateSystem(OM, coords, ℬˢ, (r, r * sin(θ), one(eltype(coords))); rules = rules)
 end
 coorsys_spherical(
     ::Val{<:Sym}, coords = (
@@ -786,7 +788,7 @@ function coorsys_spheroidal(
     )
     tmp_var = Dict(1 - p^2 => p̄^2, q^2 - 1 => q̄^2)
     to_coords = Dict(p̄ => √(1 - p^2), q̄ => √(q^2 - 1))
-    return CoorSystemSym(
+    return CoordinateSystem(
         OM,
         coords,
         ℬ,
@@ -940,7 +942,7 @@ function pprint(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '�
     return pprint(change_tens(t, ℬ); vec = vec, coords = coords)
 end
 
-export ∂, CoorSystemSym, lame_coefficients, christoffel, nderiv
+export ∂, AbstractGeometry, ExactGeometry, PointwiseGeometry, CoordinateSystem, lame_coefficients, christoffel, nderiv
 export grad, symgrad, divergence, laplacian, hess
 export normalized_basis, natural_basis, natvec, unitvec, getcoords, position_vector
 export coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal

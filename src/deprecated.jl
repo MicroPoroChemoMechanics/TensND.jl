@@ -63,3 +63,29 @@ export Walpole
 @deprecate DIV divergence
 @deprecate LAPLACE laplacian
 @deprecate HESS hess
+
+# Coordinate systems: one type of two geometries. The former types are the two
+# geometries of `CoordinateSystem` (and `Submanifold`), and still construct them.
+(::Type{_ExactSystem})(args...; kwargs...) = CoordinateSystem(args...; kwargs...)
+(::Type{_PointwiseSystem})(OM_func::Function, args...) = CoordinateSystem(OM_func, args...)
+(::Type{CoordinateSystem{dim, T, G} where {G <: PointwiseGeometry}})(χ_func, R_func, Γ_func) where {dim, T} =
+    CoordinateSystem{dim, T}(PointwiseGeometry(χ_func, R_func, Γ_func))
+Base.@deprecate_binding CoorSystemSym _ExactSystem true ", use `CoordinateSystem` (exact geometry) instead."
+Base.@deprecate_binding CoorSystemNum _PointwiseSystem true ", use `CoordinateSystem` (`PointwiseGeometry`) instead."
+Base.@deprecate_binding SubManifoldSym Submanifold
+for chart in (:cartesian, :polar, :cylindrical, :spherical)
+    old, new = Symbol(:coorsys_, chart, :_num), Symbol(:coorsys_, chart)
+    @eval @deprecate $old() $new(PointwiseGeometry)
+    @eval @deprecate $old(T::Type) $new(PointwiseGeometry, T)
+end
+# The three functions a pointwise system stored as its own fields.
+function Base.getproperty(CS::CoordinateSystem{dim, T, <:PointwiseGeometry}, s::Symbol) where {dim, T}
+    if s === :χ_func || s === :R_func || s === :Γ_func
+        Base.depwarn(
+            "`CS.$s` is deprecated, use `CS.geometry.$s`, or the accessors at a point " *
+                "(`lame_coefficients`, `normalized_basis`, `christoffel`).", :getproperty
+        )
+        return getfield(getfield(CS, :geometry), s)
+    end
+    return getfield(CS, s)
+end
