@@ -209,7 +209,16 @@ end
     An = TensISO{3}(3kn, 2mun)
     @test mandel(An) isa Matrix
     @test mandel(TensISO{3}(kn)) isa Vector
-    @test repr(MIME"text/latex"(), An) isa String
+    # Julia 1.15.0-DEV segfaults in its own GC lowering pass (LowerGCAllocMemory)
+    # when it compiles Latexify, which renders a `Num` matrix: two lines,
+    # `using Latexify; latexify(:(3x + 2y))`, crash it without TensND. Skipped on
+    # the development versions of 1.15 only, so that a release carrying the bug
+    # still fails here.
+    if VERSION.major == 1 && VERSION.minor == 15 && !isempty(VERSION.prerelease)
+        @test_skip repr(MIME"text/latex"(), An) isa String
+    else
+        @test repr(MIME"text/latex"(), An) isa String
+    end
     # TensND's symmetry predicates answer on a `Num` (Tensors.jl's compare with `==`).
     @test TensND._ismajorsym(Tensor{4, 3}(get_array(An)))
     @test TensND._isminorsym(Tensor{4, 3}(get_array(An)))
