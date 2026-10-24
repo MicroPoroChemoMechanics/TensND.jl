@@ -19,6 +19,12 @@ jobs:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
+    # Julia's development branch is built anew every day and crashes now and then
+    # inside its compiler, on code it compiled the day before (an access violation
+    # in LLVM on Windows, gone on a rerun): it runs and stays visible, but does not
+    # block a pull request. The released versions and the prerelease ('pre') still
+    # do.
+    continue-on-error: ${{ matrix.version == 'nightly' }}
     permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
       actions: write
       contents: read
