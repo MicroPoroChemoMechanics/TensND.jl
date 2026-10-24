@@ -71,6 +71,25 @@ frame (the counterpart of `TensTI{2, T, 2}`). Products stay in the class.
   (killed at a 3 GB cap), against 0.93 GB section by section. No assertion is
   dropped.
 
+## v0.7.1 — the inverse of a tensor of duals, without factorizing the duals
+
+A patch release. Julia 1.14 (LLVM 23) crashed with a segmentation fault in its
+register coalescer while compiling the inverse of a fourth-order tensor of
+`ForwardDiff.Dual` numbers on processors with AVX-512 (the Intel runners of
+GitHub Actions among them): the inverse factorized the Kelvin-Mandel (or Voigt)
+matrix of duals itself, which unrolls StaticArrays' LU over the dual type. Any
+derivative taken through an inverse of a generic 4th-order tensor could take the
+process down, as MeanFieldHomogenization's concentration tensors did.
+
+### Fixed
+
+- `inv` of a generic 4th-order tensor with dual components inverts the matrix of
+  the values once and propagates each partial by the implicit-function theorem,
+  d(M⁻¹) = -M⁻¹ dM M⁻¹, recursively for nested duals. The values and derivatives
+  are those of the previous route (the values bitwise, the partials to 1e-16 on
+  a 6×6 Mandel matrix), no LU is compiled over duals, and the inverse is 1.4
+  times faster (572 → 399 ns, one partial).
+
 ## v0.7.0 — tensors read in the basis they are written in
 
 A minor release. Several routines read the components of a tensor in its own
