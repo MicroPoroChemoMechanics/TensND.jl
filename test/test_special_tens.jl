@@ -7,7 +7,7 @@
         cθ, cϕ, cψ, sθ, sϕ, sψ = symbols("cθ cϕ cψ sθ sϕ sψ", real = true)
         d = Dict(cos(θ) => cθ, cos(ϕ) => cϕ, cos(ψ) => cψ, sin(θ) => sθ, sin(ϕ) => sϕ, sin(ψ) => sψ)
         R = Tens(tsubs(rot3(θ, ϕ, ψ), d...))
-        R6 = inv_KM(tsubs(KM(rot6(θ, ϕ, ψ)), d...))
+        R6 = from_mandel(tsubs(mandel(rot6(θ, ϕ, ψ)), d...))
         @test R6 == R ⊠ˢ R
     end
 
@@ -40,7 +40,7 @@
     # ── Levi-Civita ──────────────────────────────────────────────────────────
 
     @testset "LeviCivita" begin
-        a = LeviCivita(Float64)
+        a = levi_civita(Float64)
         @test a[1, 2, 3] == 1
         @test a[2, 3, 1] == 1 && a[3, 1, 2] == 1          # even permutations
         @test a[2, 1, 3] == -1 && a[1, 3, 2] == -1        # odd permutations

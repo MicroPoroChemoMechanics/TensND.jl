@@ -44,7 +44,7 @@ Kelvin-Mandel 6×6 matrix of a 4th-order array, minor-symmetrizing on read
 (exactly, so tensors that are minor-symmetric up to round-off are cleanly
 projected).  Index convention (11, 22, 33, 23, 13, 12), weights √2.
 
-Unlike [`KM`](@ref) this makes no assumption of major symmetry and never goes
+Unlike [`mandel`](@ref) this makes no assumption of major symmetry and never goes
 through a `Tensors.SymmetricTensor`, so it accepts a concentration tensor.
 """
 function mandel66_minor(arr::AbstractArray{T, 4}) where {T}
@@ -188,7 +188,7 @@ end
 # ── Closed-form azimuthal average about e₃ (Kelvin-Mandel, Tensors order) ────
 
 """
-    ti8_params_from_KM(M::AbstractMatrix) → NTuple{8}
+    ti8_params_from_mandel(M::AbstractMatrix) → NTuple{8}
 
 Coefficients `(ℓ₁, …, ℓ₈)` of the exact azimuthal average about `e₃` of a
 minor-symmetric tensor given by its 6×6 Kelvin-Mandel matrix (Tensors.jl index
@@ -203,13 +203,13 @@ Two distinct uses, and the difference matters:
 - as an exact **read-off**, on a matrix already known to be axially invariant
   about `e₃`, where the projection is the identity and the eight coefficients
   are simply recovered. This is the non-major-symmetric counterpart of
-  [`ti_params_from_KM`](@ref), which projects onto the 5-coefficient
+  [`ti_params_from_mandel`](@ref), which projects onto the 5-coefficient
   major-symmetric span and would silently discard `ℓ₃ ≠ ℓ₄`, `ℓ₇` and `ℓ₈` —
   precisely the content a concentration tensor carries.
 
-Reciprocal: [`KM_from_ti8_params`](@ref).
+Reciprocal: [`mandel_from_ti8_params`](@ref).
 """
-function ti8_params_from_KM(M::AbstractMatrix{T}) where {T}
+function ti8_params_from_mandel(M::AbstractMatrix{T}) where {T}
     sq2 = sqrt(T(2))
     ℓ₁ = M[3, 3]
     ℓ₂ = (M[1, 1] + M[2, 2] + M[1, 2] + M[2, 1]) / 2
@@ -223,14 +223,14 @@ function ti8_params_from_KM(M::AbstractMatrix{T}) where {T}
 end
 
 """
-    KM_from_ti8_params(p::NTuple{8,T}) → Matrix{T} (6×6)
+    mandel_from_ti8_params(p::NTuple{8,T}) → Matrix{T} (6×6)
 
 Kelvin-Mandel matrix (Tensors order, axis `e₃`) of the axially-invariant tensor
-with coefficients `(ℓ₁,…,ℓ₈)`. Inverse of [`ti8_params_from_KM`](@ref) on the
+with coefficients `(ℓ₁,…,ℓ₈)`. Inverse of [`ti8_params_from_mandel`](@ref) on the
 commutant subspace, and the 8-coefficient counterpart of
-[`KM_from_ti_params`](@ref).
+[`mandel_from_ti_params`](@ref).
 """
-function KM_from_ti8_params(p::NTuple{8, T}) where {T}
+function mandel_from_ti8_params(p::NTuple{8, T}) where {T}
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = p
     sq2 = sqrt(T(2))
     M = zeros(T, 6, 6)
@@ -363,7 +363,7 @@ end
 
 # Already axially invariant about n̂: an isotropic tensor, and a TI one whose
 # axis is n̂ — a value, compared at run time.
-transverse_isotropify(t::TensISO{4, 3}, n) = _lift_walpole_N8(fromISO(t, _axis_frame(n)[2]))
+transverse_isotropify(t::TensISO{4, 3}, n) = _lift_walpole_N8(iso_to_ti(t, _axis_frame(n)[2]))
 function transverse_isotropify(t::TensTI{4}, n)
     R, n̂ = _axis_frame(n)
     axis(t) == n̂ && return _lift_walpole_N8(t)
@@ -398,7 +398,7 @@ function _transverse_isotropify(t::AbstractTens{4, 3}, R, n̂)
     # brought into the orthonormal frame `t` is written in, a 3×3 product: the
     # components of `t` are rotated once, into `R`, and never to canonical first.
     arr, Q = _orthonormal_components(t)
-    p = ti8_params_from_KM(_km_in_frame_of(mandel66_minor(arr), _frame_in(Q, R)))
+    p = ti8_params_from_mandel(_km_in_frame_of(mandel66_minor(arr), _frame_in(Q, R)))
     return TensTI{4}(p..., n̂)
 end
 
@@ -468,8 +468,8 @@ function ti_average_mandel66(M::AbstractMatrix, n)
     # Into the frame (e₁′, e₂′, n̂) of the columns of R, averaged there, and back:
     # `Q` is orthogonal, so the way back is its transpose.
     Q = _km_congruence(R)
-    p = ti8_params_from_KM(_km_in_frame_of(M, R))
-    return Matrix(Q * SMatrix{6, 6}(KM_from_ti8_params(p)) * transpose(Q))
+    p = ti8_params_from_mandel(_km_in_frame_of(M, R))
+    return Matrix(Q * SMatrix{6, 6}(mandel_from_ti8_params(p)) * transpose(Q))
 end
 
 """
@@ -502,7 +502,7 @@ end
 
 export transverse_isotropify
 export mandel66_minor, array_from_mandel66
-export ti8_params_from_KM, KM_from_ti8_params
+export ti8_params_from_mandel, mandel_from_ti8_params
 export ti_average_mandel66, iso_average_mandel66, ti_average_mat33
 export mandel66, mandel33_minor, array_from_mandel33
 

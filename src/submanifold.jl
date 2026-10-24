@@ -1,13 +1,13 @@
 """
-    SubManifoldSym(OM::AbstractTens{1,dim,Sym}, coords::NTuple{dim-1,Sym},
+    Submanifold(OM::AbstractTens{1,dim,Sym}, coords::NTuple{dim-1,Sym},
                    tmp_coords::NTuple = (), params::NTuple = ();
                    rules::Dict = Dict(), tmp_var::Dict = Dict(), to_coords::Dict = Dict())
 
 Hypersurface of dimension `dim-1` embedded in `Rᵈⁱᵐ`, parametrized by the
 position vector `OM` of the `dim-1` surface coordinates `coords`.
 
-Unlike [`CoorSystemSym`](@ref), which describes a chart of the whole space, a
-`SubManifoldSym` describes an embedded surface: it carries one coordinate fewer
+Unlike [`CoordinateSystem`](@ref), which describes a chart of the whole space, a
+`Submanifold` describes an embedded surface: it carries one coordinate fewer
 than the ambient dimension, and it completes the tangent frame with the **unit
 normal**, so that the stored bases are still `dim`-dimensional.
 
@@ -42,7 +42,7 @@ block — the **intrinsic connection coefficients** `Γᵞ_αβ` of the induced
 metric — is what [`connection`](@ref) returns.
 
 The optional `tmp_coords`, `params`, `rules`, `tmp_var` and `to_coords`
-arguments have exactly the meaning they have for [`CoorSystemSym`](@ref): they
+arguments have exactly the meaning they have for [`CoordinateSystem`](@ref): they
 drive the symbolic simplification of intermediate expressions.
 
 # Examples
@@ -52,23 +52,24 @@ julia> θ, ϕ = symbols("θ ϕ", real = true) ; R = symbols("R", positive = true
 
 julia> OM = Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]) ;
 
-julia> Sphere = SubManifoldSym(OM, (θ, ϕ), (), (R,)) ;
+julia> Sphere = Submanifold(OM, (θ, ϕ), (), (R,)) ;
 
 julia> normal(Sphere)          # outward unit normal 𝐞ʳ
 
 julia> curvature(Sphere)       # 𝐛 = -𝐚/R for a sphere of radius R
 ```
 
-See also [`CoorSystemSym`](@ref), [`normal`](@ref), [`submetric`](@ref),
+See also [`CoordinateSystem`](@ref), [`normal`](@ref), [`submetric`](@ref),
 [`curvature`](@ref), [`connection`](@ref).
 """
-struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem{dim, Sym}
-    # The geometry shared with every chart lives in `core`; a submanifold adds
-    # only the two fundamental forms. See [`ChartCore`](@ref).
-    core::ChartCore{dim, Sym, VEC, BNORM, BNAT}
+struct Submanifold{dim, T, G <: AbstractGeometry, TENSA, TENSB} <: AbstractCoorSystem{dim, T}
+    # The geometry shared with every chart lives in `geometry`; a submanifold
+    # adds only the two fundamental forms. See [`ExactGeometry`](@ref). The
+    # forms are derived symbolically, so a submanifold is exact only.
+    geometry::G
     a::TENSA
     b::TENSB
-    function SubManifoldSym(
+    function Submanifold(
             OM::VEC,
             coords::NTuple{dimm1, Sym},
             tmp_coords::NTuple = (),
@@ -103,7 +104,7 @@ struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem
         n = n / tsimplify(norm(n))
         A = hcat(A₀, n)
         normalized_basis = Basis(A)
-        # Shared with `CoorSystemSym`: builds 𝐞ᵢ, 𝐚ᵢ and 𝐚ⁱ with the *correct*
+        # Shared with `CoordinateSystem`: builds 𝐞ᵢ, 𝐚ᵢ and 𝐚ⁱ with the *correct*
         # variances. Duplicating it here is what let the covariant/contravariant
         # swap survive in the submanifold path after it was fixed for charts.
         eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
@@ -121,31 +122,28 @@ struct SubManifoldSym{dim, VEC, BNORM, BNAT, TENSA, TENSB} <: AbstractCoorSystem
         Γ₁ = cat(Γ₀, b[1:(dim - 1), 1:(dim - 1)], dims = 3)
         bc = change_tens(b, (:cov, :cont))
         Γ = cat(Γ₁, reshape(-bc[1:(dim - 1), 1:dim], dim - 1, 1, dim), dims = 2)
-        return new{dim, typeof(OM), typeof(normalized_basis), typeof(natural_basis), typeof(a), typeof(b)}(
-            ChartCore{dim, Sym, typeof(OM), typeof(normalized_basis), typeof(natural_basis)}(
-                OMc,
-                coords,
-                normalized_basis,
-                natural_basis,
-                aᵢ,
-                χᵢ,
-                aⁱ,
-                eᵢ,
-                Γ,
-                tmp_coords,
-                params,
-                rules,
-                tmp_var,
-                to_coords,
-            ),
-            a,
-            b,
+        geometry = ExactGeometry{dim, Sym, typeof(OM), typeof(normalized_basis), typeof(natural_basis)}(
+            OMc,
+            coords,
+            normalized_basis,
+            natural_basis,
+            aᵢ,
+            χᵢ,
+            aⁱ,
+            eᵢ,
+            Γ,
+            tmp_coords,
+            params,
+            rules,
+            tmp_var,
+            to_coords,
         )
+        return new{dim, Sym, typeof(geometry), typeof(a), typeof(b)}(geometry, a, b)
     end
 end
 
 """
-    normal(SM::SubManifoldSym{dim}) → AbstractTens{1,dim,Sym}
+    normal(SM::Submanifold{dim}) → AbstractTens{1,dim,Sym}
 
 Unit normal `𝐧` of the hypersurface, i.e. the last vector of the natural basis.
 Its orientation is that of the generalized cross product of the tangent vectors
@@ -156,17 +154,17 @@ Its orientation is that of the generalized cross product of the tangent vectors
 ```julia
 julia> θ, ϕ = symbols("θ ϕ", real = true) ; R = symbols("R", positive = true) ;
 
-julia> Sphere = SubManifoldSym(Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,)) ;
+julia> Sphere = Submanifold(Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,)) ;
 
 julia> normal(Sphere)   # the outward radial vector 𝐞ʳ
 ```
 
-See also [`SubManifoldSym`](@ref), [`curvature`](@ref).
+See also [`Submanifold`](@ref), [`curvature`](@ref).
 """
-normal(SM::SubManifoldSym{dim}) where {dim} = natvec(SM, :cov)[dim]
+normal(SM::Submanifold{dim}) where {dim} = natvec(SM, :cov)[dim]
 
 """
-    submetric(SM::SubManifoldSym) → AbstractTens{2,dim,Sym}
+    submetric(SM::Submanifold) → AbstractTens{2,dim,Sym}
 
 First fundamental form `𝐚` of the hypersurface (the metric induced by the
 embedding), `a_αβ = 𝐚_α ⋅ 𝐚_β`, with Greek surface indices running to `dim-1`.
@@ -178,12 +176,12 @@ tensors expressed in the full embedded frame.
 For a sphere of radius `R` parametrized by `(θ, ϕ)`,
 `𝐚 = diag(R², R² sin²θ, 0)`.
 
-See also [`SubManifoldSym`](@ref), [`curvature`](@ref).
+See also [`Submanifold`](@ref), [`curvature`](@ref).
 """
-submetric(SM::SubManifoldSym) = SM.a
+submetric(SM::Submanifold) = SM.a
 
 """
-    curvature(SM::SubManifoldSym) → AbstractTens{2,dim,Sym}
+    curvature(SM::Submanifold) → AbstractTens{2,dim,Sym}
 
 Second fundamental form `𝐛` of the hypersurface, `b_αβ = 𝐧 ⋅ ∂_α 𝐚_β`, with `𝐧`
 the unit normal returned by [`normal`](@ref).
@@ -197,12 +195,12 @@ The mixed form `b_α{}^β` is the Weingarten (shape) operator; its
 trace is the mean curvature and its determinant, restricted to the tangent
 block, the Gaussian curvature.
 
-See also [`SubManifoldSym`](@ref), [`submetric`](@ref), [`normal`](@ref).
+See also [`Submanifold`](@ref), [`submetric`](@ref), [`normal`](@ref).
 """
-curvature(SM::SubManifoldSym) = SM.b
+curvature(SM::Submanifold) = SM.b
 
 """
-    connection(SM::SubManifoldSym{dim}) → Array{Sym,3}
+    connection(SM::Submanifold{dim}) → Array{Sym,3}
 
 **Intrinsic connection coefficients** of the hypersurface — the Christoffel
 symbols `Γᵞ_αβ` of the induced metric — indexed `Γ[α,β,γ]`, the contravariant
@@ -211,7 +209,7 @@ index last.
 Surface indices run from `1` to `dim-1` and are written with Greek letters
 `α, β, γ` throughout, to distinguish them from ambient indices `i, j, k` which
 run to `dim`. This is the purely tangential block of the Gauss–Weingarten array
-returned by [`Christoffel`](@ref).
+returned by [`christoffel`](@ref).
 
 For a sphere of radius `R` parametrized by `(θ, φ)`:
 
@@ -228,21 +226,21 @@ and [`submetric`](@ref).
     it never returned a Riemann curvature tensor. `Riemann` still works and
     forwards here, with a deprecation warning.
 
-See also [`SubManifoldSym`](@ref), [`Christoffel`](@ref), [`curvature`](@ref).
+See also [`Submanifold`](@ref), [`christoffel`](@ref), [`curvature`](@ref).
 """
-connection(SM::SubManifoldSym{dim}) where {dim} = core(SM).Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
+connection(SM::Submanifold{dim}) where {dim} = core(SM).Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
 
-@deprecate Riemann(SM::SubManifoldSym) connection(SM)
+@deprecate Riemann(SM::Submanifold) connection(SM)
 
 # ── Differentiation directions ───────────────────────────────────────────────
 #
 # A submanifold differentiates along its own `dim-1` surface coordinates, not
 # along the `dim` ambient ones. That single number is the *only* difference
-# between the symbolic operators here and those of a chart, so `∂`, `GRAD`,
-# `SYMGRAD`, `DIV`, `LAPLACE` and `HESS` are defined once in `coorsystems.jl`
+# between the symbolic operators here and those of a chart, so `∂`, `grad`,
+# `symgrad`, `divergence`, `laplacian` and `hess` are defined once in `coorsystems.jl`
 # over `AbstractCoorSystem` and parametrized by `nderiv`, so that a submanifold
 # and a chart cannot drift apart.
-nderiv(::SubManifoldSym{dim}) where {dim} = dim - 1
+nderiv(::Submanifold{dim}) where {dim} = dim - 1
 
-export SubManifoldSym
-export normal, submetric, curvature, connection, Riemann
+export Submanifold
+export normal, submetric, curvature, connection

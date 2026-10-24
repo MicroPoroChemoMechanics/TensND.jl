@@ -34,7 +34,7 @@ Kelvin–Mandel form both matrices are **antisymmetric**:
 W7, W8 = tens_W7(n), tens_W8(n)
 
 function show_KM(label, t)
-    M = KM(t)
+    M = mandel(t)
     println(label)
     for r in 1:6
         println("   ", join([abs(M[r, c]) < 1.0e-12 ? "   .   " : @sprintf("%7.4f", M[r, c]) for c in 1:6], " "))

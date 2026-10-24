@@ -2,8 +2,8 @@
 
 A hypersurface embedded in ``\mathbb{R}^d`` carries two geometries: the one it
 inherits as a metric space, and the one describing how it curves inside the
-ambient space. `TensND` represents both with [`SubManifoldSym`](@ref)
-(`src/submanifold.jl`), which is a [`CoorSystemSym`](@ref) with one coordinate
+ambient space. `TensND` represents both with [`Submanifold`](@ref)
+(`src/submanifold.jl`), which is a [`CoordinateSystem`](@ref) with one coordinate
 fewer than the ambient dimension and a unit normal completing the frame.
 
 ## Tangent frame and normal
@@ -67,7 +67,7 @@ classical equations, tangential and normal:
 \qquad\text{(Weingarten)}
 ```
 
-`SubManifoldSym` stores exactly this: the connection array ``\Gamma`` holds the
+`Submanifold` stores exactly this: the connection array ``\Gamma`` holds the
 intrinsic Christoffel symbols in its tangential block, ``\boldsymbol{b}`` in the
 slice ``\Gamma[:,:,d]`` (Gauss), and ``-b_\alpha{}^{\beta}`` in ``\Gamma[:,d,:]``
 (Weingarten).
@@ -134,8 +134,8 @@ of an umbilical surface: every direction curves identically.
 
 ## Differential operators on the surface
 
-Because `SubManifoldSym` is an `AbstractCoorSystem`, the operators
-[`GRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref) apply to fields defined on the
+Because `Submanifold` is an `AbstractCoorSystem`, the operators
+[`grad`](@ref), [`divergence`](@ref), [`laplacian`](@ref) apply to fields defined on the
 surface, with the intrinsic connection. The relation that ties the two
 geometries together is the Weingarten equation read as a gradient:
 
@@ -165,7 +165,7 @@ curvature sign agree, and it is pinned by a test
     Declaring ``\theta`` merely `real` leaves SymPy unable to reduce
     ``|\sin\theta|`` to ``\sin\theta``, and the curvature comes back multiplied
     by ``\sin\theta/|\sin\theta|``. The results are correct but unreadable. Pass
-    the `rules` of [`SubManifoldSym`](@ref) — or restrict the symbol's
+    the `rules` of [`Submanifold`](@ref) — or restrict the symbol's
     assumptions — so that the sign is resolved. This is the same simplification
     machinery described on
     [Curvilinear differential calculus](@ref th-curvilinear).

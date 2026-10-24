@@ -58,7 +58,7 @@ for order in (2, 4)
         ```julia
         julia> n = [0., 0., 1.];
 
-        julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
+        julia> C = tens_ti(10., 3., 2.5, 12., 2., n);
 
         julia> _, _, _, sym = best_sym_tens(C);
 
@@ -138,7 +138,7 @@ for order in (2, 4)
         ```julia
         julia> n = [0., 0., 1.];
 
-        julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
+        julia> C = tens_ti(10., 3., 2.5, 12., 2., n);
 
         julia> _, _, drel, sym = best_sym_tens(C, n);
 

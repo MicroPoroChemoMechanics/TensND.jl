@@ -84,8 +84,8 @@ and the coefficients on the three projectors are
 [`arg_cubic`](@ref) reads them back; the type stores the projector coefficients,
 following [`TensISO`](@ref)'s ``(3k,2\mu)`` rather than the engineering
 constants, because that is what makes the algebra below literal. The matrix in
-the canonical frame is [`KM`](@ref) and the one above is
-[`KM_material`](@ref), related by the same orthogonal congruence as for
+the canonical frame is [`mandel`](@ref) and the one above is
+[`mandel_material`](@ref), related by the same orthogonal congruence as for
 orthotropy.
 
 ## The algebra is componentwise — and the class is closed under it
@@ -168,6 +168,18 @@ exactly zero when ``\beta=\gamma``, which is exactly when the tensor is
 isotropic. It is precisely the third constant that a two-constant approximation
 of a cubic tensor throws away.
 
+## Storage
+
+| Storage | Coefficients | Case |
+| :------ | :----------- | :--- |
+| `TensCubic{T,B}` | ``(\alpha,\beta,\gamma)`` | ``\alpha\mathbb{J}+\beta\mathbb{E}+\gamma\mathbb{T}`` on the cube frame |
+
+One shape: the product of two cubic tensors on a cube is cubic and
+major-symmetric (above), the inverse too, so the class needs no general shape,
+and at order two it is the isotropic one. The rotation group ``O`` and the full
+group ``O_h`` have the same invariant tensors at even order, so there is no
+chiral shape either.
+
 ## Where the class sits
 
 ```mermaid
@@ -179,7 +191,7 @@ flowchart TB
     ORT["<b>TensOrtho</b><br/>9 constants + frame<br/>(12 without major symmetry)"]
     ANI["<b>general</b><br/>21 constants"]
     ISO -->|"iso_to_cubic(·, frame)"| CUB
-    ISO -->|"fromISO(·, n)"| TI
+    ISO -->|"iso_to_ti(·, n)"| TI
     CUB -->|"cubic_to_ortho(·)"| ORT
     TI -->|"walpole_to_ortho(·, frame, i)"| ORT
     ORT --> ANI

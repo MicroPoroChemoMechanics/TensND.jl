@@ -18,9 +18,9 @@ get_data
 get_array
 sqnorm
 pprint
-KM
-inv_KM
-KM_rotation
+mandel
+from_mandel
+mandel_rotation
 diff_with_basis
 tens_basis
 ```
@@ -73,14 +73,14 @@ symmetric tensors split the Kelvin-Mandel slots; the maps below work on that
 partition, with no pivoting and no SVD (duals and symbols go through).
 
 ```@docs
-KM_IP
-KM_OP
-km_ip_block
-km_op_block
-km_ip_embed
-km_op_embed
-km_from_blocks
-km_inv_schur
+MANDEL_IP
+MANDEL_OP
+mandel_ip_block
+mandel_op_block
+mandel_ip_embed
+mandel_op_embed
+mandel_from_blocks
+mandel_inv_schur
 plane_pinv
 plane_pinv2
 acoustic_tensor

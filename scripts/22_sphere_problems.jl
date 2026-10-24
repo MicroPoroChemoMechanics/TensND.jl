@@ -7,8 +7,8 @@
 # radius that SymPy solves in closed form.
 #
 # Everything here is produced by the differential operators of
-# [Curvilinear differential calculus](@ref th-curvilinear): `SYMGRAD` gives the
-# strain, `DIV` the equilibrium equation. Nothing is transcribed from a
+# [Curvilinear differential calculus](@ref th-curvilinear): `symgrad` gives the
+# strain, `divergence` the equilibrium equation. Nothing is transcribed from a
 # textbook. Background: [mura1987](@citet).
 
 import Pkg                                                          #jl
@@ -42,13 +42,13 @@ k, μ = symbols("k μ", positive = true)
 u = SymFunction("u", real = true)
 𝐮 = u(r) * 𝐞ʳ
 
-# The strain follows from `SYMGRAD`, the stress from the constitutive law, and
-# the equilibrium equation from `DIV`:
+# The strain follows from `symgrad`, the stress from the constitutive law, and
+# the equilibrium equation from `divergence`:
 
-𝛆 = SYMGRAD(𝐮)
+𝛆 = symgrad(𝐮)
 𝛔 = ℂ ⊡ 𝛆
 𝐓 = 𝛔 ⋅ 𝐞ʳ
-eq = factor(simplify(DIV(𝛔) ⋅ 𝐞ʳ))
+eq = factor(simplify(divergence(𝛔) ⋅ 𝐞ʳ))
 
 # A second-order Euler equation in ``r``, solved directly:
 
@@ -87,9 +87,9 @@ fᶿ, _, fʳ = remote_angle_functions(𝟏 - 3𝐞₃ ⊗ 𝐞₃)
 #-
 
 𝐮ᵈ = uᶿ(r) * fᶿ * 𝐞ᶿ + uʳ(r) * fʳ * 𝐞ʳ
-𝛔ᵈ = ℂ ⊡ SYMGRAD(𝐮ᵈ)
+𝛔ᵈ = ℂ ⊡ symgrad(𝐮ᵈ)
 𝐓ᵈ = 𝛔ᵈ ⋅ 𝐞ʳ
-div𝛔ᵈ = DIV(𝛔ᵈ)
+div𝛔ᵈ = divergence(𝛔ᵈ)
 
 # The angular dependence factors out exactly: dividing by ``f^\theta`` and
 # ``f^r`` leaves two coupled radial equations.
@@ -139,7 +139,7 @@ fᶿ₂, fᵠ₂, fʳ₂ = remote_angle_functions(𝐞₁ ⊗ 𝐞₁ - 𝐞₂ 
 #-
 
 𝐮ˢ = uᶿ(r) * fᶿ₂ * 𝐞ᶿ + uᵠ(r) * fᵠ₂ * 𝐞ᵠ + uʳ(r) * fʳ₂ * 𝐞ʳ
-div𝛔ˢ = DIV(ℂ ⊡ SYMGRAD(𝐮ˢ))
+div𝛔ˢ = divergence(ℂ ⊡ symgrad(𝐮ˢ))
 
 eqᶿˢ = tsimplify(div𝛔ˢ ⋅ 𝐞ᶿ / fᶿ₂)
 eqᵠˢ = tsimplify(div𝛔ˢ ⋅ 𝐞ᵠ / fᵠ₂)

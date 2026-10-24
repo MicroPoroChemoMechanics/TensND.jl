@@ -26,7 +26,7 @@ for OP in (:tsimplify, :tsubs, :tdiff)
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
     @eval $OP(A::TensTI{order, Num, N}, args...; kwargs...) where {order, N} =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
-    @eval $OP(A::TensOrtho{Num}, args...; kwargs...) =
+    @eval $OP(A::TensOrtho{order, Num}, args...; kwargs...) where {order} =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
     @eval $OP(A::TensCubic{Num}, args...; kwargs...) =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
@@ -75,7 +75,7 @@ end
 # independent components in closed form (`getindex`), instead of all 81 into an
 # array whose symmetry `_store_symmetric` then checks: the same storage,
 # `change_tens`, `⊡` and every path through `_static_tensor` without the detour.
-@inline _static_tensor(t::Union{TensTI{4}, TensOrtho, TensCubic}) =
+@inline _static_tensor(t::Union{TensTI{4}, TensOrtho{4}, TensCubic}) =
     SymmetricTensor{4, 3, eltype(t)}((i, j, k, l) -> @inbounds t[i, j, k, l])
 
 # An isotropic tensor of order 2 or 4 is symmetric by construction too: built at
@@ -183,7 +183,7 @@ with its axis or frame; a generic tensor comes back in the canonical basis. Both
 are linear, for an ODE state, a nonlinear solver or a sequence accelerator.
 """
 to_vector(t::Union{TensISO, TensTI, TensOrtho, TensCubic}) = collect(get_data(t))
-to_vector(t::AbstractTens{order, dim}) where {order, dim} = vec(collect(KM(t, CanonicalBasis{dim, eltype(t)}())))
+to_vector(t::AbstractTens{order, dim}) where {order, dim} = vec(collect(mandel(t, CanonicalBasis{dim, eltype(t)}())))
 
 """
     from_vector(prototype, v)
@@ -192,8 +192,8 @@ The tensor whose flat vector ([`to_vector`](@ref)) is `v`: of the class of
 `prototype`, with its axis or frame, or in the canonical basis for a generic one.
 """
 from_vector(prototype::Union{TensISO, TensTI, TensOrtho, TensCubic}, v) = rebuild(prototype, v)
-from_vector(::AbstractTens{2}, v) = inv_KM(collect(v))
-from_vector(::AbstractTens{4}, v) = (n = isqrt(length(v)); inv_KM(reshape(collect(v), n, n)))
+from_vector(::AbstractTens{2}, v) = from_mandel(collect(v))
+from_vector(::AbstractTens{4}, v) = (n = isqrt(length(v)); from_mandel(reshape(collect(v), n, n)))
 
 export rebuild, param_norms, to_vector, from_vector
 

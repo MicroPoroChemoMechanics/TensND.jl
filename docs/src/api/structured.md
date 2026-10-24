@@ -10,7 +10,6 @@ tens_Id2
 tens_Id4
 tens_J4
 tens_K4
-ISO
 iso_projectors
 ```
 
@@ -18,11 +17,11 @@ iso_projectors
 
 ```@docs
 iso_stiffness
-k_mu
-E_nu
-mu_nu
+bulk_shear
+young_poisson
+shear_poisson
 poisson_ratio
-iso_stiffness_E_nu
+iso_stiffness_young_poisson
 ```
 
 `isotropify` is the exact rotation-group average, not a form of compact

@@ -15,15 +15,15 @@
         @test frame(C) === can
         @test reference(C) === can
         @test symmetry(C) == :CUBIC
-        @test is_CUBIC(C)
-        @test !is_ISO(C)
-        @test !is_TI(C)
-        @test !is_ORTHO(C)
-        # `is_CUBIC` on a non-`TensCubic` is the *value*-level question, exactly
-        # as `is_ORTHO` is, so an isotropic tensor answers `true`: it really is
+        @test iscubic(C)
+        @test !isisotropic(C)
+        @test !istransverselyisotropic(C)
+        @test !isorthotropic(C)
+        # `iscubic` on a non-`TensCubic` is the *value*-level question, exactly
+        # as `isorthotropic` is, so an isotropic tensor answers `true`: it really is
         # cubic, about every cube.
-        @test is_CUBIC(TensISO{3}(1.0, 1.0), can)
-        @test is_ORTHO(TensISO{3}(1.0, 1.0), can)
+        @test iscubic(TensISO{3}(1.0, 1.0), can)
+        @test isorthotropic(TensISO{3}(1.0, 1.0), can)
 
         # (α, β, γ) = (C₁₁+2C₁₂, C₁₁-C₁₂, 2C₄₄)
         @test get_data(C) == (18.0, 6.0, 4.0)
@@ -31,7 +31,7 @@
         @test all(arg_cubic(tens_cubic(arg_cubic(C)..., can)) .≈ arg_cubic(C))
 
         # From a Kelvin-Mandel matrix in the cube frame.
-        @test arg_cubic(TensCubic(KM_material(C), can)) == arg_cubic(C)
+        @test arg_cubic(TensCubic(mandel_material(C), can)) == arg_cubic(C)
 
         # Element types promote, and the frame's is independent of the data's.
         @test tens_cubic(10, 4, 2, can) isa TensCubic{Float64}
@@ -47,21 +47,21 @@
     # ═══════════════════════════════════════════════════════════════════════════
     @testsection "Kelvin-Mandel and components" begin
         C = tens_cubic(10.0, 4.0, 2.0, can)
-        M = Matrix(KM_material(C))
+        M = Matrix(mandel_material(C))
         @test M[1, 1] == M[2, 2] == M[3, 3] == 10.0
         @test M[1, 2] == M[1, 3] == M[2, 3] == 4.0
         @test M[4, 4] == M[5, 5] == M[6, 6] == 4.0      # 2C₄₄
         @test all(iszero, M[1:3, 4:6])
         # On the canonical frame the two Kelvin-Mandel forms coincide.
-        @test Matrix(KM(C)) ≈ M atol = atol_num
+        @test Matrix(mandel(C)) ≈ M atol = atol_num
 
         # On a rotated cube frame they are related by the Kelvin-Mandel
         # congruence of the frame — the same identity `TensOrtho` asserts.
         Cr = tens_cubic(10.0, 4.0, 2.0, rot)
         Q = Matrix(TensND._km_congruence(Matrix(vecbasis(rot, :cov))))
-        @test Matrix(KM(Cr)) ≈ Q * Matrix(KM_material(Cr)) * transpose(Q) atol = atol_num
+        @test Matrix(mandel(Cr)) ≈ Q * Matrix(mandel_material(Cr)) * transpose(Q) atol = atol_num
         # ...and they are genuinely different, or the test above says nothing.
-        @test norm(Matrix(KM(Cr)) - Matrix(KM(C))) > 0.5
+        @test norm(Matrix(mandel(Cr)) - Matrix(mandel(C))) > 0.5
 
         # `getindex` is the closed form `get_array` uses, component by component.
         A = get_array(Cr)
@@ -81,7 +81,7 @@
             @test issymmetric(C)
             @test isminorsymmetric(C)
             @test ismajorsymmetric(C)
-            K = Matrix(KM(C))
+            K = Matrix(mandel(C))
             @test norm(K - transpose(K)) < atol_num * max(norm(K), 1)
         end
     end
@@ -101,7 +101,7 @@
 
         # The inverse is componentwise, and it really is an inverse.
         @test get_data(inv(A)) == (1 / 18, 1 / 6, 1 / 4)
-        @test Matrix(KM(A ⊡ inv(A))) ≈ Matrix(1.0I, 6, 6) atol = atol_num
+        @test Matrix(mandel(A ⊡ inv(A))) ≈ Matrix(1.0I, 6, 6) atol = atol_num
         @test get_data(A^-1) == get_data(inv(A))
         @test get_data(A^2) == get_data(A) .^ 2
         @test get_data(A^1) == get_data(A)
@@ -112,7 +112,7 @@
         # `one` is the symmetric identity; `zero` stays in the class and on the
         # frame rather than narrowing to a TensISO, which would silently change
         # the type of an accumulator.
-        @test Matrix(KM(one(A))) ≈ Matrix(1.0I, 6, 6) atol = atol_num
+        @test Matrix(mandel(one(A))) ≈ Matrix(1.0I, 6, 6) atol = atol_num
         @test zero(A) isa TensCubic
         @test frame(zero(A)) === can
         @test all(iszero, get_data(zero(A)))
@@ -130,11 +130,11 @@
         @test frame(P) === rot
         @test ismajorsymmetric(P)
         # ...and it agrees with the dense route it replaces.
-        @test Matrix(KM(P)) ≈ Matrix(KM(Tens(get_array(A)) ⊡ Tens(get_array(B)))) atol =
+        @test Matrix(mandel(P)) ≈ Matrix(mandel(Tens(get_array(A)) ⊡ Tens(get_array(B)))) atol =
             1.0e-10
         # Cubic tensors on the same cube commute, which is what makes the
         # product stay in the class.
-        @test Matrix(KM(A ⊡ B)) ≈ Matrix(KM(B ⊡ A)) atol = atol_num
+        @test Matrix(mandel(A ⊡ B)) ≈ Matrix(mandel(B ⊡ A)) atol = atol_num
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -147,7 +147,7 @@
         perm = Basis([0.0 0.0 1.0; 1.0 0.0 0.0; 0.0 -1.0 0.0])
         Cp = tens_cubic(10.0, 4.0, 2.0, perm)
         @test TensND._same_cube_frame(C, Cp)
-        @test Matrix(KM(Cp)) ≈ Matrix(KM(C)) atol = 1.0e-10
+        @test Matrix(mandel(Cp)) ≈ Matrix(mandel(C)) atol = 1.0e-10
         @test (C + Cp) isa TensCubic
         @test get_data(C + Cp) == 2 .* get_data(C)
 
@@ -157,8 +157,8 @@
         @test_throws ArgumentError C + Cr
         # The product falls back to the dense route instead of pretending.
         @test !((C ⊡ Cr) isa TensCubic)
-        @test Matrix(KM(C ⊡ Cr)) ≈
-            Matrix(KM(Tens(get_array(C)) ⊡ Tens(get_array(Cr)))) atol = 1.0e-10
+        @test Matrix(mandel(C ⊡ Cr)) ≈
+            Matrix(mandel(Tens(get_array(C)) ⊡ Tens(get_array(Cr)))) atol = 1.0e-10
 
         # The hard case for the test, and the reason it is written with two
         # thresholds rather than one: a frame that is *almost* a signed
@@ -176,8 +176,8 @@
         @test !((C ⊡ Cn) isa TensCubic)
         # And the fallback is not an approximation of the structured route: it
         # is the dense answer, which differs from `2 .* get_data(C)` here.
-        @test Matrix(KM(C ⊡ Cn)) ≈
-            Matrix(KM(Tens(get_array(C)) ⊡ Tens(get_array(Cn)))) atol = 1.0e-10
+        @test Matrix(mandel(C ⊡ Cn)) ≈
+            Matrix(mandel(Tens(get_array(C)) ⊡ Tens(get_array(Cn)))) atol = 1.0e-10
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -188,13 +188,13 @@
         # An isotropic tensor is cubic about *every* cube: α𝕁 + β𝕂 = α𝕁 + β𝔼 + β𝕋.
         Ci = iso_to_cubic(iso, rot)
         @test get_data(Ci) == (18.0, 6.0, 6.0)
-        @test Matrix(KM(Ci)) ≈ Matrix(KM(iso)) atol = atol_num
+        @test Matrix(mandel(Ci)) ≈ Matrix(mandel(iso)) atol = atol_num
         @test cubic_anisotropy(Ci) ≈ 0 atol = atol_num
 
         @test (iso + C) isa TensCubic
         @test (C + iso) isa TensCubic
         @test get_data(C + iso) == (36.0, 12.0, 10.0)
-        @test Matrix(KM(C - iso)) ≈ Matrix(KM(C)) - Matrix(KM(iso)) atol = atol_num
+        @test Matrix(mandel(C - iso)) ≈ Matrix(mandel(C)) - Matrix(mandel(iso)) atol = atol_num
         @test (iso ⊡ C) isa TensCubic
         @test get_data(iso ⊡ C) == (18.0 * 18.0, 36.0, 24.0)
         @test (C ⊡ iso) isa TensCubic
@@ -203,10 +203,10 @@
         O = cubic_to_ortho(C)
         @test O isa TensOrtho
         @test get_data(O) == (10.0, 10.0, 10.0, 4.0, 4.0, 4.0, 2.0, 2.0, 2.0)
-        @test Matrix(KM(O)) ≈ Matrix(KM(C)) atol = atol_num
+        @test Matrix(mandel(O)) ≈ Matrix(mandel(C)) atol = atol_num
         @test (C + O) isa TensOrtho
         @test (O - C) isa TensOrtho
-        @test Matrix(KM(C + O)) ≈ 2 * Matrix(KM(C)) atol = atol_num
+        @test Matrix(mandel(C + O)) ≈ 2 * Matrix(mandel(C)) atol = atol_num
 
         # Different frames: refused, with the frame named rather than silently
         # producing something wrong.
@@ -214,9 +214,9 @@
 
         # CUBIC and TI are incomparable — their intersection is the isotropic
         # class — so the sum falls through to the unstructured route on purpose.
-        ti = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
+        ti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
         @test !((C + ti) isa TensCubic)
-        @test Matrix(KM(C + ti)) ≈ Matrix(KM(C)) + Matrix(KM(ti)) atol = 1.0e-10
+        @test Matrix(mandel(C + ti)) ≈ Matrix(mandel(C)) + Matrix(mandel(ti)) atol = 1.0e-10
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -230,7 +230,7 @@
         # An isotropic tensor is exactly cubic; a TI one is not.
         _, _, dri = proj_tens(:CUBIC, get_array(TensISO{3}(18.0, 6.0)), can)
         @test dri < 1.0e-14
-        ti = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
+        ti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
         _, _, drt = proj_tens(:CUBIC, get_array(ti), can)
         @test drt > 1.0e-2
 
@@ -248,13 +248,13 @@
         @test best_fit_cubic(Tens(get_array(C)), rot) isa TensCubic
         A2 = Tens([2.0 0.3 0.0; 0.3 1.0 0.0; 0.0 0.0 0.5])
         @test best_fit_cubic(A2, can) isa TensISO
-        # `KM` of a 2nd-order tensor is the 6-vector, not a matrix.
-        @test collect(KM(best_fit_cubic(A2, can))) ≈ collect(KM(best_fit_iso(A2))) atol =
+        # `mandel` of a 2nd-order tensor is the 6-vector, not a matrix.
+        @test collect(mandel(best_fit_cubic(A2, can))) ≈ collect(mandel(best_fit_iso(A2))) atol =
             atol_num
 
         # The Kelvin-Mandel aliases round-trip.
-        @test cubic_params_from_KM(Matrix(KM_material(C))) == (18.0, 6.0, 4.0)
-        @test Matrix(KM_from_cubic_params(18.0, 6.0, 4.0)) ≈ Matrix(KM_material(C)) atol =
+        @test cubic_params_from_mandel(Matrix(mandel_material(C))) == (18.0, 6.0, 4.0)
+        @test Matrix(mandel_from_cubic_params(18.0, 6.0, 4.0)) ≈ Matrix(mandel_material(C)) atol =
             atol_num
 
         # A zero tensor projects to zero without dividing by it.
@@ -270,11 +270,11 @@
         A = get_array(C)
 
         # With the frame given: exact, and no optimizer involved.
-        @test is_CUBIC(A, rot)
-        @test is_CUBIC(C, rot)
-        @test !is_CUBIC(A, can)                    # not cubic about *that* cube
-        @test is_CUBIC(TensISO{3}(18.0, 6.0), can) # isotropic ⊂ cubic
-        @test !is_CUBIC(get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])), can)
+        @test iscubic(A, rot)
+        @test iscubic(C, rot)
+        @test !iscubic(A, can)                    # not cubic about *that* cube
+        @test iscubic(TensISO{3}(18.0, 6.0), can) # isotropic ⊂ cubic
+        @test !iscubic(get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])), can)
 
         # The reason there is no cheap free-frame route, pinned rather than
         # asserted: **every second-order contraction of a cubic tensor is
@@ -293,10 +293,10 @@
         @test proj_tens(Val(:CUBIC), A, TensND._candidate_ORTHO_frame(A))[3] > 1.0e-2
         @test proj_tens(Val(:CUBIC), A, rot)[3] < 1.0e-12
 
-        @test !is_TI(A)
-        @test is_ORTHO(A, rot)          # cubic ⊂ orthotropic, frame given
-        @test !is_ISO(A)
-        @test is_ISO(get_array(TensISO{3}(18.0, 6.0)))
+        @test !istransverselyisotropic(A)
+        @test isorthotropic(A, rot)          # cubic ⊂ orthotropic, frame given
+        @test !isisotropic(A)
+        @test isisotropic(get_array(TensISO{3}(18.0, 6.0)))
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -308,7 +308,7 @@
         _, _, drel, sym = best_sym_tens(Tens(get_array(tens_cubic(10.0, 4.0, 2.0, can))))
         @test sym == :CUBIC
         @test drel < 1.0e-8
-        _, _, _, sym = best_sym_tens(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))
+        _, _, _, sym = best_sym_tens(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))
         @test sym == :TI
         # A structured `TensCubic` is reported from its **own** frame, with no
         # search: `best_sym_tens` reads `frame(t)` when the container has one.
@@ -323,7 +323,7 @@
         # dropped rather than raising a `MethodError` from inside `proj_tens`:
         # an axis leaves ISO and TI, a frame leaves ISO, CUBIC and ORTHO.
         _, _, _, sym = best_sym_tens(
-            Tens(get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))),
+            Tens(get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))),
             [0.0, 0.0, 1.0],
         )
         @test sym == :TI
@@ -349,10 +349,10 @@
             Array(components(Tens(get_array(C)), b, (:cont, :cont, :cont, :cont))) atol =
             1.0e-12
         # The physical tensor is unchanged, which is the point of rotating
-        # rather than relabeling — compared in a common basis, since `KM` of a
+        # rather than relabeling — compared in a common basis, since `mandel` of a
         # tensor stored in a rotated basis returns the components *in that
         # basis*.
-        @test Matrix(KM(change_tens_canon(moved))) ≈ Matrix(KM(C)) atol = 1.0e-12
+        @test Matrix(mandel(change_tens_canon(moved))) ≈ Matrix(mandel(C)) atol = 1.0e-12
         # And the canonical target is a no-op.
         @test Array(get_array(change_tens(C, can))) ≈ Array(get_array(C)) atol = 1.0e-12
     end
@@ -365,14 +365,14 @@
         # α𝕁 + ((2β + 3γ)/5)𝕂, the weighted mean over the dimensions of Eg and T2g.
         @test get_data(a) == (18.0, (2 * 6.0 + 3 * 4.0) / 5)
         # Exactly the generic route, which goes through all 81 components.
-        @test Matrix(KM(a)) ≈ Matrix(KM(isotropify(Tens(get_array(C))))) atol = atol_num
+        @test Matrix(mandel(a)) ≈ Matrix(mandel(isotropify(Tens(get_array(C))))) atol = atol_num
         # The average cannot depend on where the cube points.
         Cr = tens_cubic(10.0, 4.0, 2.0, rot)
-        @test Matrix(KM(isotropify(Cr))) ≈ Matrix(KM(a)) atol = 1.0e-10
+        @test Matrix(mandel(isotropify(Cr))) ≈ Matrix(mandel(a)) atol = 1.0e-10
         # A cubic tensor that is already isotropic is its own average.
         Ci = tens_cubic(10.0, 4.0, 3.0, can)          # C₁₁ = C₁₂ + 2C₄₄
         @test cubic_anisotropy(Ci) ≈ 0 atol = atol_num
-        @test Matrix(KM(isotropify(Ci))) ≈ Matrix(KM(Ci)) atol = 1.0e-10
+        @test Matrix(mandel(isotropify(Ci))) ≈ Matrix(mandel(Ci)) atol = 1.0e-10
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -384,7 +384,7 @@
         # average changes nothing.
         for (C11, C12, C44) in ((10.0, 4.0, 3.0), (10.0, 4.0, 2.0), (5.0, 1.0, 4.0))
             C = tens_cubic(C11, C12, C44, can)
-            same = norm(Matrix(KM(isotropify(C))) - Matrix(KM(C))) < 1.0e-10
+            same = norm(Matrix(mandel(isotropify(C))) - Matrix(mandel(C))) < 1.0e-10
             @test same == (abs(cubic_anisotropy(C)) < 1.0e-12)
         end
     end
@@ -397,7 +397,7 @@
         @test ForwardDiff.derivative(f, 2.0) ≈ -1 / (2 * 2.0^2)
         # Through a product and the Kelvin-Mandel matrix.
         g = C11 -> Matrix(
-            KM(
+            mandel(
                 tens_cubic(C11, 4.0, 2.0, can) ⊡
                     tens_cubic(1.0, 0.5, 0.25, can)
             )

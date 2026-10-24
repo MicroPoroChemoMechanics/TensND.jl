@@ -11,7 +11,7 @@
     n = (0.0, 0.0, 1.0)
     W = walpole_basis(n)
     Ws = walpole_basis_sym(n)
-    𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
+    𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
     s2 = sqrt(2)
 
     # ── The Walpole basis ────────────────────────────────────────────────────
@@ -130,17 +130,17 @@
     @testset "Kelvin–Mandel is an isometry" begin
         A = TensISO{3}(3.0, 2.0)
         B = TensISO{3}(5.0, 7.0)
-        @test norm(arr(A)) ≈ norm(KM(A))
-        @test KM(A ⊡ B) ≈ KM(A) * KM(B)
-        @test KM(inv(A)) ≈ inv(Matrix(KM(A)))
-        @test KM(𝕀) ≈ Matrix(1.0I, 6, 6)
+        @test norm(arr(A)) ≈ norm(mandel(A))
+        @test mandel(A ⊡ B) ≈ mandel(A) * mandel(B)
+        @test mandel(inv(A)) ≈ inv(Matrix(mandel(A)))
+        @test mandel(𝕀) ≈ Matrix(1.0I, 6, 6)
     end
 
     @testset "the KM rotation is orthogonal, and the congruence holds" begin
         θ, ϕ, ψ = 0.37, 0.83, 0.29
-        Q = TensND.KM_rotation(θ, ϕ, ψ)
+        Q = TensND.mandel_rotation(θ, ϕ, ψ)
         @test Q'Q ≈ I
-        @test Q ≈ KM(rot6(θ, ϕ, ψ))
+        @test Q ≈ mandel(rot6(θ, ϕ, ψ))
         @test arr(rot6(θ, ϕ, ψ)) ≈ arr(Tens(Matrix(rot3(θ, ϕ, ψ))) ⊠ˢ Tens(Matrix(rot3(θ, ϕ, ψ))))
 
         # Mat(t) = Q · Mat_material(t) · Qᵀ, checked on a ROTATED frame: in the
@@ -148,7 +148,7 @@
         t = TensOrtho(10.0, 8.0, 9.0, 3.0, 2.0, 4.0, 2.5, 3.0, 1.5, Basis(θ, ϕ, ψ))
         Qc = TensND._km_congruence(frame(t))
         @test Qc'Qc ≈ I
-        @test KM(t) ≈ Qc * KM_material(t) * transpose(Qc)
+        @test mandel(t) ≈ Qc * mandel_material(t) * transpose(Qc)
         @test !(Matrix(Qc) ≈ Matrix(1.0I, 6, 6))    # the frame really is rotated
     end
 
@@ -195,7 +195,7 @@
             10.0 3.0 2.5 0 0 0; 3.0 10.0 2.5 0 0 0; 2.5 2.5 12.0 0 0 0
             0 0 0 4.0 0 0; 0 0 0 0 4.0 0; 0 0 0 0 0 7.0
         ]
-        A = arr(inv_KM(C))
+        A = arr(from_mandel(C))
         g = [1.0, 1.0, 2.0, 2.0, 2.0]
         by_hand = ntuple(i -> sum(A .* arr(Ws[i])) / g[i], 5)
         @test collect(TensND._project_TI_KM(C)) ≈ collect(by_hand)
@@ -203,7 +203,7 @@
 
     @testset "proj_tens round trips and returns (B, d, drel)" begin
         nv = [0.0, 0.0, 1.0]
-        C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, nv)
+        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, nv)
         B, d, drel = proj_tens(:TI, arr(C), nv)
         @test B isa TensTI{4, Float64, 5}
         @test drel < 1.0e-12
@@ -217,7 +217,7 @@
         # threw a DimensionMismatch.
         nf = [0.0, 0.0, 1.0]
         f(α) = get_data(
-            proj_tens(:TI, arr(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), nf)[1]
+            proj_tens(:TI, arr(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), nf)[1]
         )[1]
         for α in (0.3, 0.7)
             fd = (f(α + 1.0e-6) - f(α - 1.0e-6)) / 2.0e-6
@@ -229,7 +229,7 @@
         # the gimbal-lock point of the canonical frame.
         for fr in (CanonicalBasis{3, Float64}(), Basis(0.3, 0.8, 0.2))
             g(α) = get_data(
-                proj_tens(:ORTHO, arr(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), fr)[1]
+                proj_tens(:ORTHO, arr(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), fr)[1]
             )[1]
             ad = ForwardDiff.derivative(g, 0.5)
             @test isfinite(ad)
@@ -243,7 +243,7 @@
     @testset "Γᵏᵢⱼ = ∂ᵢ𝐚ⱼ ⋅ 𝐚ᵏ, with Γ[i,j,k] = Γᵏᵢⱼ" begin
         CS = coorsys_spherical()
         coords = getcoords(CS)
-        Γ = Christoffel(CS)
+        Γ = christoffel(CS)
         for i in 1:3, j in 1:3, k in 1:3
             direct = ∂(natvec(CS, j, :cov), coords[i], CS) ⋅ natvec(CS, k, :cont)
             @test iszero(tsimplify(direct - Γ[i, j, k]))
@@ -253,21 +253,21 @@
     end
 
     @testset "operator index placement" begin
-        # GRAD appends the derivative index on the RIGHT: (∇v)ᵢⱼ = ∂ⱼvᵢ.
-        # DIV contracts the LAST index:                  (div σ)ᵢ = ∂ⱼσᵢⱼ.
+        # grad appends the derivative index on the RIGHT: (∇v)ᵢⱼ = ∂ⱼvᵢ.
+        # divergence contracts the LAST index:                  (div σ)ᵢ = ∂ⱼσᵢⱼ.
         # Both are invisible on symmetric fields, hence the deliberately
         # non-symmetric one below.
         Cartesian = coorsys_cartesian()
         X = getcoords(Cartesian)
         E = unitvec(Cartesian)
         v = sum(SymFunction("v$i", real = true)(X...) * E[i] for i in 1:3)
-        Gv = get_array(GRAD(v, Cartesian))
+        Gv = get_array(grad(v, Cartesian))
         for i in 1:3, j in 1:3
             @test iszero(tsimplify(Gv[i, j] - diff(SymFunction("v$i", real = true)(X...), X[j])))
         end
 
         t = Tens(Tensor{2, 3}((i, j) -> SymFunction("t$i$j", real = true)(X...)))
-        dv = get_array(DIV(t, Cartesian))
+        dv = get_array(divergence(t, Cartesian))
         for i in 1:3
             expected = sum(diff(SymFunction("t$i$j", real = true)(X...), X[j]) for j in 1:3)
             @test iszero(tsimplify(dv[i] - expected))
@@ -282,7 +282,7 @@
         # vector instead of ∂OM/∂qⁱ and the Laplacian of a harmonic function
         # came out nonzero on any skew chart.
         u, v = symbols("u v", real = true)
-        CS = CoorSystemSym(Tens([u + v^2, v]), (u, v))          # x = u+v², y = v
+        CS = CoordinateSystem(Tens([u + v^2, v]), (u, v))          # x = u+v², y = v
 
         @test !isorthonormal(normalized_basis(CS))               # genuinely skew
 
@@ -297,16 +297,16 @@
         @test all(iszero, tsimplify(metric(natural_basis(CS), :cov) - [1 2v; 2v 1 + 4v^2]))
 
         # x² − y² and x·y are harmonic; expressed in (u, v) they must stay so.
-        @test iszero(simplify(LAPLACE((u + v^2)^2 - v^2, CS)))
-        @test iszero(simplify(LAPLACE((u + v^2) * v, CS)))
+        @test iszero(simplify(laplacian((u + v^2)^2 - v^2, CS)))
+        @test iszero(simplify(laplacian((u + v^2) * v, CS)))
     end
 
     @testset "Lamé coefficients of the predefined systems" begin
-        @test all(isone, Lame(coorsys_cartesian()))
+        @test all(isone, lame_coefficients(coorsys_cartesian()))
         r, θ = getcoords(coorsys_polar())
-        @test collect(Lame(coorsys_polar())) == [1, r]
+        @test collect(lame_coefficients(coorsys_polar())) == [1, r]
         θs, ϕs, rs = getcoords(coorsys_spherical())
-        @test collect(Lame(coorsys_spherical())) == [rs, rs * sin(θs), 1]
+        @test collect(lame_coefficients(coorsys_spherical())) == [rs, rs * sin(θs), 1]
     end
 
     @testset "classical operator identities" begin
@@ -320,7 +320,7 @@
                 coorsys_cartesian(),
                 coorsys_polar(),
                 coorsys_spherical(),
-                CoorSystemSym(Tens([uu + vv^2, vv]), (uu, vv)),   # non-orthogonal
+                CoordinateSystem(Tens([uu + vv^2, vv]), (uu, vv)),   # non-orthogonal
             )
             d = get_dim(CS)
             q = getcoords(CS)
@@ -332,16 +332,16 @@
             zero_res(x) = iszero(tsimplify(maximum(abs, tsimplify.(get_array(x)))))
             zero_sc(x) = iszero(tsimplify(x))
 
-            @test zero_sc(LAPLACE(f, CS) - DIV(GRAD(f, CS), CS))
-            @test zero_sc(LAPLACE(f, CS) - tr(HESS(f, CS)))
-            @test zero_res(GRAD(f * g, CS) - (f * GRAD(g, CS) + g * GRAD(f, CS)))
+            @test zero_sc(laplacian(f, CS) - divergence(grad(f, CS), CS))
+            @test zero_sc(laplacian(f, CS) - tr(hess(f, CS)))
+            @test zero_res(grad(f * g, CS) - (f * grad(g, CS) + g * grad(f, CS)))
             @test zero_sc(
-                LAPLACE(f * g, CS) -
-                    (f * LAPLACE(g, CS) + 2 * (GRAD(f, CS) ⋅ GRAD(g, CS)) + g * LAPLACE(f, CS))
+                laplacian(f * g, CS) -
+                    (f * laplacian(g, CS) + 2 * (grad(f, CS) ⋅ grad(g, CS)) + g * laplacian(f, CS))
             )
-            @test zero_sc(DIV(f * 𝐯, CS) - (GRAD(f, CS) ⋅ 𝐯 + f * DIV(𝐯, CS)))
-            @test zero_res(DIV(f * 𝟏, CS) - GRAD(f, CS))
-            @test zero_sc(tr(GRAD(𝐯, CS)) - DIV(𝐯, CS))
+            @test zero_sc(divergence(f * 𝐯, CS) - (grad(f, CS) ⋅ 𝐯 + f * divergence(𝐯, CS)))
+            @test zero_res(divergence(f * 𝟏, CS) - grad(f, CS))
+            @test zero_sc(tr(grad(𝐯, CS)) - divergence(𝐯, CS))
             # `∂𝟏 = 0` is metric compatibility of the connection.
             @test zero_res(∂(𝟏, 1, CS))
             # Leibniz: `∂` is a derivation.
@@ -356,39 +356,39 @@
         Polar = coorsys_polar()
         r, θ = getcoords(Polar)
         nn = symbols("n", integer = true)
-        @test iszero(simplify(LAPLACE(r^nn * cos(nn * θ), Polar)))
+        @test iszero(simplify(laplacian(r^nn * cos(nn * θ), Polar)))
 
         Spherical = coorsys_spherical()
         θs, ϕs, rs = getcoords(Spherical)
-        @test iszero(tsimplify(LAPLACE(1 / rs, Spherical)))
-        @test iszero(tsimplify(tr(HESS(1 / rs, Spherical)) - LAPLACE(1 / rs, Spherical)))
+        @test iszero(tsimplify(laplacian(1 / rs, Spherical)))
+        @test iszero(tsimplify(tr(hess(1 / rs, Spherical)) - laplacian(1 / rs, Spherical)))
     end
 
     @testset "symbolic and numerical operators agree" begin
         CS = coorsys_spherical()
         θs, ϕs, rs = getcoords(CS)
-        Γ = Christoffel(CS)
+        Γ = christoffel(CS)
         x₀ = [0.7, 1.1, 2.3]
-        Γnum = Christoffel(coorsys_spherical_num(), x₀)
+        Γnum = christoffel(coorsys_spherical(PointwiseGeometry), x₀)
         at_x₀ = Dict(θs => x₀[1], ϕs => x₀[2], rs => x₀[3])
         Γsym = map(γ -> Float64(tsimplify(γ).subs(at_x₀)), Γ)
         @test Γnum ≈ Γsym
-        @test collect(Lame(coorsys_spherical_num(), x₀)) ≈ [x₀[3], x₀[3] * sin(x₀[1]), 1.0]
+        @test collect(lame_coefficients(coorsys_spherical(PointwiseGeometry), x₀)) ≈ [x₀[3], x₀[3] * sin(x₀[1]), 1.0]
     end
 
     # ── Submanifolds ─────────────────────────────────────────────────────────
     # docs/src/theory/submanifolds.md
 
-    @testset "GRAD(n) = −b on a sphere, as tensors" begin
+    @testset "grad(n) = −b on a sphere, as tensors" begin
         R = symbols("R", positive = true)
         θ = symbols("θ", positive = true)
         ϕ = symbols("ϕ", real = true)
-        Sphere = SubManifoldSym(
+        Sphere = Submanifold(
             Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,);
             rules = Dict(abs(sin(θ)) => sin(θ)),
         )
         b = curvature(Sphere)
-        G = GRAD(normal(Sphere), Sphere)
+        G = grad(normal(Sphere), Sphere)
         ℬ = natural_basis(Sphere)
         # The identity holds between TENSORS: it must be checked in a common
         # basis and variance, never by subtracting `get_array`s.

@@ -101,7 +101,7 @@ that varies with the rotation.
 n_fixed = [0.0, 0.0, 1.0]
 
 function projected_ℓ₁(α)
-    C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])
+    C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])
     B, _, _ = proj_tens(:TI, arr(C), n_fixed)
     return get_data(B)[1]
 end
@@ -125,7 +125,7 @@ and in a rotated one:
 frame_rot = Basis(0.3, 0.8, 0.2)
 
 function projected_C₁₁(α, frame)
-    C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])
+    C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])
     B, _, _ = proj_tens(:ORTHO, arr(C), frame)
     return get_data(B)[1]
 end
@@ -169,7 +169,7 @@ and an order-4 minor-symmetric tensor round-trips through Kelvin–Mandel:
 ````@example ad_interop
 C4 = SymmetricTensor{4, 3}((i, j, k, l) -> Float64(i + j + k + l))
 tc = Tens(C4)
-norm(arr(inv_KM(KM(tc))) - arr(tc))
+norm(arr(from_mandel(mandel(tc))) - arr(tc))
 ````
 
 ## What is generic, and what is not

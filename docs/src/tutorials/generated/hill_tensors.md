@@ -46,7 +46,7 @@ Spherical = coorsys_spherical((symbols("θ ϕ", real = true)..., symbols("ξ", p
 
 𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
 𝟏 = tens_Id2(Val(3), Val(Sym))
-𝛏 = getOM(Spherical)
+𝛏 = position_vector(Spherical)
 ````
 
 ## The isotropic case
@@ -101,20 +101,20 @@ Identically zero.
 
 ## The transversely isotropic case
 
-The same three lines, with a stiffness built by [`tens_TI`](@ref) instead.
+The same three lines, with a stiffness built by [`tens_ti`](@ref) instead.
 Nothing in the construction changes: `⋅`, `inv` and `⊡` dispatch on the
 structured type.
 
 !!! note "This replaces a legacy hand-rolled Walpole basis"
     An earlier research script re-defined the Walpole tensors and the TI
     constructors locally. Everything it needed is now in the library —
-    [`walpole_basis`](@ref), [`tens_TI`](@ref), [`tens_TI_eng`](@ref),
-    [`tens_TI_Hoenig`](@ref) — so the local definitions are gone.
+    [`walpole_basis`](@ref), [`tens_ti`](@ref), [`tens_ti_eng`](@ref),
+    [`tens_ti_hoenig`](@ref) — so the local definitions are gone.
 
 ````@example hill_tensors
 C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃ = symbols("C₁₁₁₁ C₁₁₂₂ C₁₁₃₃ C₃₃₃₃ C₂₃₂₃", positive = true)
 n = 𝐞₃
-ℂᵗⁱ = tens_TI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, [Sym(0), Sym(0), Sym(1)])
+ℂᵗⁱ = tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, [Sym(0), Sym(0), Sym(1)])
 
 typeof(ℂᵗⁱ), get_ℓ(ℂᵗⁱ)
 ````

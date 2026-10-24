@@ -4,7 +4,7 @@ Hypersurfaces embedded in `Rᵈ`. Theory: [Submanifolds](@ref th-submanifolds);
 usage: [Submanifolds](@ref man-submanifolds).
 
 ```@docs
-SubManifoldSym
+Submanifold
 normal
 submetric
 curvature

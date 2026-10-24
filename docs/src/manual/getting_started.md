@@ -31,7 +31,7 @@ Spherical = coorsys_spherical()
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
 @set_coorsys Spherical
 
-DIV(𝐞ʳ)
+divergence(𝐞ʳ)
 ```
 
 The radial unit vector has constant components `(0,0,1)` in the spherical frame,
@@ -43,14 +43,14 @@ The kernel of the Laplace equation, and the equilibrium operator of a sphericall
 symmetric stress state:
 
 ```@example gs
-LAPLACE(1 / r)
+laplacian(1 / r)
 ```
 
 ```@example gs
 σʳʳ = SymFunction("σʳʳ", real = true)(r)
 σᶿᶿ = SymFunction("σᶿᶿ", real = true)(r)
 𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * (𝐞ᶿ ⊗ 𝐞ᶿ + 𝐞ᵠ ⊗ 𝐞ᵠ)
-simplify(DIV(𝛔))
+simplify(divergence(𝛔))
 ```
 
 ## Structured tensors
@@ -70,8 +70,8 @@ Transverse isotropy uses five coefficients on the Walpole basis
 
 ```@example gs2
 n = [0.0, 0.0, 1.0]
-𝕊 = tens_TI_eng(9.0, 140.0, 0.40, 0.30, 4.6, n)   # a carbon/epoxy ply
-arg_TI_Hoenig(𝕊)
+𝕊 = tens_ti_eng(9.0, 140.0, 0.40, 0.30, 4.6, n)   # a carbon/epoxy ply
+ti_args_hoenig(𝕊)
 ```
 
 The dimensionless Hoenig parameters read off the anisotropy directly — see
@@ -82,7 +82,7 @@ The dimensionless Hoenig parameters read off the anisotropy directly — see
 Given an arbitrary tensor, ask what symmetry it has:
 
 ```@example gs2
-C = get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))
+C = get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))
 _, _, drel, sym = best_sym_tens(Tens(C))
 (sym, drel)
 ```

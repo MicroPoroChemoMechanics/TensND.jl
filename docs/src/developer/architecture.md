@@ -14,7 +14,7 @@ flowchart TB
     TE["<b>tens.jl</b><br/>AbstractTens, Tens,<br/>accessors, storage"]
     TD["<b>tens_display.jl</b><br/>show, pprint"]
     TC["<b>tens_components.jl</b><br/>components, change_tens,<br/>equality"]
-    KMF["<b>kelvin_mandel.jl</b><br/>KM, inv_KM"]
+    KMF["<b>kelvin_mandel.jl</b><br/>mandel, from_mandel"]
     TA["<b>tens_algebra.jl</b><br/>arithmetic, products,<br/>contractions"]
     ISO["<b>tens_isotropic.jl</b><br/>TensISO"]
     ANI["<b>tens_anisotropic.jl</b><br/>TensTI, TensOrtho"]
@@ -25,10 +25,10 @@ flowchart TB
     ORI["<b>orientation_search.jl</b><br/>free axis or frame"]
     SYM["<b>symmetry_search.jl</b><br/>best_sym_tens"]
     RA["<b>tens_rotational_average.jl</b><br/>isotropic and transverse averages"]
-    SPE["<b>special_tens.jl</b><br/>LeviCivita, rot2/3/6, init_*"]
-    CSS["<b>coorsystems.jl</b><br/>CoorSystemSym"]
-    CSN["<b>coorsystems_num.jl</b><br/>CoorSystemNum"]
-    SUB["<b>submanifold.jl</b><br/>SubManifoldSym"]
+    SPE["<b>special_tens.jl</b><br/>levi_civita, rot2/3/6, init_*"]
+    CSS["<b>coorsystems.jl</b><br/>CoordinateSystem, ExactGeometry"]
+    CSN["<b>coorsystems_num.jl</b><br/>PointwiseGeometry"]
+    SUB["<b>submanifold.jl</b><br/>Submanifold"]
     CK --> AU --> BA --> TE --> TD --> TC --> KMF --> TA --> ISO --> ANI --> CUB --> OPS --> PRO --> PRJ --> ORI --> SYM --> RA --> SPE --> CSS --> CSN --> SUB
 ```
 
@@ -70,7 +70,7 @@ along — the [`nderiv`](@ref) trait, `dim` for a chart and `dim-1` for a surfac
 a verbatim copy of all six definitions, which is how one bug fix had to be
 applied twice and one variance bug survived in the copy.
 
-Both types hold the same internal `ChartCore` — position vector, coordinates, the
+Both types hold the same internal `ExactGeometry` — position vector, coordinates, the
 two bases, the natural and dual frames, Lamé coefficients, connection array and
 simplification settings — and a submanifold adds only the two fundamental forms.
 

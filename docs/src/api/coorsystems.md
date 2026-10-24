@@ -5,25 +5,27 @@ Symbolic differential calculus on a curvilinear chart. Theory:
 [Coordinate systems](@ref man-coorsystems).
 
 ```@docs
-CoorSystemSym
+CoordinateSystem
+AbstractGeometry
+ExactGeometry
 @set_coorsys
 set_coorsys!
 default_coorsys
 unset_coorsys!
-GRAD
-SYMGRAD
-DIV
-LAPLACE
-HESS
+grad
+symgrad
+divergence
+laplacian
+hess
 ∂
 getcoords
-getOM
+position_vector
 unitvec
 natvec
 normalized_basis
 natural_basis
-Lame
-Christoffel
+lame_coefficients
+christoffel
 nderiv
 coorsys_cartesian
 coorsys_polar

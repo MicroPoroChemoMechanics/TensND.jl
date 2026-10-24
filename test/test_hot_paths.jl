@@ -6,7 +6,7 @@
     _allocs(f, args...) = (f(args...); @allocated f(args...))
 
     ISO = TensISO{3}(3.0, 2.0)
-    TI = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
+    TI = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
     OR = TensOrtho(250.0, 180.0, 150.0, 90.0, 80.0, 70.0, 60.0, 50.0, 40.0, CanonicalBasis{3, Float64}())
     # Structured algebra: closed forms on the coefficients.
     for (f, args) in ((inv, (ISO,)), (⊡, (ISO, ISO)), (inv, (TI,)), (inv, (OR,)))
@@ -30,11 +30,11 @@
     @inferred concentration(TI, ISO, ISO, TensISO{3}(1.0, 1.0))
     # Kelvin-Mandel matrices of structured tensors, at the dimension of the type.
     for t in (ISO, TI, OR, tens_cubic(250.0, 120.0, 90.0, CanonicalBasis{3, Float64}()))
-        @test (@inferred KM(t)) isa Matrix{Float64}
+        @test (@inferred mandel(t)) isa Matrix{Float64}
     end
     # The product of a dual tensor with a plain one, both canonical: no change
     # of basis is needed, and none is dispatched at run time.
-    TId = tens_TI(ForwardDiff.Dual{Nothing}(10.0, 1.0), 3.0, 2.5, 12.0, 2.0, [0.6, 0.0, 0.8])
+    TId = tens_ti(ForwardDiff.Dual{Nothing}(10.0, 1.0), 3.0, 2.5, 12.0, 2.0, [0.6, 0.0, 0.8])
     Gd, Ga = TensND.generic_tens(TId), TensND.generic_tens(TI)
     @inferred Gd ⊡ Ga
     @test _allocs(⊡, Gd, Ga) == 0
@@ -47,14 +47,14 @@
     ℬ3, ℬ2 = RotatedBasis(0.3, 0.2, 0.1), RotatedBasis(0.3)
     M6 = [10.0 3 1 0 0 0; 3 8 0.5 0 0 0; 1 0.5 4 0 0 0; 0 0 0 2 0 0; 0 0 0 0 3 0; 0 0 0 0 0 1.5]
     for (v, ℬ) in ((M6, ℬ3), (M6[1:3, 1:3], ℬ2), (M6[:, 1], ℬ3), (M6[1:3, 1], ℬ2))
-        @test get_array(@inferred inv_KM(static(v))) == get_array(inv_KM(v))
-        @test get_array(@inferred inv_KM(static(v), ℬ)) == get_array(inv_KM(v, ℬ))
+        @test get_array(@inferred from_mandel(static(v))) == get_array(from_mandel(v))
+        @test get_array(@inferred from_mandel(static(v), ℬ)) == get_array(from_mandel(v, ℬ))
     end
     M9 = [0.1 * (i + 2j) + (i == j) for i in 1:9, j in 1:9]
     M4 = [1.0 2 0 0; 2 5 0 0; 0 0 3 1; 0 0 1 4]
     for (v, ℬ) in ((M9, ℬ3), (M9[:, 1], ℬ3), (M4, ℬ2), (M4[:, 1], ℬ2))
-        @test get_array(inv_KM(static(v))) == get_array(inv_KM(v))
-        @test get_array(inv_KM(static(v), ℬ)) == get_array(inv_KM(v, ℬ))
+        @test get_array(from_mandel(static(v))) == get_array(from_mandel(v))
+        @test get_array(from_mandel(static(v), ℬ)) == get_array(from_mandel(v, ℬ))
     end
     # The parent of an orthogonal basis is in its type.
     ℬo = Basis(RotatedBasis(0.3, 0.2, 0.1), [2.0, 1.0, 0.5])
@@ -75,7 +75,7 @@
     GR, S2R = change_tens(G, ℬr), change_tens(S2, ℬr)
     for t in (ISO, TI, ORr, CU)
         @test (@inferred change_tens(t, ℬr)) isa TensND.TensRotated{4, 3, Float64, SymmetricTensor{4, 3, Float64, 36}}
-        @inferred KM(t, ℬr)
+        @inferred mandel(t, ℬr)
         @inferred inv(t)
         # (TI + TI checks for a common axis at run time, like TI ⊡ TI above.)
         t isa TensTI || @inferred t + t
@@ -85,9 +85,9 @@
     @test get_array(change_tens(ISO, ℬr)) == get_array(Tens(get_array(ISO), ℬr))
     @inferred change_tens(TensISO{3}(2.0), ℬr)   # order 2: the constructor takes the dimension
     for (f, args) in (
-            (KM, (G,)), (KM, (GR,)), (KM, (GR, CanonicalBasis{3, Float64}())),
-            (⊗, (S2, S2)), (⊗, (S2R, S2R)), (⊡, (G, S2)), (⊡, (GR, S2R)), (⊡, (ORr, ORr)),
-            (inv, (G,)), (inv, (GR,)), (+, (GR, GR)), (isotropify, (ORr,)), (KM_rotation, (Matrix(ℬr),)),
+            (mandel, (G,)), (mandel, (GR,)), (mandel, (GR, CanonicalBasis{3, Float64}())),
+            (⊗, (S2, S2)), (⊗, (S2R, S2R)), (⊡, (G, S2)), (⊡, (GR, S2R)),
+            (inv, (G,)), (inv, (GR,)), (+, (GR, GR)), (isotropify, (ORr,)), (mandel_rotation, (Matrix(ℬr),)),
         )
         @inferred f(args...)
     end
@@ -95,6 +95,12 @@
     # target basis is returned as it is, a basis that is the identity is the
     # canonical one, and the storage is symmetric only if the components are.
     @inferred Union{typeof(G), typeof(GR)} change_tens(G, ℬr)
+    # Two orthotropic tensors on the same frame multiply in the twelve-constant
+    # form, on different frames by the generic route.
+    @inferred Union{TensOrtho{4, Float64, 12, typeof(ℬr)}, TensND.TensCanonical{4, 3, Float64, SymmetricTensor{4, 3, Float64, 36}}} ORr ⊡ ORr
+    # The product is inlined: a caller splits the union and allocates nothing
+    # (only the union itself, returned from a non-inlined call, is boxed).
+    @test _allocs((a, b) -> get_data(a ⊡ b), ORr, ORr) == 0
     @inferred Union{typeof(G), typeof(GR)} change_tens(GR, CanonicalBasis{3, Float64}())
     @inferred Union{Array{Float64, 4}, SymmetricTensor{4, 3, Float64, 36}} components_canon(GR)
     @inferred Union{RotatedBasis{<:Any, Float64}, CanonicalBasis{<:Any, Float64}} frame_from_axis((0.3, -0.5, 0.8))

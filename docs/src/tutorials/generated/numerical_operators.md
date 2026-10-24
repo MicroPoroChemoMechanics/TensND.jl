@@ -12,7 +12,7 @@ this way can itself be differentiated with respect to a parameter.
 
 Theory: [Curvilinear differential calculus](@ref th-curvilinear).
 
-A [`CoorSystemNum`](@ref) stores its geometry as three closures — the Lamé
+A pointwise [`CoordinateSystem`](@ref) stores its geometry as three closures — the Lamé
 coefficients, the rotation to the normalized frame, and the Christoffel
 symbols — all evaluated at the point of interest. A field is an ordinary Julia
 function of the coordinate vector, and an operator returns a **function**,
@@ -31,13 +31,13 @@ The exact result is ``(n^2-m^2)\,r^{n-2}\sin m\theta``, so the harmonic case
 ``n=m`` must vanish.
 
 ````@example numerical_operators
-CS_polar = coorsys_polar_num()
+CS_polar = coorsys_polar(PointwiseGeometry)
 r₀, θ₀ = 2.5, 0.7
 
 println("  n  m       numerical        exact")
 for (n, m) in [(2, 1), (3, 1), (3, 3), (2, 2)]
     f = x -> x[1]^n * sin(m * x[2])
-    num = LAPLACE(f, CS_polar)([r₀, θ₀])
+    num = laplacian(f, CS_polar)([r₀, θ₀])
     exact = (n^2 - m^2) * r₀^(n - 2) * sin(m * θ₀)
     @printf "  %d  %d   %+.10f   %+.10f\n" n m num exact
 end
@@ -50,14 +50,14 @@ Coordinates are ordered ``(\theta,\varphi,r)``, so the radial component is the
 ``\nabla^2(r^n)=n(n+1)r^{n-2}``.
 
 ````@example numerical_operators
-CS_sph = coorsys_spherical_num()
+CS_sph = coorsys_spherical(PointwiseGeometry)
 x₀ = [π / 4, π / 3, 3.0]
 
 println("   n     ∇[e_r]         exact          ∇²             exact")
 for n in [1, 2, 3, -1]
     f = x -> x[3]^n
-    g = GRAD(f, CS_sph)(x₀)
-    lap = LAPLACE(f, CS_sph)(x₀)
+    g = grad(f, CS_sph)(x₀)
+    lap = laplacian(f, CS_sph)(x₀)
     @printf "  %2d  %+.10f  %+.10f  %+.10f  %+.10f\n" n g[3] n * x₀[3]^(n - 1) lap n * (n + 1) * x₀[3]^(n - 2)
 end
 ````
@@ -69,7 +69,7 @@ has all three physical components:
 
 ````@example numerical_operators
 f_ang = x -> x[3]^2 * sin(x[1]) * cos(x[2])
-g_num = GRAD(f_ang, CS_sph)(x₀)
+g_num = grad(f_ang, CS_sph)(x₀)
 g_exact = [
     x₀[3] * cos(x₀[1]) * cos(x₀[2]),      # e_θ
     -x₀[3] * sin(x₀[2]),                    # e_φ
@@ -105,14 +105,14 @@ A = p_i * a^3 / (3κ * (b^3 - a^3))
 B = p_i * a^3 * b^3 / (4μ * (b^3 - a^3))
 
 u_func = x -> [0.0, 0.0, A * x[3] + B / x[3]^2]          # (θ, φ, r) components
-ε_func = x -> SYMGRAD(u_func, CS_sph)(x)
+ε_func = x -> symgrad(u_func, CS_sph)(x)
 function σ_func(x)
     ε = Array(ε_func(x))   # components in the local orthonormal frame
     return λ * tr(ε) * I + 2μ * ε
 end
 ````
 
-`SYMGRAD` of a displacement is the linearized strain directly; `DIV` of the
+`symgrad` of a displacement is the linearized strain directly; `divergence` of the
 stress is the equilibrium operator, which must vanish everywhere.
 
 ````@example numerical_operators
@@ -121,7 +121,7 @@ println("   r      ε_rr        exact       ε_θθ        exact       σ_rr    
 for rv in [1.1, 1.5, 2.0, 2.5, 2.9]
     x = [θc, ϕc, rv]
     ε, σ = ε_func(x), σ_func(x)
-    divσ = norm(DIV(σ_func, CS_sph)(x))
+    divσ = norm(divergence(σ_func, CS_sph)(x))
     @printf "  %.1f  %+.7f  %+.7f  %+.7f  %+.7f  %+.7f  %+.7f  %.1e\n" rv ε[3, 3] (A - 2B / rv^3) ε[1, 1] (A + B / rv^3) σ[3, 3] (3κ * A - 4μ * B / rv^3) divσ
 end
 ````
@@ -143,7 +143,7 @@ point**. The Laplacian of ``r^3`` is ``12r``, so its gradient has a single
 non-vanishing component equal to ``12``:
 
 ````@example numerical_operators
-∇lap = ForwardDiff.gradient(x -> LAPLACE(y -> y[3]^3, CS_sph)(x), x₀)
+∇lap = ForwardDiff.gradient(x -> laplacian(y -> y[3]^3, CS_sph)(x), x₀)
 round.(∇lap, digits = 10)
 ````
 
@@ -151,7 +151,7 @@ The same for a tensor-valued field — the radial strain of ``u_r=r^2`` is
 ``2r``, whose radial derivative is ``2``:
 
 ````@example numerical_operators
-∇ε = ForwardDiff.gradient(x -> SYMGRAD(y -> [0.0, 0.0, y[3]^2], CS_sph)(x)[3, 3], x₀)
+∇ε = ForwardDiff.gradient(x -> symgrad(y -> [0.0, 0.0, y[3]^2], CS_sph)(x)[3, 3], x₀)
 round.(∇ε, digits = 10)
 ````
 
@@ -165,14 +165,14 @@ The Laplacian of ``\alpha r^2`` is ``6\alpha``, so its derivative in
 ``\alpha`` is ``6``:
 
 ````@example numerical_operators
-ForwardDiff.derivative(α -> LAPLACE(x -> α * x[3]^2, CS_sph)(x₀), 3.0)
+ForwardDiff.derivative(α -> laplacian(x -> α * x[3]^2, CS_sph)(x₀), 3.0)
 ````
 
 For a tensor-valued field: the radial strain of ``u_r=\alpha r`` is
 ``\alpha``, so the derivative is ``1``:
 
 ````@example numerical_operators
-ForwardDiff.derivative(α -> SYMGRAD(x -> [zero(α), zero(α), α * x[3]], CS_sph)(x₀)[3, 3], 2.0)
+ForwardDiff.derivative(α -> symgrad(x -> [zero(α), zero(α), α * x[3]], CS_sph)(x₀)[3, 3], 2.0)
 ````
 
 And through a divergence — ``\mathrm{div}(\alpha\,\underline{e}^r\otimes
@@ -180,7 +180,7 @@ And through a divergence — ``\mathrm{div}(\alpha\,\underline{e}^r\otimes
 derivative is ``2/r``:
 
 ````@example numerical_operators
-dαdiv = ForwardDiff.derivative(α -> DIV(x -> α * [0.0 0 0; 0 0 0; 0 0 1], CS_sph)(x₀)[3], 2.0)
+dαdiv = ForwardDiff.derivative(α -> divergence(x -> α * [0.0 0 0; 0 0 0; 0 0 1], CS_sph)(x₀)[3], 2.0)
 (dαdiv, 2 / x₀[3])
 ````
 
@@ -188,7 +188,7 @@ dαdiv = ForwardDiff.derivative(α -> DIV(x -> α * [0.0 0 0; 0 0 0; 0 0 1], CS_
 
 Putting the two together: the derivative of the hoop strain at mid-thickness
 with respect to the applied pressure, taken straight through a numerical
-`SYMGRAD`. The solution is linear in ``p``, so the derivative is the strain
+`symgrad`. The solution is linear in ``p``, so the derivative is the strain
 divided by the pressure.
 
 ````@example numerical_operators
@@ -196,7 +196,7 @@ function εθθ_of_p(pv)
     Av = pv * a^3 / (3κ * (b^3 - a^3))
     Bv = pv * a^3 * b^3 / (4μ * (b^3 - a^3))
     u = x -> [zero(pv), zero(pv), Av * x[3] + Bv / x[3]^2]
-    return SYMGRAD(u, CS_sph)([θc, ϕc, 2.0])[1, 1]
+    return symgrad(u, CS_sph)([θc, ϕc, 2.0])[1, 1]
 end
 
 dε_ad = ForwardDiff.derivative(εθθ_of_p, p_i)
@@ -211,17 +211,17 @@ for which ``\chi_1=\chi_2=a\sqrt{\sinh^2\mu+\sin^2\nu}``:
 
 ````@example numerical_operators
 a_ell = 2.0
-CS_ell = CoorSystemNum(x -> [a_ell * cosh(x[1]) * cos(x[2]), a_ell * sinh(x[1]) * sin(x[2])], 2)
+CS_ell = CoordinateSystem(x -> [a_ell * cosh(x[1]) * cos(x[2]), a_ell * sinh(x[1]) * sin(x[2])], 2)
 x_ell = [1.0, 0.8]
 
-(Lame(CS_ell, x_ell), a_ell * sqrt(sinh(x_ell[1])^2 + sin(x_ell[2])^2))
+(lame_coefficients(CS_ell, x_ell), a_ell * sqrt(sinh(x_ell[1])^2 + sin(x_ell[2])^2))
 ````
 
 Two harmonic functions of this chart:
 
 ````@example numerical_operators
 for (name, f) in ("μ" => (x -> x[1]), "cosh μ cos ν" => (x -> cosh(x[1]) * cos(x[2])))
-    @printf "  ∇²(%-12s) = %+.3e\n" name LAPLACE(f, CS_ell)(x_ell)
+    @printf "  ∇²(%-12s) = %+.3e\n" name laplacian(f, CS_ell)(x_ell)
 end
 ````
 

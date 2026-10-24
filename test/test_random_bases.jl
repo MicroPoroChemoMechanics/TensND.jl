@@ -81,9 +81,9 @@ _rb_canon(A::AbstractArray) = Array(A)
     end
 
     @testset "an exactly TI tensor is recognized about its own axis" begin
-        ti = Array(get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n)))
+        ti = Array(get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)))
         t = _rb_rotated(ti, R)
-        @test is_TI(t, n)
+        @test istransverselyisotropic(t, n)
         P, d, drel = proj_tens(:TI, t, n)
         @test drel < 1.0e-12
         @test _rb_canon(P) ≈ ti
@@ -114,7 +114,7 @@ _rb_canon(A::AbstractArray) = Array(A)
     @testset "an exactly orthotropic tensor about a random frame" begin
         o = Array(get_array(TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, F)))
         t = _rb_rotated(o, R)
-        @test is_ORTHO(t, F)
+        @test isorthotropic(t, F)
         P, _, drel = proj_tens(:ORTHO, t, F)
         @test drel < 1.0e-12
         @test _rb_canon(P) ≈ o
@@ -150,7 +150,7 @@ _rb_canon(A::AbstractArray) = Array(A)
         @test _rb_canon(dotdot(U, tr_, V)) ≈ ref
         @test _rb_canon(dotdot(U, tc, V)) ≈ ref
         # A structured operand: its data is a coefficient tuple, not components.
-        ti = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n)
+        ti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)
         T4 = Array(get_array(ti))
         refti = [sum(u[i] * T4[i, j, k, l] * v[l] for i in 1:3, l in 1:3) for j in 1:3, k in 1:3]
         @test _rb_canon(dotdot(U, ti, V)) ≈ refti
@@ -171,7 +171,7 @@ _rb_canon(A::AbstractArray) = Array(A)
 
     @testset "an axis given as a vector in a rotated basis" begin
         nv = Tens(_rb_in_frame(n, R), RotatedBasis(R))
-        @test collect(axis(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, nv))) ≈ n
+        @test collect(axis(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, nv))) ≈ n
     end
 end
 
@@ -211,18 +211,18 @@ end
     @test vecbasis(RotatedBasis(Q)) ≈ Q
 end
 
-@testset "KM_rotation: the Kelvin-Mandel matrix in a rotated basis" begin
+@testset "mandel_rotation: the Kelvin-Mandel matrix in a rotated basis" begin
     rng = Random.Xoshiro(RB_SEED + 300)
     for _ in 1:RB_DRAWS
         R = _rb_rotation(rng)
-        Q = KM_rotation(R)
+        Q = mandel_rotation(R)
         @test transpose(Q) * Q ≈ I atol = 1.0e-12
         M = TensND.mandel66_minor(_rb_sym4(rng))
-        # The components in the basis of `R` are Qᵀ M Q, as `KM` in that basis says.
-        @test transpose(Q) * M * Q ≈ Matrix(KM(Tens(inv_KM(M)), RotatedBasis(R))) atol = 1.0e-10
+        # The components in the basis of `R` are Qᵀ M Q, as `mandel` in that basis says.
+        @test transpose(Q) * M * Q ≈ Matrix(mandel(Tens(from_mandel(M)), RotatedBasis(R))) atol = 1.0e-10
     end
     # QᵀQ = I along a path of rotations, so its derivative vanishes.
-    dQQ = ForwardDiff.derivative(θ -> (Q = KM_rotation(θ, 0.4, 1.3); transpose(Q) * Q), 0.7)
+    dQQ = ForwardDiff.derivative(θ -> (Q = mandel_rotation(θ, 0.4, 1.3); transpose(Q) * Q), 0.7)
     @test norm(dQQ) ≤ 1.0e-12
 end
 

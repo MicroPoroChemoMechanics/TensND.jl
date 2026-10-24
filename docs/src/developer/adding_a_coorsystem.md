@@ -9,7 +9,7 @@ The cheapest. Supply a differentiable `OM(x)` and everything else is derived by
 automatic differentiation:
 
 ```julia
-CS = CoorSystemNum(x -> [a * cosh(x[1]) * cos(x[2]), a * sinh(x[1]) * sin(x[2])], 2)
+CS = CoordinateSystem(x -> [a * cosh(x[1]) * cos(x[2]), a * sinh(x[1]) * sin(x[2])], 2)
 ```
 
 Nothing else is required — no symbolic setup, no simplification rules. Use this
@@ -19,7 +19,7 @@ whenever pointwise values are enough. See
 ## 2. Symbolic, from a position vector
 
 ```julia
-CoorSystemSym(OM, coords)
+CoordinateSystem(OM, coords)
 ```
 
 The natural basis ``\underline{a}_i=\partial_i\underline{OM}``, the Lamé
@@ -48,7 +48,7 @@ The prolate spheroidal chart is the reference example — see the source of
 p̄, q, q̄, c = symbols("p̄ q q̄ c", positive = true)
 OM = Tens(c * [p̄ * q̄ * cos(ϕ), p̄ * q̄ * sin(ϕ), p * q])
 
-Spheroidal = CoorSystemSym(
+Spheroidal = CoordinateSystem(
     OM, (ϕ, p, q), (p̄, q̄), (c,);
     tmp_var  = Dict(1 - p^2 => p̄^2, q^2 - 1 => q̄^2),
     to_coords = Dict(p̄ => √(1 - p^2), q̄ => √(q^2 - 1)),
@@ -68,7 +68,7 @@ When the normalized basis and the Lamé coefficients are known in closed form,
 give them instead of letting them be derived:
 
 ```julia
-CoorSystemSym(OM, coords, bnorm, χᵢ)
+CoordinateSystem(OM, coords, bnorm, χᵢ)
 ```
 
 This is what the predefined systems do, and it is much faster than
@@ -76,11 +76,11 @@ differentiating the position vector.
 
 ## Checklist for a new system
 
-1. Does [`Lame`](@ref) return something readable? If not, go to route 3.
-2. Do the [`Christoffel`](@ref) symbols match
+1. Does [`lame_coefficients`](@ref) return something readable? If not, go to route 3.
+2. Do the [`christoffel`](@ref) symbols match
    ``\partial_i\underline{a}_j\cdot\underline{a}^k``? The check is one
    comprehension — see [Christoffel symbols](@ref tut-christoffel).
-3. Is a known harmonic function annihilated by [`LAPLACE`](@ref)? This is the
+3. Is a known harmonic function annihilated by [`laplacian`](@ref)? This is the
    strongest single test: it fails unless every connection term is right.
 4. If a numerical counterpart exists, do the two agree at a point?
 

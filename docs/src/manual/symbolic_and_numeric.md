@@ -75,7 +75,7 @@ projections:
 using TensND, ForwardDiff, LinearAlgebra
 
 n = [0.0, 0.0, 1.0]
-f(α) = get_data(proj_tens(:TI, get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), n)[1])[1]
+f(α) = get_data(proj_tens(:TI, get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), n)[1])[1]
 
 ad = ForwardDiff.derivative(f, 0.3)
 fd = (f(0.3 + 1.0e-6) - f(0.3 - 1.0e-6)) / 2.0e-6
@@ -102,7 +102,7 @@ typeof(get_array(t))
 
 ```@example sn4
 C4 = SymmetricTensor{4, 3}((i, j, k, l) -> Float64(i + j + k + l))
-norm(get_array(inv_KM(KM(Tens(C4)))) - get_array(Tens(C4)))
+norm(get_array(from_mandel(mandel(Tens(C4)))) - get_array(Tens(C4)))
 ```
 
 ## Performance notes
@@ -112,12 +112,12 @@ expression size — not operation count — dominates. Three practical consequen
 
 - **simplify early and often.** An unsimplified intermediate propagates into
   every later expression. This is what the `rules` / `tmp_var` / `to_coords`
-  machinery of [`CoorSystemSym`](@ref) exists for.
+  machinery of [`CoordinateSystem`](@ref) exists for.
 - **derive symbolically, evaluate numerically.** Obtain the closed form once,
   then substitute with [`tsubs`](@ref) or generate a numeric function from it.
 - **prefer a structured type over a dense array** whenever the physics allows —
   the measured gains are one to three orders of magnitude, see
   [Performance of the structured types](@ref).
 
-For pointwise numerical work, [`CoorSystemNum`](@ref) avoids the symbolic layer
+For pointwise numerical work, the pointwise [`CoordinateSystem`](@ref) avoids the symbolic layer
 entirely and costs a constant amount per point.

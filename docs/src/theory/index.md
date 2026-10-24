@@ -13,7 +13,7 @@ flowchart TB
     end
     subgraph ANA["Analysis"]
         C["curvilinear charts<br/>Lamé, Christoffel"]
-        O["GRAD SYMGRAD DIV<br/>LAPLACE HESS"]
+        O["grad symgrad divergence<br/>laplacian hess"]
         M["submanifolds<br/>fundamental forms"]
         C --> O --> M
     end

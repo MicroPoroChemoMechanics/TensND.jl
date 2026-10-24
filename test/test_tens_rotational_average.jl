@@ -74,7 +74,7 @@ end
                 (tens_Id4(Val(3), Val(Float64)), (1.0, 1.0)),
                 (tens_J4(Val(3), Val(Float64)), (1.0, 0.0)),
             )
-            d = get_data(isotropify(fromISO(t, nax)))
+            d = get_data(isotropify(iso_to_ti(t, nax)))
             @test d[1] ≈ want[1] atol = 1.0e-14
             @test d[2] ≈ want[2] atol = 1.0e-14
         end
@@ -92,18 +92,18 @@ end
         @test maximum(abs, get_array(got) .- avg) < 1.0e-11
     end
 
-    @testset "ti8_params_from_KM — exact read-off in the e₃ frame" begin
+    @testset "ti8_params_from_mandel — exact read-off in the e₃ frame" begin
         t = TensTI{4}(1.3, 2.1, 0.7, -0.4, 1.7, 0.9, 0.55, -0.22, (0.0, 0.0, 1.0))
-        p = ti8_params_from_KM(mandel66_minor(get_array(t)))
+        p = ti8_params_from_mandel(mandel66_minor(get_array(t)))
         @test all(p .≈ TensND.get_ℓ8(t))
         # Round trip through the Kelvin-Mandel form.
-        @test maximum(abs, KM_from_ti8_params(p) .- mandel66_minor(get_array(t))) < 1.0e-13
+        @test maximum(abs, mandel_from_ti8_params(p) .- mandel66_minor(get_array(t))) < 1.0e-13
         # It is a projection, not just a read-off: a matrix that is NOT axially
         # invariant comes back as its azimuthal average.
         arr = _rand_minor4(rng)
-        q = ti8_params_from_KM(mandel66_minor(arr))
+        q = ti8_params_from_mandel(mandel66_minor(arr))
         @test all(
-            q .≈ ti8_params_from_KM(
+            q .≈ ti8_params_from_mandel(
                 mandel66_minor(get_array(transverse_isotropify(Tens(arr), (0.0, 0.0, 1.0))))
             )
         )
@@ -166,7 +166,7 @@ end
         t = TensISO{3}(3.0, 2.0)
         @test get_data(transverse_isotropify(t, (1, 1, 1))) ==
             get_data(transverse_isotropify(t, (1.0, 1.0, 1.0)))
-        M = Matrix(KM(t))
+        M = Matrix(mandel(t))
         @test TensND.ti_average_mandel66(M, (1, 1, 1)) == TensND.ti_average_mandel66(M, (1.0, 1.0, 1.0))
     end
 end
@@ -176,7 +176,7 @@ end
     # mandel66 reads the components as they are: on a minor-symmetric tensor it
     # is KM in the canonical basis; on a non-symmetric array it is not averaged.
     C = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> randn(rng)), RotatedBasis(0.3, 0.2, 0.1))
-    @test mandel66(C) ≈ KM(C, CanonicalBasis{3, Float64}())
+    @test mandel66(C) ≈ mandel(C, CanonicalBasis{3, Float64}())
     A = randn(rng, 3, 3, 3, 3)
     M = mandel66(A)
     @test M[4, 1] ≈ sqrt(2) * A[2, 3, 1, 1] && M[4, 4] ≈ 2 * A[2, 3, 2, 3]
@@ -184,10 +184,10 @@ end
     @test mandel66(Array(array_from_mandel66(M))) ≈ M
     # 2-D: the Kelvin-Mandel matrix of an isotropic 2-D tensor, and the round trip.
     C2 = TensISO{2}(3.0, 2.0)
-    @test mandel33_minor(Array(get_array(C2))) ≈ KM(C2)
+    @test mandel33_minor(Array(get_array(C2))) ≈ mandel(C2)
     B = randn(rng, 2, 2, 2, 2)
     @test mandel33_minor(array_from_mandel33(mandel33_minor(B))) ≈ mandel33_minor(B)
-    @test array_from_mandel33(KM(C2)) ≈ Array(get_array(C2))
+    @test array_from_mandel33(mandel(C2)) ≈ Array(get_array(C2))
     # TI average of a 3×3 block, against the tensor-level average.
     n = Tuple(normalize(randn(rng, 3)))
     G = randn(rng, 3, 3)

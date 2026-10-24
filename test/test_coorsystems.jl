@@ -21,7 +21,7 @@
         𝐄 = unitvec(Cartesian)
         ℬ = normalized_basis(Cartesian)
         𝛔 = Tens(SymmetricTensor{2, 3}((i, j) -> SymFunction("σ$i$j", real = true)(𝐗...)))
-        @test DIV(𝛔, Cartesian) ==
+        @test divergence(𝛔, Cartesian) ==
             sum([sum([∂(𝛔[i, j], 𝐗[j]) for j in 1:3]) * 𝐄[i] for i in 1:3])
 
         # Polar
@@ -30,7 +30,7 @@
         𝐞ʳ, 𝐞ᶿ = unitvec(Polar)
         ℬᵖ = normalized_basis(Polar)
         f = SymFunction("f", real = true)(r, θ)
-        @test tsimplify(LAPLACE(f, Polar)) ==
+        @test tsimplify(laplacian(f, Polar)) ==
             tsimplify(∂(r * ∂(f, r), r) / r + ∂(f, θ, θ) / r^2)
 
         # Cylindrical
@@ -41,7 +41,7 @@
         r, θ, z = rθz
         𝐯 = Tens(Vec{3}(i -> SymFunction("v$(rθz[i])", real = true)(rθz...)), ℬᶜ)
         vʳ, vᶿ, vᶻ = get_array(𝐯)
-        @test tsimplify(DIV(𝐯, Cylindrical)) ==
+        @test tsimplify(divergence(𝐯, Cylindrical)) ==
             tsimplify(∂(vʳ, r) + vʳ / r + ∂(vᶿ, θ) / r + ∂(vᶻ, z))
 
         # Spherical
@@ -53,30 +53,30 @@
             @eval $(Symbol(σⁱʲ)) = SymFunction($σⁱʲ, real = true)($r)
         end
         𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ
-        div𝛔 = tsimplify(DIV(𝛔, Spherical))
+        div𝛔 = tsimplify(divergence(𝛔, Spherical))
         @test tsimplify(div𝛔 ⋅ 𝐞ʳ) == tsimplify(∂(σʳʳ, r) + (2σʳʳ - σᶿᶿ - σᵠᵠ) / r)
 
         # Concentric sphere - hydrostatic part
         θ, ϕ, r = getcoords(Spherical)
         𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
         ℬˢ = normalized_basis(Spherical)
-        𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Sym))
+        𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
         𝟏 = tens_Id2(Val(3), Val(Sym))
         k, μ = symbols("k μ", positive = true)
         λ = k - 2μ / 3
         ℂ = 3k * 𝕁 + 2μ * 𝕂
         u = SymFunction("u", real = true)(r)
         𝐮 = u * 𝐞ʳ
-        𝛆 = tsimplify(SYMGRAD(𝐮, Spherical))
+        𝛆 = tsimplify(symgrad(𝐮, Spherical))
         𝛔 = tsimplify(ℂ ⊡ 𝛆)
         # 𝛔 = tsimplify(λ * tr(𝛆) * 𝟏 + 2μ * 𝛆)
-        @test dsolve(tfactor(tsimplify(DIV(𝛔, Spherical) ⋅ 𝐞ʳ)), u) ==
+        @test dsolve(tfactor(tsimplify(divergence(𝛔, Spherical) ⋅ 𝐞ʳ)), u) ==
             Eq(u, symbols("C1") / r^2 + symbols("C2") * r)
 
         # Spheroidal
         Spheroidal = coorsys_spheroidal()
-        OM = getOM(Spheroidal)
-        @test tsimplify(LAPLACE(OM[1]^2, Spheroidal)) == 2
+        OM = position_vector(Spheroidal)
+        @test tsimplify(laplacian(OM[1]^2, Spheroidal)) == 2
 
 
     end
@@ -98,7 +98,7 @@
         f = SymFunction("f", real = true)(r, θ)
         @test set_coorsys!(Polar; vec = '𝐮') === Polar
         @test default_coorsys() === Polar
-        @test GRAD(f) == GRAD(f, Polar)
+        @test grad(f) == grad(f, Polar)
         v = Tens(Sym[1, 0])
         @test occursin('𝐮', printed(v))
         unset_coorsys!()

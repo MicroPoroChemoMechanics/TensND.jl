@@ -264,7 +264,7 @@ end
 
 @testsection "best_sym_tens — restricting proj" begin
     Ciso = TensISO{3}(3 * 10.0, 2 * 4.0)
-    Cti = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
+    Cti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
 
     @testset "the most restrictive symmetry wins when all are offered" begin
         @test best_sym_tens(Ciso)[4] === :ISO

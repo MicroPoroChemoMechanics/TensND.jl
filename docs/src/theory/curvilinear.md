@@ -44,7 +44,7 @@ physical components are read. For an *orthogonal* system the metric is
 
 `TensND` stores both bases: [`natural_basis`](@ref) and
 [`normalized_basis`](@ref), with [`natvec`](@ref) and [`unitvec`](@ref) for
-individual vectors and [`Lame`](@ref) for the ``\chi_i``.
+individual vectors and [`lame_coefficients`](@ref) for the ``\chi_i``.
 
 ## [Predefined systems](@id th-predefined-systems)
 
@@ -252,10 +252,10 @@ All Christoffel symbols of the Cartesian system vanish, which is the definition
 of a Cartesian chart.
 
 !!! note "Storage convention"
-    [`Christoffel`](@ref) returns a ``d\times d\times d`` array indexed
+    [`christoffel`](@ref) returns a ``d\times d\times d`` array indexed
     ``\Gamma[i,j,k]=\Gamma^k_{ij}``: the **contravariant index is last**. The
     same convention is used by the `Γ_func` closure of
-    [`CoorSystemNum`](@ref).
+    the pointwise [`CoordinateSystem`](@ref).
 
 ## The five operators
 
@@ -264,11 +264,11 @@ chart directions:
 
 | Operator | Definition | Order |
 | :------- | :--------- | :---- |
-| [`GRAD`](@ref) | ``\displaystyle\sum_i\partial_i t\otimes\underline{a}^i`` | ``+1`` |
-| [`SYMGRAD`](@ref) | ``\displaystyle\sum_i\partial_i t\stackrel{s}{\otimes}\underline{a}^i`` | ``+1`` |
-| [`DIV`](@ref) | ``\displaystyle\sum_i\partial_i t\cdot\underline{a}^i`` | ``-1`` |
-| [`LAPLACE`](@ref) | ``\mathrm{DIV}\circ\mathrm{GRAD}`` | ``0`` |
-| [`HESS`](@ref) | ``\mathrm{GRAD}\circ\mathrm{GRAD}`` | ``+2`` |
+| [`grad`](@ref) | ``\displaystyle\sum_i\partial_i t\otimes\underline{a}^i`` | ``+1`` |
+| [`symgrad`](@ref) | ``\displaystyle\sum_i\partial_i t\stackrel{s}{\otimes}\underline{a}^i`` | ``+1`` |
+| [`divergence`](@ref) | ``\displaystyle\sum_i\partial_i t\cdot\underline{a}^i`` | ``-1`` |
+| [`laplacian`](@ref) | ``\mathrm{DIV}\circ\mathrm{GRAD}`` | ``0`` |
+| [`hess`](@ref) | ``\mathrm{GRAD}\circ\mathrm{GRAD}`` | ``+2`` |
 
 Here ``\partial_i t`` is the *full* derivative of the tensor field, basis
 included — which is where the Christoffel symbols enter.
@@ -280,7 +280,7 @@ included — which is where the Christoffel symbols enter.
     (\nabla\underline{v})_{ij}=\partial_j v_i ,
     ```
 
-    and `DIV` contracts the **last** index,
+    and `divergence` contracts the **last** index,
 
     ```math
     (\mathrm{DIV}\,\boldsymbol{\sigma})_i=\partial_j\sigma_{ij} .
@@ -292,7 +292,7 @@ included — which is where the Christoffel symbols enter.
     a general order-2 field it is not, and it is pinned by a test
     ([Testing and conventions](@ref dev-testing)).
 
-Note also that `SYMGRAD` is a primitive, not `(GRAD + transpose)/2` — applied to
+Note also that `symgrad` is a primitive, not `(grad + transpose)/2` — applied to
 a displacement field it is directly the linearized strain tensor.
 
 ## Two implementations, one interface
@@ -300,7 +300,7 @@ a displacement field it is directly the linearized strain tensor.
 The operators have the same names and meaning whether the derivatives are taken
 symbolically or by automatic differentiation.
 
-| | [`CoorSystemSym`](@ref) | [`CoorSystemNum`](@ref) |
+| | [`CoordinateSystem`](@ref) | the pointwise [`CoordinateSystem`](@ref) |
 | :--- | :--- | :--- |
 | derivatives | SymPy / Symbolics, exact | `ForwardDiff`, machine precision |
 | stores | ``\underline{OM}``, bases, ``\chi_i``, ``\Gamma`` as **expressions** | ``\chi``, ``R``, ``\Gamma`` as **closures**, evaluated pointwise |
@@ -309,7 +309,7 @@ symbolically or by automatic differentiation.
 | needs | a symbolic ``\underline{OM}`` | any differentiable `OM(x)` |
 | best for | deriving and simplifying closed forms | evaluating fields, sweeps, gradients |
 
-`CoorSystemNum` stores its geometry as three closures — `χ_func` (Lamé),
+A [`PointwiseGeometry`](@ref) stores the geometry as three closures — `χ_func` (Lamé),
 `R_func` (the rotation to the normalized frame) and `Γ_func` (Christoffel, with
 the ``\Gamma[i,j,k]=\Gamma^k_{ij}`` convention) — so a custom system needs only a
 differentiable position map, with no symbolic setup at all.
@@ -325,7 +325,7 @@ coordinate system is handled correctly.
 ## Simplification machinery
 
 Non-trivial symbolic charts — the spheroidal one is the standard example —
-produce metric expressions that SymPy will not reduce on its own. `CoorSystemSym`
+produce metric expressions that SymPy will not reduce on its own. The exact `CoordinateSystem`
 therefore accepts:
 
 | Argument | Role |

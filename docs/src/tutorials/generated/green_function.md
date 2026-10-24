@@ -57,7 +57,7 @@ k = E / (3(1 - 2ν))
 pairs so that it acts on symmetric strain tensors:
 
 ````@example green_function
-HG = -tsimplify(HESS(𝐆))
+HG = -tsimplify(hess(𝐆))
 aHG = get_array(HG)
 𝕄 = SymmetricTensor{4, 2}((i, j, k, l) -> (aHG[i, k, j, l] + aHG[j, k, i, l] + aHG[i, l, j, k] + aHG[j, l, i, k]) / 4)
 ℾ = tsimplify(Tens(𝕄, ℬᵖ))
@@ -128,7 +128,7 @@ tsimplify(𝐆₃ - 𝐆₃ᵥ)
 The same construction in 3-D:
 
 ````@example green_function
-HG₃ = -tsimplify(HESS(𝐆₃))
+HG₃ = -tsimplify(hess(𝐆₃))
 aHG₃ = get_array(HG₃)
 𝕄₃ = SymmetricTensor{4, 3}((i, j, k, l) -> (aHG₃[i, k, j, l] + aHG₃[j, k, i, l] + aHG₃[i, l, j, k] + aHG₃[j, l, i, k]) / 4)
 ℾ₃ = tsimplify(Tens(𝕄₃, ℬˢ))
@@ -158,7 +158,7 @@ Cartesian = coorsys_cartesian(symbols("x y z", real = true))
 𝐞₁, 𝐞₂, 𝐞₃ = unitvec(Cartesian)
 F = symbols("F", real = true)
 
-J = tsimplify(det(𝟏 + F * GRAD(𝐆₃ ⋅ 𝐞₁)))
+J = tsimplify(det(𝟏 + F * grad(𝐆₃ ⋅ 𝐞₁)))
 factor(tsimplify(subs(J, θs => PI / 2, ϕs => 0)))
 ````
 

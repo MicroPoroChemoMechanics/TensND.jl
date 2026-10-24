@@ -1,6 +1,6 @@
 # # Surfaces: fundamental forms and curvature
 #
-# A [`SubManifoldSym`](@ref) is a hypersurface embedded in ``\mathbb{R}^d``: one
+# A [`Submanifold`](@ref) is a hypersurface embedded in ``\mathbb{R}^d``: one
 # coordinate fewer than the ambient space, with the unit normal completing the
 # frame. It carries both geometries — the metric it inherits, and the way it
 # bends inside the ambient space.
@@ -36,7 +36,7 @@ using SymPy
 # SymPy cannot know that ``\theta`` lies in ``(0,\pi)``: declaring the symbol
 # `real`, or even `positive`, still leaves ``|\sin\theta|`` irreducible, and
 # every curvature comes back multiplied by ``\sin\theta/|\sin\theta|`` —
-# correct, but unreadable. The `rules` argument of [`SubManifoldSym`](@ref) is
+# correct, but unreadable. The `rules` argument of [`Submanifold`](@ref) is
 # exactly the mechanism for this: a rewrite applied after each simplification.
 
 R = symbols("R", positive = true)
@@ -49,7 +49,7 @@ z = symbols("z", real = true)
 # The classical umbilical surface: every direction curves identically. The
 # rewrite `|sinθ| => sinθ` is passed straight to the constructor.
 
-Sphere = SubManifoldSym(
+Sphere = Submanifold(
     Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,);
     rules = Dict(abs(sin(θ)) => sin(θ)),
 )
@@ -100,7 +100,7 @@ println("sphere : K = ", cs.K, "   H = ", cs.H, "   principal curvatures = ", cs
 # flat** and can be unrolled onto a plane without distortion, although it is
 # visibly curved in space. This is Gauss's *Theorema Egregium* in one line.
 
-Cylinder = SubManifoldSym(Tens([R * cos(ϕ), R * sin(ϕ), z]), (ϕ, z), (), (R,))
+Cylinder = Submanifold(Tens([R * cos(ϕ), R * sin(ϕ), z]), (ϕ, z), (), (R,))
 
 tsimplify.(get_array(submetric(Cylinder))), tsimplify.(get_array(curvature(Cylinder)))
 
@@ -115,7 +115,7 @@ println("cylinder : K = ", cc.K, "   H = ", cc.H, "   principal curvatures = ", 
 # curvatures vanish.
 
 x, y = symbols("x y", real = true)
-Plane = SubManifoldSym(Tens([x, y, zero(x)]), (x, y))
+Plane = Submanifold(Tens([x, y, zero(x)]), (x, y))
 
 tsimplify.(get_array(curvature(Plane)))
 
@@ -128,7 +128,7 @@ println("plane : K = ", cp.K, "   H = ", cp.H)
 #
 # A surface whose curvature actually varies with position.
 
-Paraboloid = SubManifoldSym(Tens([x, y, (x^2 + y^2) / (2R)]), (x, y), (), (R,))
+Paraboloid = Submanifold(Tens([x, y, (x^2 + y^2) / (2R)]), (x, y), (), (R,))
 pb = curvatures(Paraboloid)
 
 # The closed forms are large, so they are more usefully read as values. At the
@@ -154,7 +154,7 @@ end
 
 # ## The Weingarten relation as a gradient
 #
-# Because a `SubManifoldSym` is a coordinate system, the differential operators
+# Because a `Submanifold` is a coordinate system, the differential operators
 # apply to fields defined on the surface. The identity tying the two geometries
 # together is
 #
@@ -162,7 +162,7 @@ end
 # \mathrm{GRAD}(\underline{n})=-\,\boldsymbol{b}.
 # ```
 
-G = GRAD(normal(Sphere), Sphere)
+G = grad(normal(Sphere), Sphere)
 
 # !!! warning "Compare tensors, not stored arrays"
 #     The two sides are stored on different bases and variances, so subtracting

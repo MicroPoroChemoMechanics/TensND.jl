@@ -19,7 +19,7 @@ routes agree, and builds a non-trivial custom chart.
 Theory: [Curvilinear differential calculus](@ref th-curvilinear).
 
 !!! note "Storage convention"
-    [`Christoffel`](@ref) returns an array indexed
+    [`christoffel`](@ref) returns an array indexed
     `Γ[i,j,k]` ``=\Gamma^k_{ij}`` — the contravariant index **last**.
 
 ````@example christoffel
@@ -37,7 +37,7 @@ natural basis and compare with the stored array. In spherical coordinates:
 ````@example christoffel
 Spherical = coorsys_spherical()
 coords = getcoords(Spherical)
-Γ = Christoffel(Spherical)
+Γ = christoffel(Spherical)
 d = 3
 
 residuals = [
@@ -64,9 +64,9 @@ Only the non-vanishing symbols are listed.
 ````@example christoffel
 function christoffel_table(name, CS)
     c = getcoords(CS)
-    G = Christoffel(CS)
+    G = christoffel(CS)
     dim = length(c)
-    println("── ", name, "   coords = ", c, "   Lamé = ", Lame(CS))
+    println("── ", name, "   coords = ", c, "   Lamé = ", lame_coefficients(CS))
     any_nz = false
     for i in 1:dim, j in 1:dim, k in 1:dim
         v = tsimplify(G[i, j, k])
@@ -99,21 +99,21 @@ basis. The whole answer comes from the connection.
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
 @set_coorsys Spherical
 
-get_array(𝐞ʳ), tsimplify(DIV(𝐞ʳ))
+get_array(𝐞ʳ), tsimplify(divergence(𝐞ʳ))
 ````
 
 ## Symbolic and numerical routes agree
 
-[`CoorSystemNum`](@ref) evaluates the same geometry pointwise with
+the pointwise [`CoordinateSystem`](@ref) evaluates the same geometry pointwise with
 `ForwardDiff` instead of SymPy. The Christoffel closure uses the same
 ``\Gamma[i,j,k]=\Gamma^k_{ij}`` convention, so the two can be compared
 directly.
 
 ````@example christoffel
-CSnum = coorsys_spherical_num()
+CSnum = coorsys_spherical(PointwiseGeometry)
 x₀ = [0.7, 1.1, 2.3]                       # (θ, ϕ, r)
 
-Γnum = Christoffel(CSnum, x₀)
+Γnum = christoffel(CSnum, x₀)
 at_x₀ = Dict(θ => x₀[1], ϕ => x₀[2], r => x₀[3])
 Γsym = map(γ -> Float64(tsimplify(γ).subs(at_x₀)), Γ)
 
@@ -123,13 +123,13 @@ println("‖Γ_num − Γ_sym‖ at (θ,ϕ,r) = ", x₀, " : ", norm(Γnum - Γs
 The same for the Lamé coefficients ``\chi=(r,\,r\sin\theta,\,1)``:
 
 ````@example christoffel
-(Lame(CSnum, x₀), (x₀[3], x₀[3] * sin(x₀[1]), 1.0))
+(lame_coefficients(CSnum, x₀), (x₀[3], x₀[3] * sin(x₀[1]), 1.0))
 ````
 
 ## A custom chart: prolate spheroidal coordinates
 
 Non-trivial charts produce metric expressions SymPy will not reduce on its
-own. [`CoorSystemSym`](@ref) therefore accepts auxiliary variables and rewrite
+own. [`CoordinateSystem`](@ref) therefore accepts auxiliary variables and rewrite
 rules — `tmp_coords` standing for compound expressions, `tmp_var` substituting
 them in, and `to_coords` eliminating them again before differentiation.
 
@@ -149,21 +149,21 @@ getcoords(Spheroidal)
 ````
 
 ````@example christoffel
-components_canon(getOM(Spheroidal))
+components_canon(position_vector(Spheroidal))
 ````
 
 The Lamé coefficients, which without the simplification machinery come out as
 unreadable nested radicals:
 
 ````@example christoffel
-Lame(Spheroidal)
+lame_coefficients(Spheroidal)
 ````
 
 A harmonic check: the first Cartesian coordinate squared has Laplacian 2,
 whatever the chart used to compute it.
 
 ````@example christoffel
-simplify(LAPLACE(getOM(Spheroidal)[1]^2, Spheroidal))
+simplify(laplacian(position_vector(Spheroidal)[1]^2, Spheroidal))
 ````
 
 ## Spheroidal harmonics
@@ -178,7 +178,7 @@ P = sympy.assoc_legendre
 
 for (n, m) in ((2, 0), (2, 1), (3, 2))
     T = P(n, m, ps) * P(n, m, qs) * cos(m * ϕs)
-    lap = simplify(LAPLACE(T, Spheroidal))
+    lap = simplify(laplacian(T, Spheroidal))
     @printf "  ∇²[P_%d^%d(p) P_%d^%d(q) cos(%dφ)] = %s\n" n m n m m string(lap)
 end
 ````
@@ -186,7 +186,7 @@ end
 ## Building a chart from an `OM` function alone
 
 The numerical route needs no symbolic setup at all: hand
-[`CoorSystemNum`](@ref) a differentiable position map and it derives the Lamé
+the pointwise [`CoordinateSystem`](@ref) a differentiable position map and it derives the Lamé
 coefficients, the rotation to the normalized frame and the Christoffel symbols
 by automatic differentiation.
 
@@ -196,10 +196,10 @@ Elliptic coordinates in the plane,
 ````@example christoffel
 a_ell = 2.0
 OM_elliptic = x -> [a_ell * cosh(x[1]) * cos(x[2]), a_ell * sinh(x[1]) * sin(x[2])]
-CS_ell = CoorSystemNum(OM_elliptic, 2)
+CS_ell = CoordinateSystem(OM_elliptic, 2)
 
 x_ell = [1.0, 0.8]
-χ_ell = Lame(CS_ell, x_ell)
+χ_ell = lame_coefficients(CS_ell, x_ell)
 χ_exact = a_ell * sqrt(sinh(x_ell[1])^2 + sin(x_ell[2])^2)
 println("Lamé  : ", round.(χ_ell, digits = 10), "   exact (both equal) : ", round(χ_exact, digits = 10))
 ````
@@ -208,7 +208,7 @@ println("Lamé  : ", round.(χ_ell, digits = 10), "   exact (both equal) : ", ro
 of ``\cosh(\mu+i\nu)``:
 
 ````@example christoffel
-lap_harm = LAPLACE(x -> cosh(x[1]) * cos(x[2]), CS_ell)(x_ell)
+lap_harm = laplacian(x -> cosh(x[1]) * cos(x[2]), CS_ell)(x_ell)
 @printf "∇²(cosh μ cos ν) = %.3e   (should vanish)\n" lap_harm
 ````
 

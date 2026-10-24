@@ -4,6 +4,9 @@ import Base: eltype
 import LinearAlgebra: normalize, dot, tr
 
 using LinearAlgebra, Tensors, Rotations
+# `divergence` is Tensors.jl's function, extended to the coordinate systems: one
+# function, not two that the same `using` would make ambiguous.
+import Tensors: divergence
 using ForwardDiff, StaticArrays
 using SymPy
 using Symbolics
@@ -33,5 +36,6 @@ include("special_tens.jl")
 include("coorsystems.jl")
 include("coorsystems_num.jl")
 include("submanifold.jl")
+include("deprecated.jl")
 
 end # module

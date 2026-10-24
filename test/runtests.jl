@@ -101,10 +101,14 @@ include("test_bases.jl")
 include("test_tens.jl")
 include("test_tensor_products.jl")
 include("test_hot_paths.jl")
+include("test_dual_inverse.jl")
+include("test_renamed.jl")
 include("test_tens_isotropic.jl")
 include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
-# `KM` and `change_tens` of the structured classes in closed form.
+# The twelve-constant orthotropic form, without major symmetry.
+include("test_ortho_general.jl")
+# `mandel` and `change_tens` of the structured classes in closed form.
 include("test_structured_closed_forms.jl")
 # Kelvin-Mandel block algebra about a normal (in-plane / out-of-plane).
 include("test_km_blocks.jl")

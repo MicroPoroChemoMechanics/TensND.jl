@@ -1,6 +1,6 @@
 @testsection "Submanifolds" begin
 
-    # `SubManifoldSym` builds the induced geometry of a hypersurface given by a
+    # `Submanifold` builds the induced geometry of a hypersurface given by a
     # symbolic parametrization `OM(coords)`: unit normal, first fundamental
     # form (`submetric`), second fundamental form (`curvature`) and the
     # connection coefficients (`connection`).
@@ -17,9 +17,9 @@
         R = symbols("R", positive = true)
         θ, ϕ = symbols("θ ϕ", real = true)
         OM = R * Tens(Vec{3}([sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]))
-        SM = SubManifoldSym(OM, (θ, ϕ))
+        SM = Submanifold(OM, (θ, ϕ))
 
-        @test SM isa SubManifoldSym{3}
+        @test SM isa Submanifold{3}
 
         n = components_canon(normal(SM))
         # Unit normal.
@@ -58,7 +58,7 @@
         R = symbols("R", positive = true)
         θ, ϕ = symbols("θ ϕ", real = true)
         OM = R * Tens(Vec{3}([sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]))
-        SM = SubManifoldSym(OM, (θ, ϕ))
+        SM = Submanifold(OM, (θ, ϕ))
 
         Γ = connection(SM)
         @test size(Γ) == (2, 2, 2)
@@ -77,7 +77,7 @@
         R = symbols("R", positive = true)
         ϕ, z = symbols("ϕ z", real = true)
         OM = Tens(Vec{3}([R * cos(ϕ), R * sin(ϕ), z]))
-        SM = SubManifoldSym(OM, (ϕ, z))
+        SM = Submanifold(OM, (ϕ, z))
 
         a = Array(components(submetric(SM)))
         b = Array(components(curvature(SM)))
@@ -101,7 +101,7 @@
     @testsection "Plane — flat submanifold" begin
         x, y = symbols("x y", real = true)
         OM = Tens(Vec{3}([x, y, Sym(0)]))
-        SM = SubManifoldSym(OM, (x, y))
+        SM = Submanifold(OM, (x, y))
 
         a = Array(components(submetric(SM)))
         b = Array(components(curvature(SM)))
@@ -126,10 +126,10 @@
 
     @testsection "Differential operators on a submanifold" begin
         # On the plane the submanifold operators must collapse to the plain
-        # Cartesian ones — the cheapest non-trivial check of ∂/GRAD/DIV/LAPLACE.
+        # Cartesian ones — the cheapest non-trivial check of ∂/grad/divergence/laplacian.
         x, y = symbols("x y", real = true)
         OM = Tens(Vec{3}([x, y, Sym(0)]))
-        SM = SubManifoldSym(OM, (x, y))
+        SM = Submanifold(OM, (x, y))
 
         f = x^2 * y + 3y
         @test tsimplify(∂(f, 1, SM) - 2x * y) == 0
@@ -141,24 +141,24 @@
         # A symbol that is not a coordinate gives zero.
         @test tsimplify(∂(f, symbols("w", real = true), SM)) == 0
 
-        # GRAD of a scalar, expressed in the canonical basis.
-        g = components_canon(GRAD(f, SM))
+        # grad of a scalar, expressed in the canonical basis.
+        g = components_canon(grad(f, SM))
         @test tsimplify(g[1] - 2x * y) == 0
         @test tsimplify(g[2] - (x^2 + 3)) == 0
 
-        # LAPLACE f = ∂²f/∂x² + ∂²f/∂y² = 2y.
-        @test tsimplify(LAPLACE(f, SM) - 2y) == 0
+        # laplacian f = ∂²f/∂x² + ∂²f/∂y² = 2y.
+        @test tsimplify(laplacian(f, SM) - 2y) == 0
 
-        # HESS is the gradient of the gradient; its trace is the Laplacian.
-        H = components_canon(HESS(f, SM))
+        # hess is the gradient of the gradient; its trace is the Laplacian.
+        H = components_canon(hess(f, SM))
         @test tsimplify(H[1, 1] + H[2, 2] - 2y) == 0
 
-        # DIV of a vector field on the plane.
+        # divergence of a vector field on the plane.
         V = Tens(Vec{3}([x^2, y^3, Sym(0)]))
-        @test tsimplify(DIV(V, SM) - (2x + 3y^2)) == 0
+        @test tsimplify(divergence(V, SM) - (2x + 3y^2)) == 0
 
-        # SYMGRAD of a vector field is the symmetric part of GRAD.
-        S = components_canon(SYMGRAD(V, SM))
+        # symgrad of a vector field is the symmetric part of grad.
+        S = components_canon(symgrad(V, SM))
         @test tsimplify(S[1, 2] - S[2, 1]) == 0
     end
 

@@ -74,6 +74,16 @@ The isotropic class is the case `β = γ`: `TensISO{3}(α, β)` is
 `α𝕁 + β(𝔼 + 𝕋)`, since `𝕂 = 𝔼 + 𝕋`. What a two-constant approximation of a
 cubic tensor discards is measured by [`cubic_anisotropy`](@ref).
 
+| Parametrization    | Role                | Invariance group | Stored coefficients                  |
+|--------------------|---------------------|------------------|--------------------------------------|
+| `TensCubic{T, B}`  | 4th-order cubic     | `Oₕ`             | `data = (α, β, γ)`, `frame::B`       |
+
+One shape only, so the type carries neither order nor length: at order 2 a
+cubic tensor is isotropic (a `TensISO{2}`), and the product of two cubic
+tensors on a cube is cubic and major-symmetric, so there is no general shape
+(`Oₕ` and its rotation group `O` have the same invariants at even order). The
+inverse stays cubic, and a cubic tensor is its own transpose.
+
 As for [`TensOrtho`](@ref), the frame's element type `B` is a free type
 parameter independent of the data eltype `T`: differentiating with respect to
 the constants does not require a `Dual`-typed geometric frame.
@@ -219,20 +229,20 @@ Base.IndexStyle(::Type{<:TensCubic}) = IndexCartesian()
 # ── Kelvin-Mandel ────────────────────────────────────────────────────────────
 
 """
-    KM(t::TensCubic)
+    mandel(t::TensCubic)
 
 The 6×6 Kelvin-Mandel matrix in the **canonical** frame. Use
-[`KM_material`](@ref) for the sparse form in the cube frame.
+[`mandel_material`](@ref) for the sparse form in the cube frame.
 """
-KM(t::TensCubic) = Matrix(_km_in_frame(t))
+mandel(t::TensCubic) = Matrix(_km_in_frame(t))
 
 """
-    KM_material(t::TensCubic)
+    mandel_material(t::TensCubic)
 
 The 6×6 Kelvin-Mandel matrix in the cube frame, where a cubic tensor has only
 three distinct entries.
 """
-function KM_material(t::TensCubic{T}) where {T}
+function mandel_material(t::TensCubic{T}) where {T}
     C₁₁, C₁₂, C₄₄ = arg_cubic(t)
     z = zero(T)
     return @SMatrix [
@@ -347,9 +357,9 @@ Base.zero(t::TensCubic{T}) where {T} = _rebuild(t, (zero(T), zero(T), zero(T)))
 
 **The product stays in the class**, which neither of the other structured types
 manages: `dcontract(::TensTI{4}, ::TensTI{4})` widens from five Walpole
-coefficients to six, and `dcontract(::TensOrtho, ::TensOrtho)` leaves
-orthotropy altogether, because the product of two symmetric 3×3 blocks is not
-symmetric unless they commute. Here the three projectors are one-dimensional in
+coefficients to six, and `dcontract(::TensOrtho, ::TensOrtho)` from nine
+orthotropic constants to twelve, because the product of two symmetric 3×3
+blocks is not symmetric unless they commute. Here the three projectors are one-dimensional in
 the sense that matters — each irreducible representation appears once — so
 every cubic tensor commutes with every other on the same cube, and the product
 is cubic and still major-symmetric.
@@ -374,19 +384,19 @@ Tensors.ismajorsymmetric(::TensCubic) = true
 
 # ── Class predicates and the unified accessors ───────────────────────────────
 
-is_ISO(::TensCubic) = false
-is_TI(::TensCubic) = false
-is_ORTHO(::TensCubic) = false
+isisotropic(::TensCubic) = false
+istransverselyisotropic(::TensCubic) = false
+isorthotropic(::TensCubic) = false
 
 """
-    is_CUBIC(t) -> Bool
+    iscubic(t) -> Bool
 
 Whether `t` is stored as a [`TensCubic`](@ref). A *type-level* query, like
-[`is_ISO`](@ref) and [`is_TI`](@ref): it says what the container guarantees,
+[`isisotropic`](@ref) and [`istransverselyisotropic`](@ref): it says what the container guarantees,
 not whether the components happen to satisfy a tighter symmetry.
 """
-is_CUBIC(::TensCubic) = true
-is_CUBIC(::Any) = false
+iscubic(::TensCubic) = true
+iscubic(::Any) = false
 
 symmetry(::TensCubic) = :CUBIC
 reference(t::TensCubic) = frame(t)
@@ -403,7 +413,7 @@ reference(t::TensCubic) = frame(t)
 # `_ortho_entry` gives its components there, exact for every element type,
 # without the 81 canonical ones rotated index by index. A left-handed ℬ needs no
 # care: each frame vector enters the formula an even number of times.
-function change_tens(t::Union{TensOrtho{T}, TensCubic{T}}, ℬ::OrthonormalBasis{3, T}) where {T}
+function change_tens(t::Union{TensOrtho{4, T}, TensCubic{T}}, ℬ::OrthonormalBasis{3, T}) where {T}
     F = vecbasis(frame(t), :cov)
     Tf = promote_type(T, eltype(F))
     E = transpose(SMatrix{3, 3, Tf}(vecbasis(ℬ, :cov))) * SMatrix{3, 3, Tf}(F)
@@ -414,7 +424,7 @@ end
 
 # The nine orthotropic coefficients, a cubic tensor being an orthotropic one
 # with C₁₁ = C₂₂ = C₃₃, C₁₂ = C₁₃ = C₂₃ and C₄₄ = C₅₅ = C₆₆.
-_ortho_coefficients(t::TensOrtho) = get_data(t)
+_ortho_coefficients(t::TensOrtho{4}) = get_data(t)
 function _ortho_coefficients(t::TensCubic)
     C₁₁, C₁₂, C₄₄ = arg_cubic(t)
     return (C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄)
@@ -458,11 +468,11 @@ end
 _show_km(io::IO, A::AbstractTens{2}) = nothing
 function _show_km(io::IO, A::AbstractTens{4})
     print(io, "\n→ KM: ")
-    return show(io, MIME"text/plain"(), KM(A))
+    return show(io, MIME"text/plain"(), mandel(A))
 end
-function _show_km(io::IO, A::TensOrtho)
+function _show_km(io::IO, A::TensOrtho{4})
     print(io, "\n→ KM (material frame): ")
-    show(io, MIME"text/plain"(), KM_material(A))
+    show(io, MIME"text/plain"(), mandel_material(A))
     print(io, "\n→ KM (canonical frame): ")
-    return show(io, MIME"text/plain"(), KM(A))
+    return show(io, MIME"text/plain"(), mandel(A))
 end

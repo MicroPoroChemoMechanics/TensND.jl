@@ -3,19 +3,19 @@
     # ── Type predicates ────────────────────────────────────────────────────────
     @testsection "TensISO — type predicates" begin
         𝟏 = tens_Id2(Val(3), Val(Float64))
-        𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
-        @test  is_ISO(𝕀)
-        @test  is_ISO(𝟏)
-        @test !is_TI(𝕀)
-        @test !is_TI(𝟏)
-        @test !is_ORTHO(𝕀)
-        @test !is_ORTHO(𝟏)
+        𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
+        @test  isisotropic(𝕀)
+        @test  isisotropic(𝟏)
+        @test !istransverselyisotropic(𝕀)
+        @test !istransverselyisotropic(𝟏)
+        @test !isorthotropic(𝕀)
+        @test !isorthotropic(𝟏)
     end
 
     # ── Display (show) ─────────────────────────────────────────────────────────
     @testsection "TensISO — show" begin
         𝟏 = tens_Id2(Val(3), Val(Float64))
-        𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
+        𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
         # show should write to the provided IO, not to stdout
         buf4 = IOBuffer()
         show(buf4, 𝕁 + 𝕂)          # 4th-order
@@ -47,9 +47,9 @@
             @test opequal(t, 𝟏)
             @test t isa TensISO{2}
             @test opequal(inv(α * 𝟏), inv(α) * 𝟏)
-            @test is_ISO(t)
+            @test isisotropic(t)
 
-            𝕀, 𝕁, 𝕂 = ISO(Val(dim), Val(T))
+            𝕀, 𝕁, 𝕂 = iso_projectors(Val(dim), Val(T))
             @test opequal(𝕁 + 𝕂, 𝕀)
             @test opequal((𝟏 ⊗ 𝟏) / dim, 𝕁)
             if T == Sym
@@ -65,7 +65,7 @@
             𝕋 = α * 𝕁 + β * 𝕂
             @test 𝕋 isa TensISO{4}
             @test opequal(inv(𝕋), inv(α) * 𝕁 + inv(β) * 𝕂)
-            @test is_ISO(𝕋)
+            @test isisotropic(𝕋)
 
             if T == Sym && dim == 3
                 E, ν = symbols("E ν", real = true)
@@ -75,7 +75,7 @@
                 ℂ = tsimplify(3k * 𝕁 + 2μ * 𝕂)
                 @test ℂ == tsimplify(TensISO{dim}(3k, 2μ))
                 𝕊 = tsimplify(inv(ℂ))
-                @test tsimplify.(KM(𝕊)) == [
+                @test tsimplify.(mandel(𝕊)) == [
                     1 / E -ν / E -ν / E 0 0 0
                     -ν / E 1 / E -ν / E 0 0 0
                     -ν / E -ν / E 1 / E 0 0 0
@@ -175,11 +175,11 @@ end
 
 
 @testsection "Isotropic tensors — Kelvin-Mandel in closed form, symbolically too" begin
-    # REGRESSION. `KM(::TensISO)` used to go through
+    # REGRESSION. `mandel(::TensISO)` used to go through
     # `tomandel(SymmetricTensor{order,dim}(A))`, and building a
     # `SymmetricTensor` from a full component array makes `Tensors` validate the
     # symmetry. That check cannot be answered on a `Symbolics.Num`, concluded
-    # "not symmetric", and `KM` — hence `show`, which goes through it — threw an
+    # "not symmetric", and `mandel` — hence `show`, which goes through it — threw an
     # `InexactError` on any symbolic isotropic tensor. It broke a Documenter
     # `@example` block that merely displayed one.
     old_KM(A::TensISO{order, dim}) where {order, dim} =
@@ -188,38 +188,47 @@ end
     for dim in (2, 3), (a, b) in ((3.0, 2.0), (7.5, 0.25), (1.0, 1.0))
         A4 = TensISO{dim}(a, b)
         A2 = TensISO{dim}(a)
-        @test KM(A4) ≈ old_KM(A4)
-        @test KM(A2) ≈ old_KM(A2)
-        @test eltype(KM(A4)) === eltype(old_KM(A4))
-        @test size(KM(A4)) == size(old_KM(A4))
+        @test mandel(A4) ≈ old_KM(A4)
+        @test mandel(A2) ≈ old_KM(A2)
+        @test eltype(mandel(A4)) === eltype(old_KM(A4))
+        @test size(mandel(A4)) == size(old_KM(A4))
     end
 
     # ForwardDiff still reaches through, and the round trip closes.
-    @test ForwardDiff.derivative(x -> KM(TensISO{3}(3.0, 2x))[4, 4], 1.5) ≈ 2.0
+    @test ForwardDiff.derivative(x -> mandel(TensISO{3}(3.0, 2x))[4, 4], 1.5) ≈ 2.0
     A = TensISO{3}(3.3, 1.7)
-    @test maximum(abs, get_array(inv_KM(KM(A))) .- get_array(A)) < 1.0e-14
+    @test maximum(abs, get_array(from_mandel(mandel(A))) .- get_array(A)) < 1.0e-14
 
     # SymPy and Symbolics both, at both orders, plus `show` — the actual trigger.
     @syms ka::positive mua::positive
-    @test KM(TensISO{3}(3ka, 2mua)) isa Matrix
-    @test KM(TensISO{3}(ka)) isa Vector
+    @test mandel(TensISO{3}(3ka, 2mua)) isa Matrix
+    @test mandel(TensISO{3}(ka)) isa Vector
     @test repr(MIME"text/latex"(), TensISO{3}(3ka, 2mua)) isa String
 
     TensND.Symbolics.@variables kn mun
     An = TensISO{3}(3kn, 2mun)
-    @test KM(An) isa Matrix
-    @test KM(TensISO{3}(kn)) isa Vector
-    @test repr(MIME"text/latex"(), An) isa String
+    @test mandel(An) isa Matrix
+    @test mandel(TensISO{3}(kn)) isa Vector
+    # Julia 1.15.0-DEV segfaults in its own GC lowering pass (LowerGCAllocMemory)
+    # when it compiles Latexify, which renders a `Num` matrix: two lines,
+    # `using Latexify; latexify(:(3x + 2y))`, crash it without TensND. Skipped on
+    # the development versions of 1.15 only, so that a release carrying the bug
+    # still fails here.
+    if VERSION.major == 1 && VERSION.minor == 15 && !isempty(VERSION.prerelease)
+        @test_skip repr(MIME"text/latex"(), An) isa String
+    else
+        @test repr(MIME"text/latex"(), An) isa String
+    end
     # TensND's symmetry predicates answer on a `Num` (Tensors.jl's compare with `==`).
     @test TensND._ismajorsym(Tensor{4, 3}(get_array(An)))
     @test TensND._isminorsym(Tensor{4, 3}(get_array(An)))
 end
 
 @testsection "Isotropic tensors — exact and integer element types" begin
-    # `KM` sized its matrix to the type of the moduli and added the spherical
+    # `mandel` sized its matrix to the type of the moduli and added the spherical
     # part `(α - β) / dim` into it: integer moduli threw `InexactError`.
-    @test KM(TensISO{3}(3, 2)) == KM(TensISO{3}(3.0, 2.0))
-    @test KM(TensISO{3}(3 // 1, 2 // 1)) isa Matrix{Rational{Int}}
+    @test mandel(TensISO{3}(3, 2)) == mandel(TensISO{3}(3.0, 2.0))
+    @test mandel(TensISO{3}(3 // 1, 2 // 1)) isa Matrix{Rational{Int}}
 
     # `isotropify` divided the deviatoric part by `5.0`, a float: rational
     # moduli came back as floats and symbolic ones as `2.0*μ`.
@@ -252,33 +261,33 @@ end
     k, μ = 12.0, 5.0
     ℂ = iso_stiffness(k, μ)
     @test ℂ isa TensISO{4, 3}
-    @test all(k_mu(ℂ) .≈ (k, μ))
+    @test all(bulk_shear(ℂ) .≈ (k, μ))
     # Independent reference: the Lamé form, λ = k − 2μ/3,
     # E = μ(3λ + 2μ)/(λ + μ), ν = λ/(2(λ + μ)).
     λ = k - 2μ / 3
-    E, ν = E_nu(ℂ)
+    E, ν = young_poisson(ℂ)
     @test E ≈ μ * (3λ + 2μ) / (λ + μ)
     @test ν ≈ λ / (2 * (λ + μ))
-    @test iso_stiffness_E_nu(E, ν) ≈ ℂ
+    @test iso_stiffness_young_poisson(E, ν) ≈ ℂ
     # The stiffness is 3k 𝕁 + 2μ 𝕂, component by component.
     @test get_array(ℂ) ≈ 3k * get_array(tens_J4(Val(3), Val(Float64))) + 2μ * get_array(tens_K4(Val(3), Val(Float64)))
     # A compliance: the moduli of its inverse.
-    @test all(k_mu(inv(inv(ℂ))) .≈ (k, μ))
+    @test all(bulk_shear(inv(inv(ℂ))) .≈ (k, μ))
 
     # Derivatives: dE/dμ = 27k²/(3k + μ)², d²E/dμ² = −54k²/(3k + μ)³.
-    Eμ(m) = E_nu(iso_stiffness(k, m))[1]
+    Eμ(m) = young_poisson(iso_stiffness(k, m))[1]
     @test ForwardDiff.derivative(Eμ, μ) ≈ 27k^2 / (3k + μ)^2
     @test ForwardDiff.derivative(m -> ForwardDiff.derivative(Eμ, m), μ) ≈ -54k^2 / (3k + μ)^3
-    @test ForwardDiff.derivative(e -> E_nu(iso_stiffness_E_nu(e, 0.3))[1], 7.0) ≈ 1
+    @test ForwardDiff.derivative(e -> young_poisson(iso_stiffness_young_poisson(e, 0.3))[1], 7.0) ≈ 1
 
     # Symbolic: the closed forms, exactly.
     @syms ks::positive μs::positive
-    Es, νs = E_nu(iso_stiffness(ks, μs))
+    Es, νs = young_poisson(iso_stiffness(ks, μs))
     @test simplify(Es - 9ks * μs / (3ks + μs)) == 0
     @test simplify(νs - (3ks - 2μs) / (2 * (3ks + μs))) == 0
-    @test all(simplify.(collect(k_mu(iso_stiffness(ks, μs))) .- [ks, μs]) .== 0)
+    @test all(simplify.(collect(bulk_shear(iso_stiffness(ks, μs))) .- [ks, μs]) .== 0)
     @test simplify(poisson_ratio(ks, μs) - νs) == 0
-    @test all(mu_nu(ℂ) .≈ (μ, ν))
+    @test all(shear_poisson(ℂ) .≈ (μ, ν))
 end
 
 @testsection "Isotropic moduli in 2-D: the plane-strain restriction" begin
@@ -290,19 +299,19 @@ end
         C3 = get_array(iso_stiffness(k, μ))
         C2 = TensISO{2}(C3[1, 1, 1, 1] + C3[1, 1, 2, 2], C3[1, 1, 1, 1] - C3[1, 1, 2, 2])
         @test C2 isa TensISO{4, 2}
-        @test all(E_nu(C2) .≈ E_nu(iso_stiffness(k, μ)))
-        @test all(mu_nu(C2) .≈ mu_nu(iso_stiffness(k, μ)))
-        @test all(k_mu(C2) .≈ (k - 2μ / 3 + μ, μ))
+        @test all(young_poisson(C2) .≈ young_poisson(iso_stiffness(k, μ)))
+        @test all(shear_poisson(C2) .≈ shear_poisson(iso_stiffness(k, μ)))
+        @test all(bulk_shear(C2) .≈ (k - 2μ / 3 + μ, μ))
         # The 2-D tensor is the restriction, component by component.
         @test get_array(C2) ≈ C3[1:2, 1:2, 1:2, 1:2]
     end
     # Derivatives along k, through the restriction; symbols, exactly.
-    ν2(k) = mu_nu(TensISO{2}(2 * (k + 5.0 / 3), 10.0))[2]
+    ν2(k) = shear_poisson(TensISO{2}(2 * (k + 5.0 / 3), 10.0))[2]
     @test ForwardDiff.derivative(ν2, 12.0) ≈ ForwardDiff.derivative(k -> poisson_ratio(k, 5.0), 12.0)
     @syms ks::positive μs::positive
     a, b = 2 * (ks + μs / 3), 2μs
-    @test simplify(mu_nu(TensISO{2}(a, b))[2] - poisson_ratio(ks, μs)) == 0
-    @test simplify(E_nu(TensISO{2}(a, b))[1] - E_nu(iso_stiffness(ks, μs))[1]) == 0
+    @test simplify(shear_poisson(TensISO{2}(a, b))[2] - poisson_ratio(ks, μs)) == 0
+    @test simplify(young_poisson(TensISO{2}(a, b))[1] - young_poisson(iso_stiffness(ks, μs))[1]) == 0
 end
 
 @testsection "Components of an isotropic tensor with variances" begin
