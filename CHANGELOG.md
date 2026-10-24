@@ -1,5 +1,76 @@
 # Changelog
 
+## v0.8.0 — orthotropic tensors of order 2 and without major symmetry
+
+A minor release. The product of two orthotropic tensors on the same frame is
+orthotropic on that frame, but not major-symmetric: in the material frame the
+Kelvin-Mandel matrix is still a 3×3 normal block plus three shear moduli, and
+the product of two symmetric blocks is symmetric only when they commute. With no
+container for it, `TensOrtho ⊡ TensOrtho` returned a generic `TensCanonical`,
+and so did every product an orthotropic tensor entered (with an isotropic,
+cubic or transversely isotropic one): the class was lost at the first product,
+and with it the closed-form inverse, sums and products of everything computed
+after. `TensOrtho` is now parametrized as `TensTI` is, by its order and the
+number of its coefficients: `TensOrtho{4, T, 9}` is the major-symmetric tensor
+it always was, `TensOrtho{4, T, 12}` the general one (the counterpart of
+`TensTI{4, T, 6}`), and `TensOrtho{2, T, 3}` the order-2 tensor diagonal in its
+frame (the counterpart of `TensTI{2, T, 2}`). Products stay in the class.
+
+### Breaking changes
+
+- The minor version: `TensND = "0.7"` does not accept 0.8, downstream packages
+  widen their bound.
+- `TensOrtho{T, B}` becomes `TensOrtho{order, T, N, B}`, as `TensTI{order, T, N}`:
+  `TensOrtho{Float64}` now reads `Float64` as the order and is an error, and
+  `t isa TensOrtho{Float64}` must become `t isa TensOrtho{4, Float64}`. The
+  constructors `TensOrtho(C₁₁, …, C₆₆, frame)` and `TensOrtho(KM, frame)` are
+  unchanged and return `TensOrtho{4, T, 9}`. Methods that read nine
+  coefficients from `get_data(::TensOrtho)` must restrict themselves to
+  `TensOrtho{4, <:Any, 9}` or handle the other shapes: reading only the first
+  nine coefficients of a twelve-constant tensor silently drops `C₂₁, C₃₁, C₃₂`.
+- `A ⊡ B` returns a `TensOrtho{4, T, 12}` instead of a `TensCanonical` when `A`
+  and `B` are orthotropic on the same frame, or one is isotropic, cubic on the
+  same frame, or transversely isotropic about one of the frame axes. Its
+  components are those of the old result up to rounding. On different frames the
+  generic route is kept, so the product is inferred as a two-member union.
+- The order-2 orthotropic projection (`proj_tens(:ORTHO, A, frame)` on a 3×3
+  array or tensor, `best_fit_ortho` of an order-2 tensor) returns a
+  `TensOrtho{2}` instead of a `Matrix`, as the TI projection returns a
+  `TensTI{2}`; `get_array` of it is the former matrix.
+
+### Added
+
+- `TensOrtho{4, T, 12}`: `TensOrtho{4}(C₁₁, …, C₆₆, C₂₁, C₃₁, C₃₂, frame)` or
+  `TensOrtho(KM, frame, Val(12))`. Closed forms on the blocks: components,
+  `KM_material`, `KM`, change of basis, `+`, `-`, scalar products, `⊡`, `inv`,
+  `transpose` (the normal block transposed), `adjoint`,
+  `Tensors.majorsymmetric` (the nine-constant symmetric part),
+  `issymmetric`/`ismajorsymmetric` (exact, as for the six-parameter `TensTI`),
+  display. A nine-constant operand meets a twelve-constant one in the general
+  form.
+- `TensOrtho{2, T, 3}`: `TensOrtho{2}(a₁, a₂, a₃, frame)`, `a₁P₁ + a₂P₂ + a₃P₃`.
+  Sums, products (`⋅`), inverse, trace, `transpose`, change of basis and
+  display in closed form; with `TensISO{2}` and a coaxial `TensTI{2,T,2}`
+  (`iso_to_ortho`, `walpole_to_ortho`); `⋅` with a vector; `⊡` with an order-4
+  orthotropic, isotropic, cubic or coaxial TI tensor, which stays a
+  `TensOrtho{2}`; `⊗` of two of them, a `TensOrtho{4}` (nine constants for a
+  self product, twelve otherwise).
+- `walpole_to_ortho` of a six-parameter `TensTI{4}`, onto the twelve-constant
+  form, and with it `TensTI{4, T, 6} ± TensOrtho{4}` about a frame axis.
+- `TensTI{4} ⊡ TensOrtho{4}` and `TensOrtho{4} ⊡ TensTI{4}` (five or six
+  parameters) in closed form when the axis is one of the frame axes, generic
+  otherwise.
+- `transpose` and `adjoint` of every `TensTI` shape: `ℓ₃ ↔ ℓ₄` and
+  `ℓ₇, ℓ₈ → −ℓ₇, −ℓ₈` at order 4, `c → −c` at order 2.
+
+### Changed
+
+- `test/test_tens_anisotropic.jl` is a sequence of top-level test sections
+  instead of one enclosing section: a top-level block holding loops is compiled
+  as one function, and the file took more than 3 GB to compile as one block
+  (killed at a 3 GB cap), against 0.93 GB section by section. No assertion is
+  dropped.
+
 ## v0.7.0 — tensors read in the basis they are written in
 
 A minor release. Several routines read the components of a tensor in its own
