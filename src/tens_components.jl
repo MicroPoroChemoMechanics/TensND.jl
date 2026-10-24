@@ -471,14 +471,17 @@ _var_key(t::AbstractTens) = _var_key(get_basis(t), get_var(t))
 _var_key(::OrthonormalBasis, var) = nothing
 _var_key(::AbstractBasis, var) = var
 
-function tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cov}) where {dim, T}
-    t = [T(Int(j == i)) for j in 1:dim]
-    return Tens(t, ℬ, (:cont,))
-end
-function tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cont}) where {dim, T}
-    t = [T(Int(j == i)) for j in 1:dim]
-    return Tens(t, ℬ, (:cov,))
-end
+tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cov}) where {dim, T} =
+    Tens(_unit_components(Val(dim), T, i), ℬ, (:cont,))
+tens_basis(ℬ::AbstractBasis{dim, T}, i::Integer, ::Val{:cont}) where {dim, T} =
+    Tens(_unit_components(Val(dim), T, i), ℬ, (:cov,))
+
+# The components of the `i`-th basis vector, in the storage `tensor_or_array`
+# would choose (a `Vec` up to dimension 3) but built with their static size:
+# from a `Vector`, the size is a run-time value, and so was the type of every
+# basis vector, which cost a type instantiation and a dynamic dispatch per call.
+_unit_components(::Val{dim}, ::Type{T}, i::Integer) where {dim, T} =
+    dim ≤ 3 ? Vec{dim, T}(ntuple(j -> T(Int(j == i)), Val(dim))) : [T(Int(j == i)) for j in 1:dim]
 """
     tens_basis(ℬ::AbstractBasis, i::Integer, var = :cov) → AbstractTens{1}
     tens_basis(ℬ::AbstractBasis, var = :cov) → NTuple
