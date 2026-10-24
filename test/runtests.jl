@@ -2,7 +2,7 @@ using TensND
 using Aqua
 using Test
 using TimerOutputs
-using LinearAlgebra, SymPy, Tensors, OMEinsum, Rotations
+using LinearAlgebra, SymPyPythonCall, Tensors, OMEinsum, Rotations
 using ForwardDiff
 using Random
 
@@ -79,7 +79,7 @@ end
                 # `sympy_matrix.jl` assembles the `sympy.Matrix` of a `Sym` array
                 # row by row instead of SymPyCore's one-piece conversion, which
                 # crashes the compiler of Julia 1.15-DEV (JuliaLang/julia#63672).
-                SymPy.SymPyCore.:↓,
+                SymPyPythonCall.SymPyCore.:↓,
             ],
         ),
         # No ambiguity is excluded. The package's own, seventeen of them, were

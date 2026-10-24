@@ -11,7 +11,7 @@ A tensor is an array, a basis and a variance tuple. Supplying fewer arguments
 fills in the defaults — the canonical basis and fully contravariant variance.
 
 ```@example tens
-using TensND, SymPy, Tensors
+using TensND, SymPyPythonCall, Tensors
 
 V = Tens(Tensor{1, 3}(i -> symbols("v$i", real = true)))
 T = Tens(Tensor{2, 3}((i, j) -> symbols("t$i$j", real = true)))
@@ -101,7 +101,7 @@ The full table, with index formulas, is on
 [Tensor algebra](@ref th-tensor-algebra). In practice:
 
 ```@example tens2
-using TensND, SymPy, Tensors, LinearAlgebra
+using TensND, SymPyPythonCall, Tensors, LinearAlgebra
 
 𝟏 = tens_Id2(Val(3), Val(Sym))
 𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))

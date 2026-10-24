@@ -24,7 +24,7 @@ Pkg.activate(joinpath(@__DIR__, "..", "docs"); io = devnull)        #jl
 
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 
 # ## Setting a default coordinate system
 #

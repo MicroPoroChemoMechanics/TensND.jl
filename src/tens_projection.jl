@@ -62,7 +62,7 @@ Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = mandel_rotation(…
 
 Built entirely with `SMatrix` / `ntuple`, so it is compatible with
 `ForwardDiff.Dual` **and** with non-`isbits` element types such as
-`SymPy.Sym` or `Symbolics.Num`, for which an `MMatrix{6,6,T}(undef)` cannot
+`SymPyPythonCall.Sym` or `Symbolics.Num`, for which an `MMatrix{6,6,T}(undef)` cannot
 even be constructed.
 
 # Examples

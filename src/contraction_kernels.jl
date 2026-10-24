@@ -75,7 +75,7 @@ _dense(a::Array) = a
 _dense(a::AbstractArray) = Array(a)
 
 # `a` with elements of type `T`: as it is when they are of one concrete subtype
-# of `T` already (`Sym{PyObject}` for `Sym`), converted otherwise — and the
+# of `T` already (`Sym{Py}` for `Sym`), converted otherwise — and the
 # broadcast of the conversion gives the array the concrete type its elements
 # have, where `Array{T}(a)` would keep an abstract `T`.
 _narrow_eltype(::Type{T}, a::AbstractArray{S}) where {T, S} =

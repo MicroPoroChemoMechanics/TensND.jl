@@ -15,7 +15,7 @@ differentiated — numerically without rewriting anything.
 | `Num` | `Symbolics` | native Julia CAS, code generation |
 
 ```@example sn
-using TensND, SymPy
+using TensND, SymPyPythonCall
 
 k, μ = symbols("k μ", positive = true)
 ℂ = TensISO{3}(3k, 2μ)

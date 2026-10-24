@@ -82,39 +82,8 @@ jobs:
                   end
               end
           end
-      # The cache restores the depot's packages, Conda's deps/deps.jl among them,
-      # but not ~/.julia/conda, the root environment that file names: on a new
-      # release of Julia, Conda is precompiled again and fails on the missing
-      # directory. Building Conda first makes that directory again. PyCall is
-      # added with the bound of the test environment (1.97.0 crashes in SymPy's
-      # hash without the GIL), so that the release built here is the one the tests
-      # resolve to.
-      - name: Install dependencies
-        run: |
-          julia -e '
-            using Pkg
-            ENV["PYTHON"] = ""
-            withenv(() -> Pkg.add("Conda"), "JULIA_PKG_PRECOMPILE_AUTO" => "0")
-            Pkg.build("Conda")
-            Pkg.add(PackageSpec(name = "PyCall", version = Pkg.Types.semver_spec("< 1.97.0, >= 1.97.1")))
-            Pkg.add("SymPy")
-            # conda-forge now and then answers a transient error (a 502 on its index):
-            # what is downloaded from it is tried three times, a minute apart
-            retry(() -> Pkg.build("PyCall"); delays = fill(60.0, 2))()
-            using PyCall
-            if Sys.iswindows()
-                # conda 26.9 (the Miniforge Conda.jl installs, 2026-10-23) builds the
-                # entry-point launchers of a noarch package from `conda-launchers`,
-                # whose conda-forge builds carry no win-64 `cli-64.exe`: the
-                # transaction fails on every try. pip makes its own launchers, so
-                # `sympy` goes into the same Python through it until conda is fixed.
-                # pip is called directly on the interpreter PyCall uses: `Conda.pip`
-                # checks `pip_interop_enabled`, which conda 26 renamed.
-                retry(() -> run(`$(PyCall.python) -m pip install sympy`); delays = fill(60.0, 2))()
-                pyimport("sympy")
-            else
-                retry(() -> pyimport_conda("sympy", "sympy"); delays = fill(60.0, 2))()
-            end'
+      # No Python setup: SymPyPythonCall's CondaPkg installs the Python module
+      # `sympy` itself, in an environment of its own, on first load.
       - uses: julia-actions/julia-buildpkg@v1
       # IrrationalConstants, a dependency of ForwardDiff, calls MPFR under the
       # bare name `:libmpfr`, and the Windows builds of Julia master no longer

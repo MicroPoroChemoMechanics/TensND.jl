@@ -105,7 +105,7 @@ function pprint(t)
     # reachable only through `MIME"text/plain"`, which is what the REPL calls.
     # `println` and `string` go through the two-argument `show` and give the
     # flat form. `sympy.init_printing` does not change any of this — it is a
-    # no-op for all three paths in current SymPy.jl.
+    # no-op for all three paths in current SymPyPythonCall.
     show(stdout, MIME"text/plain"(), t)
     return println()
 end

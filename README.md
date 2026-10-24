@@ -25,7 +25,7 @@ systems — cartesian, polar, cylindrical, spherical, spheroidal, or user-define
 A basis carries its metric, so covariant and contravariant components are
 related rather than assumed, and the differential operators follow from the
 chart. The same code runs **symbolically** (via
-[SymPy.jl](https://github.com/JuliaPy/SymPy.jl) and
+[SymPyPythonCall.jl](https://github.com/jverzani/SymPyPythonCall.jl) and
 [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl)) and
 **numerically** (via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)).
 
@@ -46,7 +46,7 @@ The example below illustrates what the library is for; the
 shows a condensed version of it.
 
 ```julia
-julia> using SymPy, TensND
+julia> using SymPyPythonCall, TensND
 
 julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
 
@@ -88,20 +88,55 @@ The last line is the equilibrium equation of a spherically symmetric stress stat
 
 ## Installation
 
-TensND.jl is registered in Julia's General registry.
-
-In Pkg REPL mode (press `]` in the Julia REPL):
+TensND.jl is registered in Julia's General registry. In the Julia REPL, press
+`]` for the Pkg mode and add it:
 
 ```julia-repl
 pkg> add TensND
 ```
 
-Or via the `Pkg` API:
+then load it:
 
 ```julia
-using Pkg
-Pkg.add("TensND")
+using TensND
 ```
+
+Nothing else is installed by hand. The symbolic backend, SymPy, is reached
+through [SymPyPythonCall.jl](https://github.com/jverzani/SymPyPythonCall.jl):
+on the first `using TensND`, [CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl)
+installs a private Python with the `sympy` module into the `.CondaPkg` folder of
+the active environment. This needs an internet connection once; the next loads
+are offline.
+
+- **Offline afterwards, or behind a proxy that blocks it:** run the first load
+  once where the connection works, or set `JULIA_CONDAPKG_OFFLINE=true` once the
+  environment exists.
+- **An existing Python of your own** (it must have `sympy`): set
+  `JULIA_CONDAPKG_BACKEND=Null` and `JULIA_PYTHONCALL_EXE=/path/to/python`
+  before loading TensND, or store them as preferences of the environment, in
+  its `LocalPreferences.toml`:
+
+  ```toml
+  [CondaPkg]
+  backend = "Null"
+
+  [PythonCall]
+  exe = "/path/to/python"
+  ```
+
+  (the [PreferenceTools](https://github.com/cjdoris/PreferenceTools.jl) package
+  writes them from the Pkg prompt). See the
+  [CondaPkg](https://github.com/JuliaPy/CondaPkg.jl#preferences) and
+  [PythonCall](https://juliapy.github.io/PythonCall.jl/stable/pythoncall/#pythoncall-config)
+  documentation.
+
+**Symbols of your own:** to write symbolic tensors, add the symbolic front end
+as well (`pkg> add SymPyPythonCall`) and load it next to TensND
+(`using TensND, SymPyPythonCall`); it provides `@syms`, `symbols` and `Sym`.
+
+**Coming from SymPy.jl:** write `using SymPyPythonCall` instead of
+`using SymPy`. The symbols of SymPy.jl (`Sym{PyObject}`) are another type than
+those of SymPyPythonCall (`Sym{Py}`), which TensND uses.
 
 ## Documentation
 

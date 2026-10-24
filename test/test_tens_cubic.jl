@@ -417,7 +417,7 @@
     @testsection "Symbolic element type" begin
         @syms C11::positive C12::real C44::positive
         Cs = tens_cubic(C11, C12, C44, can)
-        # `Sym` is parametric (`Sym{PyObject}`), so match on the eltype.
+        # `Sym` is parametric (`Sym{Py}`), so match on the eltype.
         @test Cs isa TensCubic
         @test eltype(Cs) <: Sym
         @test eltype(vecbasis(frame(Cs), :cov)) === Float64

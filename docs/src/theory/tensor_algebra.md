@@ -168,7 +168,7 @@ for every ``\boldsymbol{a}``.
 
 All of the above is implemented once, generically, on `AbstractArray`s of any
 order, and therefore applies unchanged to `Float64`,
-`ForwardDiff.Dual`, `SymPy.Sym` and `Symbolics.Num` element types. The
+`ForwardDiff.Dual`, `SymPyPythonCall.Sym` and `Symbolics.Num` element types. The
 structured types ([`TensISO`](@ref), [`TensTI`](@ref), [`TensOrtho`](@ref))
 override the generic route with closed forms whenever the result stays in the
 class — see [Structured tensors](@ref man-structured).

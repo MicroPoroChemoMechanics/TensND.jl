@@ -19,7 +19,7 @@ using DocumenterVitepress
 # Renders the ```mermaid blocks (type hierarchy, operator dependency graphs).
 # The diagram source is the page itself — no regenerated asset to keep in sync.
 using TensND
-using SymPy
+using SymPyPythonCall
 
 # Generates the tutorial pages (+ companion notebooks and clean scripts) from
 # the curated `scripts/` demos. Must run before `makedocs`, so the generated
@@ -43,7 +43,7 @@ write_nomenclature_json(joinpath(@__DIR__, "src", ".vitepress", "nomenclature.js
 DocMeta.setdocmeta!(
     TensND,
     :DocTestSetup,
-    :(using TensND, LinearAlgebra, SymPy, Tensors, Rotations);
+    :(using TensND, LinearAlgebra, SymPyPythonCall, Tensors, Rotations);
     recursive = true,
 )
 

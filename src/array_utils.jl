@@ -39,7 +39,7 @@ isidentity(a::AbstractMatrix) = a ≈ I && !any(carries_partials, a)
 
 Simplify a scalar, an array or a tensor elementwise.
 
-Dispatches to `SymPy.simplify` for `Sym`, to `Symbolics.simplify` for `Num`,
+Dispatches to `SymPyPythonCall.simplify` for `Sym`, to `Symbolics.simplify` for `Num`,
 and is the **identity** on every other type — so a routine written to be
 simplification-aware runs unchanged, and at full speed, on numeric input.
 
@@ -62,7 +62,7 @@ function tsimplify end
 """
     tfactor(x, args...; kwargs...)
 
-Factorize an expression elementwise (`SymPy.factor`); identity on non-symbolic
+Factorize an expression elementwise (`SymPyPythonCall.factor`); identity on non-symbolic
 types. See [`tsimplify`](@ref).
 """
 function tfactor end
@@ -70,7 +70,7 @@ function tfactor end
 """
     tsubs(x, substitutions...)
 
-Substitute into an expression elementwise (`SymPy.subs` / `Symbolics.substitute`);
+Substitute into an expression elementwise (`SymPyPythonCall.subs` / `Symbolics.substitute`);
 identity on non-symbolic types.
 
 Substitutions are given as `old => new` pairs. See [`tsimplify`](@ref).
@@ -81,7 +81,7 @@ function tsubs end
     tdiff(y, x...; kwargs...)
 
 Differentiate an expression elementwise with respect to one or more symbols
-(`SymPy.diff` / `Symbolics.Differential`); identity on non-symbolic types.
+(`SymPyPythonCall.diff` / `Symbolics.Differential`); identity on non-symbolic types.
 
 Repeated symbols give higher derivatives. See [`tsimplify`](@ref).
 """
@@ -162,7 +162,7 @@ tlimit(::Num, args...; kwargs...) = throw(
 )
 
 for OP in (:(simplify), :(factor), :(subs), :(diff))
-    @eval $(Symbol("t", OP))(x::T, args...; kwargs...) where {T <: Sym} = SymPy.$OP(x, args...; kwargs...)
+    @eval $(Symbol("t", OP))(x::T, args...; kwargs...) where {T <: Sym} = SymPyPythonCall.$OP(x, args...; kwargs...)
 end
 for OP in (:(trigsimp), :(expand_trig))
     @eval $(Symbol("t", OP))(x::T, args...; kwargs...) where {T <: Sym} = sympy.$OP(x, args...; kwargs...)
@@ -220,7 +220,7 @@ may drive `if`, `&&` or a tolerance test.
 `iszero` on a `Num` return *symbolic* expressions, and using one in a boolean
 context throws `TypeError: non-boolean (Num) used in boolean context`.
 `ForwardDiff.Dual` is also `<: Real` and *does* compare to a `Bool`, so the two
-cannot be separated by `<: Real` either way. `SymPy.Sym` is not `<: Real` at
+cannot be separated by `<: Real` either way. `SymPyPythonCall.Sym` is not `<: Real` at
 all, which is why the bug it guards against only ever showed up on the
 Symbolics side.
 
@@ -454,7 +454,7 @@ Tensors.dcontract(t1::AbstractArray, t2::AbstractArray) = _contract_trailing(t1,
 
 # `Σ aᵢ bᵢ` over all the components, as every contraction is. Not `dot`, which
 # conjugates its first argument (the Hermitian product): it gave `Σ āᵢⱼ bᵢⱼ` on
-# complex components and `conjugate(a)` on a `SymPy.Sym` not declared real.
+# complex components and `conjugate(a)` on a `SymPyPythonCall.Sym` not declared real.
 # `vec` also keeps a TensND tensor, itself an `AbstractArray`, away from the
 # tensor `dot`, which is a single contraction.
 _full_contraction(t1::AbstractArray, t2::AbstractArray) = transpose(vec(t1)) * vec(t2)
@@ -664,7 +664,7 @@ For comparable numbers (`is_hard_numeric`), within the relative tolerance `rtol`
 a `ForwardDiff.Dual` is compared on its value. For symbolic ones the test is
 structural: the difference is simplified and must vanish exactly, so a symbolic
 answer is never a false positive, and is `false` when the backend cannot decide.
-No `dot` and no `abs`: both conjugate a `SymPy.Sym`, and `Symbolics` does not
+No `dot` and no `abs`: both conjugate a `SymPyPythonCall.Sym`, and `Symbolics` does not
 fold `abs` of a literal.
 """
 function isparallel(a, b; rtol::Real = 1.0e-10)

@@ -53,6 +53,58 @@ features:
 ---
 ```
 
+## Installation
+
+TensND.jl is registered in Julia's General registry. In the Julia REPL, press
+`]` for the Pkg mode and add it:
+
+```julia
+pkg> add TensND
+```
+
+then load it:
+
+```julia
+using TensND
+```
+
+Nothing else is installed by hand. The symbolic backend, SymPy, is reached
+through [SymPyPythonCall.jl](https://github.com/jverzani/SymPyPythonCall.jl):
+on the first `using TensND`, [CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl)
+installs a private Python with the `sympy` module into the `.CondaPkg` folder of
+the active environment. This needs an internet connection once; the next loads
+are offline.
+
+- **Offline afterwards, or behind a proxy that blocks it:** run the first load
+  once where the connection works, or set `JULIA_CONDAPKG_OFFLINE=true` once the
+  environment exists.
+- **An existing Python of your own** (it must have `sympy`): set
+  `JULIA_CONDAPKG_BACKEND=Null` and `JULIA_PYTHONCALL_EXE=/path/to/python`
+  before loading TensND, or store them as preferences of the environment, in
+  its `LocalPreferences.toml`:
+
+  ```toml
+  [CondaPkg]
+  backend = "Null"
+
+  [PythonCall]
+  exe = "/path/to/python"
+  ```
+
+  (the [PreferenceTools](https://github.com/cjdoris/PreferenceTools.jl) package
+  writes them from the Pkg prompt). See the
+  [CondaPkg](https://github.com/JuliaPy/CondaPkg.jl#preferences) and
+  [PythonCall](https://juliapy.github.io/PythonCall.jl/stable/pythoncall/#pythoncall-config)
+  documentation.
+
+**Symbols of your own:** to write symbolic tensors, add the symbolic front end
+as well (`pkg> add SymPyPythonCall`) and load it next to TensND
+(`using TensND, SymPyPythonCall`); it provides `@syms`, `symbols` and `Sym`.
+
+**Coming from SymPy.jl:** write `using SymPyPythonCall` instead of
+`using SymPy`. The symbols of SymPy.jl (`Sym{PyObject}`) are another type than
+those of SymPyPythonCall (`Sym{Py}`), which TensND uses.
+
 ## What it does
 
 `TensND` handles tensors of any order in any coordinate system. A basis carries
@@ -64,14 +116,14 @@ Three structured types — [`TensISO`](@ref), [`TensTI`](@ref) and
 [`TensCubic`](@ref), [`TensOrtho`](@ref) — store the 2, 5, 3 and 9 scalars a
 symmetry class really has,
 and compute products and inverses in closed form. The same code runs on
-`Float64`, `ForwardDiff.Dual`, `SymPy.Sym` and `Symbolics.Num`.
+`Float64`, `ForwardDiff.Dual`, `SymPyPythonCall.Sym` and `Symbolics.Num`.
 
 The design is inspired by the Maple library
 [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) of Jean
 Garrigues.
 
 ```@example home
-using TensND, SymPy
+using TensND, SymPyPythonCall
 
 Spherical = coorsys_spherical()
 θ, ϕ, r = getcoords(Spherical)
