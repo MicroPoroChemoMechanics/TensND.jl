@@ -87,6 +87,10 @@ are offline.
   [PythonCall](https://juliapy.github.io/PythonCall.jl/stable/pythoncall/#pythoncall-config)
   documentation.
 
+**Symbols of your own:** to write symbolic tensors, add the symbolic front end
+as well (`pkg> add SymPyPythonCall`) and load it next to TensND
+(`using TensND, SymPyPythonCall`); it provides `@syms`, `symbols` and `Sym`.
+
 **Coming from SymPy.jl:** write `using SymPyPythonCall` instead of
 `using SymPy`. The symbols of SymPy.jl (`Sym{PyObject}`) are another type than
 those of SymPyPythonCall (`Sym{Py}`), which TensND uses.

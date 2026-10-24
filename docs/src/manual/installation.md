@@ -27,6 +27,12 @@ ENV["JULIA_PYTHONCALL_EXE"] = "/path/to/python"
 
 before loading `TensND`.
 
+To write symbolic tensors of your own, add the symbolic front end as well
+(`pkg> add SymPyPythonCall`) and load it next to TensND
+(`using TensND, SymPyPythonCall`): it provides `@syms`, `symbols` and `Sym`.
+Code written for SymPy.jl changes `using SymPy` into `using SymPyPythonCall`; the
+symbols of the two packages are different types.
+
 See [Symbolic and numeric](@ref man-symbolic-numeric) for how the four scalar
 worlds — `Float64`, `ForwardDiff.Dual`, `Sym` and `Num` — relate.
 
