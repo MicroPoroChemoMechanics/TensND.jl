@@ -1065,8 +1065,6 @@ _from_frame(Q::AbstractMatrix, P::TensOrtho) =
     _rebuild_frame(P, RotatedBasis(Q * _frame_matrix(frame(P))))
 _from_frame(Q::AbstractMatrix, P::TensCubic) =
     TensCubic{eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
-# The order-2 orthotropic kernels return the projected matrix itself.
-_from_frame(Q::AbstractMatrix, P::AbstractMatrix) = Q * P * transpose(Q)
 
 _from_frame(Q::AbstractMatrix, (P, d, drel)::Tuple) = (_from_frame(Q, P), d, drel)
 
