@@ -162,7 +162,7 @@ end
 # \mathrm{GRAD}(\underline{n})=-\,\boldsymbol{b}.
 # ```
 
-G = GRAD(normal(Sphere), Sphere)
+G = grad(normal(Sphere), Sphere)
 
 # !!! warning "Compare tensors, not stored arrays"
 #     The two sides are stored on different bases and variances, so subtracting

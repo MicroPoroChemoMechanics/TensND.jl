@@ -104,7 +104,7 @@ The full table, with index formulas, is on
 using TensND, SymPy, Tensors, LinearAlgebra
 
 𝟏 = tens_Id2(Val(3), Val(Sym))
-𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Sym))
+𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
 𝕀 == 𝟏 ⊠ˢ 𝟏, 𝕁 == (𝟏 ⊗ 𝟏) / 3
 ```
 
@@ -140,7 +140,7 @@ Applied to a scalar it falls back to the rich `text/plain` display, so a
 symbolic expression comes out in SymPy's two-dimensional form:
 
 ```@example tens2
-LAPLACE(1 / getcoords(Spherical)[3], Spherical) |> pprint
+laplacian(1 / getcoords(Spherical)[3], Spherical) |> pprint
 ```
 
 Structured types print in their compact algebraic form instead — see
@@ -148,19 +148,19 @@ Structured types print in their compact algebraic form instead — see
 
 ## Kelvin–Mandel
 
-[`KM`](@ref) maps a symmetric order-2 tensor to a 6-vector and a minor-symmetric
-order-4 tensor to a ``6\times6`` matrix; [`inv_KM`](@ref) inverts it. The
+[`mandel`](@ref) maps a symmetric order-2 tensor to a 6-vector and a minor-symmetric
+order-4 tensor to a ``6\times6`` matrix; [`from_mandel`](@ref) inverts it. The
 convention and what it buys are on
 [Kelvin–Mandel representation](@ref th-kelvin-mandel).
 
 ```@example tens2
-C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
-KM(C)
+C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
+mandel(C)
 ```
 
 ## Symmetry predicates
 
 `issymmetric`, `isminorsymmetric` and `ismajorsymmetric` test the index
-symmetries; [`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref) test the
+symmetries; [`isisotropic`](@ref), [`istransverselyisotropic`](@ref), [`isorthotropic`](@ref) test the
 **material** symmetry class and are documented under
 [Projection](@ref man-projection).

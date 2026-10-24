@@ -40,7 +40,7 @@ Kelvin-Mandel matrix of the tensor.
 """
 function _obj_TI4(x, C_KM, sqnorm_C)
     θ, ϕ = x[1], x[2]
-    P₆ = KM_rotation(θ, ϕ, zero(eltype(x)))
+    P₆ = mandel_rotation(θ, ϕ, zero(eltype(x)))
     C_rot = P₆' * C_KM * P₆
     ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆ = _project_TI_KM(C_rot)
     B_KM = _build_TI_KM(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)
@@ -55,7 +55,7 @@ Objective of the orthotropic projection of a fourth-order tensor:
 """
 function _obj_ORTHO4(x, C_KM, sqnorm_C)
     θ, ϕ, ψ = x[1], x[2], x[3]
-    P₆ = KM_rotation(θ, ϕ, ψ)
+    P₆ = mandel_rotation(θ, ϕ, ψ)
     C_rot = P₆' * C_KM * P₆
     B_KM = _build_ORTHO_KM(_project_ORTHO_KM(C_rot)...)
     return one(eltype(x)) - sum(x -> x^2, B_KM) / sqnorm_C
@@ -75,7 +75,7 @@ degeneracy of the minimum, which costs the search nothing — every one of the
 """
 function _obj_CUBIC4(x, C_KM, sqnorm_C)
     θ, ϕ, ψ = x[1], x[2], x[3]
-    P₆ = KM_rotation(θ, ϕ, ψ)
+    P₆ = mandel_rotation(θ, ϕ, ψ)
     C_rot = P₆' * C_KM * P₆
     B_KM = _build_CUBIC_KM(_project_CUBIC_KM(C_rot)...)
     return one(eltype(x)) - sum(x -> x^2, B_KM) / sqnorm_C

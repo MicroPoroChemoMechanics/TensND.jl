@@ -32,7 +32,7 @@ arr(x) = get_array(x)
 # ``\underline{n}=\underline{e}_3``.
 
 function show_KM(label, t)
-    M = KM(t)
+    M = mandel(t)
     println(label)
     for r in 1:6
         println("   ", join([abs(M[r, c]) < 1.0e-12 ? "   .   " : @sprintf("%7.4f", M[r, c]) for c in 1:6], " "))
@@ -91,7 +91,7 @@ round.(gram, digits = 12)
 # ``\sum_i\mathbb{W}_i``, and ``\mathbb{J}`` is **not**
 # ``\mathbb{W}_1+\mathbb{W}_2``.
 
-𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
+𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
 s2 = sqrt(2)
 
 checks = [
@@ -181,20 +181,20 @@ Ws = walpole_basis_sym(n)
 nv = [0.0, 0.0, 1.0]
 E₁, E₃, ν₁₂, ν₃₁, G₃₁ = 9.0, 140.0, 0.40, 0.30, 4.6
 
-𝕊 = tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, nv)     # compliance
+𝕊 = tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, nv)     # compliance
 ℂ = inv(𝕊)                                       # stiffness
 
-println("engineering → back      : ", round.(arg_TI_eng(𝕊), digits = 8))
+println("engineering → back      : ", round.(ti_args_eng(𝕊), digits = 8))
 println("‖ℂ:𝕊 − 𝕀‖               : ", norm(arr(ℂ ⊡ 𝕊) - arr(𝕀)))
 
 # The same compliance read in **component** form,
 # ``(S_{1111},S_{1122},S_{1133},S_{3333},S_{2323})``:
 
-round.(arg_TI(𝕊), sigdigits = 6)
+round.(ti_args(𝕊), sigdigits = 6)
 
 # and in **Hoenig** form, the dimensionless ratios:
 
-Eh, ν₁, ν₂, H, Γ = arg_TI_Hoenig(𝕊)
+Eh, ν₁, ν₂, H, Γ = ti_args_hoenig(𝕊)
 @printf "E  = %8.4f GPa\nν₁ = %8.4f\nν₂ = %8.4f\nH  = %8.4f   (axial/transverse modulus ratio)\nΓ  = %8.4f   (shear anisotropy)\n" Eh ν₁ ν₂ H Γ
 
 # ``H`` and ``\Gamma`` quantify the anisotropy directly and dimensionlessly:
@@ -203,13 +203,13 @@ Eh, ν₁, ν₂, H, Γ = arg_TI_Hoenig(𝕊)
 # modulus departs from its in-plane counterpart by rather less.
 # Rebuilding from the Hoenig parameters returns the same tensor:
 
-norm(arr(tens_TI_Hoenig(Eh, ν₁, ν₂, H, Γ, nv)) - arr(𝕊))
+norm(arr(tens_ti_hoenig(Eh, ν₁, ν₂, H, Γ, nv)) - arr(𝕊))
 
 # An isotropic material sits at the point ``H=\Gamma=1`` with
 # ``\nu_1=\nu_2`` — the Hoenig parameters measure departure from isotropy:
 
 𝕊iso = inv(3 * 20.0 * 𝕁 + 2 * 8.0 * 𝕂)
-Eᵢ, ν₁ᵢ, ν₂ᵢ, Hᵢ, Γᵢ = arg_TI_Hoenig(fromISO(𝕊iso, nv))
+Eᵢ, ν₁ᵢ, ν₂ᵢ, Hᵢ, Γᵢ = ti_args_hoenig(iso_to_ti(𝕊iso, nv))
 @printf "E = %.6f   ν₁ = %.6f   ν₂ = %.6f   H = %.10f   Γ = %.10f\n" Eᵢ ν₁ᵢ ν₂ᵢ Hᵢ Γᵢ
 
 # ## The Walpole coefficients of the ply

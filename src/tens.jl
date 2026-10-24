@@ -258,7 +258,7 @@ split is [`ApproxType`](@ref) — **not** `AbstractFloat`: a `ForwardDiff.Dual`
 subtypes `Real` without subtyping `AbstractFloat`, yet it carries exactly the
 same round-off as the float it is built on, so it belongs on the tolerant side.
 Keying on `AbstractFloat` made automatic differentiation impossible through any
-structured tensor written about a non-canonical axis: `KM` of a `Dual`-valued
+structured tensor written about a non-canonical axis: `mandel` of a `Dual`-valued
 `TensISO` in a `RotatedBasis` returned a 9×9 matrix where the same tensor in
 `Float64` returned a 6×6 one.
 """

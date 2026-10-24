@@ -51,8 +51,8 @@ C_{13}&C_{23}&C_{33}&&&\\
 \end{aligned}
 ```
 
-Extension and shear decouple entirely. This is [`KM_material`](@ref); the matrix
-in the canonical frame is [`KM`](@ref), and the two are related by the orthogonal
+Extension and shear decouple entirely. This is [`mandel_material`](@ref); the matrix
+in the canonical frame is [`mandel`](@ref), and the two are related by the orthogonal
 congruence of [Kelvin–Mandel representation](@ref th-kelvin-mandel),
 
 ```math
@@ -151,7 +151,7 @@ flowchart TB
     TI["<b>TensTI{4}</b><br/>5 constants + axis n<br/>(6 without major symmetry,<br/>8 in the full commutant)"]
     ORT["<b>TensOrtho</b><br/>9 constants + frame<br/>(12 without major symmetry)"]
     ANI["<b>general</b><br/>21 constants"]
-    ISO -->|"fromISO(·, n)"| TI
+    ISO -->|"iso_to_ti(·, n)"| TI
     ISO -->|"iso_to_cubic(·, frame)"| CUB
     CUB -->|"cubic_to_ortho(·)"| ORT
     TI -->|"walpole_to_ortho(·, frame, i)"| ORT

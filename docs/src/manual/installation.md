@@ -37,8 +37,8 @@ Spherical = coorsys_spherical()
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
 @set_coorsys Spherical
 
-DIV(𝐞ʳ)          # 2/r
-LAPLACE(1 / r)   # 0
+divergence(𝐞ʳ)          # 2/r
+laplacian(1 / r)   # 0
 ```
 
 If those two return `2/r` and `0`, the symbolic stack is working.

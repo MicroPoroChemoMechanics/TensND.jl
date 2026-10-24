@@ -186,7 +186,7 @@ together is
 ```
 
 ````@example submanifolds
-G = GRAD(normal(Sphere), Sphere)
+G = grad(normal(Sphere), Sphere)
 ````
 
 !!! warning "Compare tensors, not stored arrays"

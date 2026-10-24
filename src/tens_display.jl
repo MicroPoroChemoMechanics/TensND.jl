@@ -22,7 +22,7 @@ end
 function _show_components(io::IO, t::AbstractTens)
     if ndims(t) == 4
         print(io, "→ KM: ")
-        show(io, MIME"text/plain"(), KM(t))
+        show(io, MIME"text/plain"(), mandel(t))
     else
         print(io, "→ array: ")
         show(io, MIME"text/plain"(), get_array(t))
@@ -37,12 +37,12 @@ end
 #
 # Restricted to symbolic element types **on purpose**: the fallback exists only
 # because SymPy supplies a `text/latex` show for its own matrices. For a numeric
-# tensor `KM(t)` is an ordinary `Matrix{Float64}`, which has no such method, so
+# tensor `mandel(t)` is an ordinary `Matrix{Float64}`, which has no such method, so
 # an unrestricted signature turned every numeric order-4 tensor into a
 # `MethodError` in any front-end that asks for `text/latex` — Documenter and
 # Jupyter both do. Numeric tensors now fall through to the plain-text display.
 function Base.show(io::IO, M::MIME"text/latex", t::AbstractTens{4, dim, T}) where {dim, T <: SymType}
-    return show(io, M, KM(t))
+    return show(io, M, mandel(t))
 end
 
 """
@@ -80,12 +80,12 @@ julia> pprint(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ)   # spherical coordin
 ```
 
 Applied to anything that is **not** a tensor — a scalar field, typically, so
-that `LAPLACE(f(r)) |> pprint` works in a pipeline — it falls back to the
+that `laplacian(f(r)) |> pprint` works in a pipeline — it falls back to the
 rich `text/plain` display, which for a symbolic expression is SymPy's
 two-dimensional form:
 
 ```julia
-julia> LAPLACE(SymFunction("f", real = true)(r)) |> pprint
+julia> laplacian(SymFunction("f", real = true)(r)) |> pprint
               d
  2          2⋅──(f(r))
 d             dr

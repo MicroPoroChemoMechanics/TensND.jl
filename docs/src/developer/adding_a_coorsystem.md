@@ -76,11 +76,11 @@ differentiating the position vector.
 
 ## Checklist for a new system
 
-1. Does [`Lame`](@ref) return something readable? If not, go to route 3.
-2. Do the [`Christoffel`](@ref) symbols match
+1. Does [`lame_coefficients`](@ref) return something readable? If not, go to route 3.
+2. Do the [`christoffel`](@ref) symbols match
    ``\partial_i\underline{a}_j\cdot\underline{a}^k``? The check is one
    comprehension — see [Christoffel symbols](@ref tut-christoffel).
-3. Is a known harmonic function annihilated by [`LAPLACE`](@ref)? This is the
+3. Is a known harmonic function annihilated by [`laplacian`](@ref)? This is the
    strongest single test: it fails unless every connection term is right.
 4. If a numerical counterpart exists, do the two agree at a point?
 

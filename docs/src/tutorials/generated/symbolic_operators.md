@@ -5,7 +5,7 @@ EditURL = "../../../../scripts/10_symbolic_operators.jl"
 # Differential operators, symbolically
 
 The five operators of [Curvilinear differential calculus](@ref th-curvilinear)
-— `GRAD`, `SYMGRAD`, `DIV`, `LAPLACE`, `HESS` — applied in polar, cylindrical
+— `grad`, `symgrad`, `divergence`, `laplacian`, `hess` — applied in polar, cylindrical
 and spherical coordinates, with exact SymPy derivatives. The results are
 closed-form expressions, valid everywhere, not values at a point.
 
@@ -39,12 +39,12 @@ r, θ = getcoords(Polar)
 
 ## The polar Laplacian
 
-Applied to an arbitrary function, `LAPLACE` reproduces the textbook operator
+Applied to an arbitrary function, `laplacian` reproduces the textbook operator
 ``\partial_{rr}f+\tfrac{1}{r}\partial_r f+\tfrac{1}{r^2}\partial_{\theta\theta}f``:
 
 ````@example symbolic_operators
 f = SymFunction("f", real = true)(r, θ)
-LAPLACE(f)
+laplacian(f)
 ````
 
 Harmonic functions in the plane are ``r^n\cos n\theta`` and ``r^n\sin n\theta``;
@@ -52,7 +52,7 @@ their Laplacian vanishes identically for **symbolic** ``n``:
 
 ````@example symbolic_operators
 n = symbols("n", integer = true)
-simplify(LAPLACE(r^n * cos(n * θ)))
+simplify(laplacian(r^n * cos(n * θ)))
 ````
 
 while a mismatched pair of exponents does not vanish, and the residual is the
@@ -60,7 +60,7 @@ familiar ``(n^2-m^2)r^{n-2}``:
 
 ````@example symbolic_operators
 m = symbols("m", integer = true)
-simplify(LAPLACE(r^n * sin(m * θ)) / (r^(n - 2) * sin(m * θ)))
+simplify(laplacian(r^n * sin(m * θ)) / (r^(n - 2) * sin(m * θ)))
 ````
 
 ## The Hessian
@@ -69,16 +69,16 @@ simplify(LAPLACE(r^n * sin(m * θ)) / (r^(n - 2) * sin(m * θ)))
 Laplacian:
 
 ````@example symbolic_operators
-H = simplify(HESS(r^n))
+H = simplify(hess(r^n))
 ````
 
 ````@example symbolic_operators
-simplify(tr(H) - LAPLACE(r^n))
+simplify(tr(H) - laplacian(r^n))
 ````
 
 ## Cylindrical coordinates: an axisymmetric strain tensor
 
-`SYMGRAD` applied to a displacement field is directly the linearized strain
+`symgrad` applied to a displacement field is directly the linearized strain
 tensor. For an axisymmetric field ``\underline{\xi}(r,z)=\xi^r\underline{e}^r
 +\xi^z\underline{e}^z``, the hoop strain ``\varepsilon_{\theta\theta}=\xi^r/r``
 appears from the Christoffel terms alone — there is no ``\theta`` derivative
@@ -94,7 +94,7 @@ rc, θc, zc = getcoords(Cylindrical)
 ξᶻ = SymFunction("ξᶻ", real = true)(rc, zc)
 𝛏 = ξʳ * 𝐞ʳᶜ + ξᶻ * 𝐞ᶻᶜ
 
-𝛆 = tsimplify(SYMGRAD(𝛏))
+𝛆 = tsimplify(symgrad(𝛏))
 ````
 
 Read off the hoop component:
@@ -114,14 +114,14 @@ Spherical = coorsys_spherical()
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳˢ = unitvec(Spherical)
 @set_coorsys Spherical
 
-getcoords(Spherical), Lame(Spherical)
+getcoords(Spherical), lame_coefficients(Spherical)
 ````
 
 The gradient of the radius is the radial unit vector, and the divergence of
 that vector is ``2/r``:
 
 ````@example symbolic_operators
-tsimplify(GRAD(rs)), tsimplify(DIV(𝐞ʳˢ))
+tsimplify(grad(rs)), tsimplify(divergence(𝐞ʳˢ))
 ````
 
 The gradient of ``\underline{e}^r`` is the transverse projector divided by
@@ -129,13 +129,13 @@ The gradient of ``\underline{e}^r`` is the transverse projector divided by
 [Submanifolds](@ref th-submanifolds):
 
 ````@example symbolic_operators
-tsimplify(GRAD(𝐞ʳˢ) - (𝐞ᶿ ⊗ 𝐞ᶿ + 𝐞ᵠ ⊗ 𝐞ᵠ) / rs)
+tsimplify(grad(𝐞ʳˢ) - (𝐞ᶿ ⊗ 𝐞ᶿ + 𝐞ᵠ ⊗ 𝐞ᵠ) / rs)
 ````
 
 ``1/r`` is the kernel of the three-dimensional Laplace equation:
 
 ````@example symbolic_operators
-tsimplify(LAPLACE(1 / rs))
+tsimplify(laplacian(1 / rs))
 ````
 
 ## Radial equilibrium of a spherical stress state
@@ -150,13 +150,13 @@ equilibrium equation of a spherically symmetric problem — the ``2(\sigma^{rr}
 σᵠᵠ = SymFunction("σᵠᵠ", real = true)(rs)
 𝛔 = σʳʳ * 𝐞ʳˢ ⊗ 𝐞ʳˢ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ
 
-simplify(DIV(𝛔))
+simplify(divergence(𝛔))
 ````
 
 ## Index placement is a convention
 
-`GRAD` appends the derivative index **on the right**, so
-``(\nabla\underline{v})_{ij}=\partial_j v_i``, and `DIV` contracts the **last**
+`grad` appends the derivative index **on the right**, so
+``(\nabla\underline{v})_{ij}=\partial_j v_i``, and `divergence` contracts the **last**
 index, ``(\mathrm{DIV}\,\boldsymbol{\sigma})_i=\partial_j\sigma_{ij}``. In
 Cartesian coordinates, where all Christoffel symbols vanish, this is easy to
 read off:
@@ -168,7 +168,7 @@ E = unitvec(Cartesian)
 @set_coorsys Cartesian
 
 v = sum(SymFunction("v$i", real = true)(X...) * E[i] for i in 1:3)
-Gv = get_array(GRAD(v))
+Gv = get_array(grad(v))
 
 (Gv[1, 2], diff(SymFunction("v1", real = true)(X...), X[2]))
 ````

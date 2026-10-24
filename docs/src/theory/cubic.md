@@ -84,8 +84,8 @@ and the coefficients on the three projectors are
 [`arg_cubic`](@ref) reads them back; the type stores the projector coefficients,
 following [`TensISO`](@ref)'s ``(3k,2\mu)`` rather than the engineering
 constants, because that is what makes the algebra below literal. The matrix in
-the canonical frame is [`KM`](@ref) and the one above is
-[`KM_material`](@ref), related by the same orthogonal congruence as for
+the canonical frame is [`mandel`](@ref) and the one above is
+[`mandel_material`](@ref), related by the same orthogonal congruence as for
 orthotropy.
 
 ## The algebra is componentwise — and the class is closed under it
@@ -191,7 +191,7 @@ flowchart TB
     ORT["<b>TensOrtho</b><br/>9 constants + frame<br/>(12 without major symmetry)"]
     ANI["<b>general</b><br/>21 constants"]
     ISO -->|"iso_to_cubic(·, frame)"| CUB
-    ISO -->|"fromISO(·, n)"| TI
+    ISO -->|"iso_to_ti(·, n)"| TI
     CUB -->|"cubic_to_ortho(·)"| ORT
     TI -->|"walpole_to_ortho(·, frame, i)"| ORT
     ORT --> ANI

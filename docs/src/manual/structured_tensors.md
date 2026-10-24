@@ -62,8 +62,8 @@ cub = tens_cubic(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄₄)
 
 | Class | Constructors |
 | :--- | :--- |
-| ISO | [`TensISO`](@ref), [`tens_Id2`](@ref), [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref), [`ISO`](@ref), [`iso_projectors`](@ref) |
-| TI order 4 | [`TensTI`](@ref), [`tens_TI`](@ref), [`tens_TI_eng`](@ref), [`tens_TI_Hoenig`](@ref), [`fromISO`](@ref), [`tens_W1`](@ref)…[`tens_W8`](@ref), [`walpole_basis`](@ref), [`walpole_basis_sym`](@ref) |
+| ISO | [`TensISO`](@ref), [`tens_Id2`](@ref), [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref), [`iso_projectors`](@ref), [`iso_projectors`](@ref) |
+| TI order 4 | [`TensTI`](@ref), [`tens_ti`](@ref), [`tens_ti_eng`](@ref), [`tens_ti_hoenig`](@ref), [`iso_to_ti`](@ref), [`tens_W1`](@ref)…[`tens_W8`](@ref), [`walpole_basis`](@ref), [`walpole_basis_sym`](@ref) |
 | TI order 2 | [`TensTI`](@ref)`{2}(a, b, n)` and `(a, b, c, n)` |
 | CUBIC | [`TensCubic`](@ref), [`tens_cubic`](@ref), [`iso_to_cubic`](@ref) |
 | ORTHO order 4 | [`TensOrtho`](@ref)`{4}(C₁₁, …, C₆₆, frame)` (nine constants) and `(…, C₂₁, C₃₁, C₃₂, frame)` (twelve), `TensOrtho(KM, frame[, Val(12)])`, [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref), [`cubic_to_ortho`](@ref) |
@@ -80,7 +80,7 @@ cub = tens_cubic(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄₄)
 | [`frame`](@ref) | `TensOrtho`, `TensCubic` | the material or cube frame |
 | [`reference`](@ref) | `TensTI`, `TensOrtho`, `TensCubic` | axis or frame, whichever applies |
 | [`symmetry`](@ref) | all | the class as a `Symbol` |
-| [`KM_material`](@ref) | `TensOrtho`, `TensCubic` | the sparse matrix in the class's own frame |
+| [`mandel_material`](@ref) | `TensOrtho`, `TensCubic` | the sparse matrix in the class's own frame |
 | [`arg_cubic`](@ref) | `TensCubic` | the constants ``(C_{11},C_{12},C_{44})`` |
 | [`cubic_anisotropy`](@ref) | `TensCubic` | the Zener-type departure from isotropy |
 
@@ -89,7 +89,7 @@ get_ℓ(ti), axis(ti)
 ```
 
 ```@example struct
-KM_material(ort)
+mandel_material(ort)
 ```
 
 ## Closure: what an operation returns
@@ -108,7 +108,7 @@ generic route, exactly and without warning.
 | **ORTHO** | ORTHO{12} | ORTHO{12} | ORTHO{12} | ORTHO{12} | generic | ORTHO{12} |
 
 The `CUBIC` row and column need the two frames to describe the same cube, the
-`ISO`/`TI`/`ORTHO` ones the same axis or frame, and a `TI ⊡ ORTHO` product a
+`iso_projectors`/`TI`/`ORTHO` ones the same axis or frame, and a `TI ⊡ ORTHO` product a
 TI axis along one of the frame axes; otherwise the generic route is taken.
 `ORTHO{12}` stands for `TensOrtho{4, T, 12}`, whichever form the operands have.
 
@@ -140,7 +140,7 @@ At order 2, and between orders, the same rules hold on a shared reference:
 | Operation | Result |
 | :--- | :--- |
 | `ORTHO{2} ⋅ ORTHO{2}`, with an `ISO{2}` or a coaxial `TI{2,2}` | `ORTHO{2}` |
-| `ORTHO{4} ⊡ ORTHO{2}`, `ORTHO{2} ⊡ ORTHO{4}`, the order-4 operand `ISO`, `CUBIC` or a coaxial `TI{4,5}`/`TI{4,6}` | `ORTHO{2}`: the normal block acting on ``(a_1,a_2,a_3)`` |
+| `ORTHO{4} ⊡ ORTHO{2}`, `ORTHO{2} ⊡ ORTHO{4}`, the order-4 operand `iso_projectors`, `CUBIC` or a coaxial `TI{4,5}`/`TI{4,6}` | `ORTHO{2}`: the normal block acting on ``(a_1,a_2,a_3)`` |
 | `ORTHO{2} ⊗ ORTHO{2}` | `ORTHO{4,12}`; `ORTHO{4,9}` for ``\boldsymbol{a}\otimes\boldsymbol{a}`` |
 
 as `TI{4} ⊡ TI{2,2} → TI{2,2}` and `TI{2,2} ⊗ TI{2,2} → TI{4,6}` (`TI{4,5}` for a
@@ -158,7 +158,7 @@ Moving *up* the lattice is exact — an isotropic tensor really is transversely
 isotropic about every axis:
 
 ```@example struct
-typeof(fromISO(iso, [0.0, 0.0, 1.0]))
+typeof(iso_to_ti(iso, [0.0, 0.0, 1.0]))
 ```
 
 ```@example struct

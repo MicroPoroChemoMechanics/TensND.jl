@@ -18,11 +18,11 @@ iso_projectors
 
 ```@docs
 iso_stiffness
-k_mu
-E_nu
-mu_nu
+bulk_shear
+young_poisson
+shear_poisson
 poisson_ratio
-iso_stiffness_E_nu
+iso_stiffness_young_poisson
 ```
 
 `isotropify` is the exact rotation-group average, not a form of compact

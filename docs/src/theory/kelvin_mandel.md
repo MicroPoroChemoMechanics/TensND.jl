@@ -31,7 +31,7 @@ T_{ijkl} & K,L\le3\\
 \end{cases}
 ```
 
-These are [`KM`](@ref) and its inverse [`inv_KM`](@ref); the index ordering is
+These are [`mandel`](@ref) and its inverse [`from_mandel`](@ref); the index ordering is
 `_KM_COUPLES` in `src/tens_projection.jl`.
 
 ## What the ``\sqrt2`` buys
@@ -87,7 +87,7 @@ so a change of frame is an **orthogonal congruence**
 \mathrm{Mat}(\mathbb{A})\;\longmapsto\;{}^{t}Q\,\mathrm{Mat}(\mathbb{A})\,Q .
 ```
 
-`TensND` builds it either from Euler angles (`KM_rotation(θ, ϕ, ψ)`) or
+`TensND` builds it either from Euler angles (`mandel_rotation(θ, ϕ, ψ)`) or
 directly from a frame (`_km_congruence`, in `src/tens_anisotropic.jl`); the latter
 is what relates the two views of an orthotropic tensor,
 

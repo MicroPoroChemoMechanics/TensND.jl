@@ -60,7 +60,7 @@ off-diagonal terms (``\\gamma_{12} = 2\\varepsilon_{12}``), `voigt_stress` does
 not. Two functions rather than one with a flag, because a single `voigt` is the
 classic way to lose a factor of two between the strain that goes in and the
 stress that comes out. Voigt is not an isometry, unlike the Kelvin–Mandel form
-of [`KM`](@ref), and belongs only at the boundary with codes that demand it.
+of [`mandel`](@ref), and belongs only at the boundary with codes that demand it.
 """
 voigt_stress(σ::AbstractTens{2, 3}) = _voigt(components_canon(σ), 1)
 

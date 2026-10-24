@@ -83,12 +83,12 @@ for (name, CS) in charts
     f = SymFunction("f", real = true)(q...)
     g = SymFunction("g", real = true)(q...)
 
-    check("∇²f = DIV(GRAD f)", name, LAPLACE(f, CS) - DIV(GRAD(f, CS), CS))
-    check("∇²f = tr(HESS f)", name, LAPLACE(f, CS) - tr(HESS(f, CS)))
-    check("HESS f symmetric", name, get_array(HESS(f, CS)) - transpose(get_array(HESS(f, CS))))
-    check("GRAD(fg) = f GRAD g + g GRAD f", name, GRAD(f * g, CS) - (f * GRAD(g, CS) + g * GRAD(f, CS)))
+    check("∇²f = divergence(grad f)", name, laplacian(f, CS) - divergence(grad(f, CS), CS))
+    check("∇²f = tr(hess f)", name, laplacian(f, CS) - tr(hess(f, CS)))
+    check("hess f symmetric", name, get_array(hess(f, CS)) - transpose(get_array(hess(f, CS))))
+    check("grad(fg) = f grad g + g grad f", name, grad(f * g, CS) - (f * grad(g, CS) + g * grad(f, CS)))
     check("∇²(fg) = f∇²g + 2∇f·∇g + g∇²f", name,
-        LAPLACE(f * g, CS) - (f * LAPLACE(g, CS) + 2 * (GRAD(f, CS) ⋅ GRAD(g, CS)) + g * LAPLACE(f, CS)))
+        laplacian(f * g, CS) - (f * laplacian(g, CS) + 2 * (grad(f, CS) ⋅ grad(g, CS)) + g * laplacian(f, CS)))
 end
 
 # All zero on every chart, the skew one included — which is what makes these
@@ -114,11 +114,11 @@ for (name, CS) in charts
     𝐯 = sum(SymFunction("v$i", real = true)(q...) * unitvec(CS, i) for i in 1:d)
     𝟏 = tens_Id2(Val(d), Val(Sym))
 
-    check("DIV(f𝐯) = GRAD f ⋅ 𝐯 + f DIV 𝐯", name,
-        DIV(f * 𝐯, CS) - (GRAD(f, CS) ⋅ 𝐯 + f * DIV(𝐯, CS)))
-    check("DIV(f𝟏) = GRAD f", name, DIV(f * 𝟏, CS) - GRAD(f, CS))
-    check("DIV(GRAD 𝐯) = ∇²𝐯", name, DIV(GRAD(𝐯, CS), CS) - LAPLACE(𝐯, CS))
-    check("tr(GRAD 𝐯) = DIV 𝐯", name, tr(GRAD(𝐯, CS)) - DIV(𝐯, CS))
+    check("divergence(f𝐯) = grad f ⋅ 𝐯 + f divergence 𝐯", name,
+        divergence(f * 𝐯, CS) - (grad(f, CS) ⋅ 𝐯 + f * divergence(𝐯, CS)))
+    check("divergence(f𝟏) = grad f", name, divergence(f * 𝟏, CS) - grad(f, CS))
+    check("divergence(grad 𝐯) = ∇²𝐯", name, divergence(grad(𝐯, CS), CS) - laplacian(𝐯, CS))
+    check("tr(grad 𝐯) = divergence 𝐯", name, tr(grad(𝐯, CS)) - divergence(𝐯, CS))
 end
 
 # ## The Leibniz rule for `∂`
@@ -175,9 +175,9 @@ for (name, CS) in charts
     )
 
     check("∂𝟏 = 0  (metric compatibility)", name, ∂(𝟏, 1, CS))
-    check("DIV(f𝟏) with f=1 ⟹ 0", name, DIV(𝟏, CS))
-    check("DIV(𝛔⋅𝐯) = DIV𝛔⋅𝐯 + 𝛔:GRAD𝐯", name,
-        DIV(𝛔 ⋅ 𝐯, CS) - (DIV(𝛔, CS) ⋅ 𝐯 + 𝛔 ⊡ GRAD(𝐯, CS)))
+    check("divergence(f𝟏) with f=1 ⟹ 0", name, divergence(𝟏, CS))
+    check("divergence(𝛔⋅𝐯) = divergence 𝛔⋅𝐯 + 𝛔:grad 𝐯", name,
+        divergence(𝛔 ⋅ 𝐯, CS) - (divergence(𝛔, CS) ⋅ 𝐯 + 𝛔 ⊡ grad(𝐯, CS)))
 end
 
 # ## Why the skew chart matters
@@ -199,7 +199,7 @@ harmonics = [
     "non-orthogonal" => (charts[4][2], (q -> (q[1] + q[2]^2)^2 - q[2]^2)),
 ]
 for (name, (CS, f)) in harmonics
-    check("∇²(harmonic) = 0", name, LAPLACE(f(getcoords(CS)), CS))
+    check("∇²(harmonic) = 0", name, laplacian(f(getcoords(CS)), CS))
 end
 
 # ## The spheroidal chart
@@ -217,15 +217,15 @@ println("\n── spheroidal harmonics ──")
 for (n, m) in ((2, 0), (2, 1))
     T = P(n, m, ps) * P(n, m, qs) * cos(m * ϕs)
     check("∇²[P_$(n)^$(m)(p)P_$(n)^$(m)(q)cos($(m)φ)] = 0", "spheroidal",
-        simplify(LAPLACE(T, Spheroidal)))
+        simplify(laplacian(T, Spheroidal)))
 end
 
 # ## Summary
 #
 # | Family | What it exercises |
 # |:--|:--|
-# | scalar identities | the Laplacian as `DIV∘GRAD`, symmetry of the Hessian |
-# | vector identities | the connection terms, `tr(GRAD 𝐯) = DIV 𝐯` |
+# | scalar identities | the Laplacian as `divergence∘grad`, symmetry of the Hessian |
+# | vector identities | the connection terms, `tr(grad 𝐯) = divergence 𝐯` |
 # | Leibniz for `∂` | that the covariant derivative really is a derivation |
 # | order-2 fields | metric compatibility `∂𝟏 = 0`, the equilibrium identity |
 # | skew chart | covariant vs contravariant bookkeeping — invisible otherwise |

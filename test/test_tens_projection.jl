@@ -27,12 +27,12 @@
         A = TensTI{2}(5.0, 8.0, n_e3)
         @test tr(A) ≈ 18.0  atol = atol_num
         @test issymmetric(A)
-        @test is_TI(A)
-        @test !is_ISO(A)
-        @test !is_ORTHO(A)
+        @test istransverselyisotropic(A)
+        @test !isisotropic(A)
+        @test !isorthotropic(A)
 
         B = TensTI{2}(5.0, 5.0, n_e3)
-        @test is_ISO(B)
+        @test isisotropic(B)
         @test tr(B) ≈ 15.0  atol = atol_num
     end
 
@@ -82,18 +82,18 @@
 
     # ═══════════════════════════════════════════════════════════════════════════
     @testsection "proj_tens :TI order 4 — round-trip (n=e₃)" begin
-        C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         A = get_array(C)
         B, d, drel = proj_tens(:TI, A, n_e3)
         @test d < atol_num
         @test drel < atol_num
         @test B isa TensTI{4}
         # Walpole coefficients should match
-        @test collect(arg_TI(B)) ≈ collect(arg_TI(C))  atol = atol_num
+        @test collect(ti_args(B)) ≈ collect(ti_args(C))  atol = atol_num
     end
 
     @testsection "proj_tens :TI order 4 — isotropic tensor" begin
-        𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
+        𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
         k, μ = 10.0, 5.0
         C_iso = 3k * 𝕁 + 2μ * 𝕂
         A = get_array(C_iso)
@@ -104,7 +104,7 @@
 
     @testsection "proj_tens :TI order 4 — rotated axis" begin
         n45 = [1 / √2, 0.0, 1 / √2]
-        C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n45)
+        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n45)
         A = get_array(C)
         B, d, drel = proj_tens(:TI, A, n45)
         @test drel < 1.0e-8
@@ -112,7 +112,7 @@
 
     @testsection "proj_tens :TI order 4 — non-trivial projection" begin
         # Random anisotropic tensor → project to TI → should have TI structure
-        C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         A_TI = get_array(C)
         # Add a perturbation that breaks TI symmetry
         A_pert = copy(A_TI)
@@ -150,7 +150,7 @@
         M_iso = 7.0 * I(3) |> Matrix{Float64}
         B, d, drel = proj_tens(:TI, M_iso, n_e3)
         @test drel < atol_num
-        @test is_ISO(B)
+        @test isisotropic(B)
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -164,7 +164,7 @@
     end
 
     @testsection "proj_tens :ORTHO order 4 — TI tensor → ORTHO distance ≈ 0" begin
-        C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         A = get_array(C)
         B, d, drel = proj_tens(:ORTHO, A, frame_canon)
         @test drel < 1.0e-8
@@ -197,7 +197,7 @@
     @testsection "best_sym_tens — fixed basis" begin
         # TI tensor → should detect :TI
         # (skip :ISO in proj due to pre-existing simplify ambiguity in tens_isotropic.jl)
-        C_ti = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C_ti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         _, _, _, sym_ti = best_sym_tens(C_ti, n_e3; proj = (:TI, :ORTHO))
         @test sym_ti == :TI
 
@@ -224,13 +224,13 @@
         @test R' * R ≈ I(3)  atol = atol_num
     end
 
-    @testsection "Projection helpers — KM_rotation" begin
-        using TensND: KM_rotation
-        Q0 = KM_rotation(0.0, 0.0, 0.0)
+    @testsection "Projection helpers — mandel_rotation" begin
+        using TensND: mandel_rotation
+        Q0 = mandel_rotation(0.0, 0.0, 0.0)
         @test Q0 ≈ I(6)  atol = atol_num
 
         # Q should be orthogonal for any angles
-        Q = KM_rotation(0.3, 0.5, 0.7)
+        Q = mandel_rotation(0.3, 0.5, 0.7)
         @test Q' * Q ≈ I(6)  atol = atol_num
         @test Q * Q' ≈ I(6)  atol = atol_num
     end
@@ -255,20 +255,20 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "Value-level predicates — is_ISO / is_TI / is_ORTHO" begin
-        # ── is_ISO on arrays
+    @testsection "Value-level predicates — isisotropic / istransverselyisotropic / isorthotropic" begin
+        # ── isisotropic on arrays
         I4 = TensISO{3}(2.0, 3.0)
-        @test is_ISO(get_array(I4))
-        @test !is_ISO(Float64[10 3 2.5; 3 8 1.5; 2.5 1.5 12])
+        @test isisotropic(get_array(I4))
+        @test !isisotropic(Float64[10 3 2.5; 3 8 1.5; 2.5 1.5 12])
 
-        # ── is_TI (fixed axis)
-        C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
-        @test is_TI(get_array(C), n_e3)
-        @test !is_TI(get_array(C), n_e1)
+        # ── istransverselyisotropic (fixed axis)
+        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        @test istransverselyisotropic(get_array(C), n_e3)
+        @test !istransverselyisotropic(get_array(C), n_e1)
 
-        # ── is_ORTHO (fixed frame)
+        # ── isorthotropic (fixed frame)
         O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame_canon)
-        @test is_ORTHO(get_array(O), frame_canon)
+        @test isorthotropic(get_array(O), frame_canon)
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
@@ -279,14 +279,14 @@
         @test sym === :ISO
 
         # ── TI axis = e₃: candidate axis matches, cheap path succeeds
-        C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         _, _, drel, sym = best_sym_tens(C)
         @test sym === :TI
         @test drel < 1.0e-10
 
         # ── TI axis = (1,1,1)/√3: KM eigendecomposition recovers the axis
         n_tilt = [1.0, 1.0, 1.0] ./ sqrt(3.0)
-        Ct = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
+        Ct = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
         _, _, drel_t, sym_t = best_sym_tens(Ct)
         @test sym_t === :TI
         @test drel_t < 1.0e-8
@@ -317,7 +317,7 @@
     # ═══════════════════════════════════════════════════════════════════════════
     @testsection "best_sym_tens — fixed-axis/frame path" begin
         # Given axis, TI projection must be exact for a TI tensor
-        C = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         _, _, drel, sym = best_sym_tens(C, n_e3; proj = (:ISO, :TI))
         @test sym === :TI
         @test drel < 1.0e-12
@@ -403,7 +403,7 @@
 
 end
 
-@testsection "proj_tens of a null tensor, and is_TI with the axis searched" begin
+@testsection "proj_tens of a null tensor, and istransverselyisotropic with the axis searched" begin
     frame = CanonicalBasis{3, Float64}()
     n = (0.0, 0.0, 1.0)
     # A null tensor projects onto the null tensor of each class, at distance 0.
@@ -419,10 +419,10 @@ end
     @test iszero(I4) && f4 == 0 && t4 == 0
     # The axis search finds the axis of a TI tensor off the frame, and no axis
     # makes an orthotropic tensor with three distinct axial moduli TI.
-    W = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, (0.6, 0.0, 0.8))
-    @test is_TI(get_array(W); optimize_angles = true)
+    W = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, (0.6, 0.0, 0.8))
+    @test istransverselyisotropic(get_array(W); optimize_angles = true)
     O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame)
-    @test !is_TI(get_array(O); optimize_angles = true)
+    @test !istransverselyisotropic(get_array(O); optimize_angles = true)
 end
 
 @testsection "Second-order projections: symbols are not conjugated, frames read exactly" begin

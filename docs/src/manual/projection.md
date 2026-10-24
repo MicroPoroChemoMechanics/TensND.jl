@@ -27,7 +27,7 @@ tolerance on it is independent of the units of the moduli.
 using TensND, LinearAlgebra
 
 n = [0.0, 0.0, 1.0]
-C = get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n))
+C = get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n))
 
 B, d, drel = proj_tens(:TI, C, n)
 (typeof(B), drel)
@@ -50,7 +50,7 @@ it:
 ```@example proj
 θ, ϕ = 0.6, 1.1
 n_tilt = [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]
-C_tilt = get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt))
+C_tilt = get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt))
 
 B_opt, _, drel_opt = proj_tens(:TI, C_tilt)
 (round.(collect(axis(B_opt)), digits = 8), drel_opt)
@@ -133,17 +133,17 @@ anisotropy does not.
 
 ## Predicates
 
-[`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref) and [`is_CUBIC`](@ref) are the same
+[`isisotropic`](@ref), [`istransverselyisotropic`](@ref), [`isorthotropic`](@ref) and [`iscubic`](@ref) are the same
 computation with a boolean answer, and they respect the hierarchy
 ISO ⊂ TI ⊂ ORTHO:
 
 ```@example proj
-𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
-(is_ISO(𝕀), is_TI(𝕀), is_ORTHO(𝕀))
+𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
+(isisotropic(𝕀), istransverselyisotropic(𝕀), isorthotropic(𝕀))
 ```
 
 ```@example proj
-(is_ISO(C), is_TI(C), is_ORTHO(C))
+(isisotropic(C), istransverselyisotropic(C), isorthotropic(C))
 ```
 
 Each accepts an optional axis or frame, and the `optimize_angles` keyword.

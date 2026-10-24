@@ -27,7 +27,7 @@ test would catch if the code changed under it.
 | ``\mathbb{W}_7,\mathbb{W}_8`` annihilate axially invariant order-2 tensors — and *only* those | [The extended Walpole algebra](@ref th-walpole-extended) | a source comment once claimed they annihilate every symmetric tensor, which is false |
 | the ``N=8`` space is closed under `⊡` and `inv` | [The extended Walpole algebra](@ref th-walpole-extended) | it is the justification for the storage type |
 | ``\Gamma^k_{ij}=\partial_i\underline{a}_j\cdot\underline{a}^k`` | [Curvilinear calculus](@ref th-curvilinear) | the storage order ``\Gamma[i,j,k]`` is easy to transpose |
-| `GRAD` appends on the right, `DIV` contracts the last index | [Curvilinear calculus](@ref th-curvilinear) | invisible on symmetric fields, wrong by a transpose otherwise |
+| `grad` appends on the right, `divergence` contracts the last index | [Curvilinear calculus](@ref th-curvilinear) | invisible on symmetric fields, wrong by a transpose otherwise |
 | ``\mathrm{GRAD}(\underline{n})=-\boldsymbol{b}`` on a sphere | [Submanifolds](@ref th-submanifolds) | ties the normal orientation to the curvature sign |
 
 ## What a good test looks like here
@@ -36,14 +36,14 @@ Prefer an **identity that fails unless everything is right** over a check
 against a transcribed number.
 
 - The Laplacian of a harmonic function vanishes only if every Christoffel term
-  is correct. `LAPLACE(rⁿcos nθ) == 0` in polar coordinates, and the spheroidal
+  is correct. `laplacian(rⁿcos nθ) == 0` in polar coordinates, and the spheroidal
   harmonics ``P_n^m(p)P_n^m(q)\cos m\varphi``, are the strongest single checks
   on a coordinate system.
 - A closed form matched against the operator route — the Green's function pages
-  do this — exercises `HESS`, the symmetrization and the basis handling at once.
-- A round trip (`arg_TI(tens_TI(x...)) == x`) catches parametrization errors
+  do this — exercises `hess`, the symmetrization and the basis handling at once.
+- A round trip (`ti_args(tens_ti(x...)) == x`) catches parametrization errors
   that a one-way check cannot.
-- Equilibrium residuals: `DIV(σ) ≈ 0` for an exact solution tests the full
+- Equilibrium residuals: `divergence(σ) ≈ 0` for an exact solution tests the full
   order-2 divergence including connection terms.
 
 ## Non-obvious traps

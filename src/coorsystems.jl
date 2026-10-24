@@ -39,7 +39,7 @@ Declaring the block once keeps the two in step: a fix to one is a fix to
 the other.
 
 Reached through [`core`](@ref); user code should go through the accessors
-([`getcoords`](@ref), [`Lame`](@ref), [`Christoffel`](@ref), …) instead.
+([`getcoords`](@ref), [`lame_coefficients`](@ref), [`christoffel`](@ref), …) instead.
 """
 struct ChartCore{dim, T, VEC, BNORM, BNAT}
     OM::VEC
@@ -72,8 +72,8 @@ Curvilinear coordinate system with **exact symbolic** derivatives.
 
 Stores the position vector, the coordinate symbols, the natural and normalized
 bases, the Lamé coefficients and the Christoffel symbols as expressions, so the
-differential operators [`GRAD`](@ref), [`SYMGRAD`](@ref), [`DIV`](@ref),
-[`LAPLACE`](@ref) and [`HESS`](@ref) return closed-form results valid
+differential operators [`grad`](@ref), [`symgrad`](@ref), [`divergence`](@ref),
+[`laplacian`](@ref) and [`hess`](@ref) return closed-form results valid
 everywhere, not values at a point.
 
 Predefined systems: [`coorsys_cartesian`](@ref), [`coorsys_polar`](@ref),
@@ -211,7 +211,7 @@ struct CoorSystemSym{dim, T <: Number, VEC, BNORM, BNAT} <: AbstractCoorSystem{d
 end
 
 # On `AbstractCoorSystem`, like every accessor below: `SubManifoldSym` carries
-# the same fields, and `∂`/`GRAD`/`DIV`/`LAPLACE`/`HESS` on a submanifold reach
+# the same fields, and `∂`/`grad`/`divergence`/`laplacian`/`hess` on a submanifold reach
 # `only_coords`.
 only_coords(CS::AbstractCoorSystem, t) = length(core(CS).to_coords) > 0 ? tsubs(t, core(CS).to_coords...) : t
 
@@ -242,19 +242,19 @@ both.
 nderiv(::AbstractCoorSystem{dim}) where {dim} = dim
 
 """
-    getOM(CS::AbstractCoorSystem) → AbstractTens{1}
+    position_vector(CS::AbstractCoorSystem) → AbstractTens{1}
 
 Position vector of `CS` as a function of its coordinates — the map the natural
 basis, the Lamé coefficients and the Christoffel symbols are all derived from.
 """
-getOM(CS::AbstractCoorSystem) = core(CS).OM
+position_vector(CS::AbstractCoorSystem) = core(CS).OM
 
 normalized_basis(CS::AbstractCoorSystem) = core(CS).normalized_basis
 natural_basis(CS::AbstractCoorSystem) = core(CS).natural_basis
 
 """
-    Lame(CS::AbstractCoorSystem) → NTuple
-    Lame(CS::CoorSystemNum, x₀::AbstractVector) → Vector
+    lame_coefficients(CS::AbstractCoorSystem) → NTuple
+    lame_coefficients(CS::CoorSystemNum, x₀::AbstractVector) → Vector
 
 Lamé coefficients `χᵢ = ‖𝐚ᵢ‖`, the norms of the natural basis vectors.
 
@@ -262,14 +262,14 @@ They relate the natural and normalized bases, `𝐞ᵢ = 𝐚ᵢ/χᵢ`, and for
 orthogonal system give the line element `ds² = Σᵢ χᵢ² (dqⁱ)²`. Symbolic systems
 return expressions; [`CoorSystemNum`](@ref) evaluates them at a point.
 
-`Lame(coorsys_spherical())` is `(r, r sin(θ), 1)`.
+`lame_coefficients(coorsys_spherical())` is `(r, r sin(θ), 1)`.
 
 See also [Curvilinear differential calculus](@ref th-curvilinear).
 """
-Lame(CS::AbstractCoorSystem) = core(CS).χᵢ
+lame_coefficients(CS::AbstractCoorSystem) = core(CS).χᵢ
 """
-    Christoffel(CS::AbstractCoorSystem) → Array{T,3}
-    Christoffel(CS::CoorSystemNum, x₀::AbstractVector) → Array{T,3}
+    christoffel(CS::AbstractCoorSystem) → Array{T,3}
+    christoffel(CS::CoorSystemNum, x₀::AbstractVector) → Array{T,3}
 
 Christoffel symbols of `CS`, `Γᵏᵢⱼ = ∂ᵢ𝐚ⱼ ⋅ 𝐚ᵏ`, symmetric in `(i,j)`.
 
@@ -281,9 +281,9 @@ Christoffel symbols of `CS`, `Γᵏᵢⱼ = ∂ᵢ𝐚ⱼ ⋅ 𝐚ᵏ`, symmetri
 They are what distinguishes a derivative on a curvilinear chart from a plain
 partial derivative; every one of them vanishes exactly for a Cartesian chart.
 
-See also [`Lame`](@ref), [Curvilinear differential calculus](@ref th-curvilinear).
+See also [`lame_coefficients`](@ref), [Curvilinear differential calculus](@ref th-curvilinear).
 """
-Christoffel(CS::AbstractCoorSystem) = core(CS).Γ
+christoffel(CS::AbstractCoorSystem) = core(CS).Γ
 # simprules(t, CS::AbstractCoorSystem) = length(CS.rules) > 0 ? tsimplify(tsubs(tsimplify(t), CS.rules...)) : tsimplify(t)
 simprules(t, CS::AbstractCoorSystem) = length(core(CS).rules) > 0 ? tsubs(t, core(CS).rules...) : t
 
@@ -346,7 +346,7 @@ function ∂(
     ℬ = natural_basis(CS)
     var = ntuple(_ -> :cont, order)
     t = Array(components(t, ℬ, var))
-    Γ = Christoffel(CS)
+    Γ = christoffel(CS)
     data = tdiff(t, getcoords(CS, i))
     for o in 1:order
         data += _contract_index(t, view(Γ, i, :, :), o)
@@ -384,18 +384,18 @@ end
 # and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
 # `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
-    GRAD(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    grad(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
 Gradient of the scalar or tensor field `t` with respect to the coordinate
 system `CS`, raising the order by one:
 
-    GRAD(t) = Σᵢ ∂ᵢt ⊗ 𝐚ⁱ
+    grad(t) = Σᵢ ∂ᵢt ⊗ 𝐚ⁱ
 
 !!! note "The derivative index comes last"
     The dual natural vector `𝐚ⁱ` is appended **on the right**, so for a vector
-    field `𝐯` the components of `GRAD(𝐯)` are `(∇𝐯)ᵢⱼ = ∂ⱼvᵢ`. This is the
-    convention that makes [`DIV`](@ref) the contraction of the *last* index and
-    `LAPLACE = DIV ∘ GRAD` come out right; a library using the opposite
+    field `𝐯` the components of `grad(𝐯)` are `(∇𝐯)ᵢⱼ = ∂ⱼvᵢ`. This is the
+    convention that makes [`divergence`](@ref) the contraction of the *last* index and
+    `laplacian = divergence ∘ grad` come out right; a library using the opposite
     convention differs by a transpose.
 
 If `CS` has been made the default with [`@set_coorsys`](@ref), the second
@@ -407,16 +407,16 @@ julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
 
 julia> @set_coorsys Spherical
 
-julia> GRAD(r)          # = 𝐞ʳ
+julia> grad(r)          # = 𝐞ʳ
 
-julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; GRAD(𝐞ʳ)   # = (𝐞ᶿ⊗𝐞ᶿ + 𝐞ᵠ⊗𝐞ᵠ)/r
+julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; grad(𝐞ʳ)   # = (𝐞ᶿ⊗𝐞ᶿ + 𝐞ᵠ⊗𝐞ᵠ)/r
 ```
 
-See also [`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref).
+See also [`symgrad`](@ref), [`divergence`](@ref), [`laplacian`](@ref), [`hess`](@ref).
 """
-GRAD(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
+grad(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
     sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
-GRAD(t::SymType, CS::AbstractCoorSystem) =
+grad(t::SymType, CS::AbstractCoorSystem) =
     sum([∂(t, i, CS) ⊗ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
@@ -425,15 +425,15 @@ GRAD(t::SymType, CS::AbstractCoorSystem) =
 # and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
 # `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
-    SYMGRAD(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    symgrad(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
 Symmetrized gradient of `t` with respect to the coordinate system `CS`:
 
-    SYMGRAD(t) = Σᵢ ∂ᵢt ⊗ˢ 𝐚ⁱ
+    symgrad(t) = Σᵢ ∂ᵢt ⊗ˢ 𝐚ⁱ
 
 Applied to a displacement field this is the linearized strain tensor,
 `𝛆 = (∇𝛏 + ᵗ∇𝛏)/2`, which is why it is a primitive rather than a composition of
-[`GRAD`](@ref) and a transpose.
+[`grad`](@ref) and a transpose.
 
 If `CS` has been made the default with [`@set_coorsys`](@ref), the second
 argument may be omitted.
@@ -446,28 +446,28 @@ julia> 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; @set_coorsys Cylindrica
 
 julia> 𝛏 = SymFunction("ξʳ", real = true)(r, z) * 𝐞ʳ + SymFunction("ξᶻ", real = true)(r, z) * 𝐞ᶻ ;
 
-julia> SYMGRAD(𝛏)       # axisymmetric strain tensor, with εᶿᶿ = ξʳ/r
+julia> symgrad(𝛏)       # axisymmetric strain tensor, with εᶿᶿ = ξʳ/r
 ```
 
-See also [`GRAD`](@ref), [`DIV`](@ref).
+See also [`grad`](@ref), [`divergence`](@ref).
 """
-SYMGRAD(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
+symgrad(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
     sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
-SYMGRAD(t::SymType, CS::AbstractCoorSystem) =
+symgrad(t::SymType, CS::AbstractCoorSystem) =
     sum([∂(t, i, CS) ⊗ˢ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
 """
-    DIV(t::AbstractTens{order,dim,T}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    divergence(t::AbstractTens{order,dim,T}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
 Divergence of the tensor field `t` (of order ≥ 1) with respect to the coordinate
 system `CS`, lowering the order by one:
 
-    DIV(t) = Σᵢ ∂ᵢt ⋅ 𝐚ⁱ
+    divergence(t) = Σᵢ ∂ᵢt ⋅ 𝐚ⁱ
 
 !!! note "The contracted index is the last one"
-    Consistently with [`GRAD`](@ref), the contraction acts on the **last** index
-    of `t`: for an order-2 field, `DIV(𝛔)ᵢ = ∂ⱼσᵢⱼ`. For a symmetric field such
+    Consistently with [`grad`](@ref), the contraction acts on the **last** index
+    of `t`: for an order-2 field, `divergence(𝛔)ᵢ = ∂ⱼσᵢⱼ`. For a symmetric field such
     as a stress tensor the distinction is immaterial, but it is not for a general
     order-2 field.
 
@@ -480,16 +480,16 @@ julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
 
 julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; @set_coorsys Spherical
 
-julia> DIV(𝐞ʳ)          # = 2/r
+julia> divergence(𝐞ʳ)          # = 2/r
 
 julia> 𝛔 = SymFunction("σʳʳ", real = true)(r) * 𝐞ʳ ⊗ 𝐞ʳ ;
 
-julia> simplify(DIV(𝛔)) # radial equilibrium operator
+julia> simplify(divergence(𝛔)) # radial equilibrium operator
 ```
 
-See also [`GRAD`](@ref), [`LAPLACE`](@ref).
+See also [`grad`](@ref), [`laplacian`](@ref).
 """
-DIV(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem{dim}) where {order, dim, T <: SymType} =
+divergence(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem{dim}) where {order, dim, T <: SymType} =
     sum([∂(t, i, CS) ⋅ natvec(CS, i, :cont) for i in 1:nderiv(CS)])
 
 
@@ -498,11 +498,11 @@ DIV(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem{dim}) where {order, d
 # and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
 # `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
-    LAPLACE(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    laplacian(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
 Laplacian of the scalar or tensor field `t`, defined as the composition
 
-    LAPLACE(t) = DIV(GRAD(t))
+    laplacian(t) = divergence(grad(t))
 
 and therefore preserving the order of `t`.
 
@@ -513,30 +513,30 @@ argument may be omitted.
 ```julia
 julia> Polar = coorsys_polar() ; r, θ = getcoords(Polar) ; @set_coorsys Polar
 
-julia> LAPLACE(SymFunction("f", real = true)(r, θ))   # the polar Laplacian
+julia> laplacian(SymFunction("f", real = true)(r, θ))   # the polar Laplacian
 
-julia> n = symbols("n", integer = true) ; simplify(LAPLACE(r^n * cos(n*θ)))   # = 0
+julia> n = symbols("n", integer = true) ; simplify(laplacian(r^n * cos(n*θ)))   # = 0
 ```
 
-See also [`GRAD`](@ref), [`DIV`](@ref), [`HESS`](@ref).
+See also [`grad`](@ref), [`divergence`](@ref), [`hess`](@ref).
 """
-LAPLACE(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
-    DIV(GRAD(t, CS), CS)
-LAPLACE(t::SymType, CS::AbstractCoorSystem) = DIV(GRAD(t, CS), CS)
+laplacian(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
+    divergence(grad(t, CS), CS)
+laplacian(t::SymType, CS::AbstractCoorSystem) = divergence(grad(t, CS), CS)
 
 # Two methods, not one union. `Union{SymType, AbstractTens{order, dim}}` leaves
 # `order` and `dim` bound by nothing when the argument is a `Num` or a `Sym`,
 # and spelling the union the other way round, `Union{T, AbstractTens}`, leaves
 # `T` unbound when it is a tensor. Split, each signature binds what it names.
 """
-    HESS(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
+    hess(t::Union{T,AbstractTens{order,dim,T}}, CS::CoorSystemSym{dim,T}) where {order,dim,T<:SymType}
 
 Hessian of `t`, defined as the second gradient
 
-    HESS(t) = GRAD(GRAD(t))
+    hess(t) = grad(grad(t))
 
 and therefore raising the order of `t` by two. For a scalar field the trace of
-`HESS(t)` is [`LAPLACE`](@ref)`(t)`.
+`hess(t)` is [`laplacian`](@ref)`(t)`.
 
 If `CS` has been made the default with [`@set_coorsys`](@ref), the second
 argument may be omitted.
@@ -547,14 +547,14 @@ julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
 
 julia> @set_coorsys Spherical
 
-julia> simplify(HESS(1/r))    # the kernel of the 3-D Laplace equation
+julia> simplify(hess(1/r))    # the kernel of the 3-D Laplace equation
 ```
 
-See also [`GRAD`](@ref), [`LAPLACE`](@ref).
+See also [`grad`](@ref), [`laplacian`](@ref).
 """
-HESS(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
-    GRAD(GRAD(t, CS), CS)
-HESS(t::SymType, CS::AbstractCoorSystem) = GRAD(GRAD(t, CS), CS)
+hess(t::AbstractTens{order, dim}, CS::AbstractCoorSystem{dim}) where {order, dim} =
+    grad(grad(t, CS), CS)
+hess(t::SymType, CS::AbstractCoorSystem) = grad(grad(t, CS), CS)
 
 # `Tuple{T, Vararg{T, M}}`: at least one coordinate, which also binds `T` —
 # `NTuple{dim, T}` accepts the empty tuple and leaves it bound by nothing.
@@ -576,13 +576,13 @@ julia> ℬ = normalized_basis(Cartesian) ;
 
 julia> 𝛔 = Tens(SymmetricTensor{2,3}((i, j) -> SymFunction("σ\$i\$j", real = true)(𝐗...))) ;
 
-julia> get_array(DIV(𝛔, Cartesian))
+julia> get_array(divergence(𝛔, Cartesian))
  Derivative(σ11(x, y, z), x) + Derivative(σ21(x, y, z), y) + Derivative(σ31(x, y, z), z)
  Derivative(σ21(x, y, z), x) + Derivative(σ22(x, y, z), y) + Derivative(σ32(x, y, z), z)
  Derivative(σ31(x, y, z), x) + Derivative(σ32(x, y, z), y) + Derivative(σ33(x, y, z), z)
 ```
 
-which is `DIV(𝛔)ᵢ = ∂ⱼσᵢⱼ`.
+which is `divergence(𝛔)ᵢ = ∂ⱼσᵢⱼ`.
 
 See also [`coorsys_polar`](@ref), [`coorsys_cylindrical`](@ref),
 [`coorsys_spherical`](@ref), [`@set_coorsys`](@ref).
@@ -611,7 +611,7 @@ julia> Polar = coorsys_polar() ; r, θ = getcoords(Polar) ; 𝐞ʳ, 𝐞ᶿ = un
 
 julia> f = SymFunction("f", real = true)(r, θ) ;
 
-julia> LAPLACE(f, Polar)
+julia> laplacian(f, Polar)
                                2
                               ∂
                              ───(f(r, θ))
@@ -652,7 +652,7 @@ julia> Cylindrical = coorsys_cylindrical() ; rθz = getcoords(Cylindrical) ; �
 
 julia> 𝐯 = Tens(Vec{3}(i -> SymFunction("v\$(rθz[i])", real = true)(rθz...)), ℬᶜ) ;
 
-julia> DIV(𝐯, Cylindrical)
+julia> divergence(𝐯, Cylindrical)
                                                   ∂
                                     vr(r, θ, z) + ──(vθ(r, θ, z))
 ∂                 ∂                               ∂θ
@@ -695,7 +695,7 @@ julia> for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ") @eval \$(Symbol(σⁱ�
 
 julia> 𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ ;
 
-julia> div𝛔 = DIV(𝛔, Spherical)
+julia> div𝛔 = divergence(𝛔, Spherical)
 Tens.TensRotated{1, 3, Sym, Vec{3, Sym}}
 # data: 3-element Vec{3, Sym}:
                               (-σᵠᵠ(r) + σᶿᶿ(r))*cos(θ)/(r*sin(θ))
@@ -742,7 +742,7 @@ Return the spheroidal coordinate system
 
 # Examples
 ```julia
-julia> Spheroidal = coorsys_spheroidal() ; OM = getOM(Spheroidal)
+julia> Spheroidal = coorsys_spheroidal() ; OM = position_vector(Spheroidal)
 Tens.TensCanonical{1, 3, Sym, Vec{3, Sym}}
 # data: 3-element Vec{3, Sym}:
  c⋅p̄⋅q̄⋅cos(ϕ)
@@ -754,7 +754,7 @@ Tens.TensCanonical{1, 3, Sym, Vec{3, Sym}}
  0  0  1
 # var: (:cont,)
 
-julia> LAPLACE(OM[1]^2, Spheroidal)
+julia> laplacian(OM[1]^2, Spheroidal)
 2
 ``` 
 """
@@ -820,7 +820,7 @@ end
 # ── The default coordinate system ────────────────────────────────────────────
 #
 # The default chart is data held in a reference, and the single-argument forms
-# of `GRAD`, `DIV`, … are ordinary methods defined once, below. Methods
+# of `grad`, `divergence`, … are ordinary methods defined once, below. Methods
 # evaluated into the module by `@set_coorsys` would mutate the method table
 # globally — invalidating compiled code, invisibly at the call site — and a
 # default-chart `∂(t, x)` would be more specific than the plain derivative with
@@ -835,8 +835,8 @@ const _DEFAULT_COORSYS = Ref{Any}(nothing)      # `nothing` or `(; CS, vec, coor
 """
     set_coorsys!(CS; vec = '𝐞', coords = nothing) → CS
 
-Make `CS` the default coordinate system, so that [`GRAD`](@ref),
-[`SYMGRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref), [`HESS`](@ref) and
+Make `CS` the default coordinate system, so that [`grad`](@ref),
+[`symgrad`](@ref), [`divergence`](@ref), [`laplacian`](@ref), [`hess`](@ref) and
 [`pprint`](@ref) may be called with a single argument.
 
 `vec` and `coords` control how [`pprint`](@ref) names the basis vectors.
@@ -885,11 +885,11 @@ end
 # One method per kind of argument: a single `Union{T, AbstractTens} where
 # {T <: SymType}` would bind `T` to nothing for an `AbstractTens`, a signature
 # Julia accepts and can never dispatch on.
-for OP in (:GRAD, :SYMGRAD, :LAPLACE, :HESS)
+for OP in (:grad, :symgrad, :laplacian, :hess)
     @eval $OP(t::AbstractTens) = $OP(t, default_coorsys())
     @eval $OP(t::T) where {T <: SymType} = $OP(t, default_coorsys())
 end
-DIV(t::AbstractTens) = DIV(t, default_coorsys())
+divergence(t::AbstractTens) = divergence(t, default_coorsys())
 
 """
     @set_coorsys CS [vec] [coords]
@@ -907,7 +907,7 @@ julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
 
 julia> @set_coorsys Spherical
 
-julia> LAPLACE(1 / r)      # one argument
+julia> laplacian(1 / r)      # one argument
 0
 ```
 
@@ -940,8 +940,8 @@ function pprint(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '�
     return pprint(change_tens(t, ℬ); vec = vec, coords = coords)
 end
 
-export ∂, CoorSystemSym, Lame, Christoffel, nderiv
-export GRAD, SYMGRAD, DIV, LAPLACE, HESS
-export normalized_basis, natural_basis, natvec, unitvec, getcoords, getOM
+export ∂, CoorSystemSym, lame_coefficients, christoffel, nderiv
+export grad, symgrad, divergence, laplacian, hess
+export normalized_basis, natural_basis, natvec, unitvec, getcoords, position_vector
 export coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal
 export @set_coorsys, set_coorsys!, default_coorsys, unset_coorsys!

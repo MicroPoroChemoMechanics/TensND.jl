@@ -39,7 +39,7 @@ k = E / (3(1 - 2ν))
 
 θ, ϕ, r = symbols("θ", real = true), symbols("ϕ", real = true), symbols("r", positive = true)
 S = coorsys_spherical((θ, ϕ, r))
-𝐱 = getOM(S)
+𝐱 = position_vector(S)
 
 θ′, ϕ′, r′ = symbols("θ′", real = true), symbols("ϕ′", real = true), symbols("r′", positive = true)
 S′ = coorsys_spherical((θ′, ϕ′, r′))
@@ -48,7 +48,7 @@ Cartesian = coorsys_cartesian(symbols("x y z", real = true))
 𝐞₁, 𝐞₂, 𝐞₃ = unitvec(Cartesian)
 R = symbols("R", positive = true)
 
-𝐱′ = getOM(S′) + R * 𝐞₃
+𝐱′ = position_vector(S′) + R * 𝐞₃
 
 # ## The separation vector
 #

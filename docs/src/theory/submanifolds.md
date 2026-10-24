@@ -135,7 +135,7 @@ of an umbilical surface: every direction curves identically.
 ## Differential operators on the surface
 
 Because `SubManifoldSym` is an `AbstractCoorSystem`, the operators
-[`GRAD`](@ref), [`DIV`](@ref), [`LAPLACE`](@ref) apply to fields defined on the
+[`grad`](@ref), [`divergence`](@ref), [`laplacian`](@ref) apply to fields defined on the
 surface, with the intrinsic connection. The relation that ties the two
 geometries together is the Weingarten equation read as a gradient:
 

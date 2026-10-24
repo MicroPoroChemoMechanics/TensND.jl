@@ -211,7 +211,7 @@ index last.
 Surface indices run from `1` to `dim-1` and are written with Greek letters
 `α, β, γ` throughout, to distinguish them from ambient indices `i, j, k` which
 run to `dim`. This is the purely tangential block of the Gauss–Weingarten array
-returned by [`Christoffel`](@ref).
+returned by [`christoffel`](@ref).
 
 For a sphere of radius `R` parametrized by `(θ, φ)`:
 
@@ -228,7 +228,7 @@ and [`submetric`](@ref).
     it never returned a Riemann curvature tensor. `Riemann` still works and
     forwards here, with a deprecation warning.
 
-See also [`SubManifoldSym`](@ref), [`Christoffel`](@ref), [`curvature`](@ref).
+See also [`SubManifoldSym`](@ref), [`christoffel`](@ref), [`curvature`](@ref).
 """
 connection(SM::SubManifoldSym{dim}) where {dim} = core(SM).Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
 
@@ -238,8 +238,8 @@ connection(SM::SubManifoldSym{dim}) where {dim} = core(SM).Γ[1:(dim - 1), 1:(di
 #
 # A submanifold differentiates along its own `dim-1` surface coordinates, not
 # along the `dim` ambient ones. That single number is the *only* difference
-# between the symbolic operators here and those of a chart, so `∂`, `GRAD`,
-# `SYMGRAD`, `DIV`, `LAPLACE` and `HESS` are defined once in `coorsystems.jl`
+# between the symbolic operators here and those of a chart, so `∂`, `grad`,
+# `symgrad`, `divergence`, `laplacian` and `hess` are defined once in `coorsystems.jl`
 # over `AbstractCoorSystem` and parametrized by `nderiv`, so that a submanifold
 # and a chart cannot drift apart.
 nderiv(::SubManifoldSym{dim}) where {dim} = dim - 1

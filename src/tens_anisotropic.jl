@@ -78,7 +78,7 @@ it (`N=5 ⊡ N=5 → N=6`), the inverse keeps the shape, the major transpose swa
 `ℓ₃` and `ℓ₄` (and changes the sign of `ℓ₇`, `ℓ₈`), and
 `Tensors.majorsymmetric` returns `N=5`.
 
-See also [`TensOrtho`](@ref), [`tens_TI`](@ref), [`tens_TI_eng`](@ref), [`tens_TI_Hoenig`](@ref).
+See also [`TensOrtho`](@ref), [`tens_ti`](@ref), [`tens_ti_eng`](@ref), [`tens_ti_hoenig`](@ref).
 """
 struct TensTI{order, T, N} <: AbstractTens{order, 3, T}
     data::NTuple{N, T}
@@ -255,16 +255,6 @@ function walpole_basis_sym(n)
     return W1s, W2s, W3s, W4s, W5s
 end
 
-"""
-    Walpole(n; sym::Bool = false)
-
-Legacy entry point: dispatches to [`walpole_basis`](@ref) (6-tuple, default)
-or [`walpole_basis_sym`](@ref) (5-tuple, `sym=true`). Kept for backward
-compatibility with older scripts; new code should prefer the dedicated
-functions whose return arity is deterministic from the name.
-"""
-Walpole(n; sym::Bool = false) = sym ? walpole_basis_sym(n) : walpole_basis(n)
-
 # ── get_array ─────────────────────────────────────────────────────────────────
 
 """
@@ -312,11 +302,11 @@ end
 # ── Kelvin-Mandel matrix ──────────────────────────────────────────────────────
 
 """
-    KM(t::TensTI{4})
+    mandel(t::TensTI{4})
 
 Kelvin-Mandel (6×6) matrix of the Walpole tensor.
 """
-KM(t::TensTI{4}) = Matrix(_km_by_entries(t))
+mandel(t::TensTI{4}) = Matrix(_km_by_entries(t))
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -387,10 +377,10 @@ Tensors.isminorsymmetric(::TensTI{4}) = true
 Tensors.ismajorsymmetric(::TensTI{4, T, 5}) where {T} = true
 Tensors.ismajorsymmetric(t::TensTI{4, T, 6}) where {T} = isequal(t.data[3], t.data[4])
 
-# ── fromISO ───────────────────────────────────────────────────────────────────
+# ── iso_to_ti ───────────────────────────────────────────────────────────────────
 
 """
-    fromISO(A::TensISO{4,3}, n) → TensTI{4, T, 5}
+    iso_to_ti(A::TensISO{4,3}, n) → TensTI{4, T, 5}
 
 Convert an isotropic 4th-order tensor `αJ + βK` into its Walpole representation.
 
@@ -398,7 +388,7 @@ Formulas: ℓ₁=(α+2β)/3, ℓ₂=(2α+β)/3 (note: dim=3 → these are (3k,2�
           ℓ₃=ℓ₄=√2(α−β)/3, ℓ₅=ℓ₆=β.
 Here `α` = data[1] and `β` = data[2] in TensISO (coefficients of J and K).
 """
-function fromISO(A::TensISO{4, 3, T}, n) where {T}
+function iso_to_ti(A::TensISO{4, 3, T}, n) where {T}
     α, β = get_data(A)    # A = α*J + β*K
     sq2 = sqrt(T(2))
     ℓ₁ = (α + 2β) / 3
@@ -414,16 +404,16 @@ end
     dcontract(A::TensISO{4,3}, B::TensTI{4}) → TensTI{4, T, 6}
 """
 function Tensors.dcontract(A::TensTI{4}, B::TensISO{4, 3})
-    return _dcontract_coaxial(A, fromISO(B, A.n))
+    return _dcontract_coaxial(A, iso_to_ti(B, A.n))
 end
 function Tensors.dcontract(A::TensISO{4, 3}, B::TensTI{4})
-    return _dcontract_coaxial(fromISO(A, B.n), B)
+    return _dcontract_coaxial(iso_to_ti(A, B.n), B)
 end
 
 # ── TI convenience constructors ──────────────────────────────────────────────
 
 """
-    tens_TI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n) → TensTI{4, T, 5}
+    tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n) → TensTI{4, T, 5}
 
 Construct a major-symmetric TI 4th-order tensor from its 5 independent
 components and symmetry axis `n`.  Works for both stiffness and compliance
@@ -436,9 +426,9 @@ Walpole coefficients:
 - `ℓ₅ = C₁₁₁₁ − C₁₁₂₂`
 - `ℓ₆ = 2 C₂₃₂₃`
 
-See also [`arg_TI`](@ref), [`tens_TI_eng`](@ref).
+See also [`ti_args`](@ref), [`tens_ti_eng`](@ref).
 """
-function tens_TI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
+function tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
     T = promote_type(
         typeof(C₁₁₁₁), typeof(C₁₁₂₂), typeof(C₁₁₃₃),
         typeof(C₃₃₃₃), typeof(C₂₃₂₃)
@@ -453,12 +443,12 @@ function tens_TI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C�
 end
 
 """
-    arg_TI(t::TensTI{4}) → (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
+    ti_args(t::TensTI{4}) → (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
 
 Extract the 5 independent TI components from a Walpole tensor,
 directly from the stored coefficients (no array materialization).
 
-Inverse of [`tens_TI`](@ref):
+Inverse of [`tens_ti`](@ref):
 - `C₃₃₃₃ = ℓ₁`
 - `C₁₁₁₁ = (ℓ₂ + ℓ₅)/2`
 - `C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`
@@ -471,21 +461,21 @@ these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
 numbers. Otherwise it is refused, rather than read as if `ℓ₄`, `ℓ₇` and `ℓ₈` were
 not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant.
 
-See also [`arg_TI_eng`](@ref).
+See also [`ti_args_eng`](@ref).
 """
-function arg_TI(t::TensTI{4})
+function ti_args(t::TensTI{4})
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = get_ℓ8(t)
     _major_symmetric_ti(ℓ₃ - ℓ₄, ℓ₇, ℓ₈, max(abs(ℓ₁), abs(ℓ₂), abs(ℓ₃), abs(ℓ₅), abs(ℓ₆))) || throw(
         ArgumentError(
-            "arg_TI: the tensor is not major-symmetric (ℓ₃ ≠ ℓ₄, or ℓ₇, ℓ₈ ≠ 0), so it has " *
+            "ti_args: the tensor is not major-symmetric (ℓ₃ ≠ ℓ₄, or ℓ₇, ℓ₈ ≠ 0), so it has " *
                 "no five TI constants; take `Tensors.majorsymmetric(t)` first if its " *
                 "symmetric part is meant"
         )
     )
-    return arg_TI(TensTI{4, eltype(t), 5}((ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆), axis(t)))
+    return ti_args(TensTI{4, eltype(t), 5}((ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆), axis(t)))
 end
 
-function arg_TI(t::TensTI{4, T, 5}) where {T}
+function ti_args(t::TensTI{4, T, 5}) where {T}
     ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(t)
     sq2 = sqrt(T(2))
     C₃₃₃₃ = ℓ₁
@@ -505,7 +495,7 @@ _major_symmetric_ti(::Val{false}, d, ℓ₇, ℓ₈, s) =
     all(x -> isequal(tsimplify(x), zero(x)), (d, ℓ₇, ℓ₈))
 
 """
-    tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n) → TensTI{4, T, 5}
+    tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n) → TensTI{4, T, 5}
 
 Construct the TI **compliance** tensor from 5 engineering constants
 and symmetry axis `n`.
@@ -516,28 +506,28 @@ and symmetry axis `n`.
 - `ν₃₁`: axial-transverse Poisson's ratio  (`ν₃₁/E₃ = ν₁₃/E₁`)
 - `G₃₁`: axial shear modulus
 
-To obtain the stiffness tensor, invert the result: `inv(tens_TI_eng(…))`.
+To obtain the stiffness tensor, invert the result: `inv(tens_ti_eng(…))`.
 
-See also [`arg_TI_eng`](@ref), [`tens_TI`](@ref).
+See also [`ti_args_eng`](@ref), [`tens_ti`](@ref).
 """
-function tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n)
+function tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n)
     S₁₁₁₁ = inv(E₁)
     S₃₃₃₃ = inv(E₃)
     S₁₁₂₂ = -ν₁₂ / E₁
     S₁₁₃₃ = -ν₃₁ / E₃
     S₂₃₂₃ = inv(4 * G₃₁)
-    return tens_TI(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃, n)
+    return tens_ti(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃, n)
 end
 
 """
-    arg_TI_eng(𝕊::TensTI{4}) → (E₁, E₃, ν₁₂, ν₃₁, G₃₁)
+    ti_args_eng(𝕊::TensTI{4}) → (E₁, E₃, ν₁₂, ν₃₁, G₃₁)
 
 Extract engineering constants from a TI **compliance** tensor.
 
-See also [`tens_TI_eng`](@ref), [`arg_TI`](@ref).
+See also [`tens_ti_eng`](@ref), [`ti_args`](@ref).
 """
-function arg_TI_eng(𝕊::TensTI{4})
-    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = arg_TI(𝕊)
+function ti_args_eng(𝕊::TensTI{4})
+    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = ti_args(𝕊)
     E₁ = inv(S₁₁₁₁)
     E₃ = inv(S₃₃₃₃)
     ν₁₂ = -E₁ * S₁₁₂₂
@@ -547,7 +537,7 @@ function arg_TI_eng(𝕊::TensTI{4})
 end
 
 """
-    tens_TI_Hoenig(E, ν₁, ν₂, H, Γ, n) → TensTI{4, T, 5}
+    tens_ti_hoenig(E, ν₁, ν₂, H, Γ, n) → TensTI{4, T, 5}
 
 Construct the TI **compliance** tensor from 5 Hoenig parameters
 (Hoenig, 1978) and symmetry axis `n`.
@@ -565,28 +555,28 @@ Compliance components:
 - `S₃₃₃₃ = 1/(E H)`
 - `S₂₃₂₃ = (1+ν₁)/(2 E Γ)`
 
-To obtain the stiffness tensor, invert the result: `inv(tens_TI_Hoenig(…))`.
+To obtain the stiffness tensor, invert the result: `inv(tens_ti_hoenig(…))`.
 
-See also [`arg_TI_Hoenig`](@ref), [`tens_TI_eng`](@ref), [`tens_TI`](@ref).
+See also [`ti_args_hoenig`](@ref), [`tens_ti_eng`](@ref), [`tens_ti`](@ref).
 """
-function tens_TI_Hoenig(E, ν₁, ν₂, H, Γ, n)
+function tens_ti_hoenig(E, ν₁, ν₂, H, Γ, n)
     S₁₁₁₁ = inv(E)
     S₃₃₃₃ = inv(E * H)
     S₁₁₂₂ = -ν₁ / E
     S₁₁₃₃ = -ν₂ / E
     S₂₃₂₃ = (1 + ν₁) / (2 * E * Γ)
-    return tens_TI(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃, n)
+    return tens_ti(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃, n)
 end
 
 """
-    arg_TI_Hoenig(𝕊::TensTI{4}) → (E, ν₁, ν₂, H, Γ)
+    ti_args_hoenig(𝕊::TensTI{4}) → (E, ν₁, ν₂, H, Γ)
 
 Extract the 5 Hoenig parameters from a TI **compliance** tensor.
 
-See also [`tens_TI_Hoenig`](@ref), [`arg_TI_eng`](@ref).
+See also [`tens_ti_hoenig`](@ref), [`ti_args_eng`](@ref).
 """
-function arg_TI_Hoenig(𝕊::TensTI{4})
-    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = arg_TI(𝕊)
+function ti_args_hoenig(𝕊::TensTI{4})
+    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = ti_args(𝕊)
     E = inv(S₁₁₁₁)
     ν₁ = -E * S₁₁₂₂
     ν₂ = -E * S₁₁₃₃
@@ -595,17 +585,17 @@ function arg_TI_Hoenig(𝕊::TensTI{4})
     return (E, ν₁, ν₂, H, Γ)
 end
 
-# ── is_ISO / is_TI ─────────────────────────────────────────────────────────────
+# ── isisotropic / istransverselyisotropic ─────────────────────────────────────────────────────────────
 
 """
-    is_TI(A)
+    istransverselyisotropic(A)
 
 Return `true` if `A` is a `TensTI{4}`, indicating transverse isotropy.
 """
-is_TI(::TensTI{4}) = true
-is_TI(::Any) = false
-is_ISO(::TensTI{4}) = false
-is_ORTHO(::TensTI{4}) = false
+istransverselyisotropic(::TensTI{4}) = true
+istransverselyisotropic(::Any) = false
+isisotropic(::TensTI{4}) = false
+isorthotropic(::TensTI{4}) = false
 
 # Symbolic helpers (tsimplify, tsubs, …) defined in structured_tens_ops.jl
 
@@ -716,7 +706,7 @@ end
 
 # ── KM ───────────────────────────────────────────────────────────────────────
 
-KM(t::TensTI{2}) = tomandel(_static_tensor(t))
+mandel(t::TensTI{2}) = tomandel(_static_tensor(t))
 
 # ── Arithmetic — axis-aware ± ────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -796,9 +786,9 @@ LinearAlgebra.tr(t::TensTI{2}) = 2 * t.data[1] + t.data[2]
 # ── Symmetry ─────────────────────────────────────────────────────────────────
 
 LinearAlgebra.issymmetric(::TensTI{2}) = true
-is_ISO(t::TensTI{2}) = t.data[1] == t.data[2]
-is_TI(::TensTI) = true
-is_ORTHO(::TensTI) = false
+isisotropic(t::TensTI{2}) = t.data[1] == t.data[2]
+istransverselyisotropic(::TensTI) = true
+isorthotropic(::TensTI) = false
 
 # Symbolic helpers (tsimplify, tsubs, …) defined in structured_tens_ops.jl
 
@@ -1209,19 +1199,19 @@ Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 # ── KM in the material frame ──────────────────────────────────────────────────
 
 """
-    KM(t::TensOrtho)
+    mandel(t::TensOrtho)
 
 Returns the 6×6 Kelvin-Mandel matrix in the **canonical** frame.
-Use `KM_material(t)` for the block-diagonal form in the material frame.
+Use `mandel_material(t)` for the block-diagonal form in the material frame.
 """
-KM(t::TensOrtho{4}) = Matrix(_km_in_frame(t))
+mandel(t::TensOrtho{4}) = Matrix(_km_in_frame(t))
 
 """
-    KM_material(t::TensOrtho)
+    mandel_material(t::TensOrtho)
 
 Returns the 6×6 Kelvin-Mandel matrix in the material frame (block-diagonal).
 """
-function KM_material(t::TensOrtho{4, T}) where {T}
+function mandel_material(t::TensOrtho{4, T}) where {T}
     N = _ortho_normal_block(t)
     C44, C55, C66 = _ortho_shears(t)
     z = zero(T)
@@ -1263,14 +1253,14 @@ _ortho_general(t::TensOrtho{4, T, 9}) where {T} =
 
 # ── Kelvin-Mandel congruence of the material frame ────────────────────────────
 #
-# `KM(t)` is the Kelvin-Mandel matrix in the CANONICAL frame, `KM_material(t)`
+# `mandel(t)` is the Kelvin-Mandel matrix in the CANONICAL frame, `mandel_material(t)`
 # the block-diagonal one in the material frame.  The two are related by the
 # congruence
 #
-#     KM(t) == Q * KM_material(t) * transpose(Q)
+#     mandel(t) == Q * mandel_material(t) * transpose(Q)
 #
 # where `Q` is the 6×6 Kelvin-Mandel representation of the 4th-order rotation
-# operator `R ⊠ˢ R` (i.e. `KM(rot6(θ,ϕ,ψ))`, see `rot6`), built here directly
+# operator `R ⊠ˢ R` (i.e. `mandel(rot6(θ,ϕ,ψ))`, see `rot6`), built here directly
 # from the frame vectors so that no angles need to be recovered.  `Q` is
 # orthogonal, which is what makes Kelvin-Mandel the right normalization for
 # this: in Voigt notation the analogous matrix is not.
@@ -1334,7 +1324,7 @@ function _km_in_frame(::Val{true}, t)
     E = vecbasis(frame(t), :cov)
     T = promote_type(eltype(t), eltype(E))
     Q = _km_congruence(SMatrix{3, 3, T}(E))
-    return Q * KM_material(t) * transpose(Q)
+    return Q * mandel_material(t) * transpose(Q)
 end
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
@@ -1429,7 +1419,7 @@ Double contraction *is* the matrix product in Kelvin-Mandel, and in the shared
 material frame both operands are block-diagonal, `[3×3] ⊕ diag(2C₄₄,2C₅₅,2C₆₆)`,
 so the product is one 3×3 product plus three scalar products:
 
-    KM_material(A ⊡ B) == KM_material(A) * KM_material(B)
+    mandel_material(A ⊡ B) == mandel_material(A) * mandel_material(B)
 
 The result is orthotropic on the same frame, in the **twelve-constant** form:
 the product of two symmetric 3×3 blocks is not symmetric unless they commute,
@@ -1462,12 +1452,12 @@ end
 Tensors.isminorsymmetric(::TensOrtho{4}) = true
 Tensors.ismajorsymmetric(t::TensOrtho{4}) = issymmetric(t)
 
-# ── is_ISO / is_TI / is_ORTHO ───────────────────────────────────────────────────
+# ── isisotropic / istransverselyisotropic / isorthotropic ───────────────────────────────────────────────────
 
-is_ISO(::TensOrtho{4}) = false
-is_TI(::TensOrtho) = false
-is_ORTHO(::TensOrtho) = true
-is_ORTHO(::Any) = false   # universal fallback
+isisotropic(::TensOrtho{4}) = false
+istransverselyisotropic(::TensOrtho) = false
+isorthotropic(::TensOrtho) = true
+isorthotropic(::Any) = false   # universal fallback
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Unified symmetry accessors
@@ -1488,12 +1478,12 @@ symmetry.  For value-level detection use `best_sym_tens(t)`.
 julia> symmetry(TensISO{3}(2.0, 3.0))
 :ISO
 
-julia> symmetry(tens_TI(10., 3., 2.5, 12., 2., [0., 0., 1.]))
+julia> symmetry(tens_ti(10., 3., 2.5, 12., 2., [0., 0., 1.]))
 :TI
 ```
 
-See also [`reference`](@ref), [`is_ISO`](@ref), [`is_TI`](@ref),
-[`is_ORTHO`](@ref), [`best_sym_tens`](@ref).
+See also [`reference`](@ref), [`isisotropic`](@ref), [`istransverselyisotropic`](@ref),
+[`isorthotropic`](@ref), [`best_sym_tens`](@ref).
 """
 symmetry(::TensISO) = :ISO
 symmetry(::TensTI) = :TI
@@ -1510,7 +1500,7 @@ tensor without a structured reference.
 
 # Examples
 ```julia
-julia> reference(tens_TI(10., 3., 2.5, 12., 2., [0., 0., 1.]))
+julia> reference(tens_ti(10., 3., 2.5, 12., 2., [0., 0., 1.]))
 (0.0, 0.0, 1.0)
 
 julia> reference(TensISO{3}(2.0, 3.0)) === nothing
@@ -1580,7 +1570,7 @@ The 3×3 component array in the canonical frame, `Σₘ aₘ eₘ⊗eₘ`.
 """
 get_array(t::TensOrtho{2}) = Array(_static_tensor(t))
 
-KM(t::TensOrtho{2}) = tomandel(_static_tensor(t))
+mandel(t::TensOrtho{2}) = tomandel(_static_tensor(t))
 
 # The same tensor on another frame (geometry only): what the projections rotate.
 _rebuild_frame(t::TensOrtho{order}, frame::OrthonormalBasis{3}) where {order} =
@@ -1602,7 +1592,7 @@ LinearAlgebra.tr(t::TensOrtho{2}) = sum(get_data(t))
 
 LinearAlgebra.issymmetric(::TensOrtho{2}) = true
 @inline Base.transpose(A::TensOrtho{2}) = A
-is_ISO(t::TensOrtho{2}) = ((a1, a2, a3) = get_data(t); a1 == a2 && a2 == a3)
+isisotropic(t::TensOrtho{2}) = ((a1, a2, a3) = get_data(t); a1 == a2 && a2 == a3)
 
 # The components in an orthonormal basis ℬ in closed form: the same
 # coefficients with the frame written in ℬ, as for the order-4 tensor.
@@ -1992,10 +1982,10 @@ for OP in (:+, :-)
     @eval Base.$OP(A::TensTI{2, <:Any, 2}, B::TensTI{2, <:Any, 3}) =
         $OP(_lift_ti2_N3(A), B)
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 8})
-        return _coaxial_binary($OP, _lift_walpole_N8(fromISO(A, axis(B))), B)
+        return _coaxial_binary($OP, _lift_walpole_N8(iso_to_ti(A, axis(B))), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 8}, B::TensISO{4, 3})
-        return _coaxial_binary($OP, A, _lift_walpole_N8(fromISO(B, axis(A))))
+        return _coaxial_binary($OP, A, _lift_walpole_N8(iso_to_ti(B, axis(A))))
     end
     @eval function Base.$OP(A::TensISO{2, 3}, B::TensTI{2, <:Any, 3})
         λ = get_data(A)[1]
@@ -2049,9 +2039,9 @@ Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 3}) =
 Tensors.dcontract(A::TensTI{2, <:Any, 3}, B::TensTI{4}) =
     Tensors.dcontract(TensTI{2}(A.data[1], A.data[2], axis(A)), B)
 
-# ── is_ISO for the new shapes ────────────────────────────────────────────────
+# ── isisotropic for the new shapes ────────────────────────────────────────────────
 
-is_ISO(t::TensTI{2, <:Any, 3}) = t.data[1] == t.data[2] && iszero(t.data[3])
+isisotropic(t::TensTI{2, <:Any, 3}) = t.data[1] == t.data[2] && iszero(t.data[3])
 
 # ── Display ──────────────────────────────────────────────────────────────────
 
@@ -2091,8 +2081,8 @@ end
 
 export TensTI, TensOrtho
 export tens_W1, tens_W2, tens_W3, tens_W4, tens_W5, tens_W6, tens_W7, tens_W8
-export Walpole, walpole_basis, walpole_basis_sym
+export walpole_basis, walpole_basis_sym
 export get_ℓ, get_ℓ8, axis, frame, reference, symmetry
-export fromISO, is_TI, is_ORTHO
-export tens_TI, arg_TI, tens_TI_eng, arg_TI_eng, tens_TI_Hoenig, arg_TI_Hoenig
-export KM_material
+export iso_to_ti, istransverselyisotropic, isorthotropic
+export tens_ti, ti_args, tens_ti_eng, ti_args_eng, tens_ti_hoenig, ti_args_hoenig
+export mandel_material

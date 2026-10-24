@@ -38,6 +38,24 @@ frame (the counterpart of `TensTI{2, T, 2}`). Products stay in the class.
   `TensOrtho{2}` instead of a `Matrix`, as the TI projection returns a
   `TensTI{2}`; `get_array` of it is the former matrix.
 
+- Functions are named as Julia names them, lowercase, a proper name included
+  (as `cholesky` in LinearAlgebra); types keep their capitals. `KM` → `mandel`,
+  `inv_KM` → `from_mandel`, and the whole `KM_*`/`*_from_KM`/`km_*` family →
+  `mandel_*`/`*_from_mandel` (the constants `KM_IP`, `KM_OP` → `MANDEL_IP`,
+  `MANDEL_OP`); `is_ISO`, `is_TI`, `is_ORTHO`, `is_CUBIC` → `isisotropic`,
+  `istransverselyisotropic`, `isorthotropic`, `iscubic`; `tens_TI*` → `tens_ti*`,
+  `arg_TI*` → `ti_args*`, `fromISO` → `iso_to_ti`; `ISO` → `iso_projectors`,
+  `Walpole` → `walpole_basis`; `LeviCivita` → `levi_civita`; `Christoffel` →
+  `christoffel`, `Lame` → `lame_coefficients`, `getOM` → `position_vector`;
+  `GRAD`, `SYMGRAD`, `DIV`, `LAPLACE`, `HESS` → `grad`, `symgrad`, `divergence`,
+  `laplacian`, `hess`. The former names still work with a deprecation warning
+  naming their successor, and will be removed in a later minor release (the
+  table is in the API overview). `divergence` is Tensors.jl's function, extended:
+  `using TensND, Tensors` leaves one `divergence`. The Hessian is `hess`, since
+  SymPy exports a `hessian` of its own. `E_nu`, `k_mu`, `mu_nu` and
+  `iso_stiffness_E_nu` are now aliases of `young_poisson`, `bulk_shear`,
+  `shear_poisson` and `iso_stiffness_young_poisson`, without a warning.
+
 ### Added
 
 - `TensOrtho{4, T, 12}`: `TensOrtho{4}(C₁₁, …, C₆₆, C₂₁, C₃₁, C₃₂, frame)` or

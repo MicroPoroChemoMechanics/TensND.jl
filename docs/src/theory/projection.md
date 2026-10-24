@@ -265,8 +265,8 @@ of the units of the moduli. Two modes:
 | `false` (default) | taken from the tensor if it is a structured container, otherwise from the Kelvin–Mandel eigenstructure |
 | `true` | found by the search above |
 
-The value-level predicates [`is_ISO`](@ref), [`is_TI`](@ref), [`is_ORTHO`](@ref),
-[`is_CUBIC`](@ref)
+The value-level predicates [`isisotropic`](@ref), [`istransverselyisotropic`](@ref), [`isorthotropic`](@ref),
+[`iscubic`](@ref)
 are the same computation with a boolean answer.
 
 ## Projection is not averaging

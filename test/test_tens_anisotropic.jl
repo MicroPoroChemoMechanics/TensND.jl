@@ -9,7 +9,7 @@ const _WO_ATOL = 1.0e-12
 
 # ═══════════════════════════════════════════════════════════════════════════
 @testsection "Walpole & Ortho tensors: TensTI{4} — construction & traits" begin
-    W1, W2, W3, W4, W5, W6 = Walpole(_WO_N3)
+    W1, W2, W3, W4, W5, W6 = walpole_basis(_WO_N3)
     @test W1 isa TensTI{4, Float64, 6}
     @test W2 isa TensTI{4, Float64, 6}
     @test size(W1) == (3, 3, 3, 3)
@@ -17,7 +17,7 @@ const _WO_ATOL = 1.0e-12
     @test get_var(W1) == (:cont, :cont, :cont, :cont)
 
     # N=5 (symmetric) basis
-    W1s, W2s, W3s, W4s, W5s = Walpole(_WO_N3; sym = true)
+    W1s, W2s, W3s, W4s, W5s = walpole_basis_sym(_WO_N3)
     @test W1s isa TensTI{4, Float64, 5}
     @test size(W1s) == (3, 3, 3, 3)
 
@@ -31,7 +31,7 @@ end
 
 # ═══════════════════════════════════════════════════════════════════════════
 @testsection "Walpole & Ortho tensors: TensTI{4} — get_array & KM (n=e₃, Float64)" begin
-    W1, W2, W3, W4, W5, W6 = Walpole(_WO_N3)
+    W1, W2, W3, W4, W5, W6 = walpole_basis(_WO_N3)
     sq2 = sqrt(2.0)
 
     # W₁ = nₙ⊗nₙ  →  only entry [3,3,3,3] = 1
@@ -77,7 +77,7 @@ end
 
     # KM structure for n=e₃: blocks should separate
     L = TensTI{4}(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, _WO_N3)
-    Km = KM(L)
+    Km = mandel(L)
     @test size(Km) == (6, 6)
     # Off-diagonal shear coupling should be zero for axis n=e₃
     @test abs(Km[1, 4]) < _WO_ATOL
@@ -87,7 +87,7 @@ end
 
 # ═══════════════════════════════════════════════════════════════════════════
 @testsection "Walpole & Ortho tensors: TensTI{4} — Walpole product rule (Float64)" begin
-    W1, W2, W3, W4, W5, W6 = Walpole(_WO_N3)
+    W1, W2, W3, W4, W5, W6 = walpole_basis(_WO_N3)
 
     # Idempotents: W₁⊡W₁=W₁, W₂⊡W₂=W₂, W₅⊡W₅=W₅, W₆⊡W₆=W₆
     @test opequal(get_array(W1 ⊡ W1), get_array(W1))
@@ -136,19 +136,19 @@ end
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: TensTI{4} — fromISO" begin
-    𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
+@testsection "Walpole & Ortho tensors: TensTI{4} — iso_to_ti" begin
+    𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
     α, β = 3.0, 2.0
     ℂiso = α * 𝕁 + β * 𝕂
 
-    # For any axis, fromISO should give the same array as the isotropic tensor
+    # For any axis, iso_to_ti should give the same array as the isotropic tensor
     for n in (
             [0.0, 0.0, 1.0], [1.0, 0.0, 0.0],
             [1.0 / sqrt(3), 1.0 / sqrt(3), 1.0 / sqrt(3)],
         )
-        Wiso = fromISO(ℂiso, n)
+        Wiso = iso_to_ti(ℂiso, n)
         @test Wiso isa TensTI{4, Float64, 5}
-        @test is_TI(Wiso)
+        @test istransverselyisotropic(Wiso)
         @test opequal(get_array(Wiso), get_array(ℂiso))
     end
 
@@ -156,32 +156,32 @@ end
     αs, βs = symbols("α β", real = true)
     𝕁s, 𝕂s = tens_J4(Val(3), Val(Sym)), tens_K4(Val(3), Val(Sym))
     ℂisos = αs * 𝕁s + βs * 𝕂s
-    Wisos = fromISO(ℂisos, _WO_N3S)
+    Wisos = iso_to_ti(ℂisos, _WO_N3S)
     @test Wisos isa TensTI{4, <:Any, 5}
     @test all(==(0), simplify.(get_array(Wisos) .- get_array(ℂisos)))
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: TensTI{4} — is_ISO / is_TI / is_ORTHO" begin
+@testsection "Walpole & Ortho tensors: TensTI{4} — isisotropic / istransverselyisotropic / isorthotropic" begin
     W = tens_W1(_WO_N3)
-    @test !is_ISO(W)
-    @test  is_TI(W)
-    @test !is_ORTHO(W)
-    𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
-    @test !is_TI(𝕁)
-    @test !is_ORTHO(𝕁)
+    @test !isisotropic(W)
+    @test  istransverselyisotropic(W)
+    @test !isorthotropic(W)
+    𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
+    @test !istransverselyisotropic(𝕁)
+    @test !isorthotropic(𝕁)
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: TensOrtho — is_ISO / is_TI / is_ORTHO" begin
+@testsection "Walpole & Ortho tensors: TensOrtho — isisotropic / istransverselyisotropic / isorthotropic" begin
     frame3 = CanonicalBasis{3, Float64}()
     t = TensOrtho(10.0, 8.0, 9.0, 3.0, 2.0, 4.0, 2.5, 3.0, 1.5, frame3)
-    @test !is_ISO(t)
-    @test !is_TI(t)
-    @test  is_ORTHO(t)
+    @test !isisotropic(t)
+    @test !istransverselyisotropic(t)
+    @test  isorthotropic(t)
     # universal fallback
-    @test !is_ORTHO(42)
-    @test !is_ORTHO("string")
+    @test !isorthotropic(42)
+    @test !isorthotropic("string")
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -232,7 +232,7 @@ end
 
 # ═══════════════════════════════════════════════════════════════════════════
 @testsection "Walpole & Ortho tensors: TensTI{4} — arithmetic" begin
-    W1, W2, W3, W4, W5, W6 = Walpole(_WO_N3)
+    W1, W2, W3, W4, W5, W6 = walpole_basis(_WO_N3)
     L = TensTI{4}(1.0, 2.0, 0.5, 0.5, 3.0, 4.0, _WO_N3)   # N=6
     M = TensTI{4}(0.5, 1.0, 0.25, 0.25, 1.5, 2.0, _WO_N3)
 
@@ -275,13 +275,13 @@ end
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: TensOrtho — KM_material (canonical frame)" begin
+@testsection "Walpole & Ortho tensors: TensOrtho — mandel_material (canonical frame)" begin
     frame3 = CanonicalBasis{3, Float64}()
     C11, C22, C33 = 10.0, 8.0, 12.0
     C12, C13, C23 = 3.0, 4.0, 2.5
     C44, C55, C66 = 2.0, 3.0, 1.5
     t = TensOrtho(C11, C22, C33, C12, C13, C23, C44, C55, C66, frame3)
-    Km = KM_material(t)
+    Km = mandel_material(t)
     @test size(Km) == (6, 6)
     # Diagonal blocks
     @test Km[1, 1] ≈ C11  atol = _WO_ATOL
@@ -304,7 +304,7 @@ end
     # Symmetry
     @test Km ≈ Km'  atol = _WO_ATOL
     # KM in canonical frame should match
-    Km2 = KM(t)
+    Km2 = mandel(t)
     @test Km2 ≈ Km  atol = _WO_ATOL
 end
 
@@ -315,7 +315,7 @@ end
     C12, C13, C23 = 3.0, 4.0, 2.5
     C44, C55, C66 = 2.0, 3.0, 1.5
     t1 = TensOrtho(C11, C22, C33, C12, C13, C23, C44, C55, C66, frame3)
-    Km = KM_material(t1)
+    Km = mandel_material(t1)
     t2 = TensOrtho(Km, frame3)
     @test opequal(get_array(t1), get_array(t2))
 end
@@ -346,8 +346,8 @@ end
     C12, C13, C23 = 3.0, 3.0, 3.0
     C44, C55, C66 = 2.0, 2.0, 2.0
     t = TensOrtho(C11, C22, C33, C12, C13, C23, C44, C55, C66, frame_rot)
-    # KM_material should still have block-diagonal structure
-    Km = KM_material(t)
+    # mandel_material should still have block-diagonal structure
+    Km = mandel_material(t)
     @test Km[1, 4] ≈ 0.0  atol = _WO_ATOL
     @test Km[4, 5] ≈ 0.0  atol = _WO_ATOL
     @test Km[5, 6] ≈ 0.0  atol = _WO_ATOL
@@ -381,7 +381,7 @@ end
 
 # ═══════════════════════════════════════════════════════════════════════════
 @testsection "Walpole & Ortho tensors: TensTI{4} — dcontract with TensISO" begin
-    𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
+    𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
     α, β = 3.0, 2.0
     ℂiso = α * 𝕁 + β * 𝕂
     L = TensTI{4}(2.0, 3.0, 1.0, 4.0, 5.0, _WO_N3)   # N=5
@@ -395,12 +395,12 @@ end
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: tens_TI & arg_TI — numeric round-trip" begin
+@testsection "Walpole & Ortho tensors: tens_ti & ti_args — numeric round-trip" begin
     C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃ = 10.0, 3.0, 2.5, 12.0, 2.0
-    ℂ = tens_TI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, _WO_N3)
+    ℂ = tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, _WO_N3)
     @test ℂ isa TensTI{4, Float64, 5}
 
-    c₁₁₁₁, c₁₁₂₂, c₁₁₃₃, c₃₃₃₃, c₂₃₂₃ = arg_TI(ℂ)
+    c₁₁₁₁, c₁₁₂₂, c₁₁₃₃, c₃₃₃₃, c₂₃₂₃ = ti_args(ℂ)
     @test c₁₁₁₁ ≈ C₁₁₁₁  atol = _WO_ATOL
     @test c₁₁₂₂ ≈ C₁₁₂₂  atol = _WO_ATOL
     @test c₁₁₃₃ ≈ C₁₁₃₃  atol = _WO_ATOL
@@ -409,7 +409,7 @@ end
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: tens_TI — consistency with TensOrtho" begin
+@testsection "Walpole & Ortho tensors: tens_ti — consistency with TensOrtho" begin
     frame3 = CanonicalBasis{3, Float64}()
     C₁₁₁₁ = 10.0; C₃₃₃₃ = 12.0; C₁₁₂₂ = 3.0; C₁₁₃₃ = 2.5; C₂₃₂₃ = 2.0
     C₆₆ = (C₁₁₁₁ - C₁₁₂₂) / 2
@@ -417,17 +417,17 @@ end
         C₁₁₁₁, C₁₁₁₁, C₃₃₃₃, C₁₁₂₂, C₁₁₃₃, C₁₁₃₃,
         C₂₃₂₃, C₂₃₂₃, C₆₆, frame3
     )
-    tw = tens_TI(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, _WO_N3)
+    tw = tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, _WO_N3)
     @test opequal(get_array(to), get_array(tw))
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: tens_TI_eng & arg_TI_eng — numeric round-trip" begin
+@testsection "Walpole & Ortho tensors: tens_ti_eng & ti_args_eng — numeric round-trip" begin
     E₁, E₃, ν₁₂, ν₃₁, G₃₁ = 100.0, 200.0, 0.25, 0.15, 40.0
-    𝕊 = tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, _WO_N3)
+    𝕊 = tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, _WO_N3)
     @test 𝕊 isa TensTI{4, Float64, 5}
 
-    e₁, e₃, n₁₂, n₃₁, g₃₁ = arg_TI_eng(𝕊)
+    e₁, e₃, n₁₂, n₃₁, g₃₁ = ti_args_eng(𝕊)
     @test e₁ ≈ E₁   atol = _WO_ATOL
     @test e₃ ≈ E₃   atol = _WO_ATOL
     @test n₁₂ ≈ ν₁₂  atol = _WO_ATOL
@@ -436,11 +436,11 @@ end
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: tens_TI_eng — compliance components check" begin
+@testsection "Walpole & Ortho tensors: tens_ti_eng — compliance components check" begin
     E₁, E₃, ν₁₂, ν₃₁, G₃₁ = 100.0, 200.0, 0.25, 0.15, 40.0
-    𝕊 = tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, _WO_N3)
+    𝕊 = tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, _WO_N3)
 
-    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = arg_TI(𝕊)
+    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = ti_args(𝕊)
     @test S₁₁₁₁ ≈ 1 / E₁          atol = _WO_ATOL
     @test S₃₃₃₃ ≈ 1 / E₃          atol = _WO_ATOL
     @test S₁₁₂₂ ≈ -ν₁₂ / E₁      atol = _WO_ATOL
@@ -455,11 +455,11 @@ end
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: tens_TI & arg_TI — symbolic round-trip" begin
+@testsection "Walpole & Ortho tensors: tens_ti & ti_args — symbolic round-trip" begin
     C₁, C₂, C₃, C₄, C₅ = symbols("C₁₁₁₁ C₁₁₂₂ C₁₁₃₃ C₃₃₃₃ C₂₃₂₃", real = true)
-    ℂ = tens_TI(C₁, C₂, C₃, C₄, C₅, _WO_N3S)
+    ℂ = tens_ti(C₁, C₂, C₃, C₄, C₅, _WO_N3S)
     @test ℂ isa TensTI{4, <:Any, 5}
-    c₁, c₂, c₃, c₄, c₅ = arg_TI(ℂ)
+    c₁, c₂, c₃, c₄, c₅ = ti_args(ℂ)
     @test simplify(c₁ - C₁) == 0
     @test simplify(c₂ - C₂) == 0
     @test simplify(c₃ - C₃) == 0
@@ -468,12 +468,12 @@ end
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: tens_TI_Hoenig & arg_TI_Hoenig — numeric round-trip" begin
+@testsection "Walpole & Ortho tensors: tens_ti_hoenig & ti_args_hoenig — numeric round-trip" begin
     E, ν₁, ν₂, H, Γ = 100.0, 0.25, 0.15, 2.0, 3.0
-    𝕊 = tens_TI_Hoenig(E, ν₁, ν₂, H, Γ, _WO_N3)
+    𝕊 = tens_ti_hoenig(E, ν₁, ν₂, H, Γ, _WO_N3)
     @test 𝕊 isa TensTI{4, Float64, 5}
 
-    e, n1, n2, h, g = arg_TI_Hoenig(𝕊)
+    e, n1, n2, h, g = ti_args_hoenig(𝕊)
     @test e ≈ E   atol = _WO_ATOL
     @test n1 ≈ ν₁  atol = _WO_ATOL
     @test n2 ≈ ν₂  atol = _WO_ATOL
@@ -482,9 +482,9 @@ end
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: tens_TI_Hoenig — consistency with tens_TI_eng" begin
+@testsection "Walpole & Ortho tensors: tens_ti_hoenig — consistency with tens_ti_eng" begin
     E, ν₁, ν₂, H, Γ = 100.0, 0.25, 0.15, 2.0, 3.0
-    𝕊h = tens_TI_Hoenig(E, ν₁, ν₂, H, Γ, _WO_N3)
+    𝕊h = tens_ti_hoenig(E, ν₁, ν₂, H, Γ, _WO_N3)
 
     # Convert Hoenig → standard engineering constants
     E₁ = E
@@ -492,16 +492,16 @@ end
     ν₁₂ = ν₁
     ν₃₁ = H * ν₂
     G₃₁ = E * Γ / (2 * (1 + ν₁))
-    𝕊e = tens_TI_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, _WO_N3)
+    𝕊e = tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, _WO_N3)
 
     @test opequal(get_array(𝕊h), get_array(𝕊e))
 end
 
 # ═══════════════════════════════════════════════════════════════════════════
-@testsection "Walpole & Ortho tensors: tens_TI_Hoenig — isotropic limit" begin
+@testsection "Walpole & Ortho tensors: tens_ti_hoenig — isotropic limit" begin
     # Setting ν₁=ν₂=ν, H=Γ=1 should give the isotropic compliance tensor
     E, ν = 100.0, 0.3
-    𝕊 = tens_TI_Hoenig(E, ν, ν, 1.0, 1.0, _WO_N3)
+    𝕊 = tens_ti_hoenig(E, ν, ν, 1.0, 1.0, _WO_N3)
     k = E / (3 * (1 - 2ν))
     μ = E / (2 * (1 + ν))
     𝕁, 𝕂 = tens_J4(Val(3), Val(Float64)), tens_K4(Val(3), Val(Float64))
@@ -592,7 +592,7 @@ end
     n = (0.0, 0.0, 1.0)
 
     I4 = TensISO{3}(2.0, 3.0)   # α=2, β=3
-    W = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n)                 # TensTI{4, T, 5}
+    W = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)                 # TensTI{4, T, 5}
     O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame)
 
     # ── + / − between ISO and Ortho ────────────────────────────────────
@@ -613,11 +613,11 @@ end
 
     # Reference mismatch → ArgumentError
     n_mis = (1.0, 1.0, 1.0) ./ sqrt(3.0)
-    Wmis = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_mis)
+    Wmis = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_mis)
     @test_throws ArgumentError Wmis + O
 
     # ── TensTI{4} N=5 + N=6 (same axis) → N=6 ─────────────────────────
-    W5 = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n)          # N=5
+    W5 = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)          # N=5
     W6 = TensTI{4}(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, n)  # N=6
     @test (W5 + W6) isa TensTI{4, Float64, 6}
     @test (W6 - W5) isa TensTI{4, Float64, 6}
@@ -635,7 +635,7 @@ end
 @testsection "Walpole & Ortho tensors: Cross-type dispatch — cross-order double contraction" begin
     n = (0.0, 0.0, 1.0)
     I4 = TensISO{3}(2.0, 3.0)
-    W = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n)
+    W = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)
     T2 = TensTI{2}(4.0, 7.0, n)
 
     # ── TensISO{4} ⊡ TensTI{2} / reverse ─────────────────────────────────
@@ -658,7 +658,7 @@ end
 
     # Axis mismatch → generic fallback (no assertion), values exact
     n2 = (1.0, 0.0, 0.0)
-    Wm = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n2)
+    Wm = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n2)
     T2m = TensTI{2}(4.0, 7.0, n)
     Rm = Wm ⊡ T2m
     @test !(Rm isa TensTI)
@@ -690,7 +690,7 @@ end
     Id4 = tens_Id4(Val(3), Val(Float64))
 
     # TensTI{4}
-    W = tens_TI(100.0, 30.0, 25.0, 120.0, 20.0, n)
+    W = tens_ti(100.0, 30.0, 25.0, 120.0, 20.0, n)
     @test opequal(get_array(inv(W) ⊡ W), get_array(Id4))
 
     # TensOrtho
@@ -714,7 +714,7 @@ end
 
     # ── walpole_to_ortho (aligned axis)
     n = (0.0, 0.0, 1.0)
-    W = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n)
+    W = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)
     k = TensND._axis_on_frame_index(n, frame)
     @test k == 3
     O_from_w = walpole_to_ortho(W, frame, k)
@@ -723,13 +723,13 @@ end
 
     # Axis along e₁
     n1 = (1.0, 0.0, 0.0)
-    W1 = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n1)
+    W1 = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n1)
     O_from_w1 = walpole_to_ortho(W1, frame, 1)
     @test opequal(get_array(W1), get_array(O_from_w1))
 
     # Axis along e₂, and an index that names no axis of the frame
     n2 = (0.0, 1.0, 0.0)
-    W2 = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n2)
+    W2 = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n2)
     @test opequal(get_array(W2), get_array(walpole_to_ortho(W2, frame, 2)))
     @test_throws ErrorException walpole_to_ortho(W2, frame, 4)
 
@@ -746,8 +746,8 @@ end
     nax = (0.6, 0.0, 0.8)   # unit, non-canonical axis
 
     # Mandel patterns of the antisymmetric generators (axis = e₃)
-    M7 = KM(tens_W7(ez))
-    M8 = KM(tens_W8(ez))
+    M7 = mandel(tens_W7(ez))
+    M8 = mandel(tens_W8(ez))
     s2 = 1 / sqrt(2.0)
     @test M7[4, 5] ≈ -1.0 atol = _WO_ATOL
     @test M7[5, 4] ≈ 1.0 atol = _WO_ATOL
@@ -776,7 +776,7 @@ end
     Ca = Tensor{4, 3}(get_array(A8)) ⊡ Tensor{4, 3}(get_array(B8))
     @test maximum(abs, get_array(C8) .- Array(Ca)) < 1.0e-12
     Id = A8 ⊡ inv(A8)
-    @test maximum(abs, KM(Id) .- I(6)) < 1.0e-12
+    @test maximum(abs, mandel(Id) .- I(6)) < 1.0e-12
 
     # minor symmetry of the array is exact (6×6 Mandel route preserved)
     @test Tensors.issymmetric(Tensor{4, 3}(get_array(A8)))
@@ -917,15 +917,15 @@ end
 
     # Closed-form inv (3×3 block adjugate + shear reciprocals) must match
     # the dense 6×6 Kelvin-Mandel inverse to machine precision.
-    Km = TensND.KM_material(O)
+    Km = TensND.mandel_material(O)
     Km_inv_dense = inv(Km)
-    Km_inv_closed = TensND.KM_material(inv(O))
+    Km_inv_closed = TensND.mandel_material(inv(O))
     @test maximum(abs.(Km_inv_closed .- Km_inv_dense)) < 1.0e-10
     @test maximum(abs.(Km * Km_inv_closed - Matrix(I, 6, 6))) < 1.0e-12
 end
 
 @testsection "Walpole & Ortho tensors: TensOrtho — Kelvin-Mandel congruence of the material frame" begin
-    # `KM(t)` is the canonical-frame matrix, `KM_material(t)` the
+    # `mandel(t)` is the canonical-frame matrix, `mandel_material(t)` the
     # block-diagonal one in the material frame.  The closed-form
     # `dcontract` rests entirely on the congruence relating them, so pin it
     # explicitly — and on a ROTATED frame, since in the canonical frame
@@ -936,7 +936,7 @@ end
         E = TensND.vecbasis(TensND.frame(O), :cov)
         Q = TensND._km_congruence(E)
         @test maximum(abs, Q * transpose(Q) - I) < 1.0e-14      # orthogonal
-        @test maximum(abs, KM(O) - Q * TensND.KM_material(O) * transpose(Q)) < 1.0e-12
+        @test maximum(abs, mandel(O) - Q * TensND.mandel_material(O) * transpose(Q)) < 1.0e-12
     end
 end
 
@@ -1085,24 +1085,24 @@ end
     end
 end
 
-@testsection "arg_TI of the six- and eight-parameter forms" begin
+@testsection "ti_args of the six- and eight-parameter forms" begin
     n = (0.36, 0.48, 0.8)
     ℓ = (3.0, 2.0, 0.7, 4.0, 1.5)
-    five = arg_TI(TensTI{4, Float64, 5}(ℓ, n))
+    five = ti_args(TensTI{4, Float64, 5}(ℓ, n))
     # The same tensor in the longer forms: the same five constants.
-    @test arg_TI(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5), n)) == five
-    @test arg_TI(TensTI{4, Float64, 8}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5, 0.0, 0.0), n)) == five
+    @test ti_args(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5), n)) == five
+    @test ti_args(TensTI{4, Float64, 8}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5, 0.0, 0.0), n)) == five
     # Not major-symmetric: refused, not read as if ℓ₄, ℓ₇, ℓ₈ were not there.
-    @test_throws ArgumentError arg_TI(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.9, 4.0, 1.5), n))
-    @test_throws ArgumentError arg_TI(TensTI{4, Float64, 8}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5, 0.2, 0.0), n))
-    @test arg_TI(majorsymmetric(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.9, 4.0, 1.5), n)))[3] ≈ 0.8 / √2
+    @test_throws ArgumentError ti_args(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.9, 4.0, 1.5), n))
+    @test_throws ArgumentError ti_args(TensTI{4, Float64, 8}((3.0, 2.0, 0.7, 0.7, 4.0, 1.5, 0.2, 0.0), n))
+    @test ti_args(majorsymmetric(TensTI{4, Float64, 6}((3.0, 2.0, 0.7, 0.9, 4.0, 1.5), n)))[3] ≈ 0.8 / √2
     # A product of TI tensors about one axis is major-symmetric to rounding.
     A = TensTI{4, Float64, 5}(ℓ, n)
     P = A ⊡ A
-    @test collect(arg_TI(P)) ≈ collect(arg_TI(majorsymmetric(P)))
+    @test collect(ti_args(P)) ≈ collect(ti_args(majorsymmetric(P)))
     # Duals and symbols.
-    @test ForwardDiff.derivative(x -> arg_TI(TensTI{4, typeof(x), 6}((x, 2.0, 0.7, 0.7, 4.0, 1.5), n))[4], 3.0) == 1
+    @test ForwardDiff.derivative(x -> ti_args(TensTI{4, typeof(x), 6}((x, 2.0, 0.7, 0.7, 4.0, 1.5), n))[4], 3.0) == 1
     TensND.Symbolics.@variables a b
-    @test isequal(arg_TI(TensTI{4, TensND.Symbolics.Num, 6}((a, b, a, a, b, a), n))[4], a)
-    @test_throws ArgumentError arg_TI(TensTI{4, TensND.Symbolics.Num, 6}((a, b, a, b, b, a), n))
+    @test isequal(ti_args(TensTI{4, TensND.Symbolics.Num, 6}((a, b, a, a, b, a), n))[4], a)
+    @test_throws ArgumentError ti_args(TensTI{4, TensND.Symbolics.Num, 6}((a, b, a, b, b, a), n))
 end

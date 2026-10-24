@@ -164,7 +164,7 @@ Covariant derivative of `f` with respect to the `i`-th coordinate, evaluated at 
 plain `Array` of **physical (normalized-frame) components** of the tensor field.
 Returns a plain scalar or plain `Array` (suitable for further `ForwardDiff` differentiation).
 
-See also `GRAD`, `DIV`, `LAPLACE`, `HESS`, `SYMGRAD` for high-level operators that wrap
+See also `grad`, `divergence`, `laplacian`, `hess`, `symgrad` for high-level operators that wrap
 results in `AbstractTens`.
 """
 function ∂(f::Function, i::Integer, CS::CoorSystemNum{dim, T}, x₀::AbstractVector) where {dim, T}
@@ -261,12 +261,12 @@ end
 # Point-wise accessors (override AbstractCoorSystem field access)
 # ─────────────────────────────────────────────────────────────────
 
-Lame(CS::CoorSystemNum, x::AbstractVector) = CS.χ_func(x)
-Christoffel(CS::CoorSystemNum, x::AbstractVector) = CS.Γ_func(x)
+lame_coefficients(CS::CoorSystemNum, x::AbstractVector) = CS.χ_func(x)
+christoffel(CS::CoorSystemNum, x::AbstractVector) = CS.Γ_func(x)
 
 # ─────────────────────────────────────────────────────────────────
 # Internal raw operators — return plain Arrays (ForwardDiff-safe)
-# Used internally by LAPLACE and HESS to avoid creating bases with Dual numbers
+# Used internally by laplacian and hess to avoid creating bases with Dual numbers
 # ─────────────────────────────────────────────────────────────────
 
 function _grad_raw(f::Function, CS::CoorSystemNum{dim}) where {dim}
@@ -322,13 +322,13 @@ end
 # ─────────────────────────────────────────────────────────────────
 
 """
-    GRAD(f::Function, CS::CoorSystemNum) -> Function
+    grad(f::Function, CS::CoorSystemNum) -> Function
 
 Return a function `x₀ -> gradient` as an `AbstractTens` in the normalized basis at `x₀`.
 - If `f` returns a scalar, the gradient is a rank-1 `AbstractTens`.
 - If `f` returns a rank-`n` `AbstractTens` or array, the gradient is a rank-`n+1` `AbstractTens`.
 """
-function GRAD(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function grad(f::Function, CS::CoorSystemNum{dim}) where {dim}
     return function (x₀::AbstractVector)
         f_arr = _plain_field(f)
         val = f_arr(x₀)
@@ -342,12 +342,12 @@ _grad_tens(::Number, G, ℬ::AbstractBasis{dim}) where {dim} = Tens(Vec{dim}(i -
 _grad_tens(val::AbstractArray, G, ℬ) = Tens(G, ℬ, ntuple(_ -> :cont, ndims(val) + 1))
 
 """
-    SYMGRAD(f::Function, CS::CoorSystemNum) -> Function
+    symgrad(f::Function, CS::CoorSystemNum) -> Function
 
 Return a function `x₀ -> symmetric gradient` as an `AbstractTens{2}` in the normalized
 basis at `x₀`. Applies to vector-valued functions `f`.
 """
-function SYMGRAD(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function symgrad(f::Function, CS::CoorSystemNum{dim}) where {dim}
     return function (x₀::AbstractVector)
         f_arr = _plain_field(f)
         G = _grad_raw(f_arr, CS)(x₀)   # dim×dim plain matrix
@@ -358,14 +358,14 @@ function SYMGRAD(f::Function, CS::CoorSystemNum{dim}) where {dim}
 end
 
 """
-    DIV(f::Function, CS::CoorSystemNum) -> Function
+    divergence(f::Function, CS::CoorSystemNum) -> Function
 
 Return a function `x₀ -> divergence` as a scalar (if `f` is a vector field) or
 `AbstractTens` (if `f` is a tensor field of order ≥ 2).
 
 `f` may return a plain `Array` or an `AbstractTens` (components are extracted via `Array`).
 """
-function DIV(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function divergence(f::Function, CS::CoorSystemNum{dim}) where {dim}
     return function (x₀::AbstractVector)
         return _div_tens(_div_raw(f, CS)(x₀), CS, x₀)
     end
@@ -376,23 +376,23 @@ _div_tens(d::Number, CS, x₀) = d
 _div_tens(d::AbstractArray, CS, x₀) = Tens(d, normalized_basis(CS, x₀), ntuple(_ -> :cont, ndims(d)))
 
 """
-    LAPLACE(f::Function, CS::CoorSystemNum) -> Function
+    laplacian(f::Function, CS::CoorSystemNum) -> Function
 
 Return a function `x₀ -> Laplacian` (scalar). Uses the raw (plain-array) gradient and
 divergence internally, so it is fully compatible with `ForwardDiff` differentiation.
 """
-function LAPLACE(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function laplacian(f::Function, CS::CoorSystemNum{dim}) where {dim}
     f_arr = _plain_field(f)
     return x₀ -> _div_raw(_grad_raw(f_arr, CS), CS)(x₀)
 end
 
 """
-    HESS(f::Function, CS::CoorSystemNum) -> Function
+    hess(f::Function, CS::CoorSystemNum) -> Function
 
 Return a function `x₀ -> Hessian` as an `AbstractTens{2}` in the normalized basis.
 Uses the raw (plain-array) double gradient internally.
 """
-function HESS(f::Function, CS::CoorSystemNum{dim}) where {dim}
+function hess(f::Function, CS::CoorSystemNum{dim}) where {dim}
     f_arr = _plain_field(f)
     return function (x₀::AbstractVector)
         H = _grad_raw(_grad_raw(f_arr, CS), CS)(x₀)

@@ -16,7 +16,7 @@ using TensND
 CS = coorsys_spherical_num()
 x₀ = [π / 4, π / 3, 3.0]          # (θ, φ, r)
 
-LAPLACE(x -> x[3]^3, CS)(x₀)      # ∇²(r³) = 12 r
+laplacian(x -> x[3]^3, CS)(x₀)      # ∇²(r³) = 12 r
 ```
 
 ```@example csn
@@ -52,11 +52,11 @@ a = 2.0
 CS_ell = CoorSystemNum(x -> [a * cosh(x[1]) * cos(x[2]), a * sinh(x[1]) * sin(x[2])], 2)
 x_ell = [1.0, 0.8]
 
-Lame(CS_ell, x_ell), a * sqrt(sinh(x_ell[1])^2 + sin(x_ell[2])^2)
+lame_coefficients(CS_ell, x_ell), a * sqrt(sinh(x_ell[1])^2 + sin(x_ell[2])^2)
 ```
 
 ```@example csn
-LAPLACE(x -> cosh(x[1]) * cos(x[2]), CS_ell)(x_ell)   # harmonic ⟹ 0
+laplacian(x -> cosh(x[1]) * cos(x[2]), CS_ell)(x_ell)   # harmonic ⟹ 0
 ```
 
 ## Pointwise accessors
@@ -66,8 +66,8 @@ stored as closures rather than expressions:
 
 | Symbolic | Numerical |
 | :--- | :--- |
-| `Lame(CS)` | [`Lame`](@ref)`(CS, x₀)` |
-| `Christoffel(CS)` | [`Christoffel`](@ref)`(CS, x₀)` |
+| `lame_coefficients(CS)` | [`lame_coefficients`](@ref)`(CS, x₀)` |
+| `christoffel(CS)` | [`christoffel`](@ref)`(CS, x₀)` |
 | `normalized_basis(CS)` | [`normalized_basis`](@ref)`(CS, x₀)` |
 | `natural_basis(CS)` | [`natural_basis`](@ref)`(CS, x₀)` |
 | `unitvec(CS, i)` | [`unitvec`](@ref)`(CS, x₀, i)` |
@@ -77,7 +77,7 @@ The Christoffel array uses the same convention as the symbolic route,
 ``\Gamma[i,j,k]=\Gamma^k_{ij}``.
 
 ```@example csn
-round.(Christoffel(coorsys_spherical_num(), [0.7, 1.1, 2.3])[1, 1, 3], digits = 10)
+round.(christoffel(coorsys_spherical_num(), [0.7, 1.1, 2.3])[1, 1, 3], digits = 10)
 ```
 
 ## Composing with `ForwardDiff`
@@ -92,11 +92,11 @@ using TensND, ForwardDiff
 CS = coorsys_spherical_num()
 x₀ = [0.7, 1.1, 2.3]
 
-ForwardDiff.gradient(x -> LAPLACE(y -> y[3]^3, CS)(x), x₀)   # ∇(12r)
+ForwardDiff.gradient(x -> laplacian(y -> y[3]^3, CS)(x), x₀)   # ∇(12r)
 ```
 
 ```@example csn2
-ForwardDiff.derivative(α -> LAPLACE(x -> α * x[3]^2, CS)(x₀), 3.0)   # ∇²(αr²) = 6α
+ForwardDiff.derivative(α -> laplacian(x -> α * x[3]^2, CS)(x₀), 3.0)   # ∇²(αr²) = 6α
 ```
 
 This makes a sensitivity analysis of a field problem a one-liner: wrap the

@@ -14,11 +14,11 @@ Every matrix below is the Kelvin–Mandel matrix in the frame where
 
 | Constructor | Extractor | Parameters | Builds a |
 | :---------- | :-------- | :--------- | :------- |
-| [`tens_TI`](@ref) | [`arg_TI`](@ref) | ``C_{1111},C_{1122},C_{1133},C_{3333},C_{2323}`` | stiffness *or* compliance |
-| [`tens_TI_eng`](@ref) | [`arg_TI_eng`](@ref) | ``E_1,E_3,\nu_{12},\nu_{31},G_{31}`` | **compliance** |
-| [`tens_TI_Hoenig`](@ref) | [`arg_TI_Hoenig`](@ref) | ``E,\nu_1,\nu_2,H,\Gamma`` | **compliance** |
+| [`tens_ti`](@ref) | [`ti_args`](@ref) | ``C_{1111},C_{1122},C_{1133},C_{3333},C_{2323}`` | stiffness *or* compliance |
+| [`tens_ti_eng`](@ref) | [`ti_args_eng`](@ref) | ``E_1,E_3,\nu_{12},\nu_{31},G_{31}`` | **compliance** |
+| [`tens_ti_hoenig`](@ref) | [`ti_args_hoenig`](@ref) | ``E,\nu_1,\nu_2,H,\Gamma`` | **compliance** |
 
-To obtain a stiffness from either compliance form, invert: `inv(tens_TI_eng(…))`.
+To obtain a stiffness from either compliance form, invert: `inv(tens_ti_eng(…))`.
 Inversion is exact and stays in the class, by the synthetic rule of
 [The Walpole basis](@ref th-walpole).
 
@@ -66,7 +66,7 @@ C_{2323}=\tfrac{\ell_6}{2}.
 ```
 
 These are exactly `_build_TI_KM` and its inverse, exported as
-[`KM_from_ti_params`](@ref) and [`ti_params_from_KM`](@ref).
+[`mandel_from_ti_params`](@ref) and [`ti_params_from_mandel`](@ref).
 
 ## Engineering form
 
@@ -136,9 +136,9 @@ non-randomly cracked body.
 
 | Use | Form |
 | :-- | :--- |
-| a stiffness known by its components, or symbolic work | `tens_TI` |
-| material data sheets, composites | `tens_TI_eng` |
-| anisotropy ratios, crack and inclusion problems | `tens_TI_Hoenig` |
+| a stiffness known by its components, or symbolic work | `tens_ti` |
+| material data sheets, composites | `tens_ti_eng` |
+| anisotropy ratios, crack and inclusion problems | `tens_ti_hoenig` |
 
 Conversion between any two is a round trip through the tensor itself: build with
 one constructor, extract with another extractor. Since all three produce the same

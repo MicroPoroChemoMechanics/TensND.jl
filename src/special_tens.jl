@@ -1,11 +1,11 @@
 """
-    LeviCivita(T::Type{<:Number} = Sym)
+    levi_civita(T::Type{<:Number} = Sym)
 
 Builds an Array{T,3} of Levi-Civita Symbol `ϵᵢⱼₖ = (i-j) (j-k) (k-i) / 2`
 
 # Examples
 ```julia
-julia> ε = LeviCivita(Sym)
+julia> ε = levi_civita(Sym)
 3×3×3 Array{Sym, 3}:
 [:, :, 1] =
  0   0  0
@@ -23,7 +23,7 @@ julia> ε = LeviCivita(Sym)
   0  0  0
 ``` 
 """
-LeviCivita(T::Type{<:Number} = Sym) = [T(T((i - j) * (j - k) * (k - i)) / T(2)) for i in 1:3, j in 1:3, k in 1:3]
+levi_civita(T::Type{<:Number} = Sym) = [T(T((i - j) * (j - k) * (k - i)) / T(2)) for i in 1:3, j in 1:3, k in 1:3]
 
 """
     𝐞(i::Integer, dim::Int = 3, T::Type{<:Number} = Sym)
@@ -362,7 +362,7 @@ Tens.TensCanonical{4, 3, Sym, SymmetricTensor{4, 3, Sym, 36}}
  0  1  0
  0  0  1
 
-julia> R6 = inv_KM(subs.(KM(rot6(θ, ϕ, ψ)),d...))
+julia> R6 = from_mandel(subs.(mandel(rot6(θ, ϕ, ψ)),d...))
 Tens.TensCanonical{4, 3, Sym, SymmetricTensor{4, 3, Sym, 36}}
 # data: 6×6 Matrix{Sym}:
                           (cθ*cψ*cϕ - sψ*sϕ)^2                            (-cθ*cϕ*sψ - cψ*sϕ)^2           cϕ^2*sθ^2                      √2⋅cϕ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)                     √2⋅cϕ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
@@ -386,7 +386,7 @@ function rot6(θ, ϕ = 0, ψ = 0)
     return sboxtimes(R, R)
 end
 
-export LeviCivita
+export levi_civita
 export 𝐞, 𝐞ᵖ, 𝐞ᶜ, 𝐞ˢ
 export init_cartesian, init_polar, init_cylindrical, init_spherical, init_rotated
 export rot2, rot3, rot6

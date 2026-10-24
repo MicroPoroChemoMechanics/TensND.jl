@@ -19,7 +19,7 @@ iso_to_cubic
 cubic_to_ortho
 ```
 
-`best_fit_cubic`, `cubic_params_from_KM` and `KM_from_cubic_params` are the
+`best_fit_cubic`, `cubic_params_from_mandel` and `mandel_from_cubic_params` are the
 projection family and live with their siblings under
 [Projection](@ref api-projection). `isotropify` of a cubic tensor is an exact
 rotation-group average, not a fit, and is documented there too.

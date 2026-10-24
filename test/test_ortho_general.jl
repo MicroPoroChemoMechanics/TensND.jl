@@ -3,13 +3,13 @@
 # 3×3 and three shear moduli), and `TensOrtho{2, T, 3}`, diagonal in its frame;
 # with them the transpose of the TI shapes. Every operation is checked against an independent
 # reference: the material-frame Kelvin-Mandel matrix turned into components by
-# `inv_KM` and rotated to the canonical frame index by index, or the generic
+# `from_mandel` and rotated to the canonical frame index by index, or the generic
 # route on the canonical components.
 
 # The canonical components of the tensor whose material-frame Kelvin-Mandel
 # matrix is `K6`, the frame vectors being the columns of `E`.
 function _og_ref(K6, E)
-    Am = get_array(inv_KM(Matrix(K6)))
+    Am = get_array(from_mandel(Matrix(K6)))
     T = promote_type(eltype(Am), eltype(E))
     R = zeros(T, 3, 3, 3, 3)
     for i in 1:3, j in 1:3, k in 1:3, l in 1:3, a in 1:3, b in 1:3, c in 1:3, d in 1:3
@@ -37,8 +37,8 @@ _og_tens(N, s, ℬ) = TensOrtho(
             R = _og_ref(_og_km(_OG_N, _OG_S), _og_frame(ℬ))
             @test _og_rel(_og_dense(A), R) < 1.0e-14
             @test _og_rel(get_array(A), R) < 1.0e-14
-            @test TensND.KM_material(A) == _og_km(_OG_N, _OG_S)
-            @test _og_rel(KM(A), KM(TensND.generic_tens(A))) < 1.0e-14
+            @test TensND.mandel_material(A) == _og_km(_OG_N, _OG_S)
+            @test _og_rel(mandel(A), mandel(TensND.generic_tens(A))) < 1.0e-14
             # From the Kelvin-Mandel matrix: the whole block with `Val(12)`.
             @test TensOrtho(_og_km(_OG_N, _OG_S), ℬ, Val(12)) == A
             @test TensOrtho(_og_km(_OG_N, _OG_S), ℬ, Val(9)) == TensOrtho(_og_km(_OG_N, _OG_S), ℬ)
@@ -109,7 +109,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
                 @test TensND.frame(P) == ℬ
                 @test _og_rel(_og_dense(P), ref(l, r)) < 1.0e-13
             end
-            @test TensND.KM_material(A ⊡ O) ≈ TensND.KM_material(A) * TensND.KM_material(O)
+            @test TensND.mandel_material(A ⊡ O) ≈ TensND.mandel_material(A) * TensND.mandel_material(O)
             # Two symmetric blocks that do not commute: no major symmetry.
             P = O ⊡ TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ)
             p = get_array(P)
@@ -131,7 +131,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
             A = _og_tens(_OG_N, _OG_S, ℬ)
             Ai = inv(A)
             @test Ai isa TensOrtho{4, Float64, 12}
-            @test TensND.KM_material(Ai) ≈ inv(_og_km(_OG_N, _OG_S)) rtol = 1.0e-14
+            @test TensND.mandel_material(Ai) ≈ inv(_og_km(_OG_N, _OG_S)) rtol = 1.0e-14
             @test _og_dense(A ⊡ Ai) ≈ _og_dense(TensISO{3}(1.0, 1.0)) atol = 1.0e-14
             @test A^-1 == Ai
             @test (@inferred inv(A)) isa TensOrtho
@@ -209,16 +209,16 @@ _og_tens(N, s, ℬ) = TensOrtho(
         A(x) = _og_tens(_OG_N .+ x .* N1, _OG_S .+ x .* s1, ℬ)
         O = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, ℬ)
         K1 = _og_km(N1, s1)
-        KO = TensND.KM_material(O)
+        KO = TensND.mandel_material(O)
         # The product is linear in `x`: its derivative is the product of the
         # derivative, in the material frame.
-        dP = ForwardDiff.derivative(x -> Matrix(TensND.KM_material(A(x) ⊡ O)), 0.3)
+        dP = ForwardDiff.derivative(x -> Matrix(TensND.mandel_material(A(x) ⊡ O)), 0.3)
         @test dP ≈ K1 * KO rtol = 1.0e-13
         # d²(A⁻¹)/dx² = 2 A⁻¹ A' A⁻¹ A' A⁻¹, nested duals under distinct tags.
         K(x) = _og_km(_OG_N .+ x .* N1, _OG_S .+ x .* s1)
         Ki = inv(K(0.3))
         d2 = ForwardDiff.derivative(
-            y -> ForwardDiff.derivative(x -> Matrix(TensND.KM_material(inv(A(x)))), y), 0.3
+            y -> ForwardDiff.derivative(x -> Matrix(TensND.mandel_material(inv(A(x)))), y), 0.3
         )
         @test d2 ≈ 2 * Ki * K1 * Ki * K1 * Ki rtol = 1.0e-10
         @test (@inferred inv(A(ForwardDiff.Dual(0.3, 1.0)))) isa TensOrtho
@@ -272,7 +272,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
         G = get_array(TensND.generic_tens(Tens(SymmetricTensor{4, 3}((i, j, k, l) -> sin(i + 2j) * cos(3k - l) + i * j / (k + l)))))
         a4 = avg(rot4, Array(G), D2)
         @test a4 ≈ avg(rot4, Array(G), D2h)
-        Km = KM(change_tens(Tens(a4), ℬ))
+        Km = mandel(change_tens(Tens(a4), ℬ))
         @test Km[1:3, 4:6] ≈ zeros(3, 3) atol = 1.0e-13
         @test Km[4:6, 1:3] ≈ zeros(3, 3) atol = 1.0e-13
         @test Km[4:6, 4:6] ≈ Diagonal(diag(Km[4:6, 4:6])) atol = 1.0e-13
@@ -290,9 +290,9 @@ _og_tens(N, s, ℬ) = TensOrtho(
             @test A isa TensOrtho{2, Float64, 3}
             @test get_array(A) ≈ ref((3.0, 5.0, 7.0)) rtol = 1.0e-14
             @test _og_rel([A[i, j] for i in 1:3, j in 1:3], ref((3.0, 5.0, 7.0))) < 1.0e-14
-            @test KM(A) ≈ KM(TensND.generic_tens(A))
+            @test mandel(A) ≈ mandel(TensND.generic_tens(A))
             @test tr(A) == 15.0 && issymmetric(A) && transpose(A) === A && Tensors.symmetric(A) === A
-            @test !is_ISO(A) && is_ISO(TensOrtho{2}(2.0, 2.0, 2.0, ℬ)) && is_ORTHO(A) && symmetry(A) == :ORTHO
+            @test !isisotropic(A) && isisotropic(TensOrtho{2}(2.0, 2.0, 2.0, ℬ)) && isorthotropic(A) && symmetry(A) == :ORTHO
             # Algebra on a shared frame.
             @test (A + B) isa TensOrtho{2, Float64, 3} && get_array(A + B) ≈ get_array(A) + get_array(B)
             @test get_array(A - B) ≈ get_array(A) - get_array(B)

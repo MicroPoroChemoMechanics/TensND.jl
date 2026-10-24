@@ -35,7 +35,7 @@ chart. The same code runs **symbolically** (via
 - **Tensor algebra**: products (`⊗`, `⊗ˢ`, `⊠`, `⊠ˢ`, `⋅`, `⊡`, `⊙`), change of basis, variance management
 - **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI`), cubic (`TensCubic`), orthotropic (`TensOrtho`) — 2, 5, 3 and 9 stored scalars instead of 81 components, with closed-form products and inverses one to three orders of magnitude faster than the dense route
 - **Symmetry projection**: closest ISO, TI, CUBIC or ORTHO tensor, with the orientation given or searched — deterministically, with no external optimizer, and in closed form at order 2
-- **Differential operators**: `GRAD`, `SYMGRAD`, `DIV`, `LAPLACE`, `HESS` in curvilinear coordinates — symbolically (`CoorSystemSym`) or pointwise by automatic differentiation (`CoorSystemNum`), on orthogonal **and genuinely non-orthogonal** charts
+- **Differential operators**: `grad`, `symgrad`, `divergence`, `laplacian`, `hess` in curvilinear coordinates — symbolically (`CoorSystemSym`) or pointwise by automatic differentiation (`CoorSystemNum`), on orthogonal **and genuinely non-orthogonal** charts
 - **Submanifolds**: embedded hypersurfaces (`SubManifoldSym`) with their first and second fundamental forms, connection coefficients and curvatures
 - **Generic type system**: works with `Float64`, symbolic types (`Sym`, `Num`), and `ForwardDiff.Dual` for automatic differentiation
 
@@ -52,22 +52,22 @@ julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞
 
 julia> @set_coorsys Spherical
 
-julia> GRAD(𝐞ʳ) |> pprint
+julia> grad(𝐞ʳ) |> pprint
 (1/r)𝐞ᶿ⊗𝐞ᶿ + (1/r)𝐞ᵠ⊗𝐞ᵠ
 
-julia> DIV(𝐞ʳ ⊗ 𝐞ʳ) |> pprint
+julia> divergence(𝐞ʳ ⊗ 𝐞ʳ) |> pprint
 (2/r)𝐞ʳ
 
-julia> LAPLACE(1/r) |> pprint
+julia> laplacian(1/r) |> pprint
 0
 
 julia> f = SymFunction("f", real = true)
 f
 
-julia> DIV(f(r) * 𝐞ʳ ⊗ 𝐞ʳ) |> pprint
+julia> divergence(f(r) * 𝐞ʳ ⊗ 𝐞ʳ) |> pprint
 (Derivative(f(r), r) + 2*f(r)/r)𝐞ʳ
 
-julia> LAPLACE(f(r)) |> pprint
+julia> laplacian(f(r)) |> pprint
               d
  2          2⋅──(f(r))
 d             dr
@@ -80,7 +80,7 @@ julia> for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ") @eval $(Symbol(σⁱʲ
 julia> 𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ ; pprint(𝛔)
 (σᶿᶿ(r))𝐞ᶿ⊗𝐞ᶿ + (σᵠᵠ(r))𝐞ᵠ⊗𝐞ᵠ + (σʳʳ(r))𝐞ʳ⊗𝐞ʳ
 
-julia> div𝛔 = tsimplify(DIV(𝛔)) ; pprint(div𝛔)
+julia> div𝛔 = tsimplify(divergence(𝛔)) ; pprint(div𝛔)
 ((-σᵠᵠ(r) + σᶿᶿ(r))/(r*tan(θ)))𝐞ᶿ + ((r*Derivative(σʳʳ(r), r) + 2*σʳʳ(r) - σᵠᵠ(r) - σᶿᶿ(r))/r)𝐞ʳ
 ```
 

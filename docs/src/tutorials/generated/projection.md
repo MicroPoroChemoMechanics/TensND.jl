@@ -20,7 +20,7 @@ using Random
 
 Random.seed!(20260804)
 arr(x) = get_array(x)
-𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64))
+𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
 ````
 
 ## The return contract
@@ -31,7 +31,7 @@ tolerance dimensionless and independent of the units of the moduli.
 
 ````@example projection
 nv = [0.0, 0.0, 1.0]
-C_ti = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, nv)
+C_ti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, nv)
 
 B, d, drel = proj_tens(:TI, arr(C_ti), nv)
 @printf "projecting a TI tensor onto TI (right axis): d = %.3e, drel = %.3e\n" d drel
@@ -65,7 +65,7 @@ hide that fact from the projector.
 ````@example projection
 θ, ϕ = 0.6, 1.1
 n_tilt = [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]
-C_tilt = tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
+C_tilt = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
 
 _, _, drel_canon = proj_tens(:TI, arr(C_tilt), [0.0, 0.0, 1.0])
 _, _, drel_true = proj_tens(:TI, arr(C_tilt), n_tilt)
@@ -136,7 +136,7 @@ materials = [
     "transversely isotropic (e₃)" => generic(C_ti),
     "transversely isotropic (tilted)" => generic(C_tilt),
     "orthotropic (rotated frame)" => generic(t_ortho),
-    "fully anisotropic" => generic(inv_KM((m -> (m + m') / 2)(rand(6, 6)))),
+    "fully anisotropic" => generic(from_mandel((m -> (m + m') / 2)(rand(6, 6)))),
 ]
 
 println("with angle optimization:")
@@ -185,7 +185,7 @@ The same computation with a boolean answer:
 
 ````@example projection
 for (name, C) in materials
-    @printf "  %-34s ISO=%-5s TI=%-5s ORTHO=%-5s\n" name string(is_ISO(C)) string(is_TI(C)) string(is_ORTHO(C))
+    @printf "  %-34s ISO=%-5s TI=%-5s ORTHO=%-5s\n" name string(isisotropic(C)) string(istransverselyisotropic(C)) string(isorthotropic(C))
 end
 ````
 

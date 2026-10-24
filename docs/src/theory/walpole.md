@@ -203,7 +203,7 @@ or, in the synthetic notation,
 Both ``\mathbb{J}`` and ``\mathbb{K}`` have singular ``L`` blocks
 (``\det L=0``), as they must, being projectors. ``\mathbb{J}+\mathbb{K}=\mathbb{I}``
 is immediate on the table. Converting an isotropic tensor to this
-representation is [`fromISO`](@ref).
+representation is [`iso_to_ti`](@ref).
 
 !!! warning "``\mathbb{I}`` is not the sum of the six"
     ``\sum_i\mathbb{W}_i\neq\mathbb{I}``: the sum overshoots by

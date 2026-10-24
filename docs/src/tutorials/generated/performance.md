@@ -82,7 +82,7 @@ function bench_inv()
     rows = Any[]
     for (name, t) in ("TensISO" => iso, "TensTI{4,5}" => ti, "TensOrtho" => ort)
         ts = @belapsed inv($t)
-        km = Matrix(KM(t))
+        km = Matrix(mandel(t))
         td = @belapsed inv($km)
         push!(rows, (name, ts, td))
     end

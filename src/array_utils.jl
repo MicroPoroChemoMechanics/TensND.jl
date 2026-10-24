@@ -478,7 +478,7 @@ Between two order-4 tensors it is the **Frobenius scalar product**
 
 # Examples
 ```jldoctest
-julia> 𝕀, 𝕁, 𝕂 = ISO(Val(3), Val(Float64));
+julia> 𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64));
 
 julia> (𝕁 ⊙ 𝕁, 𝕂 ⊙ 𝕂, 𝕁 ⊙ 𝕂)
 (1.0, 5.0, 0.0)
@@ -590,7 +590,7 @@ otimesul(t1::AbstractArray{T1}, t2::AbstractArray{T2}) where {T1, T2} =
 Tensor product symmetrized over the **last** index of `t1` and the **first** of
 `t2`. For two vectors, `u ⊗ˢ v = (u ⊗ v + v ⊗ u) / 2`.
 
-It is the product used by [`SYMGRAD`](@ref), which is why that operator returns
+It is the product used by [`symgrad`](@ref), which is why that operator returns
 a linearized strain tensor directly.
 
 See also `otimes`, [`otimesul`](@ref).

@@ -183,7 +183,7 @@ with its axis or frame; a generic tensor comes back in the canonical basis. Both
 are linear, for an ODE state, a nonlinear solver or a sequence accelerator.
 """
 to_vector(t::Union{TensISO, TensTI, TensOrtho, TensCubic}) = collect(get_data(t))
-to_vector(t::AbstractTens{order, dim}) where {order, dim} = vec(collect(KM(t, CanonicalBasis{dim, eltype(t)}())))
+to_vector(t::AbstractTens{order, dim}) where {order, dim} = vec(collect(mandel(t, CanonicalBasis{dim, eltype(t)}())))
 
 """
     from_vector(prototype, v)
@@ -192,8 +192,8 @@ The tensor whose flat vector ([`to_vector`](@ref)) is `v`: of the class of
 `prototype`, with its axis or frame, or in the canonical basis for a generic one.
 """
 from_vector(prototype::Union{TensISO, TensTI, TensOrtho, TensCubic}, v) = rebuild(prototype, v)
-from_vector(::AbstractTens{2}, v) = inv_KM(collect(v))
-from_vector(::AbstractTens{4}, v) = (n = isqrt(length(v)); inv_KM(reshape(collect(v), n, n)))
+from_vector(::AbstractTens{2}, v) = from_mandel(collect(v))
+from_vector(::AbstractTens{4}, v) = (n = isqrt(length(v)); from_mandel(reshape(collect(v), n, n)))
 
 export rebuild, param_norms, to_vector, from_vector
 

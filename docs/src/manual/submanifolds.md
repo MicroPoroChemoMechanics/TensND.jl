@@ -102,8 +102,8 @@ S = tsimplify.(inv(a2) * b2)
 
 ## Differential operators on the surface
 
-A `SubManifoldSym` is an `AbstractCoorSystem`, so [`GRAD`](@ref),
-[`DIV`](@ref) and [`LAPLACE`](@ref) apply to fields defined on it, with the
+A `SubManifoldSym` is an `AbstractCoorSystem`, so [`grad`](@ref),
+[`divergence`](@ref) and [`laplacian`](@ref) apply to fields defined on it, with the
 intrinsic connection. The identity linking the two geometries is the Weingarten
 relation read as a gradient,
 
@@ -117,7 +117,7 @@ relation read as a gradient,
     answer. Bring both to a common basis and variance first:
 
     ```julia
-    components(GRAD(normal(SM), SM), natural_basis(SM), (:cov, :cov)) +
+    components(grad(normal(SM), SM), natural_basis(SM), (:cov, :cov)) +
     components(curvature(SM),       natural_basis(SM), (:cov, :cov))
     ```
 

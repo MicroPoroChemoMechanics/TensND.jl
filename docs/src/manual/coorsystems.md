@@ -33,11 +33,11 @@ r, θ = getcoords(Polar)
 𝐞ʳ, 𝐞ᶿ = unitvec(Polar)
 @set_coorsys Polar
 
-LAPLACE(SymFunction("f", real = true)(r, θ))
+laplacian(SymFunction("f", real = true)(r, θ))
 ```
 
 [`@set_coorsys`](@ref) installs a default system so the operators take one
-argument; without it, pass the system explicitly, `LAPLACE(f, Polar)`.
+argument; without it, pass the system explicitly, `laplacian(f, Polar)`.
 
 | Call | Does |
 | :--- | :--- |
@@ -60,15 +60,15 @@ argument; without it, pass the system explicitly, `LAPLACE(f, Polar)`.
 
 | Operator | Order | Meaning |
 | :--- | :--- | :--- |
-| [`GRAD`](@ref) | ``+1`` | gradient, derivative index appended **on the right** |
-| [`SYMGRAD`](@ref) | ``+1`` | symmetrized gradient; for a displacement, the strain |
-| [`DIV`](@ref) | ``-1`` | divergence, contracting the **last** index |
-| [`LAPLACE`](@ref) | ``0`` | ``\mathrm{DIV}\circ\mathrm{GRAD}`` |
-| [`HESS`](@ref) | ``+2`` | ``\mathrm{GRAD}\circ\mathrm{GRAD}`` |
+| [`grad`](@ref) | ``+1`` | gradient, derivative index appended **on the right** |
+| [`symgrad`](@ref) | ``+1`` | symmetrized gradient; for a displacement, the strain |
+| [`divergence`](@ref) | ``-1`` | divergence, contracting the **last** index |
+| [`laplacian`](@ref) | ``0`` | ``\mathrm{DIV}\circ\mathrm{GRAD}`` |
+| [`hess`](@ref) | ``+2`` | ``\mathrm{GRAD}\circ\mathrm{GRAD}`` |
 
 ```@example cs
 n = symbols("n", integer = true)
-simplify(LAPLACE(r^n * cos(n * θ)))
+simplify(laplacian(r^n * cos(n * θ)))
 ```
 
 ## Accessors
@@ -76,22 +76,22 @@ simplify(LAPLACE(r^n * cos(n * θ)))
 | Function | Returns |
 | :--- | :--- |
 | [`getcoords`](@ref) | the coordinate symbols |
-| [`getOM`](@ref) | the position vector |
+| [`position_vector`](@ref) | the position vector |
 | [`unitvec`](@ref) | vectors of the normalized basis |
 | [`natvec`](@ref) | vectors of the natural basis (`:cov` or `:cont`) |
 | [`normalized_basis`](@ref), [`natural_basis`](@ref) | the two bases |
-| [`Lame`](@ref) | the ``\chi_i`` |
-| [`Christoffel`](@ref) | the array ``\Gamma[i,j,k]=\Gamma^k_{ij}`` |
+| [`lame_coefficients`](@ref) | the ``\chi_i`` |
+| [`christoffel`](@ref) | the array ``\Gamma[i,j,k]=\Gamma^k_{ij}`` |
 | [`∂`](@ref) | the covariant derivative along one coordinate |
 
 ```@example cs2
 using TensND, SymPy
 Spherical = coorsys_spherical()
-Lame(Spherical)
+lame_coefficients(Spherical)
 ```
 
 ```@example cs2
-Christoffel(Spherical)[1, 1, 3]     # Γʳ_θθ = −r
+christoffel(Spherical)[1, 1, 3]     # Γʳ_θθ = −r
 ```
 
 ## Custom systems
@@ -111,7 +111,7 @@ using TensND, SymPy
 x, y = symbols("x y", real = true)
 a = symbols("a", positive = true)
 Parabolic = CoorSystemSym(Tens([(x^2 - y^2) / 2, x * y]), (x, y))
-Lame(Parabolic)
+lame_coefficients(Parabolic)
 ```
 
 ## Taming symbolic expressions
@@ -133,11 +133,11 @@ The prolate spheroidal system is the standard illustration, and
 
 ```@example cs3
 Spheroidal = coorsys_spheroidal()
-Lame(Spheroidal)
+lame_coefficients(Spheroidal)
 ```
 
 ```@example cs3
-simplify(LAPLACE(getOM(Spheroidal)[1]^2, Spheroidal))
+simplify(laplacian(position_vector(Spheroidal)[1]^2, Spheroidal))
 ```
 
 `rules` is also what resolves sign ambiguities such as ``|\sin\theta|``, which

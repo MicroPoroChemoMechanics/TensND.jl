@@ -42,7 +42,7 @@ Their Frobenius norms are the dimensions of the subspaces they project onto:
 \mathbb{J}::\mathbb{K}=0 .
 ```
 
-In `TensND` the triple is [`ISO`](@ref) / [`iso_projectors`](@ref), and
+In `TensND` the triple is [`iso_projectors`](@ref) / [`iso_projectors`](@ref), and
 individually [`tens_J4`](@ref), [`tens_K4`](@ref), [`tens_Id4`](@ref),
 [`tens_Id2`](@ref).
 
@@ -124,9 +124,9 @@ satisfies all three predicates:
 \text{ISO}\subset\text{TI}\subset\text{ORTHO}\subset\text{ANISO} .
 ```
 
-[`is_ISO`](@ref), [`is_TI`](@ref) and [`is_ORTHO`](@ref) reflect this — all three
+[`isisotropic`](@ref), [`istransverselyisotropic`](@ref) and [`isorthotropic`](@ref) reflect this — all three
 return `true` on ``\mathbb{I}``. Conversion up the chain is explicit:
-[`fromISO`](@ref) re-expresses an isotropic tensor on the Walpole basis about a
+[`iso_to_ti`](@ref) re-expresses an isotropic tensor on the Walpole basis about a
 chosen axis, and [`iso_to_ortho`](@ref) on an orthotropic frame; the coefficients
 that result are computed on [Walpole basis](@ref th-walpole) and
 [Orthotropy](@ref th-orthotropy).

@@ -47,7 +47,7 @@
     Λ = [symbols("λ$i", positive = true) for i in 1:3]
     bg = Basis(R .* Λ')
     bo = Basis(R)
-    𝕀, 𝕁, 𝕂 = ISO()
+    𝕀, 𝕁, 𝕂 = iso_projectors()
     α, β = symbols("α β", real = true)
     𝕋 = α * 𝕁 + β * 𝕂
     @test change_tens(𝕋, bg) == 𝕋
@@ -82,7 +82,7 @@ end
 
     # The chart supplies the coordinate names, so the derived field reads in
     # spherical notation rather than 𝐞₁, 𝐞₂, 𝐞₃.
-    g = change_tens(GRAD(𝐞ʳ, S), normalized_basis(S))
+    g = change_tens(grad(𝐞ʳ, S), normalized_basis(S))
     @test TensND._pprint_string(g; coords = ("θ", "ϕ", "r")) == "(1/r)𝐞ᶿ⊗𝐞ᶿ + (1/r)𝐞ᵠ⊗𝐞ᵠ"
 
     # Every entry point returns `nothing` and writes to `stdout`; the two
@@ -94,7 +94,7 @@ end
 
     # Fallback on a non-tensor: a scalar field, via the rich `text/plain`
     # display rather than `println`.
-    @test pprint(LAPLACE(1 / r, S)) === nothing
+    @test pprint(laplacian(1 / r, S)) === nothing
 end
 
 @testsection "Storage of a rotated tensor — ForwardDiff.Dual" begin
@@ -106,7 +106,7 @@ end
     # 81-component `Tensor` where the same tensor in `Float64` landed on the
     # 36-component `SymmetricTensor`.
     #
-    # The two are NOT interchangeable downstream: `KM` then returns a 9×9 matrix
+    # The two are NOT interchangeable downstream: `mandel` then returns a 9×9 matrix
     # instead of 6×6, and `inv` of the full form solves a 9×9 system whose three
     # minor-antisymmetric directions are null. Automatic differentiation through
     # any rotated structured tensor was therefore impossible.
@@ -119,22 +119,22 @@ end
                 (1, 1, 1) ./ √3
             ),
         )
-        @test size(KM(t, ℬʳ)) == (6, 6)
-        @test size(KM(t)) == size(KM(t, ℬʳ))          # the frame changes nothing
+        @test size(mandel(t, ℬʳ)) == (6, 6)
+        @test size(mandel(t)) == size(mandel(t, ℬʳ))          # the frame changes nothing
     end
-    @test size(KM(TensISO{3}(d), ℬʳ)) == (6,)          # order 2
+    @test size(mandel(TensISO{3}(d), ℬʳ)) == (6,)          # order 2
 
     # `Float64` and `Complex` must be unaffected, and both stay on the tolerant
     # side (`eps` is defined on a `Dual` type but not on a `Complex` one, which
     # is why the tolerance goes through `TensND._approx_eps`).
-    @test size(KM(TensISO{3}(6.0, 1.6), ℬʳ)) == (6, 6)
+    @test size(mandel(TensISO{3}(6.0, 1.6), ℬʳ)) == (6, 6)
     z = ComplexF64(1.0, 0.5)
-    @test size(KM(TensISO{3}(3z, 2z), ℬʳ)) == (6, 6)
+    @test size(mandel(TensISO{3}(3z, 2z), ℬʳ)) == (6, 6)
     @test TensND._approx_eps(ComplexF64) === eps(Float64)
     @test TensND._approx_eps(typeof(d)) === eps(Float64)
 
     # The point of it all: a derivative that reaches through the rotation.
-    f(x) = Matrix(KM(TensISO{3}(6.0, 2x), ℬʳ))[4, 4]
+    f(x) = Matrix(mandel(TensISO{3}(6.0, 2x), ℬʳ))[4, 4]
     h = 1.0e-7
     @test ForwardDiff.derivative(f, 0.8) ≈ (f(0.8 + h) - f(0.8 - h)) / (2h) rtol = 1.0e-5
 
@@ -182,8 +182,8 @@ end
         sum(W[i, a] * c[a, j, k, l] + W[j, a] * c[i, a, k, l] + W[k, a] * c[i, j, a, l] + W[l, a] * c[i, j, k, a] for a in 1:3)
             for i in 1:3, j in 1:3, k in 1:3, l in 1:3
     ]
-    @test ForwardDiff.derivative(θ -> Matrix(KM(C(θ))), 0.0) ≈ Matrix(KM(Tens(dc))) atol = 1.0e-12
-    @test maximum(abs, Matrix(KM(Tens(dc)))) > 1                    # not vacuous
+    @test ForwardDiff.derivative(θ -> Matrix(mandel(C(θ))), 0.0) ≈ Matrix(mandel(Tens(dc))) atol = 1.0e-12
+    @test maximum(abs, Matrix(mandel(Tens(dc)))) > 1                    # not vacuous
 
     # The diagonal test, for the same reason, and on exact element types, where
     # its absolute `eps(T)` tolerance threw: an integer or rational basis could
@@ -272,11 +272,11 @@ end
     @test Dict(t => 1)[Tens([1.0, 2.0, 3.0])] == 1
     @test length(Set((t, tp, Tens([1.0, 2.0, 3.0])))) == 2
 
-    # `KM(t, b, var)` took its keywords as trailing positional arguments, so
+    # `mandel(t, b, var)` took its keywords as trailing positional arguments, so
     # none could be passed.
     C = TensISO{3}(3.0, 2.0)
     ℬʳ = RotatedBasis(0.3, 0.2, 0.1)
-    @test KM(C, ℬʳ, (:cont, :cont, :cont, :cont); order = nothing) == KM(C, ℬʳ, (:cont, :cont, :cont, :cont))
+    @test mandel(C, ℬʳ, (:cont, :cont, :cont, :cont); order = nothing) == mandel(C, ℬʳ, (:cont, :cont, :cont, :cont))
 
     # Displaying a Tensors.jl fourth-order tensor is left to Tensors.jl.
     @test parentmodule(which(show, Tuple{Tensors.SymmetricTensor{4, 3, Float64, 36}})) !== TensND
@@ -377,14 +377,14 @@ end
     # Kelvin-Mandel matrices of every shape go back to the right tensor type;
     # a shape of none is refused.
     A = [0.1 * (i + 2j) * (k + l) + (i == k) for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
-    @test get_array(inv_KM(KM(Tens(A)))) ≈ A
-    @test get_array(inv_KM(KM(Tens(A)))) isa Tensors.Tensor{4, 3}
+    @test get_array(from_mandel(mandel(Tens(A)))) ≈ A
+    @test get_array(from_mandel(mandel(Tens(A)))) isa Tensors.Tensor{4, 3}
     S2 = SymmetricTensor{4, 2}((i, j, k, l) -> 1.0 * (i + j) * (k + l))
-    @test get_array(inv_KM(KM(S2))) ≈ S2
+    @test get_array(from_mandel(mandel(S2))) ≈ S2
     T2 = Tensor{4, 2}((i, j, k, l) -> 1.0 * (i + 2j) * (k + l))
-    @test get_array(inv_KM(KM(T2))) ≈ T2
-    @test_throws DimensionMismatch inv_KM(rand(5, 5))
-    @test_throws DimensionMismatch inv_KM(rand(5))
+    @test get_array(from_mandel(mandel(T2))) ≈ T2
+    @test_throws DimensionMismatch from_mandel(rand(5, 5))
+    @test_throws DimensionMismatch from_mandel(rand(5))
 end
 
 @testsection "zero of a vector, and tensors of dimension 1" begin

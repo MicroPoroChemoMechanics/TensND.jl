@@ -229,20 +229,20 @@ Base.IndexStyle(::Type{<:TensCubic}) = IndexCartesian()
 # ── Kelvin-Mandel ────────────────────────────────────────────────────────────
 
 """
-    KM(t::TensCubic)
+    mandel(t::TensCubic)
 
 The 6×6 Kelvin-Mandel matrix in the **canonical** frame. Use
-[`KM_material`](@ref) for the sparse form in the cube frame.
+[`mandel_material`](@ref) for the sparse form in the cube frame.
 """
-KM(t::TensCubic) = Matrix(_km_in_frame(t))
+mandel(t::TensCubic) = Matrix(_km_in_frame(t))
 
 """
-    KM_material(t::TensCubic)
+    mandel_material(t::TensCubic)
 
 The 6×6 Kelvin-Mandel matrix in the cube frame, where a cubic tensor has only
 three distinct entries.
 """
-function KM_material(t::TensCubic{T}) where {T}
+function mandel_material(t::TensCubic{T}) where {T}
     C₁₁, C₁₂, C₄₄ = arg_cubic(t)
     z = zero(T)
     return @SMatrix [
@@ -384,19 +384,19 @@ Tensors.ismajorsymmetric(::TensCubic) = true
 
 # ── Class predicates and the unified accessors ───────────────────────────────
 
-is_ISO(::TensCubic) = false
-is_TI(::TensCubic) = false
-is_ORTHO(::TensCubic) = false
+isisotropic(::TensCubic) = false
+istransverselyisotropic(::TensCubic) = false
+isorthotropic(::TensCubic) = false
 
 """
-    is_CUBIC(t) -> Bool
+    iscubic(t) -> Bool
 
 Whether `t` is stored as a [`TensCubic`](@ref). A *type-level* query, like
-[`is_ISO`](@ref) and [`is_TI`](@ref): it says what the container guarantees,
+[`isisotropic`](@ref) and [`istransverselyisotropic`](@ref): it says what the container guarantees,
 not whether the components happen to satisfy a tighter symmetry.
 """
-is_CUBIC(::TensCubic) = true
-is_CUBIC(::Any) = false
+iscubic(::TensCubic) = true
+iscubic(::Any) = false
 
 symmetry(::TensCubic) = :CUBIC
 reference(t::TensCubic) = frame(t)
@@ -468,11 +468,11 @@ end
 _show_km(io::IO, A::AbstractTens{2}) = nothing
 function _show_km(io::IO, A::AbstractTens{4})
     print(io, "\n→ KM: ")
-    return show(io, MIME"text/plain"(), KM(A))
+    return show(io, MIME"text/plain"(), mandel(A))
 end
 function _show_km(io::IO, A::TensOrtho{4})
     print(io, "\n→ KM (material frame): ")
-    show(io, MIME"text/plain"(), KM_material(A))
+    show(io, MIME"text/plain"(), mandel_material(A))
     print(io, "\n→ KM (canonical frame): ")
-    return show(io, MIME"text/plain"(), KM(A))
+    return show(io, MIME"text/plain"(), mandel(A))
 end

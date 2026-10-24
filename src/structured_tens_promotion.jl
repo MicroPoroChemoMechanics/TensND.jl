@@ -57,7 +57,7 @@ julia> get_data(O)[1], get_data(O)[4], get_data(O)[7]
 (2.6666666666666665, -0.3333333333333333, 1.5)
 ```
 
-See also [`walpole_to_ortho`](@ref), [`fromISO`](@ref).
+See also [`walpole_to_ortho`](@ref), [`iso_to_ti`](@ref).
 """
 function iso_to_ortho(A::TensISO{4, 3, T}, frame::OrthonormalBasis{3}) where {T}
     α, β = get_data(A)
@@ -348,22 +348,22 @@ end
 
 # ── TensISO{4,3} ± TensTI{4,N} (any axis) ──────────────────────────────────
 # An iso 4-tensor is a special case of TI(axis) for any axis. Promote the
-# iso operand to TI using `fromISO` (lift to N=6 if the TI partner is N=6)
+# iso operand to TI using `iso_to_ti` (lift to N=6 if the TI partner is N=6)
 # so the sum stays in the TI Walpole basis instead of falling through to
 # `TensCanonical` via the unstructured `+ ::AbstractTens` route.
 
 for OP in (:+, :-)
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 5})
-        return _coaxial_binary($OP, fromISO(A, axis(B)), B)
+        return _coaxial_binary($OP, iso_to_ti(A, axis(B)), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensISO{4, 3})
-        return _coaxial_binary($OP, A, fromISO(B, axis(A)))
+        return _coaxial_binary($OP, A, iso_to_ti(B, axis(A)))
     end
     @eval function Base.$OP(A::TensISO{4, 3}, B::TensTI{4, <:Any, 6})
-        return _coaxial_binary($OP, _lift_walpole_N6(fromISO(A, axis(B))), B)
+        return _coaxial_binary($OP, _lift_walpole_N6(iso_to_ti(A, axis(B))), B)
     end
     @eval function Base.$OP(A::TensTI{4, <:Any, 6}, B::TensISO{4, 3})
-        return _coaxial_binary($OP, A, _lift_walpole_N6(fromISO(B, axis(A))))
+        return _coaxial_binary($OP, A, _lift_walpole_N6(iso_to_ti(B, axis(A))))
     end
 end
 

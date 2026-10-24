@@ -50,14 +50,14 @@ function _rot3_raw(θ, ϕ, ψ)
 end
 
 """
-    KM_rotation(θ, ϕ, ψ) → SMatrix{6,6}
-    KM_rotation(R::AbstractMatrix) → SMatrix{6,6}
+    mandel_rotation(θ, ϕ, ψ) → SMatrix{6,6}
+    mandel_rotation(R::AbstractMatrix) → SMatrix{6,6}
 
 6×6 Kelvin-Mandel (Bond) rotation matrix, from ZYZ Euler angles `(θ, ϕ, ψ)`
 or directly from a 3×3 rotation matrix `R` whose **columns** are the new
 basis vectors.
 
-Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = KM_rotation(…)`;
+Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = mandel_rotation(…)`;
 `Q` is orthogonal.
 
 Built entirely with `SMatrix` / `ntuple`, so it is compatible with
@@ -67,17 +67,17 @@ even be constructed.
 
 # Examples
 ```julia
-julia> Q = KM_rotation(0.3, 0.5, 0.0);
+julia> Q = mandel_rotation(0.3, 0.5, 0.0);
 
 julia> size(Q)
 (6, 6)
 ```
 """
-KM_rotation(θ, ϕ, ψ) = KM_rotation(_rot3_raw(θ, ϕ, ψ))
+mandel_rotation(θ, ϕ, ψ) = mandel_rotation(_rot3_raw(θ, ϕ, ψ))
 
-export KM_rotation
+export mandel_rotation
 
-function KM_rotation(R::AbstractMatrix{T}) where {T}
+function mandel_rotation(R::AbstractMatrix{T}) where {T}
     sq2 = sqrt(2 * one(T))
     return SMatrix{6, 6, T}(
         ntuple(Val(36)) do n
@@ -573,14 +573,14 @@ Returns a 3-tuple `(B, d, drel)`:
 ```julia
 julia> n = [0., 0., 1.];
 
-julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
+julia> C = tens_ti(10., 3., 2.5, 12., 2., n);
 
 julia> B, d, drel = proj_tens(:TI, get_array(C), n);
 
 julia> d < 1e-12
 true
 
-julia> arg_TI(B) == arg_TI(C)
+julia> ti_args(B) == ti_args(C)
 true
 ```
 """
@@ -905,12 +905,12 @@ proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat} =
 # orientation with `proj_tens(Val(:TI|:ORTHO), A)`.
 
 """
-    is_ISO(A::AbstractArray; ε=1e-6) → Bool
+    isisotropic(A::AbstractArray; ε=1e-6) → Bool
 
 Return `true` when the components of `A` satisfy material isotropy up to
 relative tolerance `ε` (closed-form projection: no optimization).
 
-The value-level predicate complements the type-level `is_ISO(::TensISO) = true`
+The value-level predicate complements the type-level `isisotropic(::TensISO) = true`
 defined in `tens_isotropic.jl`: the type version asks whether the
 container *imposes* isotropy, this version asks whether the numerical
 components *satisfy* it.
@@ -919,20 +919,20 @@ components *satisfy* it.
 ```julia
 julia> C = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0];
 
-julia> is_ISO(C)
+julia> isisotropic(C)
 true
 
-julia> is_ISO([1.0 2.0 0.0; 2.0 3.0 0.0; 0.0 0.0 1.0])
+julia> isisotropic([1.0 2.0 0.0; 2.0 3.0 0.0; 0.0 0.0 1.0])
 false
 ```
 """
-function is_ISO(A::AbstractArray; ε = 1.0e-6)
+function isisotropic(A::AbstractArray; ε = 1.0e-6)
     _, _, drel = proj_tens(Val(:ISO), A)
     return drel < ε
 end
 
 """
-    is_TI(A::AbstractArray, n; ε=1e-6) → Bool
+    istransverselyisotropic(A::AbstractArray, n; ε=1e-6) → Bool
 
 Return `true` when `A` is transversely isotropic about the given axis `n`
 up to relative tolerance `ε` (closed-form projection on the fixed axis).
@@ -941,30 +941,30 @@ up to relative tolerance `ε` (closed-form projection on the fixed axis).
 ```julia
 julia> n = [0.0, 0.0, 1.0];
 
-julia> C = tens_TI(10., 3., 2.5, 12., 2., n);
+julia> C = tens_ti(10., 3., 2.5, 12., 2., n);
 
-julia> is_TI(get_array(C), n)
+julia> istransverselyisotropic(get_array(C), n)
 true
 
-julia> is_TI(get_array(C), [1.0, 0.0, 0.0])
+julia> istransverselyisotropic(get_array(C), [1.0, 0.0, 0.0])
 false
 ```
 """
-function is_TI(A::AbstractArray, n; ε = 1.0e-6)
+function istransverselyisotropic(A::AbstractArray, n; ε = 1.0e-6)
     _, _, drel = proj_tens(Val(:TI), A, n)
     return drel < ε
 end
 
 """
-    is_TI(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
+    istransverselyisotropic(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
 
 Cheap default: propose a candidate TI axis from the Kelvin-Mandel
 eigendecomposition of `A` and check the residual.  With
 `optimize_angles=true`, searches the axis (`proj_tens(:TI, A)`).
 
-See also [`is_TI(A, n)`](@ref), `_candidate_TI_axis`.
+See also [`istransverselyisotropic(A, n)`](@ref), `_candidate_TI_axis`.
 """
-function is_TI(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
+function istransverselyisotropic(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
     if optimize_angles
         _, _, drel = proj_tens(Val(:TI), A)
     else
@@ -975,24 +975,24 @@ function is_TI(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
 end
 
 """
-    is_ORTHO(A::AbstractArray, frame::OrthonormalBasis{3}; ε=1e-6) → Bool
+    isorthotropic(A::AbstractArray, frame::OrthonormalBasis{3}; ε=1e-6) → Bool
 
 Return `true` when `A` is orthotropic in the given material frame up to
 relative tolerance `ε` (closed-form projection on the fixed frame).
 """
-function is_ORTHO(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+function isorthotropic(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
     _, _, drel = proj_tens(Val(:ORTHO), A, frame)
     return drel < ε
 end
 
 """
-    is_ORTHO(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
+    isorthotropic(A::AbstractArray; ε=1e-6, optimize_angles=false) → Bool
 
 Cheap default: propose a candidate orthotropic frame from the Kelvin-Mandel
 eigendecomposition and check the residual.  With `optimize_angles=true`,
 searches the frame (`proj_tens(:ORTHO, A)`).
 """
-function is_ORTHO(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
+function isorthotropic(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
     if optimize_angles
         _, _, drel = proj_tens(Val(:ORTHO), A)
     else
@@ -1013,7 +1013,7 @@ end
 # components out of it, and the axis or frame of the result is taken back to
 # canonical coordinates. A tensor written in the canonical basis pays nothing
 # for this, and the structured types keep their cheaper type-level predicates
-# (`is_ISO(::TensISO)`, …), which are more specific than these wrappers.
+# (`isisotropic(::TensISO)`, …), which are more specific than these wrappers.
 #
 # `get_array(t)` alone, read as canonical, was wrong for every tensor written in
 # a rotated basis: the projection about a canonical axis was computed about that
@@ -1097,33 +1097,33 @@ proj_tens(::Val{:CUBIC}, t::AbstractTens{2}) = proj_tens(Val(:ISO), t)
 proj_tens(sym::Symbol, t::AbstractTens, args...) = proj_tens(Val(sym), t, args...)
 
 """
-    is_CUBIC(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6) -> Bool
+    iscubic(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6) -> Bool
 
 Whether `A` is cubic about `frame` to within `ε`, measured as the relative
 Frobenius distance to the class.
 
-The **value-level** companion of the type-level `is_CUBIC(::TensCubic)`, exactly
-as for [`is_ISO`](@ref), [`is_TI`](@ref) and [`is_ORTHO`](@ref): the first asks
+The **value-level** companion of the type-level `iscubic(::TensCubic)`, exactly
+as for [`isisotropic`](@ref), [`istransverselyisotropic`](@ref) and [`isorthotropic`](@ref): the first asks
 what the components say, the second what the container guarantees.
 """
-function is_CUBIC(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+function iscubic(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
     _, _, drel = proj_tens(Val(:CUBIC), A, frame)
     return drel ≤ ε
 end
 
 """
-    is_CUBIC(A::AbstractArray; ε = 1.0e-6) -> Bool
+    iscubic(A::AbstractArray; ε = 1.0e-6) -> Bool
 
 Whether `A` is cubic about **some** cube, the cube orientation being searched
-(`proj_tens(:CUBIC, A)`). Unlike [`is_TI`](@ref) and [`is_ORTHO`](@ref) it has
+(`proj_tens(:CUBIC, A)`). Unlike [`istransverselyisotropic`](@ref) and [`isorthotropic`](@ref) it has
 no cheap alternative: every second-order contraction of a cubic tensor is
 isotropic, so no eigenframe reveals where the cube points and there is nothing
 to start from but a search.
 
-Give the frame — `is_CUBIC(A, frame)` — whenever it is known; that path is exact
+Give the frame — `iscubic(A, frame)` — whenever it is known; that path is exact
 and costs one projection.
 """
-function is_CUBIC(A::AbstractArray; ε = 1.0e-6)
+function iscubic(A::AbstractArray; ε = 1.0e-6)
     _, _, drel = proj_tens(Val(:CUBIC), A)
     return drel ≤ ε
 end
@@ -1134,25 +1134,25 @@ function _in_frame(t::AbstractTens, f::F) where {F}
     A, Q = _orthonormal_components(t)
     return f(A, Q)
 end
-is_ISO(t::AbstractTens; kwargs...) = is_ISO(first(_orthonormal_components(t)); kwargs...)
-is_TI(t::AbstractTens, n; kwargs...) = _in_frame(t, (A, Q) -> is_TI(A, _to_frame(Q, n); kwargs...))
-is_TI(t::AbstractTens; kwargs...) = is_TI(first(_orthonormal_components(t)); kwargs...)
-is_ORTHO(t::AbstractTens, frame; kwargs...) =
-    _in_frame(t, (A, Q) -> is_ORTHO(A, _to_frame(Q, frame); kwargs...))
+isisotropic(t::AbstractTens; kwargs...) = isisotropic(first(_orthonormal_components(t)); kwargs...)
+istransverselyisotropic(t::AbstractTens, n; kwargs...) = _in_frame(t, (A, Q) -> istransverselyisotropic(A, _to_frame(Q, n); kwargs...))
+istransverselyisotropic(t::AbstractTens; kwargs...) = istransverselyisotropic(first(_orthonormal_components(t)); kwargs...)
+isorthotropic(t::AbstractTens, frame; kwargs...) =
+    _in_frame(t, (A, Q) -> isorthotropic(A, _to_frame(Q, frame); kwargs...))
 # `AbstractTens <: AbstractArray`, so this wrapper and the closed-form worker
 # taking an `OrthonormalBasis{3}` are each more specific on one argument and
 # less on the other. Unwrapping first is what the wrapper is for; saying it for
 # this combination resolves the pair.
-is_ORTHO(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
-    _in_frame(t, (A, Q) -> is_ORTHO(A, _to_frame(Q, frame); kwargs...))
-is_ORTHO(t::AbstractTens; kwargs...) = is_ORTHO(first(_orthonormal_components(t)); kwargs...)
-is_CUBIC(t::AbstractTens, frame; kwargs...) =
-    _in_frame(t, (A, Q) -> is_CUBIC(A, _to_frame(Q, frame); kwargs...))
-# Same disambiguation as `is_ORTHO` just above: `AbstractTens <: AbstractArray`,
+isorthotropic(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+    _in_frame(t, (A, Q) -> isorthotropic(A, _to_frame(Q, frame); kwargs...))
+isorthotropic(t::AbstractTens; kwargs...) = isorthotropic(first(_orthonormal_components(t)); kwargs...)
+iscubic(t::AbstractTens, frame; kwargs...) =
+    _in_frame(t, (A, Q) -> iscubic(A, _to_frame(Q, frame); kwargs...))
+# Same disambiguation as `isorthotropic` just above: `AbstractTens <: AbstractArray`,
 # so the wrapper and the worker are each more specific on one argument.
-is_CUBIC(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
-    _in_frame(t, (A, Q) -> is_CUBIC(A, _to_frame(Q, frame); kwargs...))
-is_CUBIC(t::AbstractTens; kwargs...) = is_CUBIC(first(_orthonormal_components(t)); kwargs...)
+iscubic(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+    _in_frame(t, (A, Q) -> iscubic(A, _to_frame(Q, frame); kwargs...))
+iscubic(t::AbstractTens; kwargs...) = iscubic(first(_orthonormal_components(t)); kwargs...)
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public aliases for the per-block Kelvin-Mandel ↔ symmetry-parameter
@@ -1164,13 +1164,13 @@ is_CUBIC(t::AbstractTens; kwargs...) = is_CUBIC(first(_orthonormal_components(t)
 # ──────────────────────────────────────────────────────────────────────────────
 
 """
-    ti_params_from_KM(C::AbstractMatrix) → (ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)
+    ti_params_from_mandel(C::AbstractMatrix) → (ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)
 
 Project a 6×6 Kelvin-Mandel matrix (in a frame where `e₃` is the TI symmetry
 axis) onto the major-symmetric TI subspace, returning the 5 Walpole
 coefficients. See [`proj_tens`](@ref) for the tensor-level equivalent.
 """
-const ti_params_from_KM = _project_TI_KM
+const ti_params_from_mandel = _project_TI_KM
 
 """
     ti2_params_from_matrix(M::AbstractMatrix) → (a, b, c)
@@ -1179,52 +1179,52 @@ The transversely isotropic part of a 3×3 matrix written in a frame whose third
 axis is the symmetry axis: the transverse coefficient `a = (M₁₁ + M₂₂)/2`, the
 axial one `b = M₃₃` and the in-plane antisymmetric one `c = (M₂₁ − M₁₂)/2`, those
 of `a (𝟏 − n⊗n) + b n⊗n + c [n]ₓ` (see `TensTI{2}`). For a symmetric matrix
-`c = 0`. The order-2 counterpart of [`ti_params_from_KM`](@ref).
+`c = 0`. The order-2 counterpart of [`ti_params_from_mandel`](@ref).
 """
 ti2_params_from_matrix(M::AbstractMatrix) = ((M[1, 1] + M[2, 2]) / 2, M[3, 3], (M[2, 1] - M[1, 2]) / 2)
 
 """
-    KM_from_ti_params(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆) → SMatrix{6,6}
+    mandel_from_ti_params(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆) → SMatrix{6,6}
 
 Build a 6×6 Kelvin-Mandel matrix (in the frame where `e₃` is the TI axis)
 from 5 major-symmetric Walpole coefficients — the reciprocal of
-[`ti_params_from_KM`](@ref).
+[`ti_params_from_mandel`](@ref).
 """
-const KM_from_ti_params = _build_TI_KM
+const mandel_from_ti_params = _build_TI_KM
 
 """
-    ortho_params_from_KM(C::AbstractMatrix) → NTuple{9}
+    ortho_params_from_mandel(C::AbstractMatrix) → NTuple{9}
 
 Extract the 9 orthotropic parameters `(C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)`
 from a 6×6 Kelvin-Mandel matrix in the material frame. See
 [`proj_tens`](@ref) for the tensor-level equivalent.
 """
-const ortho_params_from_KM = _project_ORTHO_KM
+const ortho_params_from_mandel = _project_ORTHO_KM
 
 """
-    cubic_params_from_KM(C::AbstractMatrix) → (α, β, γ)
+    cubic_params_from_mandel(C::AbstractMatrix) → (α, β, γ)
 
 Extract the three cubic coefficients on `(𝕁, 𝔼, 𝕋)` from a 6×6 Kelvin-Mandel
 matrix in the cube frame. See [`proj_tens`](@ref) for the tensor-level
 equivalent, and [`arg_cubic`](@ref) for the engineering constants.
 """
-const cubic_params_from_KM = _project_CUBIC_KM
+const cubic_params_from_mandel = _project_CUBIC_KM
 
 """
-    KM_from_cubic_params(α, β, γ) → SMatrix{6,6}
+    mandel_from_cubic_params(α, β, γ) → SMatrix{6,6}
 
 Build a 6×6 Kelvin-Mandel matrix in the cube frame from the three cubic
-coefficients — the reciprocal of [`cubic_params_from_KM`](@ref).
+coefficients — the reciprocal of [`cubic_params_from_mandel`](@ref).
 """
-const KM_from_cubic_params = _build_CUBIC_KM
+const mandel_from_cubic_params = _build_CUBIC_KM
 
 """
-    KM_from_ortho_params(C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆) → SMatrix{6,6}
+    mandel_from_ortho_params(C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆) → SMatrix{6,6}
 
 Build a 6×6 Kelvin-Mandel matrix in the material frame from 9 orthotropic
-parameters — the reciprocal of [`ortho_params_from_KM`](@ref).
+parameters — the reciprocal of [`ortho_params_from_mandel`](@ref).
 """
-const KM_from_ortho_params = _build_ORTHO_KM
+const mandel_from_ortho_params = _build_ORTHO_KM
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Best-fit projections — the "give me the closest tensor of that class" façade
@@ -1303,7 +1303,7 @@ best_fit_cubic(t::AbstractTens{2, 3}, frame) = proj_tens(Val(:CUBIC), t, frame)[
 # ── Exports ──────────────────────────────────────────────────────────────────
 
 export proj_tens
-export ti_params_from_KM, KM_from_ti_params, ortho_params_from_KM, KM_from_ortho_params, ti2_params_from_matrix
-export cubic_params_from_KM, KM_from_cubic_params
+export ti_params_from_mandel, mandel_from_ti_params, ortho_params_from_mandel, mandel_from_ortho_params, ti2_params_from_matrix
+export cubic_params_from_mandel, mandel_from_cubic_params
 export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic
-export is_CUBIC
+export iscubic

@@ -146,13 +146,13 @@
             # The coefficients are frame-independent under the octahedral group,
             # so they come back whichever of the 24 equivalent frames is found.
             @test all(isapprox.(get_data(B), get_data(C); rtol = 1.0e-5))
-            @test is_CUBIC(arr)
+            @test iscubic(arr)
         end
 
         # An isotropic tensor is cubic about every cube; a transversely
         # isotropic one about none.
-        @test is_CUBIC(get_array(TensISO{3}(18.0, 6.0)))
-        @test !is_CUBIC(get_array(tens_TI(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])))
+        @test iscubic(get_array(TensISO{3}(18.0, 6.0)))
+        @test !iscubic(get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])))
 
         # Optimizing can only improve on a fixed frame, the canonical one being
         # refined among the others.
@@ -193,7 +193,7 @@
             0.8 1.9 1.4 1.1 14.0 1.7
             2.1 1.1 0.6 0.9 1.7 16.0
         ]
-        arr_aniso = Array(get_array(inv_KM(M)))
+        arr_aniso = Array(get_array(from_mandel(M)))
 
         for (name, arr) in (("exactly orthotropic", arr_ortho), ("fully anisotropic", arr_aniso))
             for sym in (:TI, :ORTHO)
