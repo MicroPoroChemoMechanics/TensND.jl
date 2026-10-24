@@ -71,6 +71,18 @@ frame (the counterpart of `TensTI{2, T, 2}`). Products stay in the class.
   point, and one implementation for both would have imposed one form on the
   other.
 
+- Symbolic tensors go through **SymPyPythonCall** instead of SymPy.jl: SymPy is
+  reached through PythonCall, and CondaPkg installs the Python module `sympy`
+  itself, in an environment of its own, on first load. SymPy.jl reached Python
+  through PyCall, which configures itself on whatever Python it finds: where that
+  Python had no `sympy`, `using TensND` failed (the General registry's AutoMerge
+  check stopped loading TensND, v0.7.0 included). Code that writes `using SymPy`
+  must write `using SymPyPythonCall`: the symbols of SymPy.jl (`Sym{PyObject}`)
+  are another type than TensND's (`Sym{Py}`). To use a Python of one's own (with
+  `sympy`), set `JULIA_CONDAPKG_BACKEND = "Null"` and `JULIA_PYTHONCALL_EXE`
+  before loading TensND. PyCall is no longer a dependency, of the package, its
+  tests or its documentation.
+
 ### Added
 
 - `TensOrtho{4, T, 12}`: `TensOrtho{4}(C₁₁, …, C₆₆, C₂₁, C₃₁, C₃₂, frame)` or

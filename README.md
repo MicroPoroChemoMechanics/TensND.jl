@@ -88,20 +88,41 @@ The last line is the equilibrium equation of a spherically symmetric stress stat
 
 ## Installation
 
-TensND.jl is registered in Julia's General registry.
-
-In Pkg REPL mode (press `]` in the Julia REPL):
+TensND.jl is registered in Julia's General registry. In the Julia REPL, press
+`]` for the Pkg mode and add it:
 
 ```julia-repl
 pkg> add TensND
 ```
 
-Or via the `Pkg` API:
+then load it:
 
 ```julia
-using Pkg
-Pkg.add("TensND")
+using TensND
 ```
+
+Nothing else is installed by hand. The symbolic backend, SymPy, is reached
+through [SymPyPythonCall.jl](https://github.com/jverzani/SymPyPythonCall.jl):
+on the first `using TensND`, [CondaPkg.jl](https://github.com/JuliaPy/CondaPkg.jl)
+installs a private Python with the `sympy` module into the `.CondaPkg` folder of
+the active environment. This needs an internet connection once; the next loads
+are offline.
+
+- **Offline afterwards, or behind a proxy that blocks it:** run the first load
+  once where the connection works, or set `JULIA_CONDAPKG_OFFLINE=true` once the
+  environment exists.
+- **An existing Python of your own** (it must have `sympy`): set
+  `JULIA_CONDAPKG_BACKEND=Null` and `JULIA_PYTHONCALL_EXE=/path/to/python`
+  before loading TensND, or store them as preferences
+  (`pkg> preference add CondaPkg backend=Null`,
+  `pkg> preference add PythonCall exe=/path/to/python`). See the
+  [CondaPkg](https://github.com/JuliaPy/CondaPkg.jl#preferences) and
+  [PythonCall](https://juliapy.github.io/PythonCall.jl/stable/pythoncall/#pythoncall-config)
+  documentation.
+
+**Coming from SymPy.jl:** write `using SymPyPythonCall` instead of
+`using SymPy`. The symbols of SymPy.jl (`Sym{PyObject}`) are another type than
+those of SymPyPythonCall (`Sym{Py}`), which TensND uses.
 
 ## Documentation
 

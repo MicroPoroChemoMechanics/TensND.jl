@@ -17,3 +17,8 @@ CLAUDE.md
 .claude
 
 .ipynb_checkpoints
+
+# Python environment that CondaPkg creates next to an environment, and local
+# preferences (a Python of one's own, offline mode): per machine, never shipped.
+.CondaPkg/
+LocalPreferences.toml
