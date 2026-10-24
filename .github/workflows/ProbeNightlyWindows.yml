@@ -1,11 +1,13 @@
 name: Probe nightly Windows
-# Run by hand only. Julia's development branch crashes on Windows inside LLVM
+# Runs with the pull request (a workflow is offered to run by hand only once it is on
+# the default branch). Julia's development branch crashes on Windows inside LLVM
 # (an access violation in APInt::countLeadingZerosSlowCase) while compiling the
 # test section that starts at test/test_tens_isotropic.jl:177, on every run, and
 # nowhere else. This replays the CI job with `--trace-compile`: Julia prints each
 # method as it compiles it, so the last lines before the crash name the method
 # whose code LLVM miscompiles. Remove this workflow once the method is found.
 on:
+  pull_request:
   workflow_dispatch:
 
 jobs:
