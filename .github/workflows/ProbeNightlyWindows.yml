@@ -1,0 +1,59 @@
+name: Probe nightly Windows
+# Run by hand only. Julia's development branch crashes on Windows inside LLVM
+# (an access violation in APInt::countLeadingZerosSlowCase) while compiling the
+# test section that starts at test/test_tens_isotropic.jl:177, on every run, and
+# nowhere else. This replays the CI job with `--trace-compile`: Julia prints each
+# method as it compiles it, so the last lines before the crash name the method
+# whose code LLVM miscompiles. Remove this workflow once the method is found.
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: 'nightly'
+      # The same installation as CI.yml on Windows.
+      - name: Install dependencies
+        run: |
+          julia -e '
+            using Pkg
+            ENV["PYTHON"] = ""
+            withenv(() -> Pkg.add("Conda"), "JULIA_PKG_PRECOMPILE_AUTO" => "0")
+            Pkg.build("Conda")
+            Pkg.add(PackageSpec(name = "PyCall", version = Pkg.Types.semver_spec("< 1.97.0, >= 1.97.1")))
+            Pkg.add("SymPy")
+            retry(() -> Pkg.build("PyCall"); delays = fill(60.0, 2))()
+            using PyCall
+            retry(() -> run(`$(PyCall.python) -m pip install sympy`); delays = fill(60.0, 2))()
+            pyimport("sympy")'
+      - uses: julia-actions/julia-buildpkg@v1
+      - name: Load MPFR by its versioned name in IrrationalConstants
+        shell: julia --color=yes {0}
+        run: |
+          root = joinpath(first(DEPOT_PATH), "packages", "IrrationalConstants")
+          for dir in (isdir(root) ? readdir(root; join = true) : String[])
+              file = joinpath(dir, "src", "macro.jl")
+              isfile(file) || continue
+              src = read(file, String)
+              occursin(":libmpfr),", src) || continue
+              chmod(file, 0o644)
+              write(file, replace(src, ":libmpfr)," => "Base.MPFR.libmpfr),"))
+          end
+      # The test run of CI.yml, every compiled method written to stderr as it is
+      # compiled, stderr kept apart from the test output.
+      - name: Tests with the compilation trace
+        continue-on-error: true
+        shell: bash
+        run: |
+          julia --color=no -e 'using Pkg; Pkg.test(; coverage = false, julia_args = ["--check-bounds=yes", "--compiled-modules=yes", "--depwarn=yes", "--trace-compile=stderr"])' > tests.log 2> trace.log
+      - name: The last methods compiled before the crash
+        if: always()
+        shell: bash
+        run: |
+          echo "=== end of the test output"; tail -n 40 tests.log
+          echo "=== last 150 lines of the compilation trace"; tail -n 150 trace.log
