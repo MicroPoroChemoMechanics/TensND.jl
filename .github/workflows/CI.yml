@@ -19,11 +19,12 @@ jobs:
     name: Julia ${{ matrix.version }} - ${{ matrix.os }} - ${{ matrix.arch }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 60
-    # Julia's development branch is built anew every day and crashes now and then
-    # inside its compiler, on code it compiled the day before (an access violation
-    # in LLVM on Windows, gone on a rerun): it runs and stays visible, but does not
-    # block a pull request. The released versions and the prerelease ('pre') still
-    # do.
+    # Julia's development branch is built anew every day and its compiler can
+    # crash on code that is not ours: 1.15.0-DEV.115 segfaults in its own GC
+    # lowering pass (LowerGCAllocMemory) when compiling Latexify, which TensND's
+    # LaTeX display of Symbolics tensors calls (`using Latexify;
+    # latexify(:(3x + 2y))` alone crashes). It runs and stays visible, but does
+    # not block a pull request; the released versions and 'pre' still do.
     continue-on-error: ${{ matrix.version == 'nightly' }}
     permissions: # needed to allow julia-actions/cache to proactively delete old caches that it has created
       actions: write
