@@ -182,7 +182,7 @@ apply to fields defined on the surface. The identity tying the two geometries
 together is
 
 ```math
-\mathrm{GRAD}(\underline{n})=-\,\boldsymbol{b}.
+\mathrm{grad}(\underline{n})=-\,\boldsymbol{b}.
 ```
 
 ````@example submanifolds

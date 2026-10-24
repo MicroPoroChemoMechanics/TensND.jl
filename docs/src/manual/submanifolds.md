@@ -108,7 +108,7 @@ intrinsic connection. The identity linking the two geometries is the Weingarten
 relation read as a gradient,
 
 ```math
-\mathrm{GRAD}(\underline{n})=-\,\boldsymbol{b}.
+\mathrm{grad}(\underline{n})=-\,\boldsymbol{b}.
 ```
 
 !!! warning "Compare tensors, not stored arrays"

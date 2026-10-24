@@ -67,11 +67,11 @@ end
 # ## Scalar identities
 #
 # ```math
-# \nabla^{2}f=\mathrm{DIV}\bigl(\mathrm{GRAD}\,f\bigr),
+# \nabla^{2}f=\mathrm{div}\bigl(\mathrm{grad}\,f\bigr),
 # \qquad
-# \nabla^{2}f=\mathrm{tr}\,\mathrm{HESS}\,f,
+# \nabla^{2}f=\mathrm{tr}\,\mathrm{Hess}\,f,
 # \qquad
-# \mathrm{HESS}\,f={}^{t}\mathrm{HESS}\,f
+# \mathrm{Hess}\,f={}^{t}\mathrm{Hess}\,f
 # ```
 #
 # A generic function of the coordinates is used, so nothing can accidentally
@@ -97,10 +97,10 @@ end
 # ## Vector identities
 #
 # ```math
-# \mathrm{DIV}(f\,\underline{v})
-# =\mathrm{GRAD}f\cdot\underline{v}+f\,\mathrm{DIV}\,\underline{v},
+# \mathrm{div}(f\,\underline{v})
+# =\mathrm{grad}f\cdot\underline{v}+f\,\mathrm{div}\,\underline{v},
 # \qquad
-# \mathrm{DIV}(f\,\boldsymbol{1})=\mathrm{GRAD}\,f
+# \mathrm{div}(f\,\boldsymbol{1})=\mathrm{grad}\,f
 # ```
 #
 # The vector field is built from arbitrary component functions **on the
@@ -154,9 +154,9 @@ end
 # transposes out of the way:
 #
 # ```math
-# \mathrm{DIV}(\boldsymbol{\sigma}\cdot\underline{v})
-# =\mathrm{DIV}\,\boldsymbol{\sigma}\cdot\underline{v}
-# +\boldsymbol{\sigma}:\mathrm{GRAD}\,\underline{v}
+# \mathrm{div}(\boldsymbol{\sigma}\cdot\underline{v})
+# =\mathrm{div}\,\boldsymbol{\sigma}\cdot\underline{v}
+# +\boldsymbol{\sigma}:\mathrm{grad}\,\underline{v}
 # \qquad(\boldsymbol{\sigma}={}^{t}\boldsymbol{\sigma})
 # ```
 #

@@ -140,7 +140,7 @@ surface, with the intrinsic connection. The relation that ties the two
 geometries together is the Weingarten equation read as a gradient:
 
 ```math
-\boxed{\;\mathrm{GRAD}(\underline{n})=-\,\boldsymbol{b}\;}
+\boxed{\;\mathrm{grad}(\underline{n})=-\,\boldsymbol{b}\;}
 ```
 
 It is the cheapest check that an implementation's normal orientation and
@@ -149,7 +149,7 @@ curvature sign agree, and it is pinned by a test
 
 !!! warning "Compare tensors, not stored arrays"
     This is an identity between **tensors**, and the two sides are not stored
-    the same way: ``\mathrm{GRAD}(\underline{n})`` comes out on one basis and
+    the same way: ``\mathrm{grad}(\underline{n})`` comes out on one basis and
     variance, ``\boldsymbol{b}`` on another. Subtracting their
     [`get_array`](@ref)s therefore gives a nonzero, and rather convincing,
     wrong answer — on a sphere of radius ``R`` the raw arrays differ by a factor

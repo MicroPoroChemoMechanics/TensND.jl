@@ -8,13 +8,13 @@
 //
 // Ported from MeanFieldHomogenization, which took it from ChemistryLab with three
 // changes these formulas need as well: an upright label is a token of its own
-// (`\mathrm{GRAD}` is not the letters G, R, A, D), a subscript and a superscript
+// (`\mathrm{grad}` is not the letters G, R, A, D), a subscript and a superscript
 // are told apart (`\underline{e}_i` is not `\underline{e}^i`), and an underline
 // makes one symbol of its argument, as a vector is written `\underline{n}`.
 
 // Commands whose argument is skipped: text that is not a symbol.
 const DROPPED = new Set(['label', 'tag', 'mbox', 'textbf', 'textit'])
-// Commands whose argument is a label when it is a single word: `\mathrm{GRAD}`,
+// Commands whose argument is a label when it is a single word: `\mathrm{grad}`,
 // `\mathrm{tr}`. Several words are prose, and are skipped.
 const LABELS = new Set(['mathrm', 'text', 'textrm', 'operatorname'])
 // Commands that make one symbol of their argument: \dot{B}, \mathbb{C}.

@@ -7,7 +7,7 @@ EditURL = "../../../../scripts/20_green_function.jl"
 The Kelvin fundamental solution — the displacement produced by a point force
 in an infinite isotropic medium — in plane strain and in three dimensions,
 built symbolically and checked against its closed form. The second-gradient
-object ``\mathbb{\Gamma}=-\mathrm{HESS}(\boldsymbol{G})``, symmetrized, is the
+object ``\mathbb{\Gamma}=-\mathrm{Hess}(\boldsymbol{G})``, symmetrized, is the
 kernel every micromechanical Green operator is built from.
 
 This exercises the differential operators of
@@ -53,7 +53,7 @@ k = E / (3(1 - 2ν))
 
 ## The Green operator ``\mathbb{\Gamma}``
 
-``\mathbb{\Gamma}=-\mathrm{HESS}(\boldsymbol{G})``, symmetrized over both index
+``\mathbb{\Gamma}=-\mathrm{Hess}(\boldsymbol{G})``, symmetrized over both index
 pairs so that it acts on symmetric strain tensors:
 
 ````@example green_function

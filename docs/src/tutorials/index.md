@@ -38,7 +38,7 @@ Simplest first within each group.
 
 | Page | What it shows |
 | :--- | :--- |
-| [Elastic Green's functions](generated/green_function.md) | the Kelvin solution in 2-D and 3-D, ``\mathbb{\Gamma}=-\mathrm{HESS}(\boldsymbol{G})`` matched against its closed form |
+| [Elastic Green's functions](generated/green_function.md) | the Kelvin solution in 2-D and 3-D, ``\mathbb{\Gamma}=-\mathrm{Hess}(\boldsymbol{G})`` matched against its closed form |
 | [A two-point Green tensor between offset frames](generated/cluster.md) | combining tensors that live in two different spherical charts |
 | [The elastic sphere, solved symbolically](generated/sphere_problems.md) | hydrostatic and deviatoric problems, the Lamé exponents, and how they assemble into an ``N``-layer sphere |
 | [Acoustic and Hill tensors](generated/hill_tensors.md) | ``\boldsymbol{K}=\underline{\xi}\cdot\mathbb{C}\cdot\underline{\xi}`` and ``\mathbb{\Lambda}=\mathbb{C}:\mathbb{\Gamma}:\mathbb{C}``, written once and run on an isotropic *and* a transversely isotropic stiffness |

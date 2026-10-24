@@ -28,7 +28,7 @@ test would catch if the code changed under it.
 | the ``N=8`` space is closed under `⊡` and `inv` | [The extended Walpole algebra](@ref th-walpole-extended) | it is the justification for the storage type |
 | ``\Gamma^k_{ij}=\partial_i\underline{a}_j\cdot\underline{a}^k`` | [Curvilinear calculus](@ref th-curvilinear) | the storage order ``\Gamma[i,j,k]`` is easy to transpose |
 | `grad` appends on the right, `divergence` contracts the last index | [Curvilinear calculus](@ref th-curvilinear) | invisible on symmetric fields, wrong by a transpose otherwise |
-| ``\mathrm{GRAD}(\underline{n})=-\boldsymbol{b}`` on a sphere | [Submanifolds](@ref th-submanifolds) | ties the normal orientation to the curvature sign |
+| ``\mathrm{grad}(\underline{n})=-\boldsymbol{b}`` on a sphere | [Submanifolds](@ref th-submanifolds) | ties the normal orientation to the curvature sign |
 
 ## What a good test looks like here
 

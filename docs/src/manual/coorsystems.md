@@ -63,8 +63,8 @@ argument; without it, pass the system explicitly, `laplacian(f, Polar)`.
 | [`grad`](@ref) | ``+1`` | gradient, derivative index appended **on the right** |
 | [`symgrad`](@ref) | ``+1`` | symmetrized gradient; for a displacement, the strain |
 | [`divergence`](@ref) | ``-1`` | divergence, contracting the **last** index |
-| [`laplacian`](@ref) | ``0`` | ``\mathrm{DIV}\circ\mathrm{GRAD}`` |
-| [`hess`](@ref) | ``+2`` | ``\mathrm{GRAD}\circ\mathrm{GRAD}`` |
+| [`laplacian`](@ref) | ``0`` | ``\mathrm{div}\circ\mathrm{grad}`` |
+| [`hess`](@ref) | ``+2`` | ``\mathrm{grad}\circ\mathrm{grad}`` |
 
 ```@example cs
 n = symbols("n", integer = true)

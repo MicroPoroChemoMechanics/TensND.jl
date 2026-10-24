@@ -6,7 +6,7 @@
 #
 #   tex       the symbol as the formulas write it, matched in their TeX source
 #             (see `src/.vitepress/nomenclature-match.mjs`: an upright label such
-#             as \mathrm{GRAD} is a symbol of its own, a subscript is not a
+#             as \mathrm{grad} is a symbol of its own, a subscript is not a
 #             superscript, and an index i, j, k stands for any of them);
 #   label     how the page and the hint print it (HTML: <sub>, <sup>, <b>, <u>);
 #   name      what it is;
@@ -450,23 +450,37 @@ unit = ""
 
 [[symbol]]
 group = "Products and operators"
-tex = '\mathrm{GRAD}'
-label = "GRAD"
+tex = '\mathrm{grad}'
+label = "grad"
 name = "gradient, derivative index appended on the right"
 unit = ""
 
 [[symbol]]
 group = "Products and operators"
-tex = '\mathrm{DIV}'
-label = "DIV"
+tex = '\mathrm{grad}^{\mathrm{s}}'
+label = "grad<sup>s</sup>"
+name = "symmetrized gradient"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\mathrm{div}'
+label = "div"
 name = "divergence, contracting the last index"
 unit = ""
 
 [[symbol]]
 group = "Products and operators"
-tex = '\mathrm{HESS}'
-label = "HESS"
-name = "second gradient (Hessian), GRAD ∘ GRAD"
+tex = '\mathrm{Hess}'
+label = "Hess"
+name = "second gradient (Hessian), grad ∘ grad"
+unit = ""
+
+[[symbol]]
+group = "Products and operators"
+tex = '\nabla^{2}'
+label = "∇<sup>2</sup>"
+name = "Laplacian, div ∘ grad"
 unit = ""
 
 [[symbol]]
@@ -886,7 +900,7 @@ unit = ""
 group = "Elastic moduli"
 tex = '\mathbb{\Gamma}'
 label = "ℾ"
-name = "real-space Green operator, symmetrized −HESS(G)"
+name = "real-space Green operator, symmetrized −Hess(G)"
 unit = ""
 pages = ["tutorials/generated/green_function.md", "tutorials/generated/cluster.md", "tutorials/index.md"]
 
