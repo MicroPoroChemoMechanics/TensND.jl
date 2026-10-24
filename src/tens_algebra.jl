@@ -37,7 +37,7 @@ end
 @inline Base.inv(t::AbstractTens{2}) =
     Tens(inv(get_array(t)), get_basis(t), (invvar(get_var(t, 2)), invvar(get_var(t, 1))))
 @inline Base.inv(t::AbstractTens{4}) = Tens(
-    inv(get_array(t)),
+    _inv_array(get_array(t)),
     get_basis(t),
     (
         invvar(get_var(t, 3)),
@@ -46,6 +46,27 @@ end
         invvar(get_var(t, 2)),
     ),
 )
+
+# The components of the inverse of a 4th-order tensor: the matrix inverse of its
+# Mandel (minor symmetries) or Voigt (none) form, as Tensors.jl takes it.
+_inv_array(A) = inv(A)
+_inv_array(A::SymmetricTensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
+    frommandel(SymmetricTensor{4, dim}, _inv_matrix(tomandel(SMatrix, A)))
+_inv_array(A::Tensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
+    fromvoigt(Tensor{4, dim}, _inv_matrix(tovoigt(SMatrix, A)))
+
+# The inverse of a matrix of duals by the implicit-function theorem,
+# d(M⁻¹) = -M⁻¹ dM M⁻¹: one inverse of the values, then two products per
+# partial, recursively for nested duals. Factorizing the duals themselves would
+# unroll StaticArrays' LU over the dual type, a much larger function, which
+# LLVM 23 (Julia 1.14) miscompiles on AVX-512 targets (a crash in its register
+# coalescer).
+_inv_matrix(M::StaticMatrix) = inv(M)
+function _inv_matrix(M::StaticMatrix{N, N, ForwardDiff.Dual{Tg, V, P}}) where {N, Tg, V, P}
+    Mi = _inv_matrix(ForwardDiff.value.(M))
+    dMi = ntuple(k -> -(Mi * ForwardDiff.partials.(M, k) * Mi), Val(P))
+    return map((v, d...) -> ForwardDiff.Dual{Tg}(v, d...), Mi, dMi...)
+end
 
 """
     otimes(t1::AbstractTens{order1,dim}, t2::AbstractTens{order2,dim})
