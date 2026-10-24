@@ -49,7 +49,7 @@ forms) and in how many directions they differentiate along ([`nderiv`](@ref)).
 Declaring the block once keeps the two in step: a fix to one is a fix to
 the other.
 
-Reached through [`core`](@ref); user code should go through the accessors
+Reached through `core` (internal); user code should go through the accessors
 ([`getcoords`](@ref), [`lame_coefficients`](@ref), [`christoffel`](@ref), …) instead.
 """
 struct ExactGeometry{dim, T, VEC, BNORM, BNAT} <: AbstractGeometry
