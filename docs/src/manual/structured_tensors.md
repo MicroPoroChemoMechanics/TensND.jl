@@ -9,17 +9,32 @@ algebra behind each is on [Isotropic tensors](@ref th-isotropic),
 
 ## Storage
 
-| Type | Stored | Orientation | Class |
-| :--- | :--- | :--- | :--- |
-| `TensISO{2,dim}` | 1 scalar ``\lambda`` | none | ``\lambda\boldsymbol{1}`` |
-| `TensISO{4,dim}` | 2 scalars ``(\alpha,\beta)`` | none | ``\alpha\mathbb{J}+\beta\mathbb{K}`` |
-| `TensTI{2,T,2}` | ``(a,b)`` | axis ``\underline{n}`` | ``a\boldsymbol{1}_T+b\boldsymbol{1}_n`` |
-| `TensTI{2,T,3}` | ``(a,b,c)`` | axis ``\underline{n}`` | ``+\,c\,\boldsymbol{w}``, the antisymmetric part |
-| `TensTI{4,T,5}` | ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` | axis ``\underline{n}`` | major-symmetric TI |
-| `TensTI{4,T,6}` | ``(\ell_1,\ldots,\ell_6)`` | axis ``\underline{n}`` | general TI |
-| `TensTI{4,T,8}` | ``(\ell_1,\ldots,\ell_8)`` | axis ``\underline{n}`` | full axially invariant |
-| `TensCubic{T,B}` | 3 scalars ``(\alpha,\beta,\gamma)`` | cube frame `B` | ``\alpha\mathbb{J}+\beta\mathbb{E}+\gamma\mathbb{T}`` |
-| `TensOrtho{T,B}` | 9 constants | frame `B` | orthotropic |
+Every class is parametrized the same way, by its order and the number `N` of
+stored coefficients; the invariance group decides which tensors a shape holds.
+The last three columns say what a product (`⊡` at order 4, `⋅` at order 2) of
+two tensors of the shape on the same reference, an inverse and a major
+transpose return; a sum keeps the shape.
+
+| Type | Order | `N` | Stored | Reference | Group | Product | Inverse | Transpose |
+| :--- | :-: | :-: | :--- | :--- | :--- | :--- | :--- | :--- |
+| `TensISO{2,dim}` | 2 | 1 | ``\lambda`` | none | ``O(3)`` | same | same | itself |
+| `TensISO{4,dim}` | 4 | 2 | ``(\alpha,\beta)`` | none | ``O(3)`` | same | same | itself |
+| `TensCubic{T,B}` | 4 | 3 | ``(\alpha,\beta,\gamma)`` | cube frame | ``O_h`` | same | same | itself |
+| `TensTI{2,T,2}` | 2 | 2 | ``(a,b)`` | axis ``\underline{n}`` | ``D_{\infty h}`` | same | same | itself |
+| `TensTI{2,T,3}` | 2 | 3 | ``(a,b,c)`` | axis ``\underline{n}`` | ``SO(2)`` | same | same | ``c\to-c`` |
+| `TensTI{4,T,5}` | 4 | 5 | ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` | axis ``\underline{n}`` | ``D_{\infty h}`` | `N=6` | same | itself |
+| `TensTI{4,T,6}` | 4 | 6 | ``(\ell_1,\ldots,\ell_6)`` | axis ``\underline{n}`` | ``D_{\infty h}`` | same | same | ``\ell_3\leftrightarrow\ell_4`` |
+| `TensTI{4,T,8}` | 4 | 8 | ``(\ell_1,\ldots,\ell_8)`` | axis ``\underline{n}`` | ``SO(2)`` | same | same | ``\ell_3\leftrightarrow\ell_4``, ``\ell_{7,8}\to-\ell_{7,8}`` |
+| `TensOrtho{2,T,3}` | 2 | 3 | ``(a_1,a_2,a_3)`` | frame | ``D_{2h}`` | same | same | itself |
+| `TensOrtho{4,T,9}` | 4 | 9 | ``(C_{11},\ldots,C_{66})`` | frame | ``D_{2h}`` | `N=12` | same | itself |
+| `TensOrtho{4,T,12}` | 4 | 12 | ``+\,(C_{21},C_{31},C_{32})`` | frame | ``D_{2h}`` | same | same | normal block transposed |
+
+The major-symmetric shapes are the ones whose product widens (`N=5 → 6`,
+`N=9 → 12`): their product is a product of two symmetric blocks.
+`Tensors.majorsymmetric` goes back (`N=6, 8 → 5`, `N=12 → 9`). The ``SO(2)``
+shapes hold the terms odd in ``\underline{n}`` that the mirrors of
+``D_{\infty h}`` forbid; orthotropy has no such shapes, the rotations of
+``D_2`` and the full ``D_{2h}`` having the same invariant tensors at even order.
 
 ```@example struct
 using TensND, LinearAlgebra
@@ -51,7 +66,8 @@ cub = tens_cubic(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄₄)
 | TI order 4 | [`TensTI`](@ref), [`tens_TI`](@ref), [`tens_TI_eng`](@ref), [`tens_TI_Hoenig`](@ref), [`fromISO`](@ref), [`tens_W1`](@ref)…[`tens_W8`](@ref), [`walpole_basis`](@ref), [`walpole_basis_sym`](@ref) |
 | TI order 2 | [`TensTI`](@ref)`{2}(a, b, n)` and `(a, b, c, n)` |
 | CUBIC | [`TensCubic`](@ref), [`tens_cubic`](@ref), [`iso_to_cubic`](@ref) |
-| ORTHO | [`TensOrtho`](@ref), [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref), [`cubic_to_ortho`](@ref) |
+| ORTHO order 4 | [`TensOrtho`](@ref)`{4}(C₁₁, …, C₆₆, frame)` (nine constants) and `(…, C₂₁, C₃₁, C₃₂, frame)` (twelve), `TensOrtho(KM, frame[, Val(12)])`, [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref), [`cubic_to_ortho`](@ref) |
+| ORTHO order 2 | [`TensOrtho`](@ref)`{2}(a₁, a₂, a₃, frame)`, [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref) |
 
 ## Accessors
 
@@ -84,16 +100,17 @@ generic route, exactly and without warning.
 
 | `A ⊡ B` | ISO | CUBIC | TI{4,5} | TI{4,6} | TI{4,8} | ORTHO |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **ISO** | ISO | **CUBIC** | TI{4,6} | TI{4,6} | TI{4,8} | generic |
-| **CUBIC** | **CUBIC** | **CUBIC** | generic | generic | generic | generic |
-| **TI{4,5}** | TI{4,6} | generic | TI{4,6} | TI{4,6} | TI{4,8} | generic |
-| **TI{4,6}** | TI{4,6} | generic | TI{4,6} | TI{4,6} | TI{4,8} | generic |
+| **ISO** | ISO | **CUBIC** | TI{4,6} | TI{4,6} | TI{4,8} | ORTHO{12} |
+| **CUBIC** | **CUBIC** | **CUBIC** | generic | generic | generic | ORTHO{12} |
+| **TI{4,5}** | TI{4,6} | generic | TI{4,6} | TI{4,6} | TI{4,8} | ORTHO{12} |
+| **TI{4,6}** | TI{4,6} | generic | TI{4,6} | TI{4,6} | TI{4,8} | ORTHO{12} |
 | **TI{4,8}** | TI{4,8} | generic | TI{4,8} | TI{4,8} | TI{4,8} | generic |
-| **ORTHO** | generic | generic | generic | generic | generic | generic |
+| **ORTHO** | ORTHO{12} | ORTHO{12} | ORTHO{12} | ORTHO{12} | generic | ORTHO{12} |
 
-The `CUBIC` row and column need the two frames to describe the same cube, and
-the `ISO`/`TI`/`ORTHO` ones the same axis or frame; otherwise the generic route
-is taken.
+The `CUBIC` row and column need the two frames to describe the same cube, the
+`ISO`/`TI`/`ORTHO` ones the same axis or frame, and a `TI ⊡ ORTHO` product a
+TI axis along one of the frame axes; otherwise the generic route is taken.
+`ORTHO{12}` stands for `TensOrtho{4, T, 12}`, whichever form the operands have.
 
 Two widenings deserve an explanation, and both have the same cause: **the
 major-symmetric tensors of a class do not form a subalgebra**.
@@ -101,9 +118,12 @@ major-symmetric tensors of a class do not form a subalgebra**.
 - `TI{4,5} ⊡ TI{4,5} → TI{4,6}`. The Walpole product is a ``2\times2`` matrix
   product, and ``L\,M\neq{}^{t}(L\,M)`` unless the blocks commute, so the
   product of two major-symmetric TI tensors generally has ``\ell_3\neq\ell_4``.
-- `ORTHO ⊡ ORTHO → generic`. The product keeps the block structure but loses
-  major symmetry: twelve independent constants where `TensOrtho` stores nine.
-  Rather than add a twelve-parameter container, the generic tensor is returned.
+- `ORTHO ⊡ ORTHO → ORTHO{12}`. In the material frame the Kelvin-Mandel matrix
+  is a ``3\times3`` normal block plus three shear moduli, and the product of two
+  symmetric blocks is not symmetric unless they commute: twelve independent
+  constants where the major-symmetric form stores nine. The product is one
+  ``3\times3`` matrix product and three scalar ones, and inversion inverts the
+  block. `Tensors.majorsymmetric` returns the nine-constant symmetric part.
 
 **`CUBIC ⊡ CUBIC → CUBIC` is the one entry that does not widen**, and it is
 worth knowing why: each irreducible representation of the octahedral group
@@ -114,6 +134,17 @@ commutative subalgebra. See [Cubic symmetry](@ref th-cubic).
 
 `CUBIC ⊡ TI` is generic for the opposite reason: the two classes are
 incomparable, their intersection being the isotropic class.
+
+At order 2, and between orders, the same rules hold on a shared reference:
+
+| Operation | Result |
+| :--- | :--- |
+| `ORTHO{2} ⋅ ORTHO{2}`, with an `ISO{2}` or a coaxial `TI{2,2}` | `ORTHO{2}` |
+| `ORTHO{4} ⊡ ORTHO{2}`, `ORTHO{2} ⊡ ORTHO{4}`, the order-4 operand `ISO`, `CUBIC` or a coaxial `TI{4,5}`/`TI{4,6}` | `ORTHO{2}`: the normal block acting on ``(a_1,a_2,a_3)`` |
+| `ORTHO{2} ⊗ ORTHO{2}` | `ORTHO{4,12}`; `ORTHO{4,9}` for ``\boldsymbol{a}\otimes\boldsymbol{a}`` |
+
+as `TI{4} ⊡ TI{2,2} → TI{2,2}` and `TI{2,2} ⊗ TI{2,2} → TI{4,6}` (`TI{4,5}` for a
+self product).
 
 Inversion, by contrast, **always stays in the class**:
 
@@ -147,7 +178,7 @@ adding two orthotropic tensors expressed in **different** material frames throws
 
 ```julia
 julia> ort + TensOrtho(6., 5., 7., 2., 1., 3., 1.2, 2.2, 0.8, Basis(0.3, 0.7, 0.2))
-ERROR: AssertionError: TensOrtho operation requires the same material frame
+ERROR: ArgumentError: TensOrtho operation requires the same material frame
 ```
 
 The assertion is deliberate: silently promoting to a generic tensor would hide a
@@ -168,7 +199,9 @@ cubic one changes nothing.
 | a stiffness or compliance with an axis of symmetry | `TensTI{4,T,5}` |
 | an object with an axis but no major symmetry (a concentration tensor) | `TensTI{4,T,6}` or `{4,T,8}` |
 | a cubic crystal, a cubic array, a cube-symmetric shape | `TensCubic` |
-| nine constants and a material frame | `TensOrtho` |
+| nine constants and a material frame | `TensOrtho{4,T,9}` |
+| an orthotropic object without major symmetry (a product, a concentration tensor) | `TensOrtho{4,T,12}` |
+| an order-2 tensor diagonal in a material frame | `TensOrtho{2,T,3}` |
 | anything else | a plain `Tens` |
 
 The measured cost of each is in [Performance of the structured types](@ref).

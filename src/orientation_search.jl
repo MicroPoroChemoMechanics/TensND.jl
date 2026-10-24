@@ -271,7 +271,7 @@ function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: Abstr
     sqnorm_A = sum(x -> x^2, A)
     if sqnorm_A ≈ zero(T)
         z = zero(T)
-        return zeros(T, 3, 3), z, z
+        return TensOrtho{2}(z, z, z, CanonicalBasis{3, T}()), z, z
     end
     # The eigenframe of the symmetric part: in it the projection keeps all of
     # that part, the most any frame can.

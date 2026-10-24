@@ -3,7 +3,7 @@
 # counterpart of `tens_isotropic.jl`:                                          #
 #                                                                              #
 #   TensTI     transversely isotropic tensors, stored in the Walpole basis     #
-#   TensOrtho  orthotropic tensors, nine constants plus a material frame       #
+#   TensOrtho  orthotropic tensors, nine or twelve constants plus a frame      #
 ##############################################################################
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -39,27 +39,46 @@
     TensTI{order, T, N} <: AbstractTens{order, 3, T}
 
 Transversely isotropic tensor of order `order` (always `dim=3`) with symmetry
-axis `n`, parametrized like `TensISO{order, dim, T, N}`.
+axis `n`, parametrized like `TensISO{order, dim, T, N}`: `N` is the number of
+stored coefficients, and the invariance group fixes which tensors a shape holds.
 
-Three concrete shapes are supported:
+Five concrete shapes are supported:
 
-| Parametrization          | Role                               | Stored coefficients              |
-|--------------------------|------------------------------------|----------------------------------|
-| `TensTI{2, T, 2}`        | 2nd-order TI                       | `data = (a, b)`, `n::NTuple{3}`  |
-| `TensTI{4, T, 5}`        | 4th-order TI, major-symmetric      | `data = (ℓ₁,ℓ₂,ℓ₃,ℓ₅,ℓ₆)`, `n`  |
-| `TensTI{4, T, 6}`        | 4th-order TI, general              | `data = (ℓ₁,…,ℓ₆)`, `n`          |
+| Parametrization   | Role                                   | Invariance group | Stored coefficients              |
+|-------------------|----------------------------------------|------------------|----------------------------------|
+| `TensTI{2, T, 2}` | 2nd-order TI                           | `D∞h`            | `data = (a, b)`, `n::NTuple{3}`  |
+| `TensTI{2, T, 3}` | 2nd-order, axially invariant           | `SO(2)`          | `data = (a, b, c)`, `n`          |
+| `TensTI{4, T, 5}` | 4th-order TI, major-symmetric          | `D∞h`            | `data = (ℓ₁,ℓ₂,ℓ₃,ℓ₅,ℓ₆)`, `n`   |
+| `TensTI{4, T, 6}` | 4th-order TI, general                  | `D∞h`            | `data = (ℓ₁,…,ℓ₆)`, `n`          |
+| `TensTI{4, T, 8}` | 4th-order, axially invariant           | `SO(2)`          | `data = (ℓ₁,…,ℓ₈)`, `n`          |
+
+`D∞h` is the full transverse-isotropy group (rotations about `n`, mirrors
+through and across it); `SO(2)` keeps only the rotations about `n`, and with
+them the terms odd in `n` (`c·w`, `ℓ₇W₇`, `ℓ₈W₈`, built on the in-plane
+rotation generator `w`). The two orders correspond: `N=2` ↔ `N=5, 6`, `N=3` ↔
+`N=8` (the contraction of an order-4 shape with an order-2 one of the same
+group stays in it).
 
 - **Order 2** (`N=2`): `𝐀 = a·nT + b·nₙ` where `nₙ = n⊗n`, `nT = 𝟏 − nₙ`.
   `a` is the transverse coefficient, `b` the axial one.  When `a = b`, the
   tensor is isotropic and equivalent to `TensISO{2,3,T}(a)`.
 
+- **Order 2, `N=3`**: `𝐀 = a·nT + b·nₙ + c·w`, the skew part `c·w` invariant
+  under the rotations about `n` but not under the mirrors.
+
 - **Order 4**: stored in the Walpole basis `{W₁,…,W₆}`, with
   `W₁ = nₙ⊗nₙ`, `W₂ = (nT⊗nT)/2`, `W₃ = (nₙ⊗nT)/√2`,
   `W₄ = (nT⊗nₙ)/√2`, `W₅ = nT⊠ˢnT − (nT⊗nT)/2`, `W₆ = nT⊠ˢnₙ + nₙ⊠ˢnT`.
   Major-symmetric tensors have `ℓ₃ = ℓ₄` and are stored under `N=5`.
-  Synthetic notation: `L ≡ ([[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]], ℓ₅, ℓ₆)`.
+  Synthetic notation: `L ≡ ([[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]], ℓ₅, ℓ₆)`. `N=8` adds the two
+  major-antisymmetric generators `W₇`, `W₈` of the `SO(2)` commutant.
 
-See also [`tens_TI`](@ref), [`tens_TI_eng`](@ref), [`tens_TI_Hoenig`](@ref).
+The product of two shapes of the same order returns the smallest shape holding
+it (`N=5 ⊡ N=5 → N=6`), the inverse keeps the shape, the major transpose swaps
+`ℓ₃` and `ℓ₄` (and changes the sign of `ℓ₇`, `ℓ₈`), and
+`Tensors.majorsymmetric` returns `N=5`.
+
+See also [`TensOrtho`](@ref), [`tens_TI`](@ref), [`tens_TI_eng`](@ref), [`tens_TI_Hoenig`](@ref).
 """
 struct TensTI{order, T, N} <: AbstractTens{order, 3, T}
     data::NTuple{N, T}
@@ -906,7 +925,7 @@ end
 
 
 ##############################################################################
-# TensOrtho — orthotropic 4th-order tensor
+# TensOrtho — orthotropic tensors, order 4 (9 or 12 constants) and 2 (3)
 ##############################################################################
 #
 # In the material frame (e₁,e₂,e₃) with Pₘ = eₘ⊗eₘ:
@@ -928,50 +947,91 @@ end
 # ─────────────────────────────────────────────────────────────────────────────
 
 """
-    TensOrtho{T, B<:OrthonormalBasis{3}} <: AbstractTens{4,3,T}
+    TensOrtho{order, T, N, B<:OrthonormalBasis{3}} <: AbstractTens{order, 3, T}
 
-Orthotropic 4th-order tensor with material frame `(e₁,e₂,e₃)` and 9 independent
-elastic constants `(C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)` where
-`C₄₄=C₂₃₂₃`, `C₅₅=C₁₃₁₃`, `C₆₆=C₁₂₁₂`:
+Orthotropic tensor of order `order` (always `dim=3`) with material frame
+`(e₁,e₂,e₃)` of type `B`, parametrized like [`TensTI`](@ref): `N` is the number
+of stored coefficients, with `Pₘ = eₘ⊗eₘ`.
 
-    ℂ = C₁₁P₁⊗P₁ + C₂₂P₂⊗P₂ + C₃₃P₃⊗P₃
-      + C₁₂(P₁⊗P₂+P₂⊗P₁) + C₁₃(P₁⊗P₃+P₃⊗P₁) + C₂₃(P₂⊗P₃+P₃⊗P₂)
-      + 2C₄₄(P₂⊠ˢP₃) + 2C₅₅(P₁⊠ˢP₃) + 2C₆₆(P₁⊠ˢP₂)
+Three concrete shapes are supported:
 
-with `Pₘ = eₘ⊗eₘ`. The Kelvin-Mandel matrix in the material frame is block-diagonal:
+| Parametrization           | Role                                   | Invariance group | Stored coefficients                                    |
+|---------------------------|----------------------------------------|------------------|--------------------------------------------------------|
+| `TensOrtho{2, T, 3, B}`   | 2nd-order orthotropic                  | `D₂h`            | `data = (a₁, a₂, a₃)`, `frame::B`                      |
+| `TensOrtho{4, T, 9, B}`   | 4th-order orthotropic, major-symmetric | `D₂h`            | `data = (C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)`, `frame` |
+| `TensOrtho{4, T, 12, B}`  | 4th-order orthotropic, general         | `D₂h`            | `data = (C₁₁,…,C₆₆, C₂₁,C₃₁,C₃₂)`, `frame`             |
 
-    [[C₁₁,C₁₂,C₁₃, 0,   0,   0  ],
-     [C₁₂,C₂₂,C₂₃, 0,   0,   0  ],
-     [C₁₃,C₂₃,C₃₃, 0,   0,   0  ],
-     [ 0,  0,  0,  2C₄₄, 0,   0  ],
-     [ 0,  0,  0,   0,  2C₅₅, 0  ],
-     [ 0,  0,  0,   0,   0,  2C₆₆]]
+`D₂h` is generated by the three mirror planes of the frame. At even order its
+rotation subgroup `D₂` (the half-turns about the frame axes) has the same
+invariant tensors, the inversion acting trivially: unlike transverse isotropy,
+orthotropy has no chiral shape, and these three are the whole family. The two
+orders correspond: `N=3` ↔ `N=9, 12`.
 
-The frame's element type `B` is a free type parameter, independent of the data
-eltype `T`: differentiating w.r.t. the elastic constants (`T = ForwardDiff.Dual`)
+- **Order 2** (`N=3`): `𝐀 = a₁P₁ + a₂P₂ + a₃P₃`, diagonal in the frame. A
+  second-order tensor invariant under the three mirror planes is necessarily of
+  this form, hence symmetric: there is no general order-2 counterpart.
+
+- **Order 4**: in the frame,
+
+      ℂ = Σₘₙ Cₘₙ Pₘ⊗Pₙ + 2C₄₄(P₂⊠ˢP₃) + 2C₅₅(P₁⊠ˢP₃) + 2C₆₆(P₁⊠ˢP₂)
+
+  (`C₄₄=C₂₃₂₃`, `C₅₅=C₁₃₁₃`, `C₆₆=C₁₂₁₂`), so that the Kelvin-Mandel matrix in
+  the material frame is block-diagonal:
+
+      [[C₁₁,C₁₂,C₁₃, 0,   0,   0  ],
+       [C₂₁,C₂₂,C₂₃, 0,   0,   0  ],
+       [C₃₁,C₃₂,C₃₃, 0,   0,   0  ],
+       [ 0,  0,  0,  2C₄₄, 0,   0  ],
+       [ 0,  0,  0,   0,  2C₅₅, 0  ],
+       [ 0,  0,  0,   0,   0,  2C₆₆]]
+
+  Major-symmetric tensors have `Cₙₘ = Cₘₙ` and are stored under `N=9`.
+  Synthetic notation: `ℂ ≡ (C, C₄₄, C₅₅, C₆₆)` with `C` the 3×3 normal block.
+  Product:  `(ℂ⊡𝔻)_C = C D`, `(ℂ⊡𝔻)ₘₘ = 2CₘₘDₘₘ` for the shears;
+  inverse: `(ℂ⁻¹)_C = C⁻¹`, `1/(4Cₘₘ)`.
+
+The product of two shapes of the same order returns the smallest shape holding
+it (`N=9 ⊡ N=9 → N=12`), the inverse keeps the shape, the major transpose
+transposes the normal block, and `Tensors.majorsymmetric` returns `N=9`.
+
+The frame's element type is a free type parameter, independent of the data
+eltype `T`: differentiating w.r.t. the coefficients (`T = ForwardDiff.Dual`)
 does not require a `Dual`-typed geometric frame. Keeping `B` as a concrete type
 parameter (rather than erasing it to the abstract `OrthonormalBasis{3}`) is what
 lets `t.frame` be inferred and stored unboxed.
+
+See also [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref), [`cubic_to_ortho`](@ref).
 """
-struct TensOrtho{T, B <: OrthonormalBasis{3}} <: AbstractTens{4, 3, T}
-    data::NTuple{9, T}    # (C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆)
+struct TensOrtho{order, T, N, B <: OrthonormalBasis{3}} <: AbstractTens{order, 3, T}
+    data::NTuple{N, T}    # (a₁,a₂,a₃) or (C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆[,C₂₁,C₃₁,C₃₂])
     frame::B               # material frame (e₁,e₂,e₃)
+    function TensOrtho{order, T, N, B}(data::NTuple{N, T}, frame::B) where {order, T, N, B <: OrthonormalBasis{3}}
+        (order, N) in ((2, 3), (4, 9), (4, 12)) || throw(
+            ArgumentError(
+                "a TensOrtho of order 2 stores 3 coefficients and one of order 4 stores " *
+                    "9 or 12; got order $order with $N"
+            )
+        )
+        return new{order, T, N, B}(data, frame)
+    end
 end
 
-# Outer constructor preserving the historical `TensOrtho{T}(data, frame)` call
-# form (used by `_rebuild` and the scalar/matrix constructors below) — infers
-# the frame type parameter `B` from the `frame` argument.
-TensOrtho{T}(data::NTuple{9}, frame::B) where {T, B <: OrthonormalBasis{3}} =
-    TensOrtho{T, B}(data, frame)
+# `TensOrtho{order, T}(data, frame)` and `TensOrtho{order, T, N}(data, frame)`:
+# the number of coefficients and the frame type are read from the arguments, the
+# coefficients converted to `T` (the frame keeps its own element type, see above).
+TensOrtho{order, T}(data::NTuple{N, Any}, frame::B) where {order, T, N, B <: OrthonormalBasis{3}} =
+    TensOrtho{order, T, N, B}(map(x -> convert(T, x), data), frame)
+TensOrtho{order, T, N}(data::NTuple{N, Any}, frame::B) where {order, T, N, B <: OrthonormalBasis{3}} =
+    TensOrtho{order, T, N, B}(map(x -> convert(T, x), data), frame)
 
 # ── Traits ────────────────────────────────────────────────────────────────────
 
-Base.eltype(::Type{TensOrtho{T}}) where {T} = T
-Base.length(::TensOrtho) = 81
-Base.size(::TensOrtho) = (3, 3, 3, 3)
+Base.eltype(::Type{<:TensOrtho{order, T}}) where {order, T} = T
+Base.length(::TensOrtho{order}) where {order} = 3^order
+Base.size(::TensOrtho{order}) where {order} = ntuple(_ -> 3, Val(order))
 
-get_basis(::TensOrtho{T}) where {T} = CanonicalBasis{3, T}()
-get_var(::TensOrtho) = (:cont, :cont, :cont, :cont)
+get_basis(::TensOrtho{order, T}) where {order, T} = CanonicalBasis{3, T}()
+get_var(::TensOrtho{order}) where {order} = ntuple(_ -> :cont, Val(order))
 get_var(::TensOrtho, ::Integer) = :cont
 get_data(t::TensOrtho) = t.data
 """
@@ -982,39 +1042,68 @@ Return the material frame of an orthotropic tensor.
 frame(t::TensOrtho) = t.frame
 
 # ── Rebuild helper (used by symbolic ops) ─────────────────────────────────────
-_rebuild(t::TensOrtho, new_data) = TensOrtho{eltype(new_data)}(new_data, frame(t))
+_rebuild(t::TensOrtho{order}, new_data) where {order} = TensOrtho{order, eltype(new_data)}(new_data, frame(t))
 
 # ── Constructors ──────────────────────────────────────────────────────────────
 
-"""
-    TensOrtho(C11,C22,C33,C12,C13,C23,C44,C55,C66, frame)
-
-Orthotropic tensor from the 9 elastic constants in the material frame `frame`.
-"""
-function TensOrtho(
-        C11, C22, C33, C12, C13, C23, C44, C55, C66,
-        frame::OrthonormalBasis{3}
-    )
+# TensOrtho{4}(C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆, frame) → TensOrtho{4, T, 9}
+# Major-symmetric orthotropic 4th-order tensor, 9 independent constants.
+function TensOrtho{4}(C11, C22, C33, C12, C13, C23, C44, C55, C66, frame::OrthonormalBasis{3})
     T = promote_type(
-        typeof(C11), typeof(C22), typeof(C33),
-        typeof(C12), typeof(C13), typeof(C23),
+        typeof(C11), typeof(C22), typeof(C33), typeof(C12), typeof(C13), typeof(C23),
         typeof(C44), typeof(C55), typeof(C66), eltype(frame)
     )
-    return TensOrtho{T}(
-        (
-            T(C11), T(C22), T(C33), T(C12), T(C13), T(C23),
-            T(C44), T(C55), T(C66),
-        ), frame
+    return TensOrtho{4, T, 9}((C11, C22, C33, C12, C13, C23, C44, C55, C66), frame)
+end
+
+# TensOrtho{4}(C₁₁,…,C₆₆, C₂₁,C₃₁,C₃₂, frame) → TensOrtho{4, T, 12}
+# General (not necessarily major-symmetric) orthotropic 4th-order tensor.
+function TensOrtho{4}(
+        C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32, frame::OrthonormalBasis{3}
     )
+    T = promote_type(
+        typeof(C11), typeof(C22), typeof(C33), typeof(C12), typeof(C13), typeof(C23),
+        typeof(C44), typeof(C55), typeof(C66), typeof(C21), typeof(C31), typeof(C32), eltype(frame)
+    )
+    return TensOrtho{4, T, 12}((C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32), frame)
+end
+
+# TensOrtho{2}(a₁, a₂, a₃, frame) → TensOrtho{2, T, 3}
+# `a₁P₁ + a₂P₂ + a₃P₃`, diagonal in the frame.
+function TensOrtho{2}(a1, a2, a3, frame::OrthonormalBasis{3})
+    T = promote_type(typeof(a1), typeof(a2), typeof(a3), eltype(frame))
+    return TensOrtho{2, T, 3}((a1, a2, a3), frame)
 end
 
 """
+    TensOrtho(C11,C22,C33,C12,C13,C23,C44,C55,C66, frame)
+    TensOrtho(C11,C22,C33,C12,C13,C23,C44,C55,C66,C21,C31,C32, frame)
+
+Shorthand for `TensOrtho{4}(…)`: the orthotropic 4th-order tensor of the 9
+constants of a major-symmetric one, or the 12 of a general one (`C₂₁, C₃₁, C₃₂`
+last), in the material frame `frame`. The order-2 tensor is `TensOrtho{2}(a₁,
+a₂, a₃, frame)`.
+"""
+TensOrtho(C11, C22, C33, C12, C13, C23, C44, C55, C66, frame::OrthonormalBasis{3}) =
+    TensOrtho{4}(C11, C22, C33, C12, C13, C23, C44, C55, C66, frame)
+TensOrtho(C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32, frame::OrthonormalBasis{3}) =
+    TensOrtho{4}(C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32, frame)
+
+"""
     TensOrtho(KMmat::AbstractMatrix, frame)
+    TensOrtho(KMmat::AbstractMatrix, frame, Val(12))
 
 Build a `TensOrtho` from a 6×6 Kelvin-Mandel matrix expressed in the material frame.
 The matrix must have the block-diagonal orthotropic structure:
 upper-left 3×3 for normal stresses and lower-right 3×3 diagonal for shear.
+The nine-constant form reads the upper triangle of the normal block; with
+`Val(12)` the whole block is read, for a tensor without major symmetry.
 """
+TensOrtho(KMmat::AbstractMatrix, frame::OrthonormalBasis{3}, ::Val{9}) = TensOrtho(KMmat, frame)
+function TensOrtho(KMmat::AbstractMatrix, frame::OrthonormalBasis{3}, ::Val{12})
+    O = TensOrtho(KMmat, frame)
+    return TensOrtho{4, eltype(O)}((get_data(O)..., KMmat[2, 1], KMmat[3, 1], KMmat[3, 2]), frame)
+end
 function TensOrtho(KMmat::AbstractMatrix, frame::OrthonormalBasis{3})
     T = eltype(KMmat)
     C11 = KMmat[1, 1]; C22 = KMmat[2, 2]; C33 = KMmat[3, 3]
@@ -1022,7 +1111,7 @@ function TensOrtho(KMmat::AbstractMatrix, frame::OrthonormalBasis{3})
     C44 = KMmat[4, 4] / 2
     C55 = KMmat[5, 5] / 2
     C66 = KMmat[6, 6] / 2
-    return TensOrtho{T}(
+    return TensOrtho{4, T}(
         (
             T(C11), T(C22), T(C33), T(C12), T(C13), T(C23),
             T(C44), T(C55), T(C66),
@@ -1074,15 +1163,34 @@ end
     end
 end
 
+# The general form: the major-symmetric entry of the symmetric part of the
+# normal block, plus the skew part `aₘₙ (Pₘ⊗Pₙ − Pₙ⊗Pₘ)`, `aₘₙ = (Cₘₙ − Cₙₘ)/2`.
+# Written this way the nine-constant entry above is reused as it is, and a
+# tensor whose skew part vanishes has exactly the components of its symmetric
+# form.
+@inline function _ortho_entry(
+        E, C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32,
+        i::Integer, j::Integer, k::Integer, l::Integer
+    )
+    @inbounds begin
+        P(m, a, b) = E[a, m] * E[b, m]
+        skew(m, n) = P(m, i, j) * P(n, k, l) - P(n, i, j) * P(m, k, l)
+        return _ortho_entry(
+            E, C11, C22, C33, (C12 + C21) / 2, (C13 + C31) / 2, (C23 + C32) / 2,
+            C44, C55, C66, i, j, k, l
+        ) + (C12 - C21) / 2 * skew(1, 2) + (C13 - C31) / 2 * skew(1, 3) + (C23 - C32) / 2 * skew(2, 3)
+    end
+end
+
 """
-    get_array(t::TensOrtho{T}) → Array{T,4}
+    get_array(t::TensOrtho{4,T}) → Array{T,4}
 
 Compute the 3×3×3×3 component array in the canonical frame.
 """
 # Its 36 independent components, through `_static_tensor`: a third faster than
 # the 81 evaluated one by one, and exactly minor-symmetric. (The TI forms keep
 # their loops, measured faster: `getindex` repeats a setup the loop shares.)
-get_array(t::TensOrtho) = Array(_static_tensor(t))
+get_array(t::TensOrtho{4}) = Array(_static_tensor(t))
 
 """
     getindex(t::TensOrtho, i, j, k, l)
@@ -1092,14 +1200,9 @@ Single component in closed form, without building the 81 components:
 broadcasting, `show`, `tomandel`, …) walks it element by element, and a dense
 access per element would make an O(81) traversal cost O(81²).
 """
-Base.@propagate_inbounds function Base.getindex(
-        t::TensOrtho, i::Integer, j::Integer, k::Integer, l::Integer
-    )
-    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(t)
-    return _ortho_entry(
-        vecbasis(t.frame, :cov), C11, C22, C33, C12, C13, C23, C44, C55, C66, i, j, k, l
-    )
-end
+Base.@propagate_inbounds Base.getindex(
+    t::TensOrtho{4}, i::Integer, j::Integer, k::Integer, l::Integer
+) = _ortho_entry(vecbasis(t.frame, :cov), get_data(t)..., i, j, k, l)
 
 Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 
@@ -1111,25 +1214,52 @@ Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 Returns the 6×6 Kelvin-Mandel matrix in the **canonical** frame.
 Use `KM_material(t)` for the block-diagonal form in the material frame.
 """
-KM(t::TensOrtho) = Matrix(_km_in_frame(t))
+KM(t::TensOrtho{4}) = Matrix(_km_in_frame(t))
 
 """
     KM_material(t::TensOrtho)
 
 Returns the 6×6 Kelvin-Mandel matrix in the material frame (block-diagonal).
 """
-function KM_material(t::TensOrtho{T}) where {T}
-    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(t)
+function KM_material(t::TensOrtho{4, T}) where {T}
+    N = _ortho_normal_block(t)
+    C44, C55, C66 = _ortho_shears(t)
     z = zero(T)
     return @SMatrix [
-        C11  C12  C13   z    z    z  ;
-        C12  C22  C23   z    z    z  ;
-        C13  C23  C33   z    z    z  ;
-        z    z    z  2C44   z    z  ;
-        z    z    z    z  2C55   z  ;
-        z    z    z    z    z  2C66
+        N[1, 1]  N[1, 2]  N[1, 3]   z    z    z  ;
+        N[2, 1]  N[2, 2]  N[2, 3]   z    z    z  ;
+        N[3, 1]  N[3, 2]  N[3, 3]   z    z    z  ;
+        z        z        z      2C44   z    z  ;
+        z        z        z        z  2C55   z  ;
+        z        z        z        z    z  2C66
     ]
 end
+
+# ── The two blocks of the material-frame Kelvin-Mandel matrix ─────────────────
+#
+# The normal 3×3 block `Cₘₙ` (row: stress, column: strain) and the three shear
+# moduli `(C₄₄, C₅₅, C₆₆)`; every closed form below works on them, whatever the
+# number of stored constants.
+function _ortho_normal_block(t::TensOrtho{4, T, 9}) where {T}
+    C11, C22, C33, C12, C13, C23 = get_data(t)
+    return SMatrix{3, 3, T}(C11, C12, C13, C12, C22, C23, C13, C23, C33)
+end
+function _ortho_normal_block(t::TensOrtho{4, T, 12}) where {T}
+    C11, C22, C33, C12, C13, C23, _, _, _, C21, C31, C32 = get_data(t)
+    return SMatrix{3, 3, T}(C11, C21, C31, C12, C22, C32, C13, C23, C33)
+end
+_ortho_shears(t::TensOrtho{4}) = (get_data(t)[7], get_data(t)[8], get_data(t)[9])
+
+# The general tensor of normal block `M` and shear moduli `s` on `frame`.
+# Its element type spans the frame's as well, as the positional constructor's
+# does: the components are products of both.
+_ortho_from_blocks(M::SMatrix{3, 3}, s, frame) =
+    TensOrtho{4, promote_type(eltype(M), eltype(frame))}((M[1, 1], M[2, 2], M[3, 3], M[1, 2], M[1, 3], M[2, 3], s..., M[2, 1], M[3, 1], M[3, 2]), frame)
+
+# The twelve-constant form of a nine-constant tensor, `Cₙₘ = Cₘₙ` written out.
+_ortho_general(t::TensOrtho{4, <:Any, 12}) = t
+_ortho_general(t::TensOrtho{4, T, 9}) where {T} =
+    (d = get_data(t); TensOrtho{4, T}((d..., d[4], d[5], d[6]), frame(t)))
 
 # ── Kelvin-Mandel congruence of the material frame ────────────────────────────
 #
@@ -1211,13 +1341,18 @@ end
 # Scalar ops (-, α*A, A*α, A/α) and _check_same_reference defined in
 # structured_tens_ops.jl
 
-@inline function Base.:+(A::TensOrtho, B::TensOrtho)
-    _check_same_reference(A, B)
-    return _rebuild(A, get_data(A) .+ get_data(B))
-end
-@inline function Base.:-(A::TensOrtho, B::TensOrtho)
-    _check_same_reference(A, B)
-    return _rebuild(A, get_data(A) .- get_data(B))
+# Two forms of the same length add coefficient by coefficient; a nine-constant
+# operand is written in the twelve-constant form against a general one.
+# (One method per shape: a free `N` shared by both arguments would make the
+# method less specific than the mixed one, which would then call itself.)
+for OP in (:+, :-)
+    for (order, N) in ((2, 3), (4, 9), (4, 12))
+        @eval @inline function Base.$OP(A::TensOrtho{$order, <:Any, $N}, B::TensOrtho{$order, <:Any, $N})
+            _check_same_reference(A, B)
+            return _rebuild(A, map($OP, get_data(A), get_data(B)))
+        end
+    end
+    @eval @inline Base.$OP(A::TensOrtho{4}, B::TensOrtho{4}) = $OP(_ortho_general(A), _ortho_general(B))
 end
 
 # ── Inverse ───────────────────────────────────────────────────────────────────
@@ -1225,13 +1360,14 @@ end
 """
     inv(t::TensOrtho) → TensOrtho
 
-Inverse in closed form: the upper 3×3 symmetric block `[[C₁₁,C₁₂,C₁₃],[C₁₂,C₂₂,C₂₃],
-[C₁₃,C₂₃,C₃₃]]` is inverted via its scalar adjugate/determinant, and each shear
+Inverse in closed form: the upper 3×3 block `[[C₁₁,C₁₂,C₁₃],[C₂₁,C₂₂,C₂₃],
+[C₃₁,C₃₂,C₃₃]]` is inverted via its scalar adjugate/determinant, and each shear
 term inverts as `Cₘₘ' = 1/(4Cₘₘ)` (since the KM diagonal entry is `2Cₘₘ`). No
 heap allocation, no LU factorization — matches the block structure documented
-on `TensOrtho`.
+on `TensOrtho`. The inverse keeps the form: nine constants (the inverse of a
+symmetric block is symmetric) or twelve.
 """
-function Base.inv(t::TensOrtho{T}) where {T}
+function Base.inv(t::TensOrtho{4, T, 9}) where {T}
     a, b, c, d, e, f = get_data(t)[1:6]   # a=C₁₁, b=C₂₂, c=C₃₃, d=C₁₂, e=C₁₃, f=C₂₃
     C44, C55, C66 = get_data(t)[7:9]
     det = a * b * c + 2 * d * e * f - a * f * f - b * e * e - c * d * d
@@ -1251,63 +1387,84 @@ function Base.inv(t::TensOrtho{T}) where {T}
     )
 end
 
+function Base.inv(t::TensOrtho{4, T, 12}) where {T}
+    M = _ortho_normal_block(t)
+    # Adjugate over determinant: the cofactors in closed form, no pivoting, so
+    # that a symbolic block inverts as a numeric one.
+    a, d, g, b, e, h, c, f, k = M   # M = [a b c; d e f; g h k], column-major
+    A = e * k - f * h
+    B = f * g - d * k
+    C = d * h - e * g
+    inv_det = one(T) / (a * A + b * B + c * C)
+    Minv = SMatrix{3, 3, T}(
+        A * inv_det, B * inv_det, C * inv_det,
+        (c * h - b * k) * inv_det, (a * k - c * g) * inv_det, (b * g - a * h) * inv_det,
+        (b * f - c * e) * inv_det, (c * d - a * f) * inv_det, (a * e - b * d) * inv_det,
+    )
+    return _ortho_from_blocks(Minv, map(x -> inv(4 * x), _ortho_shears(t)), frame(t))
+end
+
 @inline Base.literal_pow(::typeof(^), A::TensOrtho, ::Val{-1}) = inv(A)
+
+# ── Major transpose ───────────────────────────────────────────────────────────
+#
+# `tᵀ_ijkl = t_klij`: the normal block is transposed, the shear terms are their
+# own transposes. A nine-constant tensor is its own transpose.
+
+@inline Base.transpose(A::TensOrtho{4, <:Any, 9}) = A
+@inline function Base.transpose(A::TensOrtho{4, <:Any, 12})
+    C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32 = get_data(A)
+    return _rebuild(A, (C11, C22, C33, C21, C31, C32, C44, C55, C66, C12, C13, C23))
+end
+@inline Base.adjoint(A::TensOrtho) = transpose(conj(A))
 
 # ── Double contraction ────────────────────────────────────────────────────────
 
 """
-    dcontract(A::TensOrtho, B::TensOrtho) → TensCanonical{4,3}
+    dcontract(A::TensOrtho{4}, B::TensOrtho{4}) → TensOrtho{4, T, 12}
 
 Closed form via the material-frame Kelvin-Mandel blocks.
 
 Double contraction *is* the matrix product in Kelvin-Mandel, and in the shared
-material frame both operands are block-diagonal, `[3×3 sym] ⊕ diag(2C₄₄,2C₅₅,2C₆₆)`,
-so the product costs one 3×3 product plus three scalar products instead of two
-dense 81-component expansions.  The result is then carried back to the
-canonical frame by the congruence of §`_km_congruence`:
+material frame both operands are block-diagonal, `[3×3] ⊕ diag(2C₄₄,2C₅₅,2C₆₆)`,
+so the product is one 3×3 product plus three scalar products:
 
-    KM(A ⊡ B) == Q * (KM_material(A) * KM_material(B)) * transpose(Q)
+    KM_material(A ⊡ B) == KM_material(A) * KM_material(B)
 
-**The result is not a `TensOrtho`.** The product of two symmetric 3×3 blocks is
-not symmetric unless they commute, so `A ⊡ B` is orthotropic *without major
-symmetry* — 12 independent constants where `TensOrtho` stores 9. This is the
-same widening that makes `dcontract(::TensTI{4}, ::TensTI{4})` return N=6
-rather than N=5. Rather than introduce a 12-parameter container, this method
-returns the `TensCanonical` the generic route returns, equal to it up to
-floating-point reassociation.
+The result is orthotropic on the same frame, in the **twelve-constant** form:
+the product of two symmetric 3×3 blocks is not symmetric unless they commute,
+so `A ⊡ B` has no major symmetry in general, the same widening that makes
+`dcontract(::TensTI{4}, ::TensTI{4})` return `N=6` rather than `N=5`. Take
+`Tensors.majorsymmetric` of the result for its nine-constant symmetric part.
 
 If the two material frames differ the product is generally fully anisotropic
 and the generic route is taken instead.
 """
-function Tensors.dcontract(A::TensOrtho, B::TensOrtho)
-    frame(A) == frame(B) ||
-        return Tensors.dcontract(generic_tens(A), generic_tens(B))
-    T = promote_type(eltype(A), eltype(B))
-    E = vecbasis(frame(A), :cov)
-    Q = _km_congruence(SMatrix{3, 3, T}(E))
-    # Block product in the material frame: the upper 3×3 blocks multiply, the
-    # lower ones are diagonal.  Writing it blockwise rather than as a 6×6
-    # product keeps the structural zeros out of the arithmetic (LLVM cannot
-    # fold `x * 0.0` on its own, since that is not `0.0` for every `x`).
-    Ma = KM_material(A)
-    Mb = KM_material(B)
-    S = SMatrix{3, 3, T}(@view Ma[1:3, 1:3]) * SMatrix{3, 3, T}(@view Mb[1:3, 1:3])
-    d = SVector{3, T}(Ma[4, 4] * Mb[4, 4], Ma[5, 5] * Mb[5, 5], Ma[6, 6] * Mb[6, 6])
-    Q1 = Q[:, SVector(1, 2, 3)]
-    Q2 = Q[:, SVector(4, 5, 6)]
-    KMcan = Q1 * S * transpose(Q1) + (Q2 .* transpose(d)) * transpose(Q2)
-    return inv_KM(SymmetricTensor{4, 3}, KMcan)
+# Inlined, so that a caller splits the union on the spot instead of receiving
+# a boxed result; the generic route is kept out of line.
+@inline function Tensors.dcontract(A::TensOrtho{4}, B::TensOrtho{4})
+    frame(A) == frame(B) || return _generic_dcontract(A, B)
+    # The diagonal Kelvin-Mandel entries are `2Cₘₘ`: `2Cₐ · 2C_b = 2 (2CₐC_b)`.
+    s = map((a, b) -> 2 * a * b, _ortho_shears(A), _ortho_shears(B))
+    return _ortho_from_blocks(_ortho_normal_block(A) * _ortho_normal_block(B), s, frame(A))
 end
+
+@noinline _generic_dcontract(A, B) = Tensors.dcontract(generic_tens(A), generic_tens(B))
 
 # ── Symmetry ──────────────────────────────────────────────────────────────────
 
-LinearAlgebra.issymmetric(::TensOrtho) = true
-Tensors.isminorsymmetric(::TensOrtho) = true
-Tensors.ismajorsymmetric(::TensOrtho) = true
+LinearAlgebra.issymmetric(::TensOrtho{4, <:Any, 9}) = true
+# The twelve-constant form is major-symmetric when its normal block is symmetric.
+function LinearAlgebra.issymmetric(t::TensOrtho{4, <:Any, 12})
+    _, _, _, C12, C13, C23, _, _, _, C21, C31, C32 = get_data(t)
+    return isequal(C12, C21) && isequal(C13, C31) && isequal(C23, C32)
+end
+Tensors.isminorsymmetric(::TensOrtho{4}) = true
+Tensors.ismajorsymmetric(t::TensOrtho{4}) = issymmetric(t)
 
 # ── is_ISO / is_TI / is_ORTHO ───────────────────────────────────────────────────
 
-is_ISO(::TensOrtho) = false
+is_ISO(::TensOrtho{4}) = false
 is_TI(::TensOrtho) = false
 is_ORTHO(::TensOrtho) = true
 is_ORTHO(::Any) = false   # universal fallback
@@ -1372,21 +1529,97 @@ reference(::Any) = nothing
 # ── Display ───────────────────────────────────────────────────────────────────
 
 function Base.show(io::IO, A::TensOrtho)
-    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(A)
-    print(io, "(", C11, ") P₁⊗P₁ + (", C22, ") P₂⊗P₂ + (", C33, ") P₃⊗P₃")
-    print(io, "\n  + (", C12, ")(P₁⊗P₂+P₂⊗P₁) + (", C13, ")(P₁⊗P₃+P₃⊗P₁) + (", C23, ")(P₂⊗P₃+P₃⊗P₂)")
-    print(io, "\n  + 2(", C44, ")(P₂⊠ˢP₃) + 2(", C55, ")(P₁⊠ˢP₃) + 2(", C66, ")(P₁⊠ˢP₂)")
+    _show_ortho_terms(io, A)
     return print(io, "\n  frame: ", vecbasis(A.frame, :cov))
 end
 
 function pprint(A::TensOrtho)
-    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(A)
-    println("(", C11, ") P₁⊗P₁ + (", C22, ") P₂⊗P₂ + (", C33, ") P₃⊗P₃")
-    println("  + (", C12, ")(P₁⊗P₂+P₂⊗P₁) + (", C13, ")(P₁⊗P₃+P₃⊗P₁) + (", C23, ")(P₂⊗P₃+P₃⊗P₂)")
-    println("  + 2(", C44, ")(P₂⊠ˢP₃) + 2(", C55, ")(P₁⊠ˢP₃) + 2(", C66, ")(P₁⊠ˢP₂)")
-    return println("  frame: ", vecbasis(A.frame, :cov))
+    _show_ortho_terms(stdout, A)
+    return println("\n  frame: ", vecbasis(A.frame, :cov))
 end
 
+function _show_ortho_terms(io::IO, A::TensOrtho{4, <:Any, 9})
+    C11, C22, C33, C12, C13, C23, C44, C55, C66 = get_data(A)
+    print(io, "(", C11, ") P₁⊗P₁ + (", C22, ") P₂⊗P₂ + (", C33, ") P₃⊗P₃")
+    print(io, "\n  + (", C12, ")(P₁⊗P₂+P₂⊗P₁) + (", C13, ")(P₁⊗P₃+P₃⊗P₁) + (", C23, ")(P₂⊗P₃+P₃⊗P₂)")
+    return print(io, "\n  + 2(", C44, ")(P₂⊠ˢP₃) + 2(", C55, ")(P₁⊠ˢP₃) + 2(", C66, ")(P₁⊠ˢP₂)")
+end
+function _show_ortho_terms(io::IO, A::TensOrtho{4, <:Any, 12})
+    C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32 = get_data(A)
+    print(io, "(", C11, ") P₁⊗P₁ + (", C22, ") P₂⊗P₂ + (", C33, ") P₃⊗P₃")
+    print(io, "\n  + (", C12, ") P₁⊗P₂ + (", C21, ") P₂⊗P₁ + (", C13, ") P₁⊗P₃ + (", C31, ") P₃⊗P₁")
+    print(io, "\n  + (", C23, ") P₂⊗P₃ + (", C32, ") P₃⊗P₂")
+    return print(io, "\n  + 2(", C44, ")(P₂⊠ˢP₃) + 2(", C55, ")(P₁⊠ˢP₃) + 2(", C66, ")(P₁⊠ˢP₂)")
+end
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# TensOrtho{2} — orthotropic 2nd-order tensor, the counterpart of TensTI{2,T,2}
+# ─────────────────────────────────────────────────────────────────────────────
+#
+#   𝐀 = a₁P₁ + a₂P₂ + a₃P₃,   Pₘ = eₘ⊗eₘ,
+#
+# diagonal in the material frame. Product, inverse and trace act on the three
+# coefficients; with an order-4 orthotropic tensor on the same frame the double
+# contraction is the normal block acting on (a₁, a₂, a₃), the shear terms
+# vanishing on a diagonal tensor.
+
+# Component (i, j) in the frame whose vectors are the columns of `E`.
+@inline _ortho2_entry(E, a1, a2, a3, i::Integer, j::Integer) =
+    @inbounds a1 * E[i, 1] * E[j, 1] + a2 * E[i, 2] * E[j, 2] + a3 * E[i, 3] * E[j, 3]
+
+Base.@propagate_inbounds Base.getindex(t::TensOrtho{2}, i::Integer, j::Integer) =
+    _ortho2_entry(vecbasis(t.frame, :cov), get_data(t)..., i, j)
+
+@inline _static_tensor(t::TensOrtho{2}) = SymmetricTensor{2, 3, eltype(t)}((i, j) -> @inbounds t[i, j])
+
+"""
+    get_array(t::TensOrtho{2,T}) → Array{T,2}
+
+The 3×3 component array in the canonical frame, `Σₘ aₘ eₘ⊗eₘ`.
+"""
+get_array(t::TensOrtho{2}) = Array(_static_tensor(t))
+
+KM(t::TensOrtho{2}) = tomandel(_static_tensor(t))
+
+# The same tensor on another frame (geometry only): what the projections rotate.
+_rebuild_frame(t::TensOrtho{order}, frame::OrthonormalBasis{3}) where {order} =
+    TensOrtho{order, eltype(t)}(get_data(t), frame)
+
+"""
+    inv(t::TensOrtho{2,T,3}) → TensOrtho{2,T,3}
+
+Inverse: `(a₁P₁ + a₂P₂ + a₃P₃)⁻¹ = (1/a₁)P₁ + (1/a₂)P₂ + (1/a₃)P₃`.
+"""
+@inline Base.inv(t::TensOrtho{2}) = _rebuild(t, map(inv, get_data(t)))
+
+"""
+    tr(t::TensOrtho{2}) → scalar
+
+Trace: `a₁ + a₂ + a₃`.
+"""
+LinearAlgebra.tr(t::TensOrtho{2}) = sum(get_data(t))
+
+LinearAlgebra.issymmetric(::TensOrtho{2}) = true
+@inline Base.transpose(A::TensOrtho{2}) = A
+is_ISO(t::TensOrtho{2}) = ((a1, a2, a3) = get_data(t); a1 == a2 && a2 == a3)
+
+# The components in an orthonormal basis ℬ in closed form: the same
+# coefficients with the frame written in ℬ, as for the order-4 tensor.
+function change_tens(t::TensOrtho{2, T}, ℬ::OrthonormalBasis{3, T}) where {T}
+    F = vecbasis(frame(t), :cov)
+    Tf = promote_type(T, eltype(F))
+    E = transpose(SMatrix{3, 3, Tf}(vecbasis(ℬ, :cov))) * SMatrix{3, 3, Tf}(F)
+    S = SymmetricTensor{2, 3}((i, j) -> _ortho2_entry(E, get_data(t)..., i, j))
+    return Tens(S, ℬ, get_var(t))
+end
+components(t::TensOrtho{2, T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{2, Symbol}) where {T} =
+    components(_as_canonical_tens(t), ℬ, v)
+
+function _show_ortho_terms(io::IO, A::TensOrtho{2})
+    a1, a2, a3 = get_data(A)
+    return print(io, "(", a1, ") P₁ + (", a2, ") P₂ + (", a3, ") P₃")
+end
 
 ##############################################################################
 # Shared change_tens / components for TensTI{4} and TensOrtho
@@ -1415,10 +1648,10 @@ components(t::TensTI{4}, ::NTuple{4, Symbol}) = get_array(t)
 # TensOrtho — same reasoning: stored in the canonical frame, so a rotated basis
 # needs a genuine change of components (`change_tens` in `tens_cubic.jl`, shared
 # with `TensCubic`).
-components(t::TensOrtho{T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
+components(t::TensOrtho{4, T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
-components(t::TensOrtho) = get_array(t)
-components(t::TensOrtho, ::NTuple{4, Symbol}) = get_array(t)
+components(t::TensOrtho{order}) where {order} = get_array(t)
+components(t::TensOrtho{order}, ::NTuple{order, Symbol}) where {order} = get_array(t)
 
 ##############################################################################
 # TensTI{4,T,8} — full axially-invariant (azimuthal-average) 4th-order space #
@@ -1544,6 +1777,28 @@ form with vanishing antisymmetric couplings.
 """
 _lift_walpole_N8(A::TensTI{4, T, 5}) where {T} = TensTI{4, T, 8}(get_ℓ8(A), axis(A))
 _lift_walpole_N8(A::TensTI{4, T, 6}) where {T} = TensTI{4, T, 8}(get_ℓ8(A), axis(A))
+
+# ── Major transpose ───────────────────────────────────────────────────────────
+#
+# `tᵀ_ijkl = t_klij` (order 4), `tᵀ_ij = t_ji` (order 2), shape kept: in the
+# Walpole basis the transpose swaps ℓ₃ and ℓ₄ and changes the sign of the
+# major-antisymmetric ℓ₇, ℓ₈; at order 2 it changes the sign of the skew c·w.
+# The symmetric shapes are their own transposes.
+
+@inline Base.transpose(A::Union{TensTI{2, <:Any, 2}, TensTI{4, <:Any, 5}}) = A
+@inline function Base.transpose(A::TensTI{4, <:Any, 6})
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_data(A)
+    return _rebuild(A, (ℓ₁, ℓ₂, ℓ₄, ℓ₃, ℓ₅, ℓ₆))
+end
+@inline function Base.transpose(A::TensTI{4, <:Any, 8})
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = get_data(A)
+    return _rebuild(A, (ℓ₁, ℓ₂, ℓ₄, ℓ₃, ℓ₅, ℓ₆, -ℓ₇, -ℓ₈))
+end
+@inline function Base.transpose(A::TensTI{2, <:Any, 3})
+    a, b, c = get_data(A)
+    return _rebuild(A, (a, b, -c))
+end
+@inline Base.adjoint(A::TensTI) = transpose(conj(A))
 _lift_walpole_N8(A::TensTI{4, T, 8}) where {T} = A
 
 # Lift a 2nd-order symmetric TI (N=2) to the full axially-invariant N=3 form.

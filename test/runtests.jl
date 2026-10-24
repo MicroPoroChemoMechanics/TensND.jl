@@ -104,6 +104,8 @@ include("test_hot_paths.jl")
 include("test_tens_isotropic.jl")
 include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
+# The twelve-constant orthotropic form, without major symmetry.
+include("test_ortho_general.jl")
 # `KM` and `change_tens` of the structured classes in closed form.
 include("test_structured_closed_forms.jl")
 # Kelvin-Mandel block algebra about a normal (in-plane / out-of-plane).

@@ -86,7 +86,7 @@
     @inferred change_tens(TensISO{3}(2.0), ℬr)   # order 2: the constructor takes the dimension
     for (f, args) in (
             (KM, (G,)), (KM, (GR,)), (KM, (GR, CanonicalBasis{3, Float64}())),
-            (⊗, (S2, S2)), (⊗, (S2R, S2R)), (⊡, (G, S2)), (⊡, (GR, S2R)), (⊡, (ORr, ORr)),
+            (⊗, (S2, S2)), (⊗, (S2R, S2R)), (⊡, (G, S2)), (⊡, (GR, S2R)),
             (inv, (G,)), (inv, (GR,)), (+, (GR, GR)), (isotropify, (ORr,)), (KM_rotation, (Matrix(ℬr),)),
         )
         @inferred f(args...)
@@ -95,6 +95,12 @@
     # target basis is returned as it is, a basis that is the identity is the
     # canonical one, and the storage is symmetric only if the components are.
     @inferred Union{typeof(G), typeof(GR)} change_tens(G, ℬr)
+    # Two orthotropic tensors on the same frame multiply in the twelve-constant
+    # form, on different frames by the generic route.
+    @inferred Union{TensOrtho{4, Float64, 12, typeof(ℬr)}, TensND.TensCanonical{4, 3, Float64, SymmetricTensor{4, 3, Float64, 36}}} ORr ⊡ ORr
+    # The product is inlined: a caller splits the union and allocates nothing
+    # (only the union itself, returned from a non-inlined call, is boxed).
+    @test _allocs((a, b) -> get_data(a ⊡ b), ORr, ORr) == 0
     @inferred Union{typeof(G), typeof(GR)} change_tens(GR, CanonicalBasis{3, Float64}())
     @inferred Union{Array{Float64, 4}, SymmetricTensor{4, 3, Float64, 36}} components_canon(GR)
     @inferred Union{RotatedBasis{<:Any, Float64}, CanonicalBasis{<:Any, Float64}} frame_from_axis((0.3, -0.5, 0.8))

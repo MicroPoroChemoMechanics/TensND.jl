@@ -347,9 +347,9 @@ Base.zero(t::TensCubic{T}) where {T} = _rebuild(t, (zero(T), zero(T), zero(T)))
 
 **The product stays in the class**, which neither of the other structured types
 manages: `dcontract(::TensTI{4}, ::TensTI{4})` widens from five Walpole
-coefficients to six, and `dcontract(::TensOrtho, ::TensOrtho)` leaves
-orthotropy altogether, because the product of two symmetric 3×3 blocks is not
-symmetric unless they commute. Here the three projectors are one-dimensional in
+coefficients to six, and `dcontract(::TensOrtho, ::TensOrtho)` from nine
+orthotropic constants to twelve, because the product of two symmetric 3×3
+blocks is not symmetric unless they commute. Here the three projectors are one-dimensional in
 the sense that matters — each irreducible representation appears once — so
 every cubic tensor commutes with every other on the same cube, and the product
 is cubic and still major-symmetric.
@@ -403,7 +403,7 @@ reference(t::TensCubic) = frame(t)
 # `_ortho_entry` gives its components there, exact for every element type,
 # without the 81 canonical ones rotated index by index. A left-handed ℬ needs no
 # care: each frame vector enters the formula an even number of times.
-function change_tens(t::Union{TensOrtho{T}, TensCubic{T}}, ℬ::OrthonormalBasis{3, T}) where {T}
+function change_tens(t::Union{TensOrtho{4, T}, TensCubic{T}}, ℬ::OrthonormalBasis{3, T}) where {T}
     F = vecbasis(frame(t), :cov)
     Tf = promote_type(T, eltype(F))
     E = transpose(SMatrix{3, 3, Tf}(vecbasis(ℬ, :cov))) * SMatrix{3, 3, Tf}(F)
@@ -414,7 +414,7 @@ end
 
 # The nine orthotropic coefficients, a cubic tensor being an orthotropic one
 # with C₁₁ = C₂₂ = C₃₃, C₁₂ = C₁₃ = C₂₃ and C₄₄ = C₅₅ = C₆₆.
-_ortho_coefficients(t::TensOrtho) = get_data(t)
+_ortho_coefficients(t::TensOrtho{4}) = get_data(t)
 function _ortho_coefficients(t::TensCubic)
     C₁₁, C₁₂, C₄₄ = arg_cubic(t)
     return (C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄)
@@ -460,7 +460,7 @@ function _show_km(io::IO, A::AbstractTens{4})
     print(io, "\n→ KM: ")
     return show(io, MIME"text/plain"(), KM(A))
 end
-function _show_km(io::IO, A::TensOrtho)
+function _show_km(io::IO, A::TensOrtho{4})
     print(io, "\n→ KM (material frame): ")
     show(io, MIME"text/plain"(), KM_material(A))
     print(io, "\n→ KM (canonical frame): ")

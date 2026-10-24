@@ -31,7 +31,7 @@
 # ──────────────────────────────────────────────────────────────────────────────
 
 """
-    iso_to_ortho(A::TensISO{4,3,T}, frame::OrthonormalBasis{3}) → TensOrtho{T}
+    iso_to_ortho(A::TensISO{4,3,T}, frame::OrthonormalBasis{3}) → TensOrtho{4,T,9}
 
 Convert an isotropic 4th-order tensor `α·𝕁 + β·𝕂` into a `TensOrtho` stored in
 the given material frame. An isotropic tensor is orthotropic in *any* frame;
@@ -50,7 +50,7 @@ julia> I4 = TensISO{3}(2.0, 3.0);   # α=2, β=3
 
 julia> O = iso_to_ortho(I4, CanonicalBasis{3,Float64}());
 
-julia> O isa TensOrtho{Float64}
+julia> O isa TensOrtho{4, Float64, 9}
 true
 
 julia> get_data(O)[1], get_data(O)[4], get_data(O)[7]
@@ -106,7 +106,7 @@ function _axis_on_frame_index(n, frame::OrthonormalBasis{3}; atol = 1.0e-10)
 end
 
 """
-    walpole_to_ortho(A::TensTI{4, T, 5}, frame::OrthonormalBasis{3}, axis_idx::Int) → TensOrtho{T}
+    walpole_to_ortho(A::TensTI{4, T, 5 or 6}, frame::OrthonormalBasis{3}, axis_idx::Int) → TensOrtho{4, T, 9 or 12}
 
 Convert a major-symmetric `TensTI{4, T, 5}` into a `TensOrtho` stored in the
 given material frame, assuming the Walpole axis `A.n` is aligned with axis
@@ -124,9 +124,9 @@ Mapping in the rotated material frame (TI axis = axis k):
 
 The 9 orthotropic coefficients are then permuted according to `axis_idx`.
 
-Restricted to `N=5` (major-symmetric Walpole): a non-major-symmetric TI
-(`N=6`) has no orthotropic counterpart in `TensOrtho` (which carries only
-9 major-symmetric constants).
+A general `TensTI{4, T, 6}` (`ℓ₃ ≠ ℓ₄`) maps the same way onto the
+twelve-constant form: `ℓ₃/√2` sits in the axial row of the normal block (axial
+stress, transverse strain), `ℓ₄/√2` in the axial column.
 
 See also [`iso_to_ortho`](@ref), `_axis_on_frame_index`.
 """
@@ -162,6 +162,36 @@ function walpole_to_ortho(A::TensTI{4, T, 5}, frame::OrthonormalBasis{3}, axis_i
             Cax_tr, Cmix, Cax_tr,
             Cshear_ax, Cshear_tr, Cshear_ax,
             frame,
+        )
+    else
+        error("axis_idx must be 1, 2 or 3; got $axis_idx")
+    end
+end
+
+function walpole_to_ortho(A::TensTI{4, T, 6}, frame::OrthonormalBasis{3}, axis_idx::Int) where {T}
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(A)
+    sq2 = sqrt(T(2))
+    Ctrtr = (ℓ₂ + ℓ₅) / 2
+    Cmix = (ℓ₂ - ℓ₅) / 2
+    Cax_tr = ℓ₃ / sq2   # axial row
+    Ctr_ax = ℓ₄ / sq2   # axial column
+    Cshear_ax = ℓ₆ / 2
+    Cshear_tr = ℓ₅ / 2
+    # (C₁₁,C₂₂,C₃₃,C₁₂,C₁₃,C₂₃,C₄₄,C₅₅,C₆₆,C₂₁,C₃₁,C₃₂), Cₘₙ in row m, column n
+    if axis_idx == 3
+        return TensOrtho(
+            Ctrtr, Ctrtr, ℓ₁, Cmix, Ctr_ax, Ctr_ax,
+            Cshear_ax, Cshear_ax, Cshear_tr, Cmix, Cax_tr, Cax_tr, frame,
+        )
+    elseif axis_idx == 1
+        return TensOrtho(
+            ℓ₁, Ctrtr, Ctrtr, Cax_tr, Cax_tr, Cmix,
+            Cshear_tr, Cshear_ax, Cshear_ax, Ctr_ax, Ctr_ax, Cmix, frame,
+        )
+    elseif axis_idx == 2
+        return TensOrtho(
+            Ctrtr, ℓ₁, Ctrtr, Ctr_ax, Cmix, Cax_tr,
+            Cshear_ax, Cshear_tr, Cshear_ax, Cax_tr, Cmix, Ctr_ax, frame,
         )
     else
         error("axis_idx must be 1, 2 or 3; got $axis_idx")
@@ -214,7 +244,7 @@ function iso_to_cubic(A::TensISO{4, 3, T}, frame::OrthonormalBasis{3}) where {T}
 end
 
 """
-    cubic_to_ortho(A::TensCubic{T}) → TensOrtho{T}
+    cubic_to_ortho(A::TensCubic{T}) → TensOrtho{4,T,9}
 
 Widen a cubic tensor to the orthotropic class on its own cube frame:
 `C₁₁ = C₂₂ = C₃₃`, `C₁₂ = C₁₃ = C₂₃`, `C₄₄ = C₅₅ = C₆₆`.
@@ -246,7 +276,7 @@ end
 # the refusal says which frame to align, rather than returning something wrong.
 
 for OP in (:+, :-)
-    @eval function Base.$OP(A::TensCubic, B::TensOrtho)
+    @eval function Base.$OP(A::TensCubic, B::TensOrtho{4})
         frame(A) == frame(B) || throw(
             ArgumentError(
                 "TensCubic $($(string(OP))) TensOrtho requires the same frame; " *
@@ -256,7 +286,7 @@ for OP in (:+, :-)
         )
         return $OP(cubic_to_ortho(A), B)
     end
-    @eval function Base.$OP(A::TensOrtho, B::TensCubic)
+    @eval function Base.$OP(A::TensOrtho{4}, B::TensCubic)
         frame(A) == frame(B) || throw(
             ArgumentError(
                 "TensOrtho $($(string(OP))) TensCubic requires the same frame; " *
@@ -271,32 +301,33 @@ end
 # ── TensISO{4,3} ± TensOrtho ────────────────────────────────────────────────
 
 for OP in (:+, :-)
-    @eval @inline function Base.$OP(A::TensISO{4, 3}, B::TensOrtho)
+    @eval @inline function Base.$OP(A::TensISO{4, 3}, B::TensOrtho{4})
         return $OP(iso_to_ortho(A, frame(B)), B)
     end
-    @eval @inline function Base.$OP(A::TensOrtho, B::TensISO{4, 3})
+    @eval @inline function Base.$OP(A::TensOrtho{4}, B::TensISO{4, 3})
         return $OP(A, iso_to_ortho(B, frame(A)))
     end
 end
 
-# ── TensTI{4,N=5} ± TensOrtho (aligned axis) ─────────────────────────────
+# ── TensTI{4,N=5|6} ± TensOrtho (aligned axis) ───────────────────────────
+# A six-parameter TI tensor lands on the twelve-constant form.
 
-for OP in (:+, :-)
-    @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensOrtho)
+for OP in (:+, :-), NW in (5, 6)
+    @eval function Base.$OP(A::TensTI{4, <:Any, $NW}, B::TensOrtho{4})
         k = _axis_on_frame_index(axis(A), frame(B))
         k == 0 && throw(
             ArgumentError(
-                "TensTI{4,N=5} $($(string(OP))) TensOrtho requires the Walpole axis " *
+                "TensTI{4,N=$($NW)} $($(string(OP))) TensOrtho requires the Walpole axis " *
                     "to be aligned with one of the frame axes",
             ),
         )
         return $OP(walpole_to_ortho(A, frame(B), k), B)
     end
-    @eval function Base.$OP(A::TensOrtho, B::TensTI{4, <:Any, 5})
+    @eval function Base.$OP(A::TensOrtho{4}, B::TensTI{4, <:Any, $NW})
         k = _axis_on_frame_index(axis(B), frame(A))
         k == 0 && throw(
             ArgumentError(
-                "TensOrtho $($(string(OP))) TensTI{4,N=5} requires the Walpole axis " *
+                "TensOrtho $($(string(OP))) TensTI{4,N=$($NW)} requires the Walpole axis " *
                     "to be aligned with one of the frame axes",
             ),
         )
@@ -499,28 +530,191 @@ end
     Tensors.dcontract(A, iso_to_cubic(B, frame(A)))
 
 # ── TensCubic ⊡ TensOrtho / TensOrtho ⊡ TensCubic ───────────────────────────
-# Widen to orthotropy and let its block route take over. The result is NOT
-# orthotropic in general -- see `dcontract(::TensOrtho, ::TensOrtho)` -- which
-# is why this returns whatever that method returns rather than promising a
-# class.
+# Widen to orthotropy and let its block route take over: on a shared frame the
+# result is the twelve-constant orthotropic form of
+# `dcontract(::TensOrtho, ::TensOrtho)`, on different frames a generic tensor.
 
-@inline Tensors.dcontract(A::TensCubic, B::TensOrtho) =
+@inline Tensors.dcontract(A::TensCubic, B::TensOrtho{4}) =
     frame(A) == frame(B) ? Tensors.dcontract(cubic_to_ortho(A), B) :
     Tensors.dcontract(generic_tens(A), generic_tens(B))
-@inline Tensors.dcontract(A::TensOrtho, B::TensCubic) =
+@inline Tensors.dcontract(A::TensOrtho{4}, B::TensCubic) =
     frame(A) == frame(B) ? Tensors.dcontract(A, cubic_to_ortho(B)) :
     Tensors.dcontract(generic_tens(A), generic_tens(B))
 
 # ── TensISO{4,3} ⊡ TensOrtho / TensOrtho ⊡ TensISO{4,3} ─────────────────────
 # An isotropic tensor is orthotropic in *every* frame, so promoting it onto the
 # other operand's material frame is exact and lets the closed form of
-# `dcontract(::TensOrtho, ::TensOrtho)` take over instead of the dense route.
+# `dcontract(::TensOrtho, ::TensOrtho)` take over instead of the dense route:
+# the product is orthotropic, in the twelve-constant form.
 # Mirrors the ± promotion above.
 
-@inline Tensors.dcontract(A::TensISO{4, 3}, B::TensOrtho) =
+@inline Tensors.dcontract(A::TensISO{4, 3}, B::TensOrtho{4}) =
     Tensors.dcontract(iso_to_ortho(A, frame(B)), B)
-@inline Tensors.dcontract(A::TensOrtho, B::TensISO{4, 3}) =
+@inline Tensors.dcontract(A::TensOrtho{4}, B::TensISO{4, 3}) =
     Tensors.dcontract(A, iso_to_ortho(B, frame(A)))
+
+# ── TensTI{4,N=5|6} ⊡ TensOrtho / TensOrtho ⊡ TensTI{4,N=5|6} ───────────────
+# A transversely isotropic tensor whose axis is one of the frame axes is
+# orthotropic on that frame: the block product applies. Any other axis gives a
+# generally anisotropic product, by the generic route.
+
+for NW in (5, 6)
+    @eval function Tensors.dcontract(A::TensTI{4, <:Any, $NW}, B::TensOrtho{4})
+        k = _axis_on_frame_index(axis(A), frame(B))
+        k == 0 && return Tensors.dcontract(generic_tens(A), generic_tens(B))
+        return Tensors.dcontract(walpole_to_ortho(A, frame(B), k), B)
+    end
+    @eval function Tensors.dcontract(A::TensOrtho{4}, B::TensTI{4, <:Any, $NW})
+        k = _axis_on_frame_index(axis(B), frame(A))
+        k == 0 && return Tensors.dcontract(generic_tens(A), generic_tens(B))
+        return Tensors.dcontract(A, walpole_to_ortho(B, frame(A), k))
+    end
+end
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Order 2: TensOrtho{2} with TensISO{2,3}, TensTI{2,T,2} and the order-4 classes
+# ──────────────────────────────────────────────────────────────────────────────
+
+"""
+    iso_to_ortho(A::TensISO{2,3,T}, frame::OrthonormalBasis{3}) → TensOrtho{2,T,3}
+
+`λ𝟏 = λP₁ + λP₂ + λP₃` on any frame: the order-2 counterpart of the order-4
+promotion.
+"""
+function iso_to_ortho(A::TensISO{2, 3}, frame::OrthonormalBasis{3})
+    λ = get_data(A)[1]
+    return TensOrtho{2}(λ, λ, λ, frame)
+end
+
+"""
+    walpole_to_ortho(A::TensTI{2, T, 2}, frame::OrthonormalBasis{3}, axis_idx::Int) → TensOrtho{2}
+
+`a nT + b nₙ` on a frame whose axis `axis_idx` is the TI axis: `b` on that axis,
+`a` on the two others.
+"""
+function walpole_to_ortho(A::TensTI{2, T, 2}, frame::OrthonormalBasis{3}, axis_idx::Int) where {T}
+    a, b = get_data(A)
+    1 ≤ axis_idx ≤ 3 || error("axis_idx must be 1, 2 or 3; got $axis_idx")
+    return TensOrtho{2}(ntuple(m -> m == axis_idx ? b : a, Val(3))..., frame)
+end
+
+# ± : an isotropic operand on the frame of the other; a TI operand when its
+# axis is one of the frame axes, refused otherwise (as at order 4).
+for OP in (:+, :-)
+    @eval @inline Base.$OP(A::TensISO{2, 3}, B::TensOrtho{2}) = $OP(iso_to_ortho(A, frame(B)), B)
+    @eval @inline Base.$OP(A::TensOrtho{2}, B::TensISO{2, 3}) = $OP(A, iso_to_ortho(B, frame(A)))
+    @eval function Base.$OP(A::TensTI{2, <:Any, 2}, B::TensOrtho{2})
+        k = _axis_on_frame_index(axis(A), frame(B))
+        k == 0 && throw(
+            ArgumentError(
+                "TensTI{2} $($(string(OP))) TensOrtho{2} requires the TI axis " *
+                    "to be aligned with one of the frame axes",
+            ),
+        )
+        return $OP(walpole_to_ortho(A, frame(B), k), B)
+    end
+    @eval function Base.$OP(A::TensOrtho{2}, B::TensTI{2, <:Any, 2})
+        k = _axis_on_frame_index(axis(B), frame(A))
+        k == 0 && throw(
+            ArgumentError(
+                "TensOrtho{2} $($(string(OP))) TensTI{2} requires the TI axis " *
+                    "to be aligned with one of the frame axes",
+            ),
+        )
+        return $OP(A, walpole_to_ortho(B, frame(A), k))
+    end
+end
+
+# ── Single contraction ───────────────────────────────────────────────────────
+
+"""
+    dot(A::TensOrtho{2}, B::TensOrtho{2}) → TensOrtho{2}
+
+`(Σ aₘPₘ)·(Σ bₘPₘ) = Σ aₘbₘPₘ` on a shared frame; the generic product otherwise.
+"""
+function LinearAlgebra.dot(A::TensOrtho{2}, B::TensOrtho{2})
+    frame(A) == frame(B) || return dot(generic_tens(A), generic_tens(B))
+    return _rebuild(A, map(*, get_data(A), get_data(B)))
+end
+function LinearAlgebra.dot(A::TensTI{2, <:Any, 2}, B::TensOrtho{2})
+    k = _axis_on_frame_index(axis(A), frame(B))
+    k == 0 && return dot(generic_tens(A), generic_tens(B))
+    return dot(walpole_to_ortho(A, frame(B), k), B)
+end
+function LinearAlgebra.dot(A::TensOrtho{2}, B::TensTI{2, <:Any, 2})
+    k = _axis_on_frame_index(axis(B), frame(A))
+    k == 0 && return dot(generic_tens(A), generic_tens(B))
+    return dot(A, walpole_to_ortho(B, frame(A), k))
+end
+LinearAlgebra.dot(A::TensOrtho{2}, B::TensISO{2, 3}) = _rebuild(A, get_data(A) .* get_data(B)[1])
+LinearAlgebra.dot(A::TensISO{2, 3}, B::TensOrtho{2}) = _rebuild(B, get_data(A)[1] .* get_data(B))
+
+"""
+    dot(A::TensOrtho{2}, v) → Vec{3}
+
+`𝐀·v = Σ aₘ (eₘ·v) eₘ`, from the canonical components of `v`.
+"""
+function LinearAlgebra.dot(A::TensOrtho{2}, v::AbstractVector)
+    length(v) == 3 || throw(DimensionMismatch("a vector of 3 components is contracted with a TensOrtho{2}; got $(length(v))"))
+    E = SMatrix{3, 3}(vecbasis(frame(A), :cov))
+    return Vec{3}(Tuple(E * (SVector(get_data(A)) .* (transpose(E) * SVector{3}(v[1], v[2], v[3])))))
+end
+LinearAlgebra.dot(A::TensOrtho{2}, v::AbstractTens{1, 3}) = Tens(A ⋅ Vec{3}(Tuple(components_canon(v))))
+
+# ── Double contraction with an order-4 orthotropic tensor ────────────────────
+# On a shared frame `ℂ : 𝐀 = Σₘ (Σₙ Cₘₙ aₙ) Pₘ` and `𝐀 : ℂ = Σₙ (Σₘ aₘ Cₘₙ) Pₙ`:
+# the normal block acts on the coefficients, the shear terms vanish on a
+# diagonal tensor. The order-4 operand may be any class that is orthotropic on
+# that frame.
+
+function Tensors.dcontract(A::TensOrtho{4}, B::TensOrtho{2})
+    frame(A) == frame(B) || return Tensors.dcontract(generic_tens(A), generic_tens(B))
+    return _rebuild(B, Tuple(_ortho_normal_block(A) * SVector(get_data(B))))
+end
+function Tensors.dcontract(A::TensOrtho{2}, B::TensOrtho{4})
+    frame(A) == frame(B) || return Tensors.dcontract(generic_tens(A), generic_tens(B))
+    return _rebuild(A, Tuple(transpose(_ortho_normal_block(B)) * SVector(get_data(A))))
+end
+@inline Tensors.dcontract(A::TensISO{4, 3}, B::TensOrtho{2}) = Tensors.dcontract(iso_to_ortho(A, frame(B)), B)
+@inline Tensors.dcontract(A::TensOrtho{2}, B::TensISO{4, 3}) = Tensors.dcontract(A, iso_to_ortho(B, frame(A)))
+@inline Tensors.dcontract(A::TensISO{2, 3}, B::TensOrtho{4}) = Tensors.dcontract(iso_to_ortho(A, frame(B)), B)
+@inline Tensors.dcontract(A::TensOrtho{4}, B::TensISO{2, 3}) = Tensors.dcontract(A, iso_to_ortho(B, frame(A)))
+@inline Tensors.dcontract(A::TensCubic, B::TensOrtho{2}) =
+    frame(A) == frame(B) ? Tensors.dcontract(cubic_to_ortho(A), B) : Tensors.dcontract(generic_tens(A), generic_tens(B))
+@inline Tensors.dcontract(A::TensOrtho{2}, B::TensCubic) =
+    frame(A) == frame(B) ? Tensors.dcontract(A, cubic_to_ortho(B)) : Tensors.dcontract(generic_tens(A), generic_tens(B))
+for NW in (5, 6)
+    @eval function Tensors.dcontract(A::TensTI{4, <:Any, $NW}, B::TensOrtho{2})
+        k = _axis_on_frame_index(axis(A), frame(B))
+        k == 0 && return Tensors.dcontract(generic_tens(A), generic_tens(B))
+        return Tensors.dcontract(walpole_to_ortho(A, frame(B), k), B)
+    end
+    @eval function Tensors.dcontract(A::TensOrtho{2}, B::TensTI{4, <:Any, $NW})
+        k = _axis_on_frame_index(axis(B), frame(A))
+        k == 0 && return Tensors.dcontract(generic_tens(A), generic_tens(B))
+        return Tensors.dcontract(A, walpole_to_ortho(B, frame(A), k))
+    end
+end
+
+# ── Tensor product ───────────────────────────────────────────────────────────
+# `𝐀 ⊗ 𝐁 = Σₘₙ aₘbₙ Pₘ⊗Pₙ`: the normal block `a bᵀ`, no shear. A self product
+# is major-symmetric (nine constants), a product of two tensors generally not
+# (twelve), as `TensTI{2} ⊗ TensTI{2}` gives N=5 and N=6.
+
+function Tensors.otimes(A::TensOrtho{2})
+    a = SVector(get_data(A))
+    z = zero(eltype(a))
+    O = _ortho_from_blocks(a * transpose(a), (z, z, z), frame(A))
+    return Tensors.majorsymmetric(O)
+end
+function Tensors.otimes(A::TensOrtho{2}, B::TensOrtho{2})
+    frame(A) == frame(B) || return Tensors.otimes(generic_tens(A), generic_tens(B))
+    a, b = SVector(get_data(A)), SVector(get_data(B))
+    z = zero(promote_type(eltype(a), eltype(b)))
+    return _ortho_from_blocks(a * transpose(b), (z, z, z), frame(A))
+end
+Tensors.otimes(A::TensISO{2, 3}, B::TensOrtho{2}) = Tensors.otimes(iso_to_ortho(A, frame(B)), B)
+Tensors.otimes(A::TensOrtho{2}, B::TensISO{2, 3}) = Tensors.otimes(A, iso_to_ortho(B, frame(A)))
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Exports

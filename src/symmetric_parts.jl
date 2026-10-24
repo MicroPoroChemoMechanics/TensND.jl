@@ -4,7 +4,12 @@
 #  where the class allows it.
 # =============================================================================
 
-Tensors.majorsymmetric(t::Union{TensISO{4}, TensCubic, TensOrtho}) = t
+Tensors.majorsymmetric(t::Union{TensISO{4}, TensCubic, TensOrtho{4, <:Any, 9}}) = t
+# The symmetric part of the normal block, the nine-constant form on the same frame.
+function Tensors.majorsymmetric(t::TensOrtho{4, <:Any, 12})
+    C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32 = get_data(t)
+    return _rebuild(t, (C11, C22, C33, (C12 + C21) / 2, (C13 + C31) / 2, (C23 + C32) / 2, C44, C55, C66))
+end
 Tensors.majorsymmetric(t::TensTI{4, T, 5}) where {T} = t
 # In the Walpole basis the major transpose swaps ℓ₃ and ℓ₄ and changes the sign
 # of ℓ₇ and ℓ₈, the major-antisymmetric generators of the six- and
@@ -20,8 +25,10 @@ end
 Major-symmetric part ``\\tfrac12(t_{ijkl} + t_{klij})`` of a fourth-order
 tensor, a method of the `Tensors.jl` function.
 
-The symmetry class is kept: an isotropic, cubic or orthotropic tensor is its
-own major-symmetric part, and a transversely isotropic tensor in the six- or
+The symmetry class is kept: an isotropic, cubic or nine-constant orthotropic
+tensor is its own major-symmetric part, a twelve-constant orthotropic one (a
+product of orthotropic tensors lands there) returns the nine-constant form on
+the same frame, and a transversely isotropic tensor in the six- or
 eight-parameter Walpole form (a product of TI tensors lands there) returns the
 five-parameter form about the same axis. A general tensor stays in its basis;
 in a basis that is not orthonormal, the transpose pairs components of the same
@@ -38,6 +45,7 @@ function Tensors.majorsymmetric(t::AbstractTens{4})
 end
 
 Tensors.symmetric(t::TensISO{2}) = t
+Tensors.symmetric(t::TensOrtho{2}) = t
 Tensors.symmetric(t::TensTI{2, T, 2}) where {T} = t
 # a·𝟏ₜ + b·n⊗n + c·w: the skew in-plane part c·w goes.
 function Tensors.symmetric(t::TensTI{2, T, 3}) where {T}

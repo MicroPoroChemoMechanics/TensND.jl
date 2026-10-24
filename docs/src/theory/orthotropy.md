@@ -3,9 +3,10 @@
 Orthotropy is invariance under the reflections through three mutually orthogonal
 planes. It is the least constrained class `TensND` gives a dedicated storage
 type ([`TensOrtho`](@ref), `src/tens_anisotropic.jl`): nine constants plus a material
-frame, against 21 for a general minor- and major-symmetric tensor.
+frame, against 21 for a general minor- and major-symmetric tensor, or twelve
+constants for an orthotropic tensor without major symmetry.
 
-## The nine constants
+## The coefficients
 
 Let ``(\underline{e}_1,\underline{e}_2,\underline{e}_3)`` be the orthonormal
 **material frame** and ``\boldsymbol{P}_m=\underline{e}_m\otimes\underline{e}_m``
@@ -64,29 +65,54 @@ inverse is one ``3\times3`` inverse plus three reciprocals, and the closed-form
 double contraction one ``3\times3`` product plus three scalar products — instead
 of two dense 81-component expansions.
 
-## The product of two orthotropic tensors is not orthotropic
-
-The block structure survives a double contraction, but major symmetry does not:
+## Major symmetry and storage
 
 ```math
-\mathbb{A}:\mathbb{B}\quad\longrightarrow\quad
-\underbrace{[3\times3]}_{\text{general, }9}\;\oplus\;
-\underbrace{\mathrm{diag}}_{3}
-\qquad\Longrightarrow\qquad
-\textbf{12 independent constants.}
+\mathbb{C}={}^{t}\mathbb{C}
+\quad\Longleftrightarrow\quad
+C_{mn}=C_{nm}
+\quad\Longleftrightarrow\quad
+C={}^{t}C ,
 ```
 
-The product of two symmetric ``3\times3`` blocks is symmetric only if they
-commute, so ``\mathbb{A}:\mathbb{B}`` is orthotropic *without* major symmetry —
-twelve constants where `TensOrtho` stores nine. Rather than introduce a
-twelve-parameter container, `TensND` returns the generic `TensCanonical` the
-dense route would have produced, and [`is_ORTHO`](@ref) on the result is `false`.
+with ``C`` the normal ``3\times3`` block, ``C_{mn}`` its entry in row ``m``
+(stress) and column ``n`` (strain), the coefficient of
+``\boldsymbol{P}_m\otimes\boldsymbol{P}_n``. A major-symmetric orthotropic tensor
+therefore needs **nine** constants, a general one **twelve**:
 
-This is the same widening that makes
-`TensTI{4,T,5} ⊡ TensTI{4,T,5}` return an `N=6` container
-([The Walpole basis](@ref th-walpole)), and it has the same cause: the
-**major-symmetric tensors of a class do not form a subalgebra**, only the class
-itself does.
+| Storage | Coefficients | Case |
+| :------ | :----------- | :--- |
+| `TensOrtho{4,T,9}` | ``(C_{11},C_{22},C_{33},C_{12},C_{13},C_{23},C_{44},C_{55},C_{66})`` | major-symmetric, ``C_{nm}=C_{mn}`` |
+| `TensOrtho{4,T,12}` | the nine, then ``(C_{21},C_{31},C_{32})`` | general |
+
+The widening is not cosmetic: the product of two *major-symmetric*
+orthotropic tensors is generally **not** major-symmetric, because
+``C\,D\neq{}^{t}(C\,D)`` unless the two blocks commute, so
+`TensOrtho{4,T,9} ⊡ TensOrtho{4,T,9}` returns an `N=12` container, as
+`TensTI{4,T,5} ⊡ TensTI{4,T,5}` returns `N=6` ([The Walpole basis](@ref th-walpole)).
+The cause is the same in both classes: the **major-symmetric tensors of a class
+do not form a subalgebra**, only the class itself does. The twelve-constant
+tensors of a frame do: products and inverses act on the blocks,
+
+```math
+(\mathbb{C}:\mathbb{D})_{\text{normal}}=C\,D,\qquad
+(\mathbb{C}:\mathbb{D})_{mm}=2\,C_{mm}D_{mm},\qquad
+(\mathbb{C}^{-1})_{\text{normal}}=C^{-1},\qquad
+(\mathbb{C}^{-1})_{mm}=\frac{1}{4C_{mm}}
+\quad(m=4,5,6),
+```
+
+and the transpose transposes ``C``. Writing ``a_{mn}=\tfrac12(C_{mn}-C_{nm})``,
+a twelve-constant tensor is its symmetric part plus
+
+```math
+\sum_{m<n} a_{mn}\bigl(\boldsymbol{P}_m\otimes\boldsymbol{P}_n
+                      -\boldsymbol{P}_n\otimes\boldsymbol{P}_m\bigr),
+```
+
+a skew part orthogonal to every major-symmetric tensor: the orthogonal
+projection onto the nine-constant class is the major-symmetric part
+(`Tensors.majorsymmetric`).
 
 [Cubic symmetry](@ref th-cubic) is the exception that shows what is really at
 stake. There each irreducible representation of the group appears with
@@ -98,7 +124,22 @@ representations, not three one-dimensional ones.
 
 When the two operands are expressed in *different* material frames the product is
 generally fully anisotropic, and the implementation falls back to the generic
-route bit for bit.
+route bit for bit. A transversely isotropic operand whose axis is one of the
+frame axes is orthotropic on that frame, and its product with an orthotropic
+tensor stays in the twelve-constant form.
+
+## No chiral shape
+
+Transverse isotropy has two families of shapes: those invariant under the full
+group ``D_{\infty h}`` (rotations about ``\underline{n}`` and the mirrors), and
+the larger ones invariant under the rotations ``SO(2)`` only, which hold the
+terms odd in ``\underline{n}`` ([The extended Walpole algebra](@ref th-walpole-extended)).
+Orthotropy has no such pair. Its group ``D_{2h}`` is the rotation group ``D_2``
+(the half-turns about the three frame axes) times the inversion
+``-\boldsymbol{1}``, and the inversion acts on a tensor of order ``r`` as
+``(-1)^r``, trivially at even order: ``D_2`` and ``D_{2h}`` have the same
+invariant tensors of order 2 and 4, and the shapes above are the whole family.
+The test suite checks it by averaging tensors over both groups.
 
 ## Where the classes sit
 
@@ -129,17 +170,32 @@ The promotions are implemented in `src/structured_tens_promotion.jl` and are
 what allow mixed-class arithmetic (`TensISO ⊡ TensOrtho`, `TensTI{2} ⊡ TensTI{4}`)
 to stay in closed form.
 
-## Order 2
+## Order-2 orthotropy
 
-An order-2 orthotropic tensor is simply one that is diagonal in the material
-frame,
+The same construction one order down: an orthotropic order-2 tensor is
 
 ```math
 \boldsymbol{a}=a_1\,\boldsymbol{P}_1+a_2\,\boldsymbol{P}_2+a_3\,\boldsymbol{P}_3 ,
 ```
 
-i.e. three constants and a frame. Every symmetric order-2 tensor is orthotropic
-in its own eigenframe — which is why order-2 orthotropy is never an interesting
-*hypothesis*, only a useful *representation*. The corresponding projection at
-fixed frame is therefore just "keep the diagonal", as
+three coefficients and a frame, stored as `TensOrtho{2,T,3}`. A second-order
+tensor invariant under the three mirror planes is necessarily diagonal in the
+frame, hence symmetric: there is no general order-2 shape, unlike the skew
+``c\,\boldsymbol{w}`` of transverse isotropy under ``SO(2)``. Products and
+inverses are termwise, since the ``\boldsymbol{P}_m`` are complementary
+orthogonal projectors, and the tensor is isotropic exactly when
+``a_1=a_2=a_3``. With an order-4 tensor on the same frame the double
+contraction is the normal block acting on the coefficients,
+
+```math
+\mathbb{C}:\boldsymbol{a}=\sum_m\Bigl(\sum_n C_{mn}\,a_n\Bigr)\boldsymbol{P}_m ,
+```
+
+the shear terms vanishing on a diagonal tensor, and the tensor product
+``\boldsymbol{a}\otimes\boldsymbol{b}`` has the normal block
+``a\,{}^{t}b`` and no shear: twelve constants, nine for
+``\boldsymbol{a}\otimes\boldsymbol{a}``. Every symmetric order-2 tensor is
+orthotropic in its own eigenframe, which is why order-2 orthotropy is never an
+interesting *hypothesis*, only a useful *representation*; the projection at fixed
+frame keeps the diagonal and returns a `TensOrtho{2}`, as
 [Projection onto a symmetry class](@ref th-projection) makes explicit.

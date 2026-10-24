@@ -26,7 +26,7 @@ for OP in (:tsimplify, :tsubs, :tdiff)
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
     @eval $OP(A::TensTI{order, Num, N}, args...; kwargs...) where {order, N} =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
-    @eval $OP(A::TensOrtho{Num}, args...; kwargs...) =
+    @eval $OP(A::TensOrtho{order, Num}, args...; kwargs...) where {order} =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
     @eval $OP(A::TensCubic{Num}, args...; kwargs...) =
         _rebuild(A, $OP(get_data(A), args...; kwargs...))
@@ -75,7 +75,7 @@ end
 # independent components in closed form (`getindex`), instead of all 81 into an
 # array whose symmetry `_store_symmetric` then checks: the same storage,
 # `change_tens`, `⊡` and every path through `_static_tensor` without the detour.
-@inline _static_tensor(t::Union{TensTI{4}, TensOrtho, TensCubic}) =
+@inline _static_tensor(t::Union{TensTI{4}, TensOrtho{4}, TensCubic}) =
     SymmetricTensor{4, 3, eltype(t)}((i, j, k, l) -> @inbounds t[i, j, k, l])
 
 # An isotropic tensor of order 2 or 4 is symmetric by construction too: built at

@@ -655,10 +655,10 @@ end
 # ── proj_tens : ORTHO, order 4, fixed frame ──────────────────────────────────
 
 """
-    proj_tens(::Val{:ORTHO}, A::AbstractArray{T,4}, frame::OrthonormalBasis{3}) → (TensOrtho{T}, d, drel)
+    proj_tens(::Val{:ORTHO}, A::AbstractArray{T,4}, frame::OrthonormalBasis{3}) → (TensOrtho{4,T,9}, d, drel)
 
 Project a 4th-order tensor `A` (3×3×3×3) onto the orthotropic subspace with
-fixed material frame `frame`. Returns a `TensOrtho{T}`.
+fixed material frame `frame`. Returns a `TensOrtho{4,T,9}`.
 
 # Examples
 ```julia
@@ -755,11 +755,12 @@ proj_tens(::Val{:CUBIC}, A::AbstractArray{T, 2}, ::OrthonormalBasis{3}) where {T
 # ── proj_tens : ORTHO, order 2, fixed frame ──────────────────────────────────
 
 """
-    proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}, frame::OrthonormalBasis{3}) → (Array{T,2}, d, drel)
+    proj_tens(::Val{:ORTHO}, A::AbstractArray{T,2}, frame::OrthonormalBasis{3}) → (TensOrtho{2,T,3}, d, drel)
 
 Project a 2nd-order tensor `A` (3×3) onto the orthotropic subspace with
 fixed material frame `frame`. The projection is `diag(M₁₁, M₂₂, M₃₃)` in the
-material frame.
+material frame, returned as a `TensOrtho{2}` on that frame (as the TI projection
+returns a `TensTI{2}`).
 
 # Examples
 ```julia
@@ -769,7 +770,7 @@ julia> A = [5. 1 2; 1 8 3; 2 3 12];
 
 julia> B, d, drel = proj_tens(:ORTHO, A, frame);
 
-julia> B ≈ diagm([5., 8., 12.])
+julia> get_array(B) ≈ diagm([5., 8., 12.])
 true
 ```
 """
@@ -777,8 +778,7 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}, frame::OrthonormalBasi
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
-        B = zeros(T, 3, 3)
-        return B, z, z
+        return TensOrtho{2}(z, z, z, frame), z, z
     end
 
     # The frame's own matrix (columns: its vectors in canonical components):
@@ -787,10 +787,10 @@ function proj_tens(::Val{:ORTHO}, A::AbstractArray{T, 2}, frame::OrthonormalBasi
     # gimbal-lock point (the canonical frame itself).
     R = Matrix(vecbasis(frame, :cov))
     M_rot = transpose(R) * A * R
-    # ORTHO projection: the diagonal in the material frame, rotated back.
-    B = R * Diagonal(diag(M_rot)) * transpose(R)
+    # ORTHO projection: the diagonal in the material frame.
+    B = TensOrtho{2}(M_rot[1, 1], M_rot[2, 2], M_rot[3, 3], frame)
 
-    d = _frobenius(B - A)
+    d = _frobenius(get_array(B) - A)
     return B, d, d / nA
 end
 
@@ -1062,7 +1062,7 @@ function _from_frame(Q::AbstractMatrix, P::TensTI{order, T, N}) where {order, T,
     return TensTI{order, T2, N}(map(T2, get_data(P)), (T2(n[1]), T2(n[2]), T2(n[3])))
 end
 _from_frame(Q::AbstractMatrix, P::TensOrtho) =
-    TensOrtho{eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
+    _rebuild_frame(P, RotatedBasis(Q * _frame_matrix(frame(P))))
 _from_frame(Q::AbstractMatrix, P::TensCubic) =
     TensCubic{eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
 # The order-2 orthotropic kernels return the projected matrix itself.
@@ -1274,7 +1274,7 @@ best_fit_ti(t::AbstractTens{2, 3}, axis) = proj_tens(Val(:TI), t, axis)[1]
 
 """
     best_fit_ortho(t::AbstractTens{4,3}, frame) -> TensOrtho
-    best_fit_ortho(t::AbstractTens{2,3}, frame) -> Matrix
+    best_fit_ortho(t::AbstractTens{2,3}, frame) -> TensOrtho{2}
 
 Orthogonal (Frobenius) projection of `t` onto the orthotropic span in the given
 material `frame` — the projection component of [`proj_tens`](@ref)`(
