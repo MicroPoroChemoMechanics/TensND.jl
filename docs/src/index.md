@@ -80,9 +80,19 @@ are offline.
   environment exists.
 - **An existing Python of your own** (it must have `sympy`): set
   `JULIA_CONDAPKG_BACKEND=Null` and `JULIA_PYTHONCALL_EXE=/path/to/python`
-  before loading TensND, or store them as preferences
-  (`pkg> preference add CondaPkg backend=Null`,
-  `pkg> preference add PythonCall exe=/path/to/python`). See the
+  before loading TensND, or store them as preferences of the environment, in
+  its `LocalPreferences.toml`:
+
+  ```toml
+  [CondaPkg]
+  backend = "Null"
+
+  [PythonCall]
+  exe = "/path/to/python"
+  ```
+
+  (the [PreferenceTools](https://github.com/cjdoris/PreferenceTools.jl) package
+  writes them from the Pkg prompt). See the
   [CondaPkg](https://github.com/JuliaPy/CondaPkg.jl#preferences) and
   [PythonCall](https://juliapy.github.io/PythonCall.jl/stable/pythoncall/#pythoncall-config)
   documentation.
