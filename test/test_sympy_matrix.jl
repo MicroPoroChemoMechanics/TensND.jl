@@ -1,6 +1,6 @@
 # The `sympy.Matrix` that every SymPy operation on a `Matrix{Sym}` builds is
 # assembled row by row in `sympy_matrix.jl`, so that no Julia array of
-# `PyObject`s exists (the one-piece conversion crashes the compiler of Julia
+# Python objects exists (the one-piece conversion crashes the compiler of Julia
 # 1.15-DEV, JuliaLang/julia#63672). Each operation that goes through it is
 # checked against its closed form, so a wrong assembly (a transposed matrix,
 # a row vector instead of a column) fails here.
@@ -8,16 +8,18 @@
 @testsection "SymPy matrices assembled row by row" begin
     @syms a b c d e
     M = [a b; c d]
-    # The object handed to SymPy: its shape, for a matrix and for a vector.
-    @test SymPy.SymPyCore.:↓(M).shape == (2, 2)
-    @test SymPy.SymPyCore.:↓([a, b, c]).shape == (3, 1)
-    @test SymPy.SymPyCore.:↓([a b c]).shape == (1, 3)
+    # The object handed to SymPy: its shape, for a matrix and for a vector (a
+    # Python tuple, converted to compare).
+    shape(x) = SymPyPythonCall.PythonCall.pyconvert(Tuple{Int, Int}, SymPyPythonCall.SymPyCore.:↓(x).shape)
+    @test shape(M) == (2, 2)
+    @test shape([a, b, c]) == (3, 1)
+    @test shape([a b c]) == (1, 3)
     # `Sym` itself is not a concrete type: `Sym[...]` arrays take the same route.
     for A in (Sym[1 0 0; 0 1 0; 0 1 1], Sym[1, 2, 3], view(Sym[1 0; 0 1], :, 1:2))
-        @test parentmodule(which(SymPy.SymPyCore.:↓, Tuple{typeof(A)})) === TensND
+        @test parentmodule(which(SymPyPythonCall.SymPyCore.:↓, Tuple{typeof(A)})) === TensND
     end
-    @test parentmodule(which(SymPy.SymPyCore.:↓, Tuple{typeof(M)})) === TensND
-    @test SymPy.SymPyCore.:↓(Sym[1, 2, 3]).shape == (3, 1)
+    @test parentmodule(which(SymPyPythonCall.SymPyCore.:↓, Tuple{typeof(M)})) === TensND
+    @test shape(Sym[1, 2, 3]) == (3, 1)
     @test transpose(Sym[1 0 0; 0 1 0; 0 1 1]) == Sym[1 0 0; 0 1 1; 0 0 1]
     @test inv(Sym[1 0 0; 0 1 0; 0 1 1]) == Sym[1 0 0; 0 1 0; 0 -1 1]
 

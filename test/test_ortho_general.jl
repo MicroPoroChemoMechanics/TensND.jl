@@ -226,7 +226,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
 
     @testsection "symbolic coefficients" begin
         ℬ = CanonicalBasis{3, Float64}()
-        x = SymPy.symbols("x", real = true)
+        x = SymPyPythonCall.symbols("x", real = true)
         As = _og_tens(_OG_N .+ x .* [1 0 0; 2 0 0; 0 0 1], _OG_S, ℬ)
         O = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, ℬ)
         An = _og_tens(_OG_N .+ 0.5 .* [1 0 0; 2 0 0; 0 0 1], _OG_S, ℬ)
@@ -371,7 +371,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
         @test ForwardDiff.derivative(x -> f(x)[1], 1.5) ≈ -1 / 1.5^2
         @test ForwardDiff.derivative(x -> f(x)[2], 1.5) ≈ -3 / (2 * 1.5^4)
         @test (@inferred inv(TensOrtho{2}(ForwardDiff.Dual(1.0, 1.0), 2.0, 3.0, ℬ))) isa TensOrtho{2}
-        x = SymPy.symbols("x", real = true)
+        x = SymPyPythonCall.symbols("x", real = true)
         As = TensOrtho{2}(x, 2.0, 3.0, CanonicalBasis{3, Float64}())
         @test Float64(get_data(inv(As))[1].subs(x, 0.5)) ≈ 2.0
         @test Float64(get_data(As ⊡ _og_tens(_OG_N, _OG_S, CanonicalBasis{3, Float64}()))[1].subs(x, 0.5)) ≈ 0.5 * 160 + 2 * 31 + 3 * 22

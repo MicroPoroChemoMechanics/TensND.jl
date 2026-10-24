@@ -16,7 +16,7 @@ Submanifold(OM, coords, tmp_coords = (), params = ();
 and completes the frame, so the stored bases remain ``d``-dimensional.
 
 ```@example sm
-using TensND, SymPy
+using TensND, SymPyPythonCall
 
 R = symbols("R", positive = true)
 θ = symbols("θ", positive = true)

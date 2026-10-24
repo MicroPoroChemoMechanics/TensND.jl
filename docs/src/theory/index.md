@@ -32,7 +32,7 @@ flowchart TB
   orthotropic tensor, with the orientation given or optimized.
 - **Differential operators** in curvilinear coordinates, symbolically or by
   automatic differentiation, plus embedded surfaces.
-- **One generic implementation** for `Float64`, `ForwardDiff.Dual`, `SymPy.Sym`
+- **One generic implementation** for `Float64`, `ForwardDiff.Dual`, `SymPyPythonCall.Sym`
   and `Symbolics.Num`.
 
 The design is inspired by the Maple library

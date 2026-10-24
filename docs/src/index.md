@@ -64,14 +64,14 @@ Three structured types — [`TensISO`](@ref), [`TensTI`](@ref) and
 [`TensCubic`](@ref), [`TensOrtho`](@ref) — store the 2, 5, 3 and 9 scalars a
 symmetry class really has,
 and compute products and inverses in closed form. The same code runs on
-`Float64`, `ForwardDiff.Dual`, `SymPy.Sym` and `Symbolics.Num`.
+`Float64`, `ForwardDiff.Dual`, `SymPyPythonCall.Sym` and `Symbolics.Num`.
 
 The design is inspired by the Maple library
 [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) of Jean
 Garrigues.
 
 ```@example home
-using TensND, SymPy
+using TensND, SymPyPythonCall
 
 Spherical = coorsys_spherical()
 θ, ϕ, r = getcoords(Spherical)

@@ -25,7 +25,7 @@ Pkg.activate(joinpath(@__DIR__, "..", "docs"); io = devnull)        #jl
 
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 using Tensors
 using Random
 

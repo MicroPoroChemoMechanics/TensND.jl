@@ -8,7 +8,7 @@ ForwardDiff = "f6369f11-7733-5829-9624-2563aa707210"
 LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Rotations = "6038ab10-8711-5258-84ad-4b1120ba62dc"
 StaticArrays = "90137ffa-7385-5640-81b9-e52037218182"
-SymPy = "24249f21-da20-56a4-8eb1-6a02cf4ae2e6"
+SymPyPythonCall = "bc8888f7-b21e-4b7c-a06a-5d9c9496438c"
 Symbolics = "0c5d862f-8b57-4792-8d23-62f2024744c7"
 Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 
@@ -17,15 +17,10 @@ Aqua = "0.8"
 ForwardDiff = "0.10, 1"
 LinearAlgebra = "1"
 OMEinsum = "0.9"
-# PyCall 1.97.0, registered on 2026-10-19, reaches Python without the GIL from
-# the `hash` SymPy.jl defines: segmentation faults in the tests and documentation
-# of MeanFieldHomogenization the day it came out. This bound excludes that
-# release only, so that any later one is taken as soon as it is registered.
-PyCall = "< 1.97.0, >= 1.97.1"
 Random = "1"
 Rotations = "1"
 StaticArrays = "1"
-SymPy = "2"
+SymPyPythonCall = "0.5"
 Symbolics = "6, 7"
 TOML = "1"
 Tensors = "1"
@@ -36,11 +31,10 @@ julia = "1.12"
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
-PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [targets]
-test = ["Aqua", "OMEinsum", "PyCall", "Random", "TOML", "Test", "TimerOutputs"]
+test = ["Aqua", "OMEinsum", "Random", "TOML", "Test", "TimerOutputs"]

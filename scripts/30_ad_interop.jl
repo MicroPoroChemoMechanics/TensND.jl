@@ -34,7 +34,7 @@ end
 
 # Symbolic, with SymPy:
 
-using SymPy
+using SymPyPythonCall
 ks, μs = symbols("k μ", positive = true)
 ℂˢ = TensISO{3}(3ks, 2μs)
 typeof(ℂˢ)
@@ -159,7 +159,7 @@ norm(arr(from_mandel(mandel(tc))) - arr(tc))
 # |:--|:--|:--|:--|:--|:--|
 # | `Float64` | yes | yes | yes | — | yes |
 # | `ForwardDiff.Dual` | yes | yes | yes | — | yes |
-# | `SymPy.Sym` | yes | yes | fixed axis only | yes | — |
+# | `SymPyPythonCall.Sym` | yes | yes | fixed axis only | yes | — |
 # | `Symbolics.Num` | yes | yes | fixed axis only | partial | — |
 #
 # The one genuine restriction is the **orientation search**: it is a numerical

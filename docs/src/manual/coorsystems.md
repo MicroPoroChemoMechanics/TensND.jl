@@ -26,7 +26,7 @@ constant coordinate, in an interactive figure of
 ## The operators
 
 ```@example cs
-using TensND, SymPy
+using TensND, SymPyPythonCall
 
 Polar = coorsys_polar()
 r, θ = getcoords(Polar)
@@ -85,7 +85,7 @@ simplify(laplacian(r^n * cos(n * θ)))
 | [`∂`](@ref) | the covariant derivative along one coordinate |
 
 ```@example cs2
-using TensND, SymPy
+using TensND, SymPyPythonCall
 Spherical = coorsys_spherical()
 lame_coefficients(Spherical)
 ```
@@ -106,7 +106,7 @@ coefficients and Christoffel symbols are derived. A variant takes the normalized
 basis and the ``\chi_i`` directly, when they are known in closed form.
 
 ```@example cs3
-using TensND, SymPy
+using TensND, SymPyPythonCall
 
 x, y = symbols("x y", real = true)
 a = symbols("a", positive = true)

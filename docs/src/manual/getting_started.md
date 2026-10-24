@@ -24,7 +24,7 @@ and what makes comparing raw component arrays a mistake.
 ## A first computation
 
 ```@example gs
-using TensND, SymPy
+using TensND, SymPyPythonCall
 
 Spherical = coorsys_spherical()
 θ, ϕ, r = getcoords(Spherical)

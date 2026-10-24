@@ -58,11 +58,7 @@ jobs:
         run: |
           using Pkg
           Pkg.develop(PackageSpec(path=pwd()))
-          ENV["PYTHON"] = ""
-          # Pkg.build builds Conda first, which makes again the root environment the
-          # cache does not hold; conda-forge now and then answers a transient error
-          # (a 502 on its index), so what is downloaded from it is tried three times
-          retry(() -> Pkg.build("PyCall"); delays = fill(60.0, 2))()
+          # No Python setup: SymPyPythonCall's CondaPkg installs `sympy` itself.
           Pkg.instantiate()
       - name: Run doctests
         shell: julia --project=docs/ --color=yes {0}
@@ -70,7 +66,7 @@ jobs:
           using Documenter: DocMeta, doctest
           using TensND
           DocMeta.setdocmeta!(TensND, :DocTestSetup,
-              :(using TensND, LinearAlgebra, SymPy, Tensors, Rotations);
+              :(using TensND, LinearAlgebra, SymPyPythonCall, Tensors, Rotations);
               recursive=true)
           doctest(TensND)
       - name: Build and deploy

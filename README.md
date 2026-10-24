@@ -25,7 +25,7 @@ systems — cartesian, polar, cylindrical, spherical, spheroidal, or user-define
 A basis carries its metric, so covariant and contravariant components are
 related rather than assumed, and the differential operators follow from the
 chart. The same code runs **symbolically** (via
-[SymPy.jl](https://github.com/JuliaPy/SymPy.jl) and
+[SymPyPythonCall.jl](https://github.com/jverzani/SymPyPythonCall.jl) and
 [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl)) and
 **numerically** (via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)).
 
@@ -46,7 +46,7 @@ The example below illustrates what the library is for; the
 shows a condensed version of it.
 
 ```julia
-julia> using SymPy, TensND
+julia> using SymPyPythonCall, TensND
 
 julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
 

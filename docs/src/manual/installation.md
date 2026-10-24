@@ -14,17 +14,20 @@ pkg> add TensND
 
 ## Symbolic backends
 
-`SymPy` and `Symbolics` are ordinary dependencies, so both symbolic element
-types are available without further installation. `SymPy` calls into Python
-through `PyCall`; if its build fails, the usual remedy is
+`SymPyPythonCall` and `Symbolics` are ordinary dependencies, so both symbolic
+element types are available without further installation. `SymPyPythonCall`
+reaches Python through `PythonCall`, and `CondaPkg` installs the Python module
+`sympy` on first use, in an environment of its own: no Python needs to be set up
+beforehand. To use a Python of your own instead (one that has `sympy`), set
 
 ```julia
-ENV["PYTHON"] = ""
-import Pkg; Pkg.build("PyCall")
+ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
+ENV["JULIA_PYTHONCALL_EXE"] = "/path/to/python"
 ```
 
-which installs a private Conda Python. See
-[Symbolic and numeric](@ref man-symbolic-numeric) for how the four scalar
+before loading `TensND`.
+
+See [Symbolic and numeric](@ref man-symbolic-numeric) for how the four scalar
 worlds — `Float64`, `ForwardDiff.Dual`, `Sym` and `Num` — relate.
 
 ## Checking the installation
@@ -65,7 +68,7 @@ machine-readable form. Works cited by this documentation are collected on the
 | Package | Role here |
 | :--- | :--- |
 | [Tensors.jl](https://github.com/Ferrite-FEM/Tensors.jl) | low-level storage for small tensors |
-| [SymPy.jl](https://github.com/JuliaPy/SymPy.jl) | symbolic backend |
+| [SymPyPythonCall.jl](https://github.com/jverzani/SymPyPythonCall.jl) | symbolic backend (SymPy through PythonCall) |
 | [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl) | native Julia CAS backend |
 | [Rotations.jl](https://github.com/JuliaGeometry/Rotations.jl) | rotation representations |
 | [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl) | automatic differentiation |

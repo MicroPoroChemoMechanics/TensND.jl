@@ -22,7 +22,7 @@ The matrix constructors take the basis vectors as **columns**, expressed in the
 canonical basis.
 
 ```@example bases
-using TensND, SymPy, LinearAlgebra
+using TensND, SymPyPythonCall, LinearAlgebra
 
 ℬ = Basis(Sym[1 0 0; 0 1 0; 0 1 1])
 ```
@@ -85,7 +85,7 @@ The `init_*` helpers return a triple `(coordinates, vectors, basis)`:
 | [`init_rotated`](@ref) | ``(\theta,\varphi,\psi)`` |
 
 ```@example bases2
-using TensND, SymPy
+using TensND, SymPyPythonCall
 (r, θ, z), (𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ), ℬᶜ = init_cylindrical()
 ℬᶜ
 ```

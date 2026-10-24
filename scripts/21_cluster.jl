@@ -21,7 +21,7 @@ Pkg.activate(joinpath(@__DIR__, "..", "docs"); io = devnull)        #jl
 
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 
 𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
 𝟏 = tens_Id2(Val(3), Val(Sym))

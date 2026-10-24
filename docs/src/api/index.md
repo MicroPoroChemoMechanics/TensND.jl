@@ -51,4 +51,4 @@ warning.
 `divergence` is Tensors.jl's function, extended to the coordinate systems, so
 that `using TensND, Tensors` leaves one `divergence`. The Hessian is `hess`, not
 `hessian`: SymPy, which TensND loads, exports a `hessian` of its own, and the
-same name would have made `using TensND, SymPy` ambiguous.
+same name would have made `using TensND, SymPyPythonCall` ambiguous.

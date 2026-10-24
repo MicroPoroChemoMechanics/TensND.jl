@@ -8,7 +8,7 @@ using LinearAlgebra, Tensors, Rotations
 # function, not two that the same `using` would make ambiguous.
 import Tensors: divergence
 using ForwardDiff, StaticArrays
-using SymPy
+using SymPyPythonCall
 using Symbolics
 
 include("sympy_matrix.jl")
