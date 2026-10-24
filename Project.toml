@@ -17,11 +17,7 @@ Aqua = "0.8"
 ForwardDiff = "0.10, 1"
 LinearAlgebra = "1"
 OMEinsum = "0.9"
-# PyCall 1.97.0, registered on 2026-10-19, reaches Python without the GIL from
-# the `hash` SymPy.jl defines: segmentation faults in the tests and documentation
-# of MeanFieldHomogenization the day it came out. This bound excludes that
-# release only, so that any later one is taken as soon as it is registered.
-PyCall = "< 1.97.0, >= 1.97.1"
+PyCall = "1"
 Random = "1"
 Rotations = "1"
 StaticArrays = "1"
