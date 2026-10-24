@@ -267,8 +267,8 @@ chart directions:
 | [`grad`](@ref) | ``\displaystyle\sum_i\partial_i t\otimes\underline{a}^i`` | ``+1`` |
 | [`symgrad`](@ref) | ``\displaystyle\sum_i\partial_i t\stackrel{s}{\otimes}\underline{a}^i`` | ``+1`` |
 | [`divergence`](@ref) | ``\displaystyle\sum_i\partial_i t\cdot\underline{a}^i`` | ``-1`` |
-| [`laplacian`](@ref) | ``\mathrm{DIV}\circ\mathrm{GRAD}`` | ``0`` |
-| [`hess`](@ref) | ``\mathrm{GRAD}\circ\mathrm{GRAD}`` | ``+2`` |
+| [`laplacian`](@ref) | ``\mathrm{div}\circ\mathrm{grad}`` | ``0`` |
+| [`hess`](@ref) | ``\mathrm{grad}\circ\mathrm{grad}`` | ``+2`` |
 
 Here ``\partial_i t`` is the *full* derivative of the tensor field, basis
 included — which is where the Christoffel symbols enter.
@@ -283,11 +283,11 @@ included — which is where the Christoffel symbols enter.
     and `divergence` contracts the **last** index,
 
     ```math
-    (\mathrm{DIV}\,\boldsymbol{\sigma})_i=\partial_j\sigma_{ij} .
+    (\mathrm{div}\,\boldsymbol{\sigma})_i=\partial_j\sigma_{ij} .
     ```
 
     A library using the opposite convention differs by a transpose. The choice
-    here is what makes ``\mathrm{LAPLACE}=\mathrm{DIV}\circ\mathrm{GRAD}``
+    here is what makes ``\nabla^{2}=\mathrm{div}\circ\mathrm{grad}``
     correct as written. For a symmetric field the distinction is immaterial; for
     a general order-2 field it is not, and it is pinned by a test
     ([Testing and conventions](@ref dev-testing)).

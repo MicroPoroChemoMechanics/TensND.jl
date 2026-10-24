@@ -159,7 +159,7 @@ end
 # together is
 #
 # ```math
-# \mathrm{GRAD}(\underline{n})=-\,\boldsymbol{b}.
+# \mathrm{grad}(\underline{n})=-\,\boldsymbol{b}.
 # ```
 
 G = grad(normal(Sphere), Sphere)

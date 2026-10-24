@@ -9,9 +9,9 @@
 #
 # ```math
 # \begin{aligned}
-# \mathrm{GRAD}(t)&=\sum_i\partial_i t\otimes\underline{a}^i,\\
-# \mathrm{SYMGRAD}(t)&=\sum_i\partial_i t\stackrel{s}{\otimes}\underline{a}^i,\\
-# \mathrm{DIV}(t)&=\sum_i\partial_i t\cdot\underline{a}^i .
+# \mathrm{grad}(t)&=\sum_i\partial_i t\otimes\underline{a}^i,\\
+# \mathrm{grad}^{\mathrm{s}}(t)&=\sum_i\partial_i t\stackrel{s}{\otimes}\underline{a}^i,\\
+# \mathrm{div}(t)&=\sum_i\partial_i t\cdot\underline{a}^i .
 # \end{aligned}
 # ```
 
@@ -58,7 +58,7 @@ simplify(laplacian(r^n * sin(m * θ)) / (r^(n - 2) * sin(m * θ)))
 
 # ## The Hessian
 #
-# ``\mathrm{HESS}=\mathrm{GRAD}\circ\mathrm{GRAD}``, and its trace is the
+# ``\mathrm{Hess}=\mathrm{grad}\circ\mathrm{grad}``, and its trace is the
 # Laplacian:
 
 H = simplify(hess(r^n))
@@ -134,7 +134,7 @@ simplify(divergence(𝛔))
 #
 # `grad` appends the derivative index **on the right**, so
 # ``(\nabla\underline{v})_{ij}=\partial_j v_i``, and `divergence` contracts the **last**
-# index, ``(\mathrm{DIV}\,\boldsymbol{\sigma})_i=\partial_j\sigma_{ij}``. In
+# index, ``(\mathrm{div}\,\boldsymbol{\sigma})_i=\partial_j\sigma_{ij}``. In
 # Cartesian coordinates, where all Christoffel symbols vanish, this is easy to
 # read off:
 
