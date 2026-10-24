@@ -95,7 +95,19 @@ jobs:
             # what is downloaded from it is tried three times, a minute apart
             retry(() -> Pkg.build("PyCall"); delays = fill(60.0, 2))()
             using PyCall
-            retry(() -> pyimport_conda("sympy", "sympy"); delays = fill(60.0, 2))()'
+            if Sys.iswindows()
+                # conda 26.9 (the Miniforge Conda.jl installs, 2026-10-23) builds the
+                # entry-point launchers of a noarch package from `conda-launchers`,
+                # whose conda-forge builds carry no win-64 `cli-64.exe`: the
+                # transaction fails on every try. pip makes its own launchers, so
+                # `sympy` goes into the same Python through it until conda is fixed.
+                # pip is called directly on the interpreter PyCall uses: `Conda.pip`
+                # checks `pip_interop_enabled`, which conda 26 renamed.
+                retry(() -> run(`$(PyCall.python) -m pip install sympy`); delays = fill(60.0, 2))()
+                pyimport("sympy")
+            else
+                retry(() -> pyimport_conda("sympy", "sympy"); delays = fill(60.0, 2))()
+            end'
       - uses: julia-actions/julia-buildpkg@v1
       # IrrationalConstants, a dependency of ForwardDiff, calls MPFR under the
       # bare name `:libmpfr`, and the Windows builds of Julia master no longer
