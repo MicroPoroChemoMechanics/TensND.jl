@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.8.1 — basis vectors built with their static size
+
+A patch release, for speed. `tens_basis(ℬ, i)` built the components of a basis
+vector as a `Vector`, whose length is a run-time value, so the type of every
+basis vector was decided at run time: each call cost a type instantiation and a
+dynamic dispatch, about 0.8 µs for a vector of three numbers. The components are
+now built with their static size, in the same storage as before (a `Vec` up to
+dimension 3), and the call is inferred: 1.3 ns. Code that asks a basis for its
+axes on a hot path gains in proportion. In MeanFieldHomogenization, the Hill
+tensor of a spheroid in a transversely isotropic medium, which checks that the
+two axes are parallel, falls from 2.56 to 1.66 µs, and a self-consistent
+estimate on prolate spheroids from 88 to 68 µs. Nothing else changes: the same
+vectors, of the same type, with the same components.
+
 ## v0.8.0 — orthotropic tensors of order 2 and without major symmetry
 
 A minor release. The product of two orthotropic tensors on the same frame is
