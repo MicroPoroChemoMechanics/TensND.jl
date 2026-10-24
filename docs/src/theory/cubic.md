@@ -168,6 +168,18 @@ exactly zero when ``\beta=\gamma``, which is exactly when the tensor is
 isotropic. It is precisely the third constant that a two-constant approximation
 of a cubic tensor throws away.
 
+## Storage
+
+| Storage | Coefficients | Case |
+| :------ | :----------- | :--- |
+| `TensCubic{T,B}` | ``(\alpha,\beta,\gamma)`` | ``\alpha\mathbb{J}+\beta\mathbb{E}+\gamma\mathbb{T}`` on the cube frame |
+
+One shape: the product of two cubic tensors on a cube is cubic and
+major-symmetric (above), the inverse too, so the class needs no general shape,
+and at order two it is the isotropic one. The rotation group ``O`` and the full
+group ``O_h`` have the same invariant tensors at even order, so there is no
+chiral shape either.
+
 ## Where the class sits
 
 ```mermaid

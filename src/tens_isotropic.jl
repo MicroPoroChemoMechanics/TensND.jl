@@ -4,18 +4,20 @@
 Isotropic tensor stored as `N` scalars instead of `dim^order` components, in
 **arbitrary dimension**.
 
-| Order | `N` | Stored | Tensor |
-|:--|:--|:--|:--|
-| 2 | 1 | `λ` | `λ 𝟏` |
-| 4 | 2 | `(α, β)` | `α 𝕁 + β 𝕂` |
+| Parametrization       | Role             | Invariance group | Stored coefficients        |
+|-----------------------|------------------|------------------|----------------------------|
+| `TensISO{2, dim, T, 1}` | 2nd-order isotropic | `O(dim)`      | `data = (λ,)`: `λ 𝟏`       |
+| `TensISO{4, dim, T, 2}` | 4th-order isotropic | `O(dim)`      | `data = (α, β)`: `α 𝕁 + β 𝕂` |
 
 with `𝕁 = (𝟏⊗𝟏)/dim` the spherical projector and `𝕂 = 𝕀 − 𝕁` the deviatoric
 one. In 3-D elasticity `α = 3k` and `β = 2μ`.
 
 Because `𝕁` and `𝕂` are complementary orthogonal projectors, the algebra is that
 of a pair of independent scalars: products multiply them termwise and inverses
-take their reciprocals, both in closed form and both staying in the type. An
-isotropic tensor has no orientation, so it needs none stored.
+take their reciprocals, both in closed form and both staying in the type; an
+isotropic tensor is its own transpose and major-symmetric. It has no
+orientation, so it needs none stored. As [`TensTI`](@ref) and
+[`TensOrtho`](@ref), the type carries its order and number of coefficients.
 
 # Constructors
 

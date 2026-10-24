@@ -103,6 +103,18 @@ optimize, because an isotropic tensor has none.
     ``\mathbb{C}`` or ``\mathbb{S}`` to project is the user's and must be
     stated when a result is reported.
 
+## Storage
+
+| Storage | Coefficients | Case |
+| :------ | :----------- | :--- |
+| `TensISO{2,dim,T,1}` | ``\lambda`` | ``\lambda\boldsymbol{1}`` |
+| `TensISO{4,dim,T,2}` | ``(\alpha,\beta)`` | ``\alpha\mathbb{J}+\beta\mathbb{K}`` |
+
+One shape per order, invariant under the whole orthogonal group: an isotropic
+tensor is its own transpose, and the products and inverses above stay in the
+shape, so there is no wider one as there is for the transversely isotropic and
+orthotropic classes.
+
 ## Relation to the wider classes
 
 Isotropy is the intersection of every other class, so an isotropic tensor

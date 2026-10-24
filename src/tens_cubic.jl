@@ -74,6 +74,16 @@ The isotropic class is the case `β = γ`: `TensISO{3}(α, β)` is
 `α𝕁 + β(𝔼 + 𝕋)`, since `𝕂 = 𝔼 + 𝕋`. What a two-constant approximation of a
 cubic tensor discards is measured by [`cubic_anisotropy`](@ref).
 
+| Parametrization    | Role                | Invariance group | Stored coefficients                  |
+|--------------------|---------------------|------------------|--------------------------------------|
+| `TensCubic{T, B}`  | 4th-order cubic     | `Oₕ`             | `data = (α, β, γ)`, `frame::B`       |
+
+One shape only, so the type carries neither order nor length: at order 2 a
+cubic tensor is isotropic (a `TensISO{2}`), and the product of two cubic
+tensors on a cube is cubic and major-symmetric, so there is no general shape
+(`Oₕ` and its rotation group `O` have the same invariants at even order). The
+inverse stays cubic, and a cubic tensor is its own transpose.
+
 As for [`TensOrtho`](@ref), the frame's element type `B` is a free type
 parameter independent of the data eltype `T`: differentiating with respect to
 the constants does not require a `Dual`-typed geometric frame.
