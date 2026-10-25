@@ -329,6 +329,18 @@ symbolic quantity cannot be converted to).
 float_like(::Type{T}) where {T <: Integer} = float(T)
 float_like(::Type{T}) where {T} = T
 
+# The element type a structured tensor stores its coefficients in is that of its
+# components, which its basis tensors make carry 1/2 and 1/3 (the isotropic and
+# cubic projectors, the Walpole tensors 𝕎₂ and 𝕎₅) or 1/√2 (𝕎₃ and 𝕎₄). An
+# integer coefficient stored as it is left a tensor whose components could not be
+# formed (`InexactError` on display, `get_array`, a product), and a rational one
+# rounded 1/√2 into a rational silently. The type is the result type of the
+# operation, inferred (`Base.promote_op`) rather than evaluated, which costs a
+# symbolic type nothing; where inference gives no concrete type, `T` is kept.
+_closed_type(T::Type, S::Type) = isconcretetype(S) ? promote_type(T, S) : T
+halves_eltype(::Type{T}) where {T} = _closed_type(T, Base.promote_op(/, T, Int))
+sqrt2_eltype(::Type{T}) where {T} = _closed_type(halves_eltype(T), Base.promote_op(sqrt, halves_eltype(T)))
+
 isdiagonal(a::AbstractMatrix{T}) where {T <: SymType} = isdiag(a)
 isidentity(a::AbstractMatrix{T}) where {T <: SymType} = isone(a)
 

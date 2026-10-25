@@ -105,6 +105,16 @@ See also [`tens_cubic`](@ref), [`arg_cubic`](@ref),
 struct TensCubic{T, B <: OrthonormalBasis{3}} <: AbstractTens{4, 3, T}
     data::NTuple{3, T}     # (α, β, γ) on (𝕁, 𝔼, 𝕋)
     frame::B               # cube axes (e₁, e₂, e₃)
+    function TensCubic{T, B}(data::NTuple{3}, frame::B) where {T, B <: OrthonormalBasis{3}}
+        T === halves_eltype(T) || throw(
+            ArgumentError(
+                "a TensCubic stores its coefficients in the type of its components, which " *
+                    "carry 1/2 and 1/3: $T cannot hold them; use $(halves_eltype(T)), which " *
+                    "`TensCubic(α, β, γ, frame)` chooses"
+            )
+        )
+        return new{T, B}(map(x -> convert(T, x), data), frame)
+    end
 end
 
 # Outer constructor preserving the `TensCubic{T}(data, frame)` call form used by
@@ -125,7 +135,7 @@ get_data(t::TensCubic) = t.data
 frame(t::TensCubic) = t.frame
 
 # ── Rebuild helper (used by the symbolic ops) ────────────────────────────────
-_rebuild(t::TensCubic, new_data) = TensCubic{eltype(new_data)}(new_data, frame(t))
+_rebuild(t::TensCubic, new_data) = TensCubic{halves_eltype(eltype(new_data))}(new_data, frame(t))
 
 # ── Constructors ─────────────────────────────────────────────────────────────
 
@@ -136,7 +146,7 @@ Cubic tensor from its three **projector** coefficients on `(𝕁, 𝔼, 𝕋)`. 
 engineering constants use [`tens_cubic`](@ref).
 """
 function TensCubic(α, β, γ, frame::OrthonormalBasis{3})
-    T = promote_type(typeof(α), typeof(β), typeof(γ), eltype(frame))
+    T = halves_eltype(promote_type(typeof(α), typeof(β), typeof(γ), eltype(frame)))
     return TensCubic{T}((T(α), T(β), T(γ)), frame)
 end
 

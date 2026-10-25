@@ -42,10 +42,21 @@ See also [Isotropic tensors](@ref th-isotropic),
 struct TensISO{order, dim, T, N} <: AbstractTens{order, dim, T}
     data::NTuple{N, T}
     TensISO{dim}(λ::T) where {dim, T} = new{2, dim, T, 1}((λ,))
-    TensISO{dim}(α::T1, β::T2) where {dim, T1, T2} = new{4, dim, promote_type(T1, T2), 2}((α, β))
+    # The projectors 𝕁 and 𝕂 carry 1/dim in their components (see `halves_eltype`).
+    function TensISO{dim}(α::T1, β::T2) where {dim, T1, T2}
+        T = halves_eltype(promote_type(T1, T2))
+        return new{4, dim, T, 2}((convert(T, α), convert(T, β)))
+    end
     TensISO{dim}(data::Tuple{T, Vararg{T}}) where {dim, T} = TensISO{dim}(data...)
-    TensISO{order, dim, T}() where {order, dim, T} =
-        new{order, dim, T, order ÷ 2}(ntuple(_ -> one(T), Val(order ÷ 2)))
+    function TensISO{order, dim, T}() where {order, dim, T}
+        order == 4 && T !== halves_eltype(T) && throw(
+            ArgumentError(
+                "a fourth-order TensISO stores its coefficients in the type of its components, " *
+                    "which carry 1/$dim: $T cannot hold them; use $(halves_eltype(T))"
+            )
+        )
+        return new{order, dim, T, order ÷ 2}(ntuple(_ -> one(T), Val(order ÷ 2)))
+    end
 end
 
 get_order(::TensISO{order}) where {order} = order

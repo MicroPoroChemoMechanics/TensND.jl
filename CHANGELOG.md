@@ -1,5 +1,32 @@
 # Changelog
 
+## v0.8.2 — structured tensors in the type their components need
+
+A patch release, a fix. The components of the structured tensors carry 1/2 and
+1/3 (the isotropic and cubic projectors, the Walpole tensors 𝕎₂ and 𝕎₅) or 1/√2
+(𝕎₃ and 𝕎₄), but their coefficients were stored in the type they were given.
+Integer coefficients thus made tensors whose components could not be formed:
+`walpole_basis((0, 0, 1))`, `TensTI{4}(1, 2, 0, 1, 1, (0, 0, 1))`,
+`TensISO{3}(3, 2)` or a `TensCubic` on an integer frame threw an `InexactError`
+as soon as they were displayed, read with `get_array` or multiplied, and the
+inverse of an integer `TensTI{2}` did too. Rational coefficients were worse, as
+nothing failed: the components 1/√2 of a `TensTI{4}` came out as the rational
+nearest the floating-point value, silently.
+
+A structured tensor now takes, when it is built, the element type its
+components need: that of 1/√2 for a fourth-order `TensTI`, that of 1/2 for a
+fourth-order `TensISO` and for `TensCubic`. Integers become floats, `BigInt`
+becomes `BigFloat`, rationals stay exact where the components are rational
+(`TensISO`, `TensCubic`) and become floats for a `TensTI` of order 4; floats of
+every precision, complex numbers, dual numbers and symbolic types are kept as
+they are. The typed constructors (`TensTI{4, Int, 5}(…)`, `TensISO{4, 3, Int}()`,
+`TensCubic{Int, B}(…)`) refuse a type that cannot hold the components, with the
+type to use. Tensors whose components are integers when their coefficients are
+(`TensISO` and `TensTI` of order 2, `TensOrtho`) keep their integer type, and
+their inverse is in the type of the reciprocal, as `inv` of an integer matrix
+is. A tensor built from floating-point coefficients is unchanged, and so is the
+cost of building it.
+
 ## v0.8.1 — basis vectors built with their static size
 
 A patch release, for speed. `tens_basis(ℬ, i)` built the components of a basis

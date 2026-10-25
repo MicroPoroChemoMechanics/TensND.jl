@@ -14,6 +14,27 @@ differentiated — numerically without rewriting anything.
 | `Sym` | `SymPy` | symbolic derivation, `dsolve`, `solve` |
 | `Num` | `Symbolics` | native Julia CAS, code generation |
 
+### Integer and rational coefficients
+
+A structured tensor stores its coefficients in the type its components need.
+The isotropic and cubic projectors and the Walpole tensors ``\mathbb{W}_2`` and
+``\mathbb{W}_5`` carry ``1/2`` or ``1/3`` in their components, and ``\mathbb{W}_3``,
+``\mathbb{W}_4`` carry ``1/\sqrt{2}``. A fourth-order `TensTI` built from
+integers or rationals is therefore stored in floats, and a fourth-order
+`TensISO` or a `TensCubic` built from integers too, while rationals stay exact
+there; `BigInt` becomes `BigFloat`, and every other type is kept as it is:
+
+```@example sn
+using TensND
+(eltype(TensISO{3}(3, 2)), eltype(TensISO{3}(3 // 1, 2 // 1)),
+    eltype(TensTI{4}(1 // 1, 2 // 1, 1 // 1, 1 // 1, 1 // 1, (0, 0, 1))),
+    eltype(walpole_basis((0, 0, 1))[3]))
+```
+
+A tensor whose components are integers when its coefficients are, a `TensTI`
+or a `TensISO` of order 2 or a `TensOrtho`, keeps an integer type, and its
+inverse is in the type of the reciprocal, as `inv` of an integer matrix is.
+
 ```@example sn
 using TensND, SymPyPythonCall
 
