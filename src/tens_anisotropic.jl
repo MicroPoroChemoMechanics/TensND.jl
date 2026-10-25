@@ -83,8 +83,16 @@ See also [`TensOrtho`](@ref), [`tens_ti`](@ref), [`tens_ti_eng`](@ref), [`tens_t
 struct TensTI{order, T, N} <: AbstractTens{order, 3, T}
     data::NTuple{N, T}
     n::NTuple{3, T}       # symmetry axis (assumed unit vector)
-    TensTI{order, T, N}(data::NTuple{N, T}, n::NTuple{3, T}) where {order, T, N} =
-        new{order, T, N}(data, n)
+    function TensTI{order, T, N}(data::NTuple{N, T}, n::NTuple{3, T}) where {order, T, N}
+        order == 4 && T !== sqrt2_eltype(T) && throw(
+            ArgumentError(
+                "a fourth-order TensTI stores its Walpole coefficients in the type of its " *
+                    "components, which carry 1/√2: $T cannot hold them; use " *
+                    "$(sqrt2_eltype(T)), which the constructors `TensTI{4}(ℓ…, n)` choose"
+            )
+        )
+        return new{order, T, N}(data, n)
+    end
 end
 
 # Mixed-eltype constructor.  The symmetry axis is a piece of GEOMETRY and is
@@ -116,7 +124,12 @@ axis(t::TensTI) = t.n
 
 # ── Rebuild helper (used by symbolic ops) ─────────────────────────────────────
 _rebuild(t::TensTI{order}, new_data) where {order} =
-    TensTI{order, eltype(new_data), length(new_data)}(new_data, axis(t))
+    TensTI{order, _ti_eltype(Val(order), eltype(new_data)), length(new_data)}(new_data, axis(t))
+
+# The element type of a TensTI of order `order` holding coefficients of type `T`:
+# those of order 4 carry 1/√2 in their components (see `sqrt2_eltype`).
+_ti_eltype(::Val{4}, ::Type{T}) where {T} = sqrt2_eltype(T)
+_ti_eltype(::Val, ::Type{T}) where {T} = T
 
 # ── 4th-order TI accessors ───────────────────────────────────────────────────
 
@@ -136,9 +149,11 @@ get_ℓ(t::TensTI{4, T, 6}) where {T} = t.data
 # TensTI{4}(ℓ₁,ℓ₂,ℓ₃,ℓ₄,ℓ₅,ℓ₆, n) → TensTI{4, T, 6}
 # General (not necessarily major-symmetric) TI 4th-order tensor with axis `n`.
 function TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, n)
-    T = promote_type(
-        typeof(ℓ₁), typeof(ℓ₂), typeof(ℓ₃), typeof(ℓ₄),
-        typeof(ℓ₅), typeof(ℓ₆), eltype(n)
+    T = sqrt2_eltype(
+        promote_type(
+            typeof(ℓ₁), typeof(ℓ₂), typeof(ℓ₃), typeof(ℓ₄),
+            typeof(ℓ₅), typeof(ℓ₆), eltype(n)
+        )
     )
     nv = _extract_vec(n)
     return TensTI{4, T, 6}(
@@ -150,9 +165,11 @@ end
 # TensTI{4}(ℓ₁,ℓ₂,ℓ₃,ℓ₅,ℓ₆, n) → TensTI{4, T, 5}
 # Major-symmetric TI 4th-order tensor (ℓ₃ = ℓ₄), 5 independent scalars.
 function TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆, n)
-    T = promote_type(
-        typeof(ℓ₁), typeof(ℓ₂), typeof(ℓ₃),
-        typeof(ℓ₅), typeof(ℓ₆), eltype(n)
+    T = sqrt2_eltype(
+        promote_type(
+            typeof(ℓ₁), typeof(ℓ₂), typeof(ℓ₃),
+            typeof(ℓ₅), typeof(ℓ₆), eltype(n)
+        )
     )
     nv = _extract_vec(n)
     return TensTI{4, T, 5}(
@@ -770,8 +787,8 @@ julia> inv(A).data
 (0.2, 0.125)
 ```
 """
-@inline Base.inv(t::TensTI{2, T, 2}) where {T} =
-    TensTI{2, T, 2}((one(T) / t.data[1], one(T) / t.data[2]), t.n)
+# In the type of 1/a, as `inv` of an integer matrix is a float one.
+@inline Base.inv(t::TensTI{2, T, 2}) where {T} = TensTI{2}(inv(t.data[1]), inv(t.data[2]), t.n)
 @inline Base.literal_pow(::typeof(^), A::TensTI{2}, ::Val{-1}) = inv(A)
 
 # ── Trace (order 2) ─────────────────────────────────────────────────────────
@@ -1702,9 +1719,11 @@ components(t::TensOrtho{order}, ::NTuple{order, Symbol}) where {order} = get_arr
 # TensTI{4}(ℓ₁,…,ℓ₈, n) → TensTI{4, T, 8}
 # Full axially-invariant 4th-order tensor (see block comment above).
 function TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈, n)
-    T = promote_type(
-        typeof(ℓ₁), typeof(ℓ₂), typeof(ℓ₃), typeof(ℓ₄),
-        typeof(ℓ₅), typeof(ℓ₆), typeof(ℓ₇), typeof(ℓ₈), eltype_of(n)
+    T = sqrt2_eltype(
+        promote_type(
+            typeof(ℓ₁), typeof(ℓ₂), typeof(ℓ₃), typeof(ℓ₄),
+            typeof(ℓ₅), typeof(ℓ₆), typeof(ℓ₇), typeof(ℓ₈), eltype_of(n)
+        )
     )
     nv = _extract_vec(n)
     return TensTI{4, T, 8}(
@@ -1961,7 +1980,7 @@ Inverse of `a·nT + b·nₙ + c·w`: the in-plane part is the complex number
 function Base.inv(t::TensTI{2, T, 3}) where {T}
     a, b, c = t.data
     d = a * a + c * c
-    return TensTI{2, T, 3}((a / d, one(T) / b, -c / d), t.n)
+    return TensTI{2}(a / d, inv(b), -c / d, t.n)
 end
 
 @inline Base.literal_pow(::typeof(^), A::TensTI{2, <:Any, 3}, ::Val{-1}) = inv(A)

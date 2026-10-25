@@ -106,6 +106,7 @@ include("test_renamed.jl")
 include("test_tens_isotropic.jl")
 include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
+include("test_coefficient_types.jl")
 # The twelve-constant orthotropic form, without major symmetry.
 include("test_ortho_general.jl")
 # `mandel` and `change_tens` of the structured classes in closed form.
