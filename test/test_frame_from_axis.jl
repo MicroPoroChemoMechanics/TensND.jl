@@ -72,6 +72,21 @@ end
     Rg = Matrix(vecbasis(RotatedBasis(0.3, 0.2, 0.1)))
     @test cols(permute_basis(Basis(Rg), (3, 1, 2))) == Rg[:, [3, 1, 2]]
     @test_throws ArgumentError permute_basis(Basis([1.0 0.5 0; 0 1 0; 0 0 1]), (2, 1, 3))
+    # The dimension comes from the type of the basis, so the result infers: a
+    # shape built on a permuted basis is then concrete for its callers.
+    U3 = Union{CanonicalBasis{3, Float64}, RotatedBasis{3, Float64}}
+    U2 = Union{CanonicalBasis{2, Float64}, RotatedBasis{2, Float64}}
+    @test @inferred(U3, permute_basis(CanonicalBasis{3, Float64}(), (3, 1, 2))) isa RotatedBasis{3, Float64}
+    @test @inferred(U3, permute_basis(RotatedBasis(0.3, 0.2, 0.1), (2, 3, 1))) isa RotatedBasis{3, Float64}
+    @test @inferred(U2, permute_basis(RotatedBasis(0.3), (2, 1))) isa RotatedBasis{2, Float64}
+    @test_throws DimensionMismatch RotatedBasis(Rg, Val(2))
+    # Converted to another element type, the same basis, of a concrete type.
+    Rb = @inferred(
+        Union{CanonicalBasis{3, BigFloat}, RotatedBasis{3, BigFloat}},
+        TensND._with_eltype(BigFloat, RotatedBasis(0.3, 0.2, 0.1))
+    )
+    @test Rb isa RotatedBasis{3, BigFloat}
+    @test Matrix(vecbasis(Rb)) == BigFloat.(Rg)
     # A dual frame: the derivative of the permuted basis is the permuted
     # derivative.
     D(f) = ForwardDiff.derivative(f, 0.7)
