@@ -1,5 +1,26 @@
 # Changelog
 
+## v0.8.3 — permuted bases built with their dimension known
+
+A patch release, for speed. `permute_basis` and the conversion of a rotated
+basis to another element type built the result from a matrix whose size, hence
+the dimension of the basis, was read at run time. The basis they returned was
+therefore not inferred, and neither was anything built on it: in
+MeanFieldHomogenization, an ellipsoid whose semi-axes have to be sorted, a
+prolate spheroid for one, is built on a permuted basis, and every computation on
+it started with a dynamic dispatch. `RotatedBasis` now has a constructor taking
+the dimension as a type parameter, which the matrix constructor forwards to, and
+both functions pass the dimension of the basis they start from: the result is a
+union of the canonical and the rotated basis of that dimension, concrete for
+inference.
+
+The vectors of an orthonormal basis, permuted and signed, are orthonormal, so
+`permute_basis` no longer checks the orthogonality of the result when the basis
+it starts from is orthonormal by type; a general `Basis` is still checked and
+refused when it is not orthonormal. A permutation of the canonical basis falls
+from 0.72 to 0.17 µs, and the basis it returns is the same as before, matrix,
+angles and type, to the bit.
+
 ## v0.8.2 — structured tensors in the type their components need
 
 A patch release, a fix. The components of the structured tensors carry 1/2 and
