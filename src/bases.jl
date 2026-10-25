@@ -284,13 +284,17 @@ struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
     # Read by `angles(ℬ)` only, never on a computation's path: a field of
     # concrete type would be copied with every tensor that carries the basis.
     angles::NamedTuple
-    function RotatedBasis(R::AbstractMatrix{T}) where {T <: Number}
-        dim = size(R, 1)
+    # The dimension as a type parameter, so that a caller who knows it (a basis
+    # permuted or converted from another) gets a concrete type back. `check`
+    # is false only where `R` is orthogonal by construction.
+    function RotatedBasis(R::AbstractMatrix{T}, ::Val{dim}, check::Bool = true) where {T <: Number, dim}
+        size(R) == (dim, dim) ||
+            throw(DimensionMismatch("RotatedBasis: a $(dim)×$(dim) matrix is needed, got $(size(R))"))
         isidentity(R) && return CanonicalBasis{dim, T}()
         # The dual basis is taken to be `R` itself, which holds only for an
         # orthogonal `R`. Checked where a comparison means something; a
         # symbolic `R` is the caller's responsibility.
-        _check_orthogonal(R)
+        check && _check_orthogonal(R)
         eᵢ = eⁱ = Matrix(R)
         return new{dim, T}(eᵢ, eⁱ, angles(R))
     end
@@ -318,6 +322,8 @@ struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
     end
 end
 
+
+RotatedBasis(R::AbstractMatrix{<:Number}) = RotatedBasis(R, Val(size(R, 1)))
 
 const OrthonormalBasis{dim, T} = Union{CanonicalBasis{dim, T}, RotatedBasis{dim, T}}
 
@@ -368,7 +374,8 @@ end
 # The same orthonormal basis with entries of type `T`.
 _with_eltype(::Type{T}, ::CanonicalBasis{dim}) where {dim, T} = CanonicalBasis{dim, T}()
 _with_eltype(::Type{T}, ℬ::RotatedBasis{dim, T}) where {dim, T} = ℬ
-_with_eltype(::Type{T}, ℬ::RotatedBasis) where {T} = RotatedBasis(Matrix{T}(vecbasis(ℬ, :cov)))
+_with_eltype(::Type{T}, ℬ::RotatedBasis{dim}) where {T, dim} =
+    RotatedBasis(Matrix{T}(vecbasis(ℬ, :cov)), Val(dim), false)
 
 relevant_OrthonormalBasis(ℬ::OrthogonalBasis) = ℬ.parent
 relevant_OrthonormalBasis(ℬ::OrthonormalBasis) = ℬ
@@ -701,8 +708,10 @@ function permute_basis(ℬ::AbstractBasis{dim, T}, σ::NTuple{dim, Int}; negate:
     odd = isodd(count(σ[i] > σ[j] for i in 1:dim for j in (i + 1):dim))
     E = vecbasis(ℬ, :cov)
     s(k) = odd && k == negate ? -one(T) : one(T)
-    # A typed comprehension rather than `hcat`, which Symbolics overloads.
-    return RotatedBasis(T[s(k) * E[i, σ[k]] for i in 1:dim, k in 1:dim])
+    # A typed comprehension rather than `hcat`, which Symbolics overloads. The
+    # vectors of an orthonormal basis, permuted and signed, are orthonormal: the
+    # check is left to the bases that are not orthonormal by type.
+    return RotatedBasis(T[s(k) * E[i, σ[k]] for i in 1:dim, k in 1:dim], Val(dim), !isorthonormal(ℬ))
 end
 
 export Basis, CanonicalBasis, RotatedBasis, CylindricalBasis, SphericalBasis, OrthogonalBasis, AllOrthogonalBasis
