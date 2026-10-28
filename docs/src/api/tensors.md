@@ -83,6 +83,7 @@ mandel_from_blocks
 mandel_inv_schur
 plane_pinv
 plane_pinv2
+deviatoric_pinv
 acoustic_tensor
 compliance_op_block
 ```
