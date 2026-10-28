@@ -185,5 +185,24 @@ Kelvin-Mandel matrix.
     return SMatrix{3, 3, T}(S11, S12, S13, S12, S22, S23, S13, S23, S33)
 end
 
+"""
+    deviatoric_pinv(M) → SMatrix{6,6}
+
+The Moore-Penrose pseudo-inverse of a 6×6 Kelvin-Mandel matrix supported on the
+deviators (`𝕁 M = M 𝕁 = 0`): its inverse on the deviatoric subspace, zero on
+volume changes. For the deviatoric stiffness of an incompressible medium it is the
+compliance on deviators, and conversely. Written `(M + 𝕁)⁻¹ − 𝕁`, the volume
+changes taking the identity while the matrix is inverted: `M + 𝕁` is invertible
+whenever `M` is on deviators, and is inverted by [`mandel_inv_schur`](@ref), so
+that duals and symbols go through (no SVD, no pivoting). That `M` acts on
+deviators only is assumed, not checked: the check would be a value test.
+"""
+@inline function deviatoric_pinv(M::AbstractMatrix{T}) where {T}
+    third = one(T) / 3
+    z = zero(T)
+    J = SMatrix{6, 6, T}(ntuple(q -> (q - 1) % 6 < 3 && (q - 1) ÷ 6 < 3 ? third : z, Val(36)))
+    return mandel_inv_schur(SMatrix{6, 6, T}(M) + J) - J
+end
+
 export MANDEL_IP, MANDEL_OP, mandel_ip_block, mandel_op_block, mandel_ip_embed, mandel_op_embed, mandel_from_blocks
-export mandel_inv_schur, plane_pinv, plane_pinv2, acoustic_tensor, compliance_op_block
+export mandel_inv_schur, plane_pinv, plane_pinv2, acoustic_tensor, compliance_op_block, deviatoric_pinv

@@ -85,4 +85,30 @@ using TensND.StaticArrays: SMatrix, SVector
         sub(x) = Float64(TensND.Symbolics.value(TensND.Symbolics.substitute(x, Dict(a => 3.0, b => 2.0); fold = Val(true))))
         @test sub(mandel_inv_schur(Mn)[3, 3]) ≈ 1 / 2.0 && sub(mandel_inv_schur(Mn)[1, 1]) ≈ 1 / 3.0
     end
+
+    @testset "deviatoric pseudo-inverse" begin
+        J, K = SMatrix{6, 6}(mandel(TensISO{3}(1, 0))), SMatrix{6, 6}(mandel(TensISO{3}(0, 1)))
+        # The deviatoric stiffness of an incompressible isotropic medium.
+        @test deviatoric_pinv(2.0 * 0.8 * K) ≈ K / (2 * 0.8) atol = 1.0e-14
+        # A random anisotropic operator on deviators: the four Moore-Penrose
+        # conditions, the projector onto the deviators as the identity there.
+        for _ in 1:5
+            M = K * rand_km6(rng) * K
+            P = deviatoric_pinv(M)
+            @test M * P ≈ K atol = 1.0e-10
+            @test P * M ≈ K atol = 1.0e-10
+            @test M * P * M ≈ M atol = 1.0e-10
+            @test P * M * P ≈ P atol = 1.0e-10
+            @test maximum(abs, P * J) < 1.0e-12
+            @test P ≈ pinv(Matrix(M)) atol = 1.0e-10
+        end
+        # Derivative: d(M⁺) = −M⁺ dM M⁺ on deviators, as for an inverse.
+        M0, dM = K * rand_km6(rng) * K, K * rand_km6(rng) * K
+        P0 = deviatoric_pinv(M0)
+        @test ForwardDiff.derivative(t -> deviatoric_pinv(M0 + t * dM), 0.0) ≈ -P0 * dM * P0 atol = 1.0e-10
+        # Symbols: the incompressible isotropic case in closed form.
+        @syms μs::positive
+        Ps = deviatoric_pinv(SMatrix{6, 6}(mandel(TensISO{3}(0, 2μs))))
+        @test simplify(Ps[1, 1] - 2 / (3 * 2μs)) == 0 && simplify(Ps[4, 4] - 1 / (2μs)) == 0 && simplify(Ps[1, 2] + 1 / (3 * 2μs)) == 0
+    end
 end
