@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.8.4 — the inverse of a Kelvin-Mandel matrix on the deviators
+
+A patch release, adding one function. `deviatoric_pinv(M)` is the
+pseudo-inverse of a 6×6 Kelvin-Mandel matrix that acts on the deviators only:
+its inverse there, zero on volume changes. The deviatoric stiffness of an
+incompressible medium has no inverse, and its compliance on the deviators is
+what the self-consistent schemes of viscoplastic polycrystals need, with an
+anisotropic matrix, in MeanFieldHomogenization. The function writes it
+`(M + 𝕁)⁻¹ − 𝕁` and inverts by blocks with `mandel_inv_schur`, without an SVD
+or pivoting, so that dual numbers and symbols go through; it is checked by the
+four Moore–Penrose conditions, against `pinv`, by its derivative and in symbols.
+Nothing that existed changes.
+
 ## v0.8.3 — permuted bases built with their dimension known
 
 A patch release, for speed. `permute_basis` and the conversion of a rotated
