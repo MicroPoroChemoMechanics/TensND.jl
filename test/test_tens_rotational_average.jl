@@ -189,7 +189,7 @@ end
     @test mandel33_minor(array_from_mandel33(mandel33_minor(B))) ≈ mandel33_minor(B)
     @test array_from_mandel33(mandel(C2)) ≈ Array(get_array(C2))
     # TI average of a 3×3 block, against the tensor-level average.
-    n = Tuple(normalize(randn(rng, 3)))
+    n = random_axis(rng)
     G = randn(rng, 3, 3)
     @test ti_average_mat33(G, n) ≈ Array(get_array(transverse_isotropify(Tens(G), n)))
     @test ti_average_mat33(ti_average_mat33(G, n), n) ≈ ti_average_mat33(G, n)
@@ -203,7 +203,7 @@ end
     # Not invariant about the new axis, so averaged in full: the same as the
     # average of its generic form.
     rng = Xoshiro(20261028)
-    n1, n2 = Tuple(normalize(randn(rng, 3))), Tuple(normalize(randn(rng, 3)))
+    n1, n2 = random_axis(rng), random_axis(rng)
     A = TensTI{4}(10.0, 7.0, 3.0, 4.0, 5.0, n1)
     @test transverse_isotropify(A, n2) ≈ transverse_isotropify(generic_tens(A), n2)
     @test !(transverse_isotropify(A, n2) ≈ generic_tens(A))

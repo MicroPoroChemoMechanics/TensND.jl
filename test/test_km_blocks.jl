@@ -27,7 +27,7 @@ using TensND.StaticArrays: SMatrix, SVector
         @test !isapprox(K_naive, Diagonal(K_naive); atol = 1.0e-6)  # the reversal is exercised
         @test Array(get_array(acoustic_tensor(C, (0, 0, 1)))) ≈ K_naive atol = 1.0e-12
         # Any direction: the tensor form against the frame form.
-        n = normalize(randn(rng, 3))
+        n = collect(random_axis(rng))
         ℬ = frame_from_axis(n)
         Kn = acoustic_tensor(SMatrix{6, 6}(mandel(C, ℬ)))
         @test Array(get_array(change_tens(acoustic_tensor(C, n), ℬ))) ≈ Kn atol = 1.0e-10

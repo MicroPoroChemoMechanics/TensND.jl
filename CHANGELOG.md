@@ -1,8 +1,8 @@
 # Changelog
 
-## v0.8.5 — sums of structured tensors on different references
+## v0.8.5 — sums of structured tensors on different references, random tensors
 
-A patch release. The sum or the difference of two structured tensors whose
+A patch release, additive. The sum or the difference of two structured tensors whose
 references do not match (two cubic tensors on different cubes, two orthotropic
 tensors on different frames, a cubic or a transversely isotropic tensor with an
 orthotropic one off its frame) threw an `ArgumentError`, although the rule
@@ -35,6 +35,20 @@ A new test sums and subtracts every pair of structured classes at orders 2 and
 with dual coefficients, and with symbolic ones; it requires the structured
 class in every configuration listed above, and compares the generic route with
 the sum of the 81 components. None of these pairs was tested before.
+
+`random_tens` draws a tensor of any class (isotropic, transversely isotropic,
+orthotropic, cubic, generic, every shape of each) with random coefficients and,
+for a class with a direction, a uniformly random axis or frame, which a keyword
+fixes; `definite = true` makes it positive definite. `random_rotation`,
+`random_axis` and `random_basis` draw the orientations alone. Tests drew their
+frames from uniform Euler angles, which favor the poles (the mean square height
+of the axis is 1/2 instead of 1/3): the orientations now follow the Haar
+measure of SO(3), and the coefficients follow laws invariant under rotations, the
+Kelvin–Mandel blocks of each class drawn from the Gaussian orthogonal ensemble.
+A test checks the Haar moments and the law of the angle of a rotation, the
+uniformity of an axis, the isotropic projection as the mean of a crystal over
+random frames, and the invariance of the coefficient laws. The manual has a
+page on them, and the theory of rotations a section on the uniform law.
 
 ## v0.8.4 — the inverse of a Kelvin-Mandel matrix on the deviators
 

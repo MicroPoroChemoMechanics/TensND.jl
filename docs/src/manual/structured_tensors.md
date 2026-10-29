@@ -205,3 +205,5 @@ cubic one changes nothing.
 | anything else | a plain `Tens` |
 
 The measured cost of each is in [Performance of the structured types](@ref).
+A tensor of any of these classes, with random coefficients and orientation,
+is drawn by [`random_tens`](@ref) ([Random tensors](@ref man-random-tensors)).

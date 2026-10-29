@@ -205,7 +205,7 @@ end
 
 @testsection "Transverse isotropy: TI6 projection, TI2 ⋅ vector, order-2 read-off" begin
     rng = Xoshiro(20261025)
-    n = Tuple(normalize(randn(rng, 3)))
+    n = random_axis(rng)
     # The TI6 projection is the orthogonal projection onto the six Walpole
     # tensors: a TI6 tensor is its own projection, the residual of any
     # minor-symmetric tensor is orthogonal to the six, and an eight-parameter

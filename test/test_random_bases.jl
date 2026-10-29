@@ -17,15 +17,11 @@
 const RB_SEED = 20261021
 const RB_DRAWS = 5
 
-"A uniform random rotation (QR of a Gaussian matrix, det fixed to +1)."
-function _rb_rotation(rng)
-    F = qr(randn(rng, 3, 3))
-    Q = Matrix(F.Q) * Diagonal(sign.(diag(F.R)))
-    return det(Q) < 0 ? Q * Diagonal([1.0, 1.0, -1.0]) : Q
-end
+"A uniform random rotation (the Haar measure of SO(3))."
+_rb_rotation(rng) = Matrix(random_rotation(rng))
 
-"A random unit vector."
-_rb_unit(rng) = normalize(randn(rng, 3))
+"A random unit vector, uniform on the sphere."
+_rb_unit(rng) = collect(random_axis(rng))
 
 "A random minor- and major-symmetric 4th-order array (from a symmetric 6×6)."
 function _rb_sym4(rng)

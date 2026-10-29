@@ -11,8 +11,8 @@
 using TensND, Test, LinearAlgebra, ForwardDiff, Random
 
 _sb_rng = MersenneTwister(20261029)
-_sb_frame() = RotatedBasis(π * rand(_sb_rng), 2π * rand(_sb_rng), 2π * rand(_sb_rng))
-_sb_axis() = Tuple(normalize(randn(_sb_rng, 3)))
+_sb_frame() = random_basis(_sb_rng)       # uniform orientations
+_sb_axis() = random_axis(_sb_rng)
 
 # One tensor of each class of order 4, its coefficients scaled by x, on its own
 # random frame or axis; then of order 2.

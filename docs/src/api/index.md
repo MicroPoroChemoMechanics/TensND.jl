@@ -12,7 +12,7 @@ curated, so a newly exported symbol can never go undocumented.
 | [Walpole and orthotropy](walpole.md) | `TensTI`, `TensOrtho`, parametrizations |
 | [Cubic symmetry](cubic.md) | `TensCubic`, three constants and a cube frame |
 | [Projection](projection.md) | `proj_tens`, `best_sym_tens`, predicates |
-| [Special tensors](special.md) | Levi-Civita, rotations, unit vectors |
+| [Special tensors](special.md) | Levi-Civita, rotations, unit vectors, random tensors |
 | [Coordinate systems](coorsystems.md) | `CoordinateSystem`, its exact geometry and the operators |
 | [Numerical coordinate systems](coorsystems_num.md) | `PointwiseGeometry` |
 | [Submanifolds](submanifold.md) | `Submanifold` and its accessors |

@@ -110,6 +110,7 @@ include("test_coefficient_types.jl")
 # The twelve-constant orthotropic form, without major symmetry.
 include("test_ortho_general.jl")
 include("test_structured_binary_frames.jl")
+include("test_random_tens.jl")
 # `mandel` and `change_tens` of the structured classes in closed form.
 include("test_structured_closed_forms.jl")
 # Kelvin-Mandel block algebra about a normal (in-plane / out-of-plane).
