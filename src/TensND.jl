@@ -9,10 +9,9 @@ using LinearAlgebra, Tensors, Rotations
 import Tensors: divergence
 using ForwardDiff, StaticArrays
 using Random: Random, AbstractRNG
-using SymPyPythonCall
+using SymPyCore: SymPyCore, Sym
 using Symbolics
 
-include("sympy_matrix.jl")
 include("contraction_kernels.jl")
 include("array_utils.jl")
 include("bases.jl")
@@ -39,5 +38,25 @@ include("coorsystems.jl")
 include("coorsystems_num.jl")
 include("submanifold.jl")
 include("deprecated.jl")
+
+# The constructors whose default coordinates are SymPy symbols get them from the
+# extension that SymPyPythonCall loads. Called without coordinates while it is
+# not loaded, they would end in a bare `MethodError`: the hint says what to do.
+const _SYMPY_DEFAULTS = (
+    coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal,
+    init_cartesian, init_polar, init_cylindrical, init_spherical, init_rotated,
+)
+
+function _sympy_defaults_hint(io, exc, argtypes, kwargs)
+    exc.f in _SYMPY_DEFAULTS || return nothing
+    Base.get_extension(TensND, :TensNDSymPyPythonCallExt) === nothing || return nothing
+    print(
+        io, "\nThe default coordinates of `", exc.f, "` are SymPy symbols: load SymPyPythonCall ",
+        "(`using SymPyPythonCall`), or pass the coordinates (for instance from Symbolics' `@variables`)."
+    )
+    return nothing
+end
+
+__init__() = Base.Experimental.register_error_hint(_sympy_defaults_hint, MethodError)
 
 end # module

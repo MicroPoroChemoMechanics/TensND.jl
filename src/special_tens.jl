@@ -58,13 +58,19 @@ Returns the coordinates, unit vectors and basis of the cartesian basis
 julia> coords, vectors, ℬ = init_cartesian() ; x, y, z = coords ; 𝐞₁, 𝐞₂, 𝐞₃ = vectors ;
 ``` 
 """
-init_cartesian(coords = symbols("x y z", real = true)) = Tuple(coords),
+init_cartesian(coords) = Tuple(coords),
     ntuple(i -> 𝐞(Val(i), Val(length(coords)), Val(eltype(coords))), length(coords)),
     CanonicalBasis{length(coords), eltype(coords)}()
 
-init_cartesian(::Val{3}) = init_cartesian(symbols("x y z", real = true))
-init_cartesian(::Val{2}) = init_cartesian(symbols("x y", real = true))
 init_cartesian(dim::Integer) = init_cartesian(Val(dim))
+# The default coordinates are SymPy symbols, defined by the extension that
+# SymPyPythonCall loads (`init_cartesian(::Val{2})`, `::Val{3}`).
+init_cartesian(::Val{dim}) where {dim} = throw(
+    ArgumentError(
+        "init_cartesian($dim): the default coordinates are SymPy symbols, for dimensions 2 " *
+            "and 3; load SymPyPythonCall (`using SymPyPythonCall`), or pass the coordinates"
+    )
+)
 
 
 """
@@ -104,10 +110,7 @@ Returns the coordinates, base vectors and basis of the polar basis
 julia> coords, vectors, ℬᵖ = init_polar() ; r, θ = coords ; 𝐞ʳ, 𝐞ᶿ = vectors ;
 ``` 
 """
-init_polar(
-    coords = (symbols("r θ", real = true));
-    canonical = false,
-) = Tuple(coords),
+init_polar(coords; canonical = false) = Tuple(coords),
     ntuple(i -> 𝐞ᵖ(Val(i), coords[2]; canonical = canonical), 2),
     Basis(coords[2])
 
@@ -153,13 +156,7 @@ Returns the coordinates, base vectors and basis of the cylindrical basis
 julia> coords, vectors, ℬᶜ = init_cylindrical() ; r, θ, z = coords ; 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = vectors ;
 ``` 
 """
-init_cylindrical(
-    coords = (
-        symbols("r", positive = true),
-        symbols("θ z", real = true)...,
-    );
-    canonical = false,
-) = Tuple(coords),
+init_cylindrical(coords; canonical = false) = Tuple(coords),
     ntuple(i -> 𝐞ᶜ(Val(i), coords[2]; canonical = canonical), 3),
     CylindricalBasis(coords[2])
 
@@ -263,13 +260,7 @@ the coordinates are ordered as `θ, ϕ, r`.
 julia> coords, vectors, ℬˢ = init_spherical() ; θ, ϕ, r = coords ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ  = vectors ;
 ``` 
 """
-init_spherical(
-    coords = (
-        symbols("θ ϕ", real = true)...,
-        symbols("r", positive = true),
-    );
-    canonical = false,
-) = Tuple(coords),
+init_spherical(coords; canonical = false) = Tuple(coords),
     ntuple(i -> 𝐞ˢ(Val(i), coords[1:2]...; canonical = canonical), 3),
     SphericalBasis(coords[1:2]...)
 
@@ -284,7 +275,7 @@ Note that here the coordinates are angles and do not represent a valid parametri
 julia> angles, vectors, ℬʳ = init_rotated() ; θ, ϕ, ψ = angles ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = vectors ;
 ```
 """
-init_rotated(angles = symbols("θ ϕ ψ", real = true); canonical = false) = Tuple(angles),
+init_rotated(angles; canonical = false) = Tuple(angles),
     ntuple(i -> 𝐞ˢ(Val(i), angles...; canonical = canonical), 3),
     Basis(angles...)
 

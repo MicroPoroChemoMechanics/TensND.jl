@@ -1,5 +1,43 @@
 # Changelog
 
+## v0.9.0 — SymPy as an extension, Julia 1.13
+
+A minor release, whose aim is a lighter load: two thirds of the time of
+`using TensND` went to loading and compiling PythonCall, the bridge to Python
+under SymPyPythonCall, for users who never wrote a SymPy symbol.
+
+### Breaking changes
+
+- **SymPyPythonCall is an optional dependency.** TensND still dispatches on
+  SymPy's `Sym` (through SymPyCore, pure Julia and light), but everything that
+  calls Python is in the extension `TensNDSymPyPythonCallExt`, which
+  `using SymPyPythonCall` activates: the symbolic operations on a `Sym`
+  (`tsimplify`, `tfactor`, `tsubs`, `tdiff`, `ttrigsimp`, `texpand_trig`,
+  `tlimit`), the default coordinates of the coordinate systems and of their
+  bases (`coorsys_cartesian()`, `coorsys_polar()`, `coorsys_cylindrical()`,
+  `coorsys_spherical()`, `coorsys_spheroidal()`, `init_cartesian()`,
+  `init_polar()`, `init_cylindrical()`, `init_spherical()`, `init_rotated()`,
+  and their `Val(Sym)` forms), and the conversion of a Julia matrix of `Sym`
+  to a `sympy.Matrix`. Code that writes SymPy symbols already loaded
+  SymPyPythonCall to get `symbols` and `@syms`, and runs unchanged; code that
+  called a coordinate system without coordinates and without loading
+  SymPyPythonCall now gets a `MethodError` whose message says to load it.
+- **Julia 1.13 or later** (`julia = "1.13"`): 1.12 is no longer tested.
+- Under SemVer below 1.0, a minor release is breaking whatever the API did:
+  dependents bounded at `TensND = "0.8"` must widen their bound to accept 0.9.
+
+### Measured
+
+`using TensND` in a fresh process: 1.45 s against 4.3 s for 0.8.5, the same
+machine, three pairs of runs (PythonCall is no longer loaded). Every package
+built on TensND starts that much sooner.
+
+### Documentation
+
+The installation page and the page on symbolic and numeric element types say,
+in a table, which package to load for which symbols; the page on coordinate
+systems says what the default coordinates need.
+
 ## v0.8.5 — sums of structured tensors on different references, random tensors
 
 A patch release, additive. The sum or the difference of two structured tensors whose

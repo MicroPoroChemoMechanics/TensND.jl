@@ -589,16 +589,14 @@ which is `divergence(𝛔)ᵢ = ∂ⱼσᵢⱼ`.
 See also [`coorsys_polar`](@ref), [`coorsys_cylindrical`](@ref),
 [`coorsys_spherical`](@ref), [`@set_coorsys`](@ref).
 """
-function coorsys_cartesian(
-        coords::Tuple{T, Vararg{T, M}} = symbols("x y z", real = true)
-    ) where {T <: SymType, M}
+function coorsys_cartesian(coords::Tuple{T, Vararg{T, M}}) where {T <: SymType, M}
     dim = M + 1
     𝐗, 𝐄, ℬ = init_cartesian(coords)
     OM = sum([𝐗[i] * 𝐄[i] for i in 1:dim])
     χᵢ = ntuple(_ -> one(eltype(coords)), dim)
     return CoordinateSystem(OM, coords, ℬ, χᵢ)
 end
-coorsys_cartesian(::Val{<:Sym}, coords = symbols("x y z", real = true)) = coorsys_cartesian(coords)
+coorsys_cartesian(::Val{<:Sym}, coords) = coorsys_cartesian(coords)
 coorsys_cartesian(::Val{Num}, coords = Tuple(@variables x y z)) = coorsys_cartesian(coords)
 
 
@@ -626,20 +624,12 @@ julia> laplacian(f, Polar)
 ∂r
 ``` 
 """
-function coorsys_polar(
-        coords::NTuple{2, T} = (symbols("r", positive = true), symbols("θ", real = true));
-        canonical = false
-    ) where {T <: SymType}
+function coorsys_polar(coords::NTuple{2, T}; canonical = false) where {T <: SymType}
     (r, θ), (𝐞ʳ, 𝐞ᶿ), ℬᵖ = init_polar(coords, canonical = canonical)
     OM = r * 𝐞ʳ
     return CoordinateSystem(OM, coords, ℬᵖ, (one(eltype(coords)), r))
 end
-coorsys_polar(
-    ::Val{<:Sym}, coords = (
-        symbols("r", positive = true),
-        symbols("θ", real = true),
-    ); canonical = false
-) = coorsys_polar(coords; canonical = canonical)
+coorsys_polar(::Val{<:Sym}, coords; canonical = false) = coorsys_polar(coords; canonical = canonical)
 coorsys_polar(::Val{Num}, coords = Tuple(@variables r θ); canonical = false) = coorsys_polar(coords; canonical = canonical)
 
 
@@ -662,25 +652,13 @@ julia> divergence(𝐯, Cylindrical)
 ∂r                ∂z                              r
 ``` 
 """
-function coorsys_cylindrical(
-        coords::NTuple{3, T} = (
-            symbols("r", positive = true),
-            symbols("θ", real = true),
-            symbols("z", real = true),
-        );
-        canonical = false
-    ) where {T <: SymType}
+function coorsys_cylindrical(coords::NTuple{3, T}; canonical = false) where {T <: SymType}
     (r, θ, z), (𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ), ℬᶜ = init_cylindrical(coords, canonical = canonical)
     OM = r * 𝐞ʳ + z * 𝐞ᶻ
 
     return CoordinateSystem(OM, coords, ℬᶜ, (one(eltype(coords)), r, one(eltype(coords))))
 end
-coorsys_cylindrical(
-    ::Val{<:Sym}, coords = (
-        symbols("r", positive = true),
-        symbols("θ", real = true), symbols("z", real = true),
-    ); canonical = false
-) = coorsys_cylindrical(coords; canonical = canonical)
+coorsys_cylindrical(::Val{<:Sym}, coords; canonical = false) = coorsys_cylindrical(coords; canonical = canonical)
 coorsys_cylindrical(::Val{Num}, coords = Tuple(@variables r θ z); canonical = false) = coorsys_cylindrical(coords; canonical = canonical)
 
 
@@ -715,25 +693,13 @@ d            σʳʳ(r) - σᵠᵠ(r)   σʳʳ(r) - σᶿᶿ(r)
 dr                  r                 r
 ``` 
 """
-function coorsys_spherical(
-        coords::NTuple{3, T} = (
-            symbols("θ", real = true),
-            symbols("ϕ", real = true),
-            symbols("r", positive = true),
-        );
-        canonical = false
-    ) where {T <: SymType}
+function coorsys_spherical(coords::NTuple{3, T}; canonical = false) where {T <: SymType}
     (θ, ϕ, r), (𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ), ℬˢ = init_spherical(coords, canonical = canonical)
     OM = r * 𝐞ʳ
     rules = Dict(abs(sin(θ)) => sin(θ), transpose(tan(θ)) => tan(θ), 1 // 1 => 1, 2 // 1 => 2)
     return CoordinateSystem(OM, coords, ℬˢ, (r, r * sin(θ), one(eltype(coords))); rules = rules)
 end
-coorsys_spherical(
-    ::Val{<:Sym}, coords = (
-        symbols("θ", real = true),
-        symbols("ϕ", real = true), symbols("r", positive = true),
-    ); canonical = false
-) = coorsys_spherical(coords; canonical = canonical)
+coorsys_spherical(::Val{<:Sym}, coords; canonical = false) = coorsys_spherical(coords; canonical = canonical)
 coorsys_spherical(::Val{Num}, coords = Tuple(@variables θ ϕ r); canonical = false) = coorsys_spherical(coords; canonical = canonical)
 
 """
@@ -760,15 +726,7 @@ julia> laplacian(OM[1]^2, Spheroidal)
 2
 ``` 
 """
-function coorsys_spheroidal(
-        coords::NTuple{3, T} = (
-            symbols("ϕ", real = true),
-            symbols("p", real = true),
-            symbols("q", positive = true),
-        ),
-        c = symbols("c", positive = true),
-        tmp_coords = symbols("p̄ q̄", positive = true),
-    ) where {T <: SymType}
+function coorsys_spheroidal(coords::NTuple{3, T}, c, tmp_coords) where {T <: SymType}
     ϕ, p, q = coords
     params = (c,)
     p̄, q̄ = tmp_coords
@@ -799,15 +757,7 @@ function coorsys_spheroidal(
         to_coords = to_coords
     )
 end
-coorsys_spheroidal(
-    ::Val{<:Sym}, coords = (
-        symbols("ϕ", real = true),
-        symbols("p", real = true),
-        symbols("q", positive = true),
-    ),
-    c = symbols("c", positive = true),
-    tmp_coords = symbols("p̄ q̄", positive = true)
-) = coorsys_spheroidal(coords, c, tmp_coords)
+coorsys_spheroidal(::Val{<:Sym}, coords, c, tmp_coords) = coorsys_spheroidal(coords, c, tmp_coords)
 coorsys_spheroidal(
     ::Val{Num}, coords = Tuple(@variables ϕ p q),
     c = (@variables c)[1], tmp_coords = Tuple(@variables p̄ q̄)

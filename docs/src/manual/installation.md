@@ -14,22 +14,31 @@ pkg> add TensND
 
 ## Symbolic backends
 
-`SymPyPythonCall` and `Symbolics` are ordinary dependencies, so both symbolic
-element types are available without further installation. `SymPyPythonCall`
-reaches Python through `PythonCall`, and `CondaPkg` installs the Python module
-`sympy` on first use, in an environment of its own: no Python needs to be set up
-beforehand. To use a Python of your own instead (one that has `sympy`), set
+!!! tip "What to load for symbolic computations"
+    | to work with | add | load |
+    | :--- | :--- | :--- |
+    | SymPy symbols (`Sym`: `symbols`, `@syms`, `SymFunction`), and the coordinate systems called without coordinates (`coorsys_spherical()`, `init_cartesian()`, …) | `pkg> add SymPyPythonCall` | `using TensND, SymPyPythonCall` |
+    | Symbolics variables (`Num`: `@variables`) | `pkg> add Symbolics` | `using TensND, Symbolics` |
+    | numbers and derivatives only | nothing | `using TensND` |
+
+`Symbolics` is a dependency of TensND; `SymPyPythonCall` is not, since
+version 0.9.0: what calls Python lives in an extension that loading
+SymPyPythonCall activates, so that `using TensND` alone no longer loads Python.
+Called without coordinates while SymPyPythonCall is not loaded, a coordinate
+system says so in its error message.
+
+`SymPyPythonCall` reaches Python through `PythonCall`, and `CondaPkg` installs
+the Python module `sympy` on first use, in an environment of its own: no Python
+needs to be set up beforehand. To use a Python of your own instead (one that has
+`sympy`), set
 
 ```julia
 ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
 ENV["JULIA_PYTHONCALL_EXE"] = "/path/to/python"
 ```
 
-before loading `TensND`.
+before loading `SymPyPythonCall`.
 
-To write symbolic tensors of your own, add the symbolic front end as well
-(`pkg> add SymPyPythonCall`) and load it next to TensND
-(`using TensND, SymPyPythonCall`): it provides `@syms`, `symbols` and `Sym`.
 Code written for SymPy.jl changes `using SymPy` into `using SymPyPythonCall`; the
 symbols of the two packages are different types.
 
