@@ -611,10 +611,11 @@ end
     @test opequal(get_array(W + O), get_array(W) + get_array(O))
     @test opequal(get_array(O - W), get_array(O) - get_array(W))
 
-    # Reference mismatch → ArgumentError
+    # Reference mismatch → the generic route, the sum of the canonical arrays
     n_mis = (1.0, 1.0, 1.0) ./ sqrt(3.0)
     Wmis = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_mis)
-    @test_throws ArgumentError Wmis + O
+    @test !((Wmis + O) isa TensOrtho) && opequal(components_canon(Wmis + O), components_canon(Wmis) + components_canon(O))
+    @test opequal(components_canon(O - Wmis), components_canon(O) - components_canon(Wmis))
 
     # ── TensTI{4} N=5 + N=6 (same axis) → N=6 ─────────────────────────
     W5 = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)          # N=5

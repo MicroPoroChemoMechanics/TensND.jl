@@ -481,6 +481,44 @@ function Tensors.dcontract(
     return Tens(_static_tensor(newm, Val(dim), Val(order)), get_basis(nA))
 end
 
+# A tensor with the minor symmetries stored as such, in an orthonormal basis: an
+# isotropic tensor has the same components in every such basis, and its sum
+# with it or its contraction with it keeps the minor symmetries. The methods
+# above go through the 81 components and check the symmetries back at run
+# time, which cost most of a Mori–Tanaka step with cracks; these stay in the
+# minor-symmetric storage.
+const _TensMinorSymmetric{dim} = TensOrthonormal{4, dim, <:Any, <:SymmetricTensor{4, dim}}
+
+# `α𝕁 + β𝕂` as a Tensors.jl minor-symmetric tensor of element type `T`.
+@inline function _iso_minor_symmetric(A::TensISO{4, dim}, ::Type{T}) where {dim, T}
+    α, β = get_data(A)
+    δ = one(SymmetricTensor{2, dim, T})
+    𝕁 = Tensors.otimes(δ, δ) / dim
+    return α * 𝕁 + β * (one(SymmetricTensor{4, dim, T}) - 𝕁)
+end
+
+for OP in (:+, :-)
+    @eval @inline Base.$OP(A1::TensISO{4, dim}, A2::_TensMinorSymmetric{dim}) where {dim} =
+        Tens($OP(_iso_minor_symmetric(A1, promote_type(eltype(A1), eltype(A2))), get_array(A2)), get_basis(A2))
+    @eval @inline Base.$OP(A1::_TensMinorSymmetric{dim}, A2::TensISO{4, dim}) where {dim} =
+        Tens($OP(get_array(A1), _iso_minor_symmetric(A2, promote_type(eltype(A1), eltype(A2)))), get_basis(A1))
+end
+
+# `(α𝕁 + β𝕂) ⊡ 𝔸 = β𝔸 + ((α − β)/dim) 𝛅 ⊗ (𝛅 ⊡ 𝔸)` for `𝔸` with the minor
+# symmetries, which `𝕂` leaves unchanged; and the mirror image.
+function Tensors.dcontract(A::TensISO{4, dim}, B::_TensMinorSymmetric{dim}) where {dim}
+    α, β = get_data(A)
+    b = get_array(B)
+    δ = one(SymmetricTensor{2, dim, eltype(b)})
+    return Tens(β * b + ((α - β) / dim) * Tensors.otimes(δ, dcontract(δ, b)), get_basis(B))
+end
+function Tensors.dcontract(A::_TensMinorSymmetric{dim}, B::TensISO{4, dim}) where {dim}
+    α, β = get_data(B)
+    a = get_array(A)
+    δ = one(SymmetricTensor{2, dim, eltype(a)})
+    return Tens(a * β + Tensors.otimes(dcontract(a, δ), δ) * ((α - β) / dim), get_basis(A))
+end
+
 for order in (2, 4)
     for OP in (:+, :-, :*)
         @eval @inline Base.$OP(

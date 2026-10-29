@@ -171,18 +171,22 @@ acoustic_tensor(ℂ::AbstractTens{4, 3}, n) = dotdot(Tens(Vec{3}(_extract_vec(n)
     compliance_op_block(X) → SMatrix{3,3}
 
 The slot-ordered out-of-plane block ([`mandel_op_block`](@ref)) of the fourth-order
-compliance `X ⊗ˢ n ⊗ˢ n` — the strain `(X⋅(σ⋅n)) ⊗ˢ n` — from the symmetric 3×3
-matrix `X` written in the frame `(ℓ, m, n)`: the map
+compliance `X ⊗ˢ n ⊗ˢ n` — the strain `(X⋅(σ⋅n)) ⊗ˢ n`, which is also
+`n ⊗ˢ X ⊗ˢ n` on symmetric stresses — from the 3×3 matrix `X` written in the
+frame `(ℓ, m, n)` (symmetric for an interface, not necessarily otherwise): the map
 [`acoustic_tensor`](@ref) inverts on the compliance side,
 `Ŝₐᵦ = X_{π(a)π(b)} / (sₐ sᵦ)`, `π = (3, 2, 1)`, `s = (1, √2, √2)`. For a spring
 interface of compliance `X`, `mandel_op_embed(compliance_op_block(X))` is its
 Kelvin-Mandel matrix.
 """
 @inline function compliance_op_block(X::AbstractMatrix{T}) where {T}
+    # Column by column: Ŝₐᵦ = X_{π(a)π(b)} / (sₐ sᵦ), both triangles read.
     r2 = sqrt(2 * one(T))
-    S11, S12, S13 = X[3, 3], X[3, 2] / r2, X[3, 1] / r2
-    S22, S23, S33 = X[2, 2] / 2, X[2, 1] / 2, X[1, 1] / 2
-    return SMatrix{3, 3, T}(S11, S12, S13, S12, S22, S23, S13, S23, S33)
+    return SMatrix{3, 3, T}(
+        X[3, 3], X[2, 3] / r2, X[1, 3] / r2,
+        X[3, 2] / r2, X[2, 2] / 2, X[1, 2] / 2,
+        X[3, 1] / r2, X[2, 1] / 2, X[1, 1] / 2,
+    )
 end
 
 """

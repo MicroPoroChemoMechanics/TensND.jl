@@ -133,6 +133,54 @@ sometimes called the Bond matrix. Its orthogonality — the property Voigt
 notation lacks — is what
 [Kelvin–Mandel representation](@ref th-kelvin-mandel) is about.
 
+## [Uniform random rotations](@id th-random-rotations)
+
+A rotation drawn "at random" should favor no orientation: its law must be
+unchanged when every rotation is composed with a fixed one. On ``SO(3)`` there
+is exactly one such probability, the Haar measure. In the angles of this page
+it reads
+
+```math
+\mathrm{d}\mu = \frac{1}{8\pi^2}\,\sin\theta\,\mathrm{d}\theta\,\mathrm{d}\varphi\,\mathrm{d}\psi ,
+\qquad \theta\in[0,\pi],\ \varphi,\psi\in[0,2\pi),
+```
+
+so drawing ``\theta`` uniformly is wrong: the axis
+``\underline{n}=R\cdot\underline{e}_3``, of height ``\cos\theta``, would fall near
+the poles as often as near the equator, where the area to fill is largest.
+The height must be uniform on ``[-1,1]`` instead (the sphere and its
+circumscribed cylinder have the same area between two horizontal planes), so
+that ``\mathbb{E}[n_3^2]=1/3``, where uniform angles give ``1/2``.
+
+[`random_rotation`](@ref) does without angles. Unit quaternions ``q`` form the
+sphere ``S^3`` of ``\mathbb{R}^4``, and ``q\mapsto R_q`` maps them two to one
+onto ``SO(3)``, products to products. Multiplying by a fixed unit quaternion,
+on either side, is an orthogonal map of ``\mathbb{R}^4``, which preserves the
+uniform law on ``S^3``; its image on ``SO(3)`` is therefore invariant under the
+compositions on either side, hence the Haar measure. The uniform law on ``S^3``
+is the direction of a vector of four independent standard normal numbers,
+whose law is invariant under every orthogonal map. Likewise
+[`random_axis`](@ref) normalizes three standard normal numbers.
+
+Two consequences serve as checks. The angle ``\omega`` of a Haar rotation,
+``\operatorname{tr}R = 1 + 2\cos\omega``, has the density
+``(1-\cos\omega)/\pi`` on ``[0,\pi]``: small rotations are rare. And the trace
+has mean ``0`` and mean square ``1``, the moments of the character of an
+irreducible representation.
+
+**Coefficients.** A rotation acts on the Kelvin–Mandel vector of a symmetric
+tensor of order 2 by an orthogonal ``6\times 6`` matrix
+([Kelvin–Mandel representation](@ref th-kelvin-mandel)), so a law of
+Kelvin–Mandel matrices invariant under all orthogonal changes of basis is
+invariant under rotations. The Gaussian orthogonal ensemble (symmetric, normal
+entries of variance ``1`` on the diagonal and ``1/2`` off it) is one; so is
+``Q\,\Lambda\,Q^{\mathsf{T}}`` with ``Q`` of Haar law on ``O(6)`` and
+``\Lambda`` any law of eigenvalues, and a matrix of independent standard normal
+entries. [`random_tens`](@ref) draws generic tensors from them, and the blocks
+of the structured classes from their analogues of size 2 or 3. In Voigt
+notation the same draws would not be invariant: the change of basis is not
+orthogonal there.
+
 ## Recovering angles from a frame
 
 The inverse problem, extracting ``(\theta,\varphi,\psi)`` from an orthonormal

@@ -757,13 +757,44 @@ generic_tens(t::AbstractTens) = Tens(_static_tensor(t))
 @inline _generic_binary(op, A::AbstractTens{order, dim}, B::AbstractTens{order, dim}) where {order, dim} =
     Tens(_static_tensor(broadcast(op, get_array(A), get_array(B)), Val(dim), Val(order)))
 
-@inline function Base.:+(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
-    axis(A) == axis(B) || return _generic_binary(+, A, B)
-    return _coaxial_binary(+, A, B)
+for OP in (:+, :-)
+    @eval @inline function Base.$OP(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
+        axis(A) == axis(B) && return _coaxial_binary($OP, A, B)
+        c = _axis_cosine(axis(A), axis(B))
+        c === nothing && return _structured_sum($OP, A, B)
+        abs(abs(c) - one(c)) < 1.0e-10 && return _coaxial_binary($OP, A, _about_axis(B, axis(A), c))
+        abs(c) < 1.0e-10 && _has_orthogonal_ortho(A) && return _orthogonal_ti_binary($OP, A, B)
+        return _structured_sum($OP, A, B)
+    end
 end
-@inline function Base.:-(A::TensTI{order, <:Any, N}, B::TensTI{order, <:Any, N}) where {order, N}
-    axis(A) == axis(B) || return _generic_binary(-, A, B)
-    return _coaxial_binary(-, A, B)
+
+# Two TI tensors on different axes keep the symmetries the two share: about one
+# axis when the axes are parallel (opposite, or equal within 1e-10), the second
+# operand being written about the first's axis; orthotropic on the frame
+# (n_A, n_B, n_A × n_B) when they are orthogonal and both of the D∞h shapes,
+# which have the three mirrors of that frame; nothing else otherwise, the
+# generic route. On a symbolic axis only equal axes are recognized: the cosine
+# is `nothing`.
+@inline _axis_cosine(nA, nB) = is_hard_numeric(real(promote_type(eltype(nA), eltype(nB)))) ?
+    nA[1] * nB[1] + nA[2] * nB[2] + nA[3] * nB[3] : nothing
+
+# B written about n, parallel to its own axis: the terms odd in the axis (`c·w`
+# of `N = 3`, `ℓ₇`, `ℓ₈` of `N = 8`) change sign when n is opposite.
+_about_axis(B::TensTI{order, T, N}, n, c) where {order, T, N} =
+    TensTI{order, promote_type(T, eltype(n)), N}(c > 0 ? get_data(B) : _odd_in_axis_flipped(get_data(B)), n)
+_odd_in_axis_flipped(d::NTuple{3}) = (d[1], d[2], -d[3])
+_odd_in_axis_flipped(d::NTuple{8}) = (d[1], d[2], d[3], d[4], d[5], d[6], -d[7], -d[8])
+_odd_in_axis_flipped(d::NTuple) = d
+
+# Orthogonal axes: the D∞h shapes are orthotropic on (n_A, n_B, n_A × n_B), n_B
+# made exactly orthogonal to n_A; the SO(2) shapes share no symmetry there.
+_has_orthogonal_ortho(::Union{TensTI{2, <:Any, 2}, TensTI{4, <:Any, 5}, TensTI{4, <:Any, 6}}) = true
+_has_orthogonal_ortho(::TensTI) = false
+@noinline function _orthogonal_ti_binary(op::F, A::TensTI, B::TensTI) where {F}
+    nA, nB = SVector(axis(A)), SVector(axis(B))
+    e₂ = normalize(nB - (transpose(nA) * nB) * nA)
+    ℱ = RotatedBasis(hcat(nA, e₂, cross(nA, e₂)), Val(3), Val(:typed))
+    return _same_frame_binary(op, walpole_to_ortho(A, ℱ, 1), walpole_to_ortho(B, ℱ, 2))
 end
 
 # The data-wise sum or difference of two TI tensors of the same parametrization
@@ -1263,6 +1294,39 @@ _ortho_shears(t::TensOrtho{4}) = (get_data(t)[7], get_data(t)[8], get_data(t)[9]
 _ortho_from_blocks(M::SMatrix{3, 3}, s, frame) =
     TensOrtho{4, promote_type(eltype(M), eltype(frame))}((M[1, 1], M[2, 2], M[3, 3], M[1, 2], M[1, 3], M[2, 3], s..., M[2, 1], M[3, 1], M[3, 2]), frame)
 
+# Each branch of a sum on different references returns a concrete type, the
+# heavy ones out of line: the union of the result is then split by the caller
+# without boxing, where a branch returning a union itself boxed the result of
+# the sum on a shared frame too (112 bytes and +60 % measured).
+
+# An orthotropic tensor written on the frame ℱ whose axis π[j] is its own axis j
+# up to the sign: an orthotropic tensor is even in each axis, so the signs do
+# not enter, and with ρ = π⁻¹ the normal block becomes N[ρ(i), ρ(k)] and the
+# shear modulus of the axis i (the one its plane leaves out) that of ρ(i).
+@noinline function _ortho_on_frame(B::TensOrtho{4, T, 9}, π, ℱ) where {T}
+    ρ, d = invperm(π), get_data(B)
+    n(a, b) = _ortho_normal(d, a, b)
+    return TensOrtho{4, T}(
+        (n(ρ[1], ρ[1]), n(ρ[2], ρ[2]), n(ρ[3], ρ[3]), n(ρ[1], ρ[2]), n(ρ[1], ρ[3]), n(ρ[2], ρ[3]), d[6 + ρ[1]], d[6 + ρ[2]], d[6 + ρ[3]]), ℱ
+    )
+end
+@noinline function _ortho_on_frame(B::TensOrtho{4, T, 12}, π, ℱ) where {T}
+    ρ, d = invperm(π), get_data(B)
+    n(a, b) = _ortho_normal(d, a, b)
+    return TensOrtho{4, T}(
+        (
+            n(ρ[1], ρ[1]), n(ρ[2], ρ[2]), n(ρ[3], ρ[3]), n(ρ[1], ρ[2]), n(ρ[1], ρ[3]), n(ρ[2], ρ[3]),
+            d[6 + ρ[1]], d[6 + ρ[2]], d[6 + ρ[3]], n(ρ[2], ρ[1]), n(ρ[3], ρ[1]), n(ρ[3], ρ[2]),
+        ), ℱ
+    )
+end
+_ortho_on_frame(B::TensOrtho{2, T, 3}, π, ℱ) where {T} = (ρ = invperm(π); d = get_data(B); TensOrtho{2, T}((d[ρ[1]], d[ρ[2]], d[ρ[3]]), ℱ))
+
+# The entry (a, b) of the normal block: C₁₂ at 4, C₁₃ at 5, C₂₃ at 6 (a + b + 1),
+# the twelve-constant form holding the lower triangle three places further on.
+_ortho_normal(d::NTuple{9}, a, b) = a == b ? d[a] : d[a + b + 1]
+_ortho_normal(d::NTuple{12}, a, b) = a == b ? d[a] : d[a + b + 1 + (a > b ? 6 : 0)]
+
 # The twelve-constant form of a nine-constant tensor, `Cₙₘ = Cₘₙ` written out.
 _ortho_general(t::TensOrtho{4, <:Any, 12}) = t
 _ortho_general(t::TensOrtho{4, T, 9}) where {T} =
@@ -1345,18 +1409,22 @@ function _km_in_frame(::Val{true}, t)
 end
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
-# Scalar ops (-, α*A, A*α, A/α) and _check_same_reference defined in
+# Scalar ops (-, α*A, A*α, A/α) defined in
 # structured_tens_ops.jl
 
-# Two forms of the same length add coefficient by coefficient; a nine-constant
+# Two forms of the same length on the same frame add coefficient by coefficient,
+# on frames equal up to a signed permutation of the axes once the second is
+# written on the first's frame, and take the generic route otherwise; a nine-constant
 # operand is written in the twelve-constant form against a general one.
 # (One method per shape: a free `N` shared by both arguments would make the
 # method less specific than the mixed one, which would then call itself.)
 for OP in (:+, :-)
     for (order, N) in ((2, 3), (4, 9), (4, 12))
         @eval @inline function Base.$OP(A::TensOrtho{$order, <:Any, $N}, B::TensOrtho{$order, <:Any, $N})
-            _check_same_reference(A, B)
-            return _rebuild(A, map($OP, get_data(A), get_data(B)))
+            frame(A) == frame(B) && return _same_frame_binary($OP, A, B)
+            π = _frame_permutation(frame(A), frame(B))
+            π === nothing && return _structured_sum($OP, A, B)
+            return _same_frame_binary($OP, A, _ortho_on_frame(B, π, frame(A)))
         end
     end
     @eval @inline Base.$OP(A::TensOrtho{4}, B::TensOrtho{4}) = $OP(_ortho_general(A), _ortho_general(B))

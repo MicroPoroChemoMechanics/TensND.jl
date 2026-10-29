@@ -8,6 +8,7 @@ using LinearAlgebra, Tensors, Rotations
 # function, not two that the same `using` would make ambiguous.
 import Tensors: divergence
 using ForwardDiff, StaticArrays
+using Random: Random, AbstractRNG
 using SymPyPythonCall
 using Symbolics
 
@@ -33,6 +34,7 @@ include("symmetry_search.jl")
 include("tens_rotational_average.jl")
 include("km_blocks.jl")
 include("special_tens.jl")
+include("random_tens.jl")
 include("coorsystems.jl")
 include("coorsystems_num.jl")
 include("submanifold.jl")

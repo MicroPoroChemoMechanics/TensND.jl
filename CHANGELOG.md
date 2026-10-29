@@ -1,5 +1,67 @@
 # Changelog
 
+## v0.8.5 — sums of structured tensors on different references, random tensors
+
+A patch release, additive. The sum or the difference of two structured tensors whose
+references do not match (two cubic tensors on different cubes, two orthotropic
+tensors on different frames, a cubic or a transversely isotropic tensor with an
+orthotropic one off its frame) threw an `ArgumentError`, although the rule
+stated for the cross-type operations, and followed by the transversely
+isotropic ones, is to fall back to the generic tensor. They now return the
+exact result, and keep a structured class whenever the two references share
+the symmetries of one:
+
+- orthotropic tensors on frames equal up to a signed permutation of the axes,
+  and a cubic tensor with an orthotropic one on such a frame: orthotropic, the
+  second operand's coefficients permuted onto the first's frame;
+- transversely isotropic tensors about opposite axes (or equal within 1e-10):
+  transversely isotropic, the terms odd in the axis of the `SO(2)` shapes
+  changing sign; about orthogonal axes: orthotropic on the frame of the two;
+- a cubic tensor with a transversely isotropic one about an axis of the cube:
+  orthotropic on the frame of the cube.
+
+Otherwise the result is the general tensor of canonical components the sums of
+those of the operands, formed from their canonical Kelvin–Mandel matrices in
+closed form: 163 ns against 10 µs through their 81 components, measured for two
+cubic tensors. Every branch returns a concrete type, so that callers split the
+small union of the result without allocating. Measured against 0.8.4 in a
+compiled caller, sums on shared references are no slower but for two
+orthotropic tensors on one frame (+0.8 ns, the union of the result), and two
+cubic tensors on one cube add six times faster without allocating (11 ns
+against 70 ns and 144 bytes).
+
+A new test sums and subtracts every pair of structured classes at orders 2 and
+4, on frames and axes drawn at random, against their canonical components,
+with dual coefficients, and with symbolic ones; it requires the structured
+class in every configuration listed above, and compares the generic route with
+the sum of the 81 components. None of these pairs was tested before.
+
+`random_tens` draws a tensor of any class (isotropic, transversely isotropic,
+orthotropic, cubic, generic, every shape of each) with random coefficients and,
+for a class with a direction, a uniformly random axis or frame, which a keyword
+fixes; `definite = true` makes it positive definite. `random_rotation`,
+`random_axis` and `random_basis` draw the orientations alone. Tests drew their
+frames from uniform Euler angles, which favor the poles (the mean square height
+of the axis is 1/2 instead of 1/3): the orientations now follow the Haar
+measure of SO(3), and the coefficients follow laws invariant under rotations, the
+Kelvin–Mandel blocks of each class drawn from the Gaussian orthogonal ensemble.
+A test checks the Haar moments and the law of the angle of a rotation, the
+uniformity of an axis, the isotropic projection as the mean of a crystal over
+random frames, and the invariance of the coefficient laws. The manual has a
+page on them, and the theory of rotations a section on the uniform law.
+
+Three operations no longer go through the 81 components of a minor-symmetric
+generic tensor to check its symmetries back at run time: the sum, the
+difference and the double contraction of an isotropic tensor with one stored
+as such in an orthonormal basis now stay in that storage, and so does the
+negation of any tensor, which went through a broadcast. Measured in
+MeanFieldHomogenization, these checks took most of a Mori–Tanaka step with a
+crack: with its own change, the step goes from 96 µs to 1.5 µs. The result is
+the same tensor, in the same basis and storage, to rounding.
+`compliance_op_block(X)` reads both triangles of `X`, so that it is
+`n ⊗ˢ X ⊗ˢ n` for an `X` without symmetry too; for a symmetric `X` it is
+unchanged.
+
 ## v0.8.4 — the inverse of a Kelvin-Mandel matrix on the deviators
 
 A patch release, adding one function. `deviatoric_pinv(M)` is the

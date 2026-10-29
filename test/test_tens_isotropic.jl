@@ -325,4 +325,33 @@ end
         @test components(A, var) == get_array(A)
         @test components(A, var) ≈ components(Tens(get_array(A)), var)
     end
+
+    # ── Isotropic with a minor-symmetric generic tensor ──────────────────────
+    @testsection "TensISO ± ⊡ a minor-symmetric generic tensor" begin
+        # The sums and contractions that stay in the minor-symmetric storage,
+        # against the generic operations on the isotropic tensor made generic,
+        # in the canonical basis
+        # and in a random one, with a dual coefficient.
+        rng = Random.Xoshiro(20261029)
+        𝕀 = TensISO{3}(3.0, 2.0)
+        canon(t) = Array(components_canon(t))
+        for G in (random_tens(rng, Tens{4, 3}), change_tens(random_tens(rng, Tens{4, 3}), random_basis(rng)))
+            for op in (+, -, ⊡)
+                for (A, B) in ((𝕀, G), (G, 𝕀))
+                    R = @inferred op(A, B)
+                    @test get_array(R) isa SymmetricTensor{4, 3, Float64}
+                    @test get_basis(R) == get_basis(G)
+                    @test canon(R) ≈ canon(op(TensND.generic_tens(A), TensND.generic_tens(B)))
+                end
+            end
+            d = ForwardDiff.derivative(x -> canon(TensISO{3}(3x, 2x) ⊡ G + G - TensISO{3}(x, x)), 1.0)
+            @test d ≈ canon(TensISO{3}(3.0, 2.0) ⊡ G) - canon(TensISO{3}(1.0, 1.0)) rtol = 1.0e-12
+        end
+        # A symbolic coefficient, the same components once substituted.
+        TensND.Symbolics.@variables a
+        G = random_tens(rng, Tens{4, 3})
+        S = TensISO{3}(3a, 2a) ⊡ G + TensISO{3}(a, a)
+        v = [TensND.Symbolics.value(TensND.Symbolics.substitute(x, Dict(a => 2.0))) for x in canon(S)]
+        @test Float64.(v) ≈ canon(TensISO{3}(6.0, 4.0) ⊡ G + TensISO{3}(2.0, 2.0))
+    end
 end

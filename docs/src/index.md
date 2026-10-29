@@ -42,6 +42,10 @@ features:
     title: Structured types
     details: TensISO, TensTI, TensCubic and TensOrtho store 2, 5, 3 and 9 scalars and compute products and inverses in closed form, orders of magnitude faster than the dense route.
     link: /manual/structured_tensors
+  - icon: 🎲
+    title: Random tensors
+    details: Any class, isotropic to generic, with random coefficients and uniformly random axes and frames, positive definite on request, for tests that favor no direction.
+    link: /manual/random_tensors
   - icon: 📖
     title: API reference
     details: Every exported type and function, grouped by topic.
@@ -115,7 +119,8 @@ automatic differentiation.
 Three structured types — [`TensISO`](@ref), [`TensTI`](@ref) and
 [`TensCubic`](@ref), [`TensOrtho`](@ref) — store the 2, 5, 3 and 9 scalars a
 symmetry class really has,
-and compute products and inverses in closed form. The same code runs on
+and compute products and inverses in closed form; [`random_tens`](@ref) draws
+any of them, or a generic tensor, with uniformly random orientations. The same code runs on
 `Float64`, `ForwardDiff.Dual`, `SymPyPythonCall.Sym` and `Symbolics.Num`.
 
 The design is inspired by the Maple library

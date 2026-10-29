@@ -55,21 +55,6 @@ for ST in (TensISO, TensTI{4}, TensTI, TensOrtho, TensCubic)
         _rebuild(A, get_data(A) ./ α)
 end
 
-# ── Reference checks for binary operations ───────────────────────────────────
-# TensTI{4} and TensTI carry a symmetry axis (n); TensOrtho carries a material
-# frame; TensCubic carries a cube frame, and its check is looser than equality
-# for a reason given in `_same_cube_frame`.  Binary arithmetic requires the
-# same reference.
-
-# An `ArgumentError` rather than `@assert`, which may be compiled out.
-@inline _check_same_reference(A::TensTI{4}, B::TensTI{4}) =
-    axis(A) == axis(B) || throw(ArgumentError("TensTI{4} operation requires the same axis"))
-@inline _check_same_reference(A::TensTI, B::TensTI) =
-    axis(A) == axis(B) || throw(ArgumentError("TensTI operation requires the same axis"))
-@inline _check_same_reference(A::TensOrtho, B::TensOrtho) =
-    frame(A) == frame(B) ||
-    throw(ArgumentError("TensOrtho operation requires the same material frame"))
-
 # ── Tensors.jl form of a fourth-order structured tensor ──────────────────────
 # Minor-symmetric by construction, so the `SymmetricTensor` is built from its 36
 # independent components in closed form (`getindex`), instead of all 81 into an

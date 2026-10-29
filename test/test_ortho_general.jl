@@ -88,9 +88,12 @@ _og_tens(N, s, ℬ) = TensOrtho(
         @test _og_dense(-A) == -_og_dense(A)
         @test (A + B) isa TensOrtho{4, Float64, 12}
         @test (O + O) isa TensOrtho{4, Float64, 9}
-        @test_throws ArgumentError A + _og_tens(N2, (4.0, 3.5, 2.5), RotatedBasis(0.1, 0.2, 0.3))
-        @test (@inferred A + O) isa TensOrtho
-        @test (@inferred A - B) isa TensOrtho
+        Ar = _og_tens(N2, (4.0, 3.5, 2.5), RotatedBasis(0.1, 0.2, 0.3))
+        @test !((A + Ar) isa TensOrtho) && components_canon(A + Ar) ≈ components_canon(A) + components_canon(Ar)
+        # The frames are compared at run time: inferred as a small union of
+        # tensors, never as `Any`.
+        @test (@inferred TensND.AbstractTens{4, 3, Float64} A + O) isa TensOrtho
+        @test (@inferred TensND.AbstractTens{4, 3, Float64} A - B) isa TensOrtho
     end
 
     @testsection "double contraction" begin
@@ -175,11 +178,11 @@ _og_tens(N, s, ℬ) = TensOrtho(
                 end
             end
         end
-        # An axis off the frame: sums are refused, products take the generic route.
+        # An axis off the frame: sums and products take the generic route.
         n = normalize([1.0, 2.0, 2.0])
         for W in (TensTI{4}(31.0, 39.0, 11.0, 23.0, 21.0, n), TensTI{4}(31.0, 39.0, 11.0, 6.0, 23.0, 21.0, n))
-            @test_throws "requires the Walpole axis" W + A
-            @test_throws "requires the Walpole axis" A - W
+            @test !((W + A) isa TensOrtho) && _og_dense(W + A) ≈ _og_dense(W) + _og_dense(A)
+            @test _og_dense(A - W) ≈ _og_dense(A) - _og_dense(W)
             for (l, r) in ((W, A), (A, W))
                 @test !(l ⊡ r isa TensOrtho)
                 @test _og_rel(_og_dense(l ⊡ r), ref(l, r)) < 1.0e-13
@@ -323,8 +326,9 @@ _og_tens(N, s, ℬ) = TensOrtho(
             Wo = TensTI{2}(1.5, 9.0, normalize([1.0, 2.0, 2.0]))
             @test !(Wo ⋅ A isa TensOrtho) && get_array(Wo ⋅ A) ≈ get_array(Wo) * get_array(A)
             @test !(A ⋅ Wo isa TensOrtho) && get_array(A ⋅ Wo) ≈ get_array(A) * get_array(Wo)
-            @test_throws "requires the TI axis" TensTI{2}(1.5, 9.0, normalize([1.0, 2.0, 2.0])) + A
-            @test_throws "requires the TI axis" A - TensTI{2}(1.5, 9.0, normalize([1.0, 2.0, 2.0]))
+            T2 = TensTI{2}(1.5, 9.0, normalize([1.0, 2.0, 2.0]))
+            @test !((T2 + A) isa TensOrtho) && components_canon(T2 + A) ≈ components_canon(T2) + components_canon(A)
+            @test components_canon(A - T2) ≈ components_canon(A) - components_canon(T2)
             @test_throws "axis_idx must be 1, 2 or 3" TensND.walpole_to_ortho(TensTI{2}(1.0, 2.0, E[:, 1]), ℬ, 0)
             # Double contraction with the order-4 classes, against the generic route.
             C = _og_tens(_OG_N, _OG_S, ℬ)
@@ -360,7 +364,8 @@ _og_tens(N, s, ℬ) = TensOrtho(
         B = TensOrtho{2}(2.0, -1.0, 0.5, RotatedBasis(0.1, 0.2, 0.3))
         @test !(A ⋅ B isa TensOrtho) && get_array(A ⋅ B) ≈ get_array(A) * get_array(B)
         @test !(A ⊗ B isa TensOrtho)
-        @test_throws ArgumentError A + B
+        @test !((A + B) isa TensOrtho) && components_canon(A + B) ≈ components_canon(A) + components_canon(B)
+        @test components_canon(A - B) ≈ components_canon(A) - components_canon(B)
         C = _og_tens(_OG_N, _OG_S, RotatedBasis(0.1, 0.2, 0.3))
         @test !(C ⊡ A isa TensOrtho) && !(A ⊡ C isa TensOrtho)
         @test occursin("(5.0) P₂", sprint(show, A))

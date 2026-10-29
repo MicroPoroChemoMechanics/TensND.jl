@@ -77,8 +77,10 @@
         @test (@inferred change_tens(t, ℬr)) isa TensND.TensRotated{4, 3, Float64, SymmetricTensor{4, 3, Float64, 36}}
         @inferred mandel(t, ℬr)
         @inferred inv(t)
-        # (TI + TI checks for a common axis at run time, like TI ⊡ TI above.)
-        t isa TensTI || @inferred t + t
+        # A sum checks the common axis or frame at run time (TI, orthotropic,
+        # cubic), taking the generic route otherwise: a small union of tensors,
+        # never `Any`; the isotropic one has no reference to check.
+        t isa TensISO ? (@inferred t + t) : (@inferred TensND.AbstractTens{4, 3, Float64} t + t)
     end
     # An isotropic tensor in a rotated basis: the same components as before,
     # now at the static dimension of its type.

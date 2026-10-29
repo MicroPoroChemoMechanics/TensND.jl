@@ -13,7 +13,7 @@ Base.getindex(ℬ::AbstractBasis, i::Integer, j::Integer) =
 # Equality compares the primal bases as a whole.  The `AbstractArray` fallback
 # would do it entry by entry through the `getindex` above, i.e. `2·dim²`
 # separate `vecbasis` calls: measured at 1117 ns for two 3×3 bases, which made
-# it the dominant cost of every `_check_same_reference` — more expensive than
+# it the dominant cost of every check of a shared frame — more expensive than
 # the tensor algebra it was guarding.  Semantics are unchanged (still an
 # elementwise comparison of the primal bases, so a `RotatedBasis` holding the
 # identity still equals a `CanonicalBasis`); only the number of dispatches is.
@@ -295,6 +295,14 @@ struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
         # orthogonal `R`. Checked where a comparison means something; a
         # symbolic `R` is the caller's responsibility.
         check && _check_orthogonal(R)
+        eᵢ = eⁱ = Matrix(R)
+        return new{dim, T}(eᵢ, eⁱ, angles(R))
+    end
+    # A rotated basis even when `R` is the identity: for a frame built inside the
+    # package, whose type must not depend on its value (a `RotatedBasis` holding
+    # the identity equals the `CanonicalBasis`, see `==` below).
+    function RotatedBasis(R::AbstractMatrix{T}, ::Val{dim}, ::Val{:typed}) where {T <: Number, dim}
+        _check_orthogonal(R)
         eᵢ = eⁱ = Matrix(R)
         return new{dim, T}(eᵢ, eⁱ, angles(R))
     end
