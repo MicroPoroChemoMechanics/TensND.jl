@@ -39,7 +39,7 @@ default law of the class; with keywords, the array is a comprehension:
 ```@example rnd
 crystals = rand(rng, TensCubic, 3)                                   # three random cubes
 stiff = [rand(rng, TensCubic; definite = true) for _ in 1:3]         # three positive definite ones
-typeof(crystals), all(t -> minimum(spectrum(t)) > 0, stiff)
+typeof(crystals), all(t -> minimum(eigvals(Symmetric(Matrix(mandel(t))))) > 0, stiff)
 ```
 
 | class | shapes | direction |
