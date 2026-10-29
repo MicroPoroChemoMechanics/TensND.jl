@@ -7,18 +7,34 @@ references do not match (two cubic tensors on different cubes, two orthotropic
 tensors on different frames, a cubic or a transversely isotropic tensor with an
 orthotropic one off its frame) threw an `ArgumentError`, although the rule
 stated for the cross-type operations, and followed by the transversely
-isotropic ones, is to fall back to the generic tensor. They now take that route:
-the result is the generic tensor whose canonical components are the sums of
-those of the operands, exact, where the refusal stopped any computation built
-on such sums (the self-consistent scheme of MeanFieldHomogenization on cubic
-crystals of different orientations, for one). On shared references the class is
-kept as before. Such sums are inferred as a small union of tensors, the
-references being compared at run time, as they already were for transversely
-isotropic tensors.
+isotropic ones, is to fall back to the generic tensor. They now return the
+exact result, and keep a structured class whenever the two references share
+the symmetries of one:
+
+- orthotropic tensors on frames equal up to a signed permutation of the axes,
+  and a cubic tensor with an orthotropic one on such a frame: orthotropic, the
+  second operand's coefficients permuted onto the first's frame;
+- transversely isotropic tensors about opposite axes (or equal within 1e-10):
+  transversely isotropic, the terms odd in the axis of the `SO(2)` shapes
+  changing sign; about orthogonal axes: orthotropic on the frame of the two;
+- a cubic tensor with a transversely isotropic one about an axis of the cube:
+  orthotropic on the frame of the cube.
+
+Otherwise the result is the general tensor of canonical components the sums of
+those of the operands, formed from their canonical Kelvin–Mandel matrices in
+closed form: 163 ns against 10 µs through their 81 components, measured for two
+cubic tensors. Every branch returns a concrete type, so that callers split the
+small union of the result without allocating. Measured against 0.8.4 in a
+compiled caller, sums on shared references are no slower but for two
+orthotropic tensors on one frame (+0.8 ns, the union of the result), and two
+cubic tensors on one cube add six times faster without allocating (11 ns
+against 70 ns and 144 bytes).
 
 A new test sums and subtracts every pair of structured classes at orders 2 and
-4, on frames and axes drawn at random, against the canonical components, and
-with dual coefficients: none of these pairs was tested before.
+4, on frames and axes drawn at random, against their canonical components,
+with dual coefficients, and with symbolic ones; it requires the structured
+class in every configuration listed above, and compares the generic route with
+the sum of the 81 components. None of these pairs was tested before.
 
 ## v0.8.4 — the inverse of a Kelvin-Mandel matrix on the deviators
 

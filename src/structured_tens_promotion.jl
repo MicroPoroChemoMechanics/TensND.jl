@@ -13,8 +13,8 @@
 #   TensISO{4}  ⊂  TensCubic     ⊂  TensOrtho    (on the same frame)      #
 #                                                                            #
 # TensCubic and TensTI are INCOMPARABLE: their intersection is the isotropic #
-# class and neither contains the other, so a sum of the two is generally     #
-# fully anisotropic and falls through to the unstructured route on purpose.  #
+# class and neither contains the other; a TI axis along a cube axis leaves   #
+# them a tetragonal, hence orthotropic, sum; otherwise the generic route.    #
 #                                                                            #
 # At 2nd order:                                                              #
 #                                                                            #
@@ -252,9 +252,14 @@ Widen a cubic tensor to the orthotropic class on its own cube frame:
 Exact — no projection, no loss. It is the embedding that makes
 `TensCubic ± TensOrtho` well defined on a shared frame.
 """
-function cubic_to_ortho(A::TensCubic{T}) where {T}
+cubic_to_ortho(A::TensCubic) = _cubic_as_ortho(A, frame(A))
+
+# A cubic tensor written on a frame of the same cube (its own, or one of its
+# axes permuted and signed): the same coefficients, the octahedral group
+# leaving it unchanged.
+function _cubic_as_ortho(A::TensCubic, ℱ)
     C₁₁, C₁₂, C₄₄ = arg_cubic(A)
-    return TensOrtho(C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄, frame(A))
+    return TensOrtho(C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄, ℱ)
 end
 
 # ── TensISO{4,3} ± TensCubic ────────────────────────────────────────────────
@@ -263,26 +268,84 @@ end
 
 for OP in (:+, :-)
     @eval @inline function Base.$OP(A::TensISO{4, 3}, B::TensCubic)
-        return $OP(iso_to_cubic(A, frame(B)), B)
+        return _same_frame_binary($OP, iso_to_cubic(A, frame(B)), B)
     end
     @eval @inline function Base.$OP(A::TensCubic, B::TensISO{4, 3})
-        return $OP(A, iso_to_cubic(B, frame(A)))
+        return _same_frame_binary($OP, A, iso_to_cubic(B, frame(A)))
     end
 end
 
 # ── TensCubic ± TensOrtho (same frame) ──────────────────────────────────────
-# Cubic is orthotropic with the three families equal, so on a shared frame the
-# sum is orthotropic. On different frames it is generally fully anisotropic: the
-# generic route, as the rule at the top of this file says.
+# Cubic is orthotropic with the three families equal, so on a frame of the same
+# cube (the orthotropic one, up to a signed permutation of the axes) the sum is
+# orthotropic. Otherwise it is generally fully anisotropic: the generic route,
+# as the rule at the top of this file says.
 
 for OP in (:+, :-)
-    @eval function Base.$OP(A::TensCubic, B::TensOrtho{4})
-        frame(A) == frame(B) || return _generic_binary($OP, A, B)
-        return $OP(cubic_to_ortho(A), B)
+    @eval @inline function Base.$OP(A::TensCubic, B::TensOrtho{4})
+        frame(A) == frame(B) || _permuted_frames(frame(A), frame(B)) || return _structured_sum($OP, A, B)
+        return _same_frame_binary($OP, _cubic_as_ortho(A, frame(B)), B)
     end
-    @eval function Base.$OP(A::TensOrtho{4}, B::TensCubic)
-        frame(A) == frame(B) || return _generic_binary($OP, A, B)
-        return $OP(A, cubic_to_ortho(B))
+    @eval @inline function Base.$OP(A::TensOrtho{4}, B::TensCubic)
+        frame(A) == frame(B) || _permuted_frames(frame(A), frame(B)) || return _structured_sum($OP, A, B)
+        return _same_frame_binary($OP, A, _cubic_as_ortho(B, frame(A)))
+    end
+end
+
+# ── Sums on a reference known to be shared ──────────────────────────────────
+# Coefficient by coefficient, a concrete type: `+` checks the reference at run
+# time and returns a union, which the conversions below would carry for nothing.
+
+for (order, N) in ((2, 3), (4, 9), (4, 12))
+    @eval @inline _same_frame_binary(op::F, A::TensOrtho{$order, <:Any, $N}, B::TensOrtho{$order, <:Any, $N}) where {F} =
+        _rebuild(A, map(op, get_data(A), get_data(B)))
+end
+@inline _same_frame_binary(op::F, A::TensOrtho{4}, B::TensOrtho{4}) where {F} =
+    _same_frame_binary(op, _ortho_general(A), _ortho_general(B))
+@inline _same_frame_binary(op::F, A::TensCubic, B::TensCubic) where {F} = _rebuild(A, map(op, get_data(A), get_data(B)))
+
+# ── The generic route between structured fourth-order tensors ──────────────
+# When two structured tensors share no class, their sum is the general tensor of
+# canonical Kelvin–Mandel matrix the sum of theirs, each formed in closed form:
+# the congruence of its sparse material matrix for a tensor with a frame, its
+# entries for a TI one. Measured 60 times faster than summing their 81
+# canonical components (163 ns against 10 µs for two cubic tensors), and the
+# result is in canonical components, which is what its users read next
+# (working in the frame of one operand saved 14 ns on the sum and cost
+# 3.4 times more once its canonical components were asked for).
+
+const _KMStructured = Union{TensOrtho{4}, TensCubic, TensTI{4}}
+@noinline _structured_sum(op::F, A::_KMStructured, B::_KMStructured) where {F} = from_mandel(op(_km_canonical(A), _km_canonical(B)))
+@inline _km_canonical(t::Union{TensOrtho{4}, TensCubic}) = _km_in_frame(t)
+@inline _km_canonical(t::TensTI{4}) = _km_by_entries(t)
+
+# At order 2, the tensor of the canonical components: symmetric for the D∞h and
+# orthotropic shapes, stored so from the start, a concrete type the caller
+# splits without boxing; the shapes of `N = 3` have a skew part, and the storage
+# of their sum is decided by its value.
+const _SymmetricOrder2 = Union{TensTI{2, <:Any, 2}, TensOrtho{2}}
+@noinline function _structured_sum(op::F, A::_SymmetricOrder2, B::_SymmetricOrder2) where {F}
+    a, b = components_canon(A), components_canon(B)
+    return Tens(Tensors.SymmetricTensor{2, 3}((i, j) -> op(a[i, j], b[i, j])))
+end
+@noinline _structured_sum(op::F, A::Union{TensTI{2}, TensOrtho{2}}, B::Union{TensTI{2}, TensOrtho{2}}) where {F} =
+    Tens(Tensors.Tensor{2, 3}(broadcast(op, components_canon(A), components_canon(B))))
+
+# ── TensCubic ± TensTI{4,N=5|6} (axis along a cube axis) ────────────────────
+# Cubic and TI are incomparable classes, but a TI axis along an axis of the cube
+# leaves them the tetragonal symmetry of that axis, orthotropic on the frame of
+# the cube. Otherwise the generic route.
+
+for OP in (:+, :-), NW in (5, 6)
+    @eval function Base.$OP(A::TensCubic, B::TensTI{4, <:Any, $NW})
+        k = _axis_on_frame_index(axis(B), frame(A))
+        k == 0 && return _structured_sum($OP, A, B)
+        return _same_frame_binary($OP, cubic_to_ortho(A), walpole_to_ortho(B, frame(A), k))
+    end
+    @eval function Base.$OP(A::TensTI{4, <:Any, $NW}, B::TensCubic)
+        k = _axis_on_frame_index(axis(A), frame(B))
+        k == 0 && return _structured_sum($OP, A, B)
+        return _same_frame_binary($OP, walpole_to_ortho(A, frame(B), k), cubic_to_ortho(B))
     end
 end
 
@@ -290,10 +353,10 @@ end
 
 for OP in (:+, :-)
     @eval @inline function Base.$OP(A::TensISO{4, 3}, B::TensOrtho{4})
-        return $OP(iso_to_ortho(A, frame(B)), B)
+        return _same_frame_binary($OP, iso_to_ortho(A, frame(B)), B)
     end
     @eval @inline function Base.$OP(A::TensOrtho{4}, B::TensISO{4, 3})
-        return $OP(A, iso_to_ortho(B, frame(A)))
+        return _same_frame_binary($OP, A, iso_to_ortho(B, frame(A)))
     end
 end
 
@@ -303,17 +366,18 @@ end
 for OP in (:+, :-), NW in (5, 6)
     @eval function Base.$OP(A::TensTI{4, <:Any, $NW}, B::TensOrtho{4})
         k = _axis_on_frame_index(axis(A), frame(B))
-        k == 0 && return _generic_binary($OP, A, B)
-        return $OP(walpole_to_ortho(A, frame(B), k), B)
+        k == 0 && return _structured_sum($OP, A, B)
+        return _same_frame_binary($OP, walpole_to_ortho(A, frame(B), k), B)
     end
     @eval function Base.$OP(A::TensOrtho{4}, B::TensTI{4, <:Any, $NW})
         k = _axis_on_frame_index(axis(B), frame(A))
-        k == 0 && return _generic_binary($OP, A, B)
-        return $OP(A, walpole_to_ortho(B, frame(A), k))
+        k == 0 && return _structured_sum($OP, A, B)
+        return _same_frame_binary($OP, A, walpole_to_ortho(B, frame(A), k))
     end
 end
 
-# ── TensTI{4,N=5} ± TensTI{4,N=6} (same axis) ─────────────────────────
+# ── TensTI{4,N=5} ± TensTI{4,N=6} ─────────────────────────────────────────
+# The five-constant operand lifted to six, then the TI sum, which checks the axes.
 
 for OP in (:+, :-)
     @eval function Base.$OP(A::TensTI{4, <:Any, 5}, B::TensTI{4, <:Any, 6})
@@ -579,17 +643,17 @@ end
 # ± : an isotropic operand on the frame of the other; a TI operand when its
 # axis is one of the frame axes, the generic route otherwise (as at order 4).
 for OP in (:+, :-)
-    @eval @inline Base.$OP(A::TensISO{2, 3}, B::TensOrtho{2}) = $OP(iso_to_ortho(A, frame(B)), B)
-    @eval @inline Base.$OP(A::TensOrtho{2}, B::TensISO{2, 3}) = $OP(A, iso_to_ortho(B, frame(A)))
+    @eval @inline Base.$OP(A::TensISO{2, 3}, B::TensOrtho{2}) = _same_frame_binary($OP, iso_to_ortho(A, frame(B)), B)
+    @eval @inline Base.$OP(A::TensOrtho{2}, B::TensISO{2, 3}) = _same_frame_binary($OP, A, iso_to_ortho(B, frame(A)))
     @eval function Base.$OP(A::TensTI{2, <:Any, 2}, B::TensOrtho{2})
         k = _axis_on_frame_index(axis(A), frame(B))
-        k == 0 && return _generic_binary($OP, A, B)
-        return $OP(walpole_to_ortho(A, frame(B), k), B)
+        k == 0 && return _structured_sum($OP, A, B)
+        return _same_frame_binary($OP, walpole_to_ortho(A, frame(B), k), B)
     end
     @eval function Base.$OP(A::TensOrtho{2}, B::TensTI{2, <:Any, 2})
         k = _axis_on_frame_index(axis(B), frame(A))
-        k == 0 && return _generic_binary($OP, A, B)
-        return $OP(A, walpole_to_ortho(B, frame(A), k))
+        k == 0 && return _structured_sum($OP, A, B)
+        return _same_frame_binary($OP, A, walpole_to_ortho(B, frame(A), k))
     end
 end
 

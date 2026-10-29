@@ -278,32 +278,48 @@ frames related by a signed permutation of the axes carry the *same*
 coefficients: `Fᴬᵀ Fᴮ` being a signed permutation matrix is exactly the
 condition, and it costs nine comparisons rather than enumerating 24 rotations.
 That is genuinely specific to cubic symmetry — permuting the axes of an
-orthotropic tensor permutes `C₁₁, C₂₂, C₃₃`, so `TensOrtho` must and does
-require frame equality.
+orthotropic tensor permutes `C₁₁, C₂₂, C₃₃`, so a `TensOrtho` on a permuted
+frame has its coefficients permuted (`_ortho_on_frame`).
 
 On an element type where a comparison does not return an honest `Bool` — a
 symbolic frame — the test is not attempted and plain equality is required
 instead.
 """
-function _same_cube_frame(A::TensCubic, B::TensCubic)
-    FA, FB = vecbasis(frame(A), :cov), vecbasis(frame(B), :cov)
-    is_hard_numeric(real(promote_type(eltype(FA), eltype(FB)))) ||
-        return frame(A) == frame(B)
-    M = transpose(FA) * FB
+@inline _same_cube_frame(A::TensCubic, B::TensCubic) = frame(A) == frame(B) || _permuted_frames(frame(A), frame(B))
+@noinline _permuted_frames(FA, FB) = _frame_permutation(FA, FB) !== nothing
+
+"""
+    _frame_permutation(FA::OrthonormalBasis{3}, FB::OrthonormalBasis{3}) -> Union{NTuple{3, Int}, Nothing}
+
+The permutation `π` such that the axis `j` of `FB` is the axis `π[j]` of `FA`
+up to its sign, when `Fᴬᵀ Fᴮ` is a signed permutation matrix (within `1e-10`);
+`nothing` otherwise. Two such frames carry the same orthotropic or cubic
+symmetry. On an element type whose comparisons are not honest `Bool`s, a
+symbolic frame, only equal frames are recognized, with the identity.
+"""
+function _frame_permutation(FA::OrthonormalBasis{3}, FB::OrthonormalBasis{3})
+    EA, EB = vecbasis(FA, :cov), vecbasis(FB, :cov)
+    is_hard_numeric(real(promote_type(eltype(EA), eltype(EB)))) ||
+        return FA == FB ? (1, 2, 3) : nothing
+    M = transpose(EA) * EB
+    π = ntuple(j -> _matched_axis(M, j), Val(3))
+    return all(>(0), π) && isperm(π) ? π : nothing
+end
+
+# The row i where the column j of a signed permutation matrix holds ±1, the
+# others holding zero (within 1e-10); 0 when the column is not of that form.
+@noinline function _matched_axis(M, j)
+    i₀ = 0
     for i in 1:3
-        hits = 0
-        for j in 1:3
-            a = abs(M[i, j])
-            if a > 0.5
-                isapprox(a, one(a); atol = 1.0e-10) || return false
-                hits += 1
-            elseif a > 1.0e-10
-                return false
-            end
+        a = abs(M[i, j])
+        if a > 0.5
+            i₀ == 0 && isapprox(a, one(a); atol = 1.0e-10) || return 0
+            i₀ = i
+        elseif a > 1.0e-10
+            return 0
         end
-        hits == 1 || return false
     end
-    return true
+    return i₀
 end
 
 # ── Arithmetic ───────────────────────────────────────────────────────────────
@@ -312,12 +328,12 @@ end
 # cubes the sum is generally fully anisotropic, and takes the generic route.
 
 @inline function Base.:+(A::TensCubic, B::TensCubic)
-    _same_cube_frame(A, B) || return _generic_binary(+, A, B)
-    return _rebuild(A, get_data(A) .+ get_data(B))
+    _same_cube_frame(A, B) || return _structured_sum(+, A, B)
+    return _same_frame_binary(+, A, B)
 end
 @inline function Base.:-(A::TensCubic, B::TensCubic)
-    _same_cube_frame(A, B) || return _generic_binary(-, A, B)
-    return _rebuild(A, get_data(A) .- get_data(B))
+    _same_cube_frame(A, B) || return _structured_sum(-, A, B)
+    return _same_frame_binary(-, A, B)
 end
 
 # ── Inverse, identity, zero ──────────────────────────────────────────────────

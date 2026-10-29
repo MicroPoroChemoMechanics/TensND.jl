@@ -298,6 +298,14 @@ struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
         eᵢ = eⁱ = Matrix(R)
         return new{dim, T}(eᵢ, eⁱ, angles(R))
     end
+    # A rotated basis even when `R` is the identity: for a frame built inside the
+    # package, whose type must not depend on its value (a `RotatedBasis` holding
+    # the identity equals the `CanonicalBasis`, see `==` below).
+    function RotatedBasis(R::AbstractMatrix{T}, ::Val{dim}, ::Val{:typed}) where {T <: Number, dim}
+        _check_orthogonal(R)
+        eᵢ = eⁱ = Matrix(R)
+        return new{dim, T}(eᵢ, eⁱ, angles(R))
+    end
     function RotatedBasis(θ::T1, ϕ::T2, ψ::T3 = 0) where {T1 <: Number, T2 <: Number, T3 <: Number}
         Rz = RotZYZ(ϕ, θ, ψ)
         R = Matrix(Rz)
