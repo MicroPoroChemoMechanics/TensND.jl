@@ -50,6 +50,18 @@ uniformity of an axis, the isotropic projection as the mean of a crystal over
 random frames, and the invariance of the coefficient laws. The manual has a
 page on them, and the theory of rotations a section on the uniform law.
 
+Three operations no longer go through the 81 components of a minor-symmetric
+generic tensor to check its symmetries back at run time: the sum, the
+difference and the double contraction of an isotropic tensor with one stored
+as such in an orthonormal basis now stay in that storage, and so does the
+negation of any tensor, which went through a broadcast. Measured in
+MeanFieldHomogenization, these checks took most of a Mori–Tanaka step with a
+crack: with its own change, the step goes from 96 µs to 1.5 µs. The result is
+the same tensor, in the same basis and storage, to rounding.
+`compliance_op_block(X)` reads both triangles of `X`, so that it is
+`n ⊗ˢ X ⊗ˢ n` for an `X` without symmetry too; for a symmetric `X` it is
+unchanged.
+
 ## v0.8.4 — the inverse of a Kelvin-Mandel matrix on the deviators
 
 A patch release, adding one function. `deviatoric_pinv(M)` is the

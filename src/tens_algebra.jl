@@ -24,7 +24,10 @@ for OP in (:+, :-)
     end
 end
 
-@inline Base.:-(t::AbstractTens) = Tens(.-(get_array(t)), get_basis(t), get_var(t))
+# `-` rather than `.-`: on a Tensors.jl array the broadcast returns a plain
+# `Array`, whose symmetries the constructor would check back over every
+# component; the negation keeps the storage, as `*` and `/` below do.
+@inline Base.:-(t::AbstractTens) = Tens(-get_array(t), get_basis(t), get_var(t))
 @inline Base.:*(α::Number, t::AbstractTens) = Tens(α * get_array(t), get_basis(t), get_var(t))
 @inline Base.:*(t::AbstractTens, α::Number) = Tens(α * get_array(t), get_basis(t), get_var(t))
 @inline Base.:/(t::AbstractTens, α::Number) = Tens(get_array(t) / α, get_basis(t), get_var(t))

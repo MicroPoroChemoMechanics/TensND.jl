@@ -56,6 +56,15 @@ using TensND.StaticArrays: SMatrix, SVector
         Sx = mandel_op_embed(compliance_op_block(X))
         Ka = acoustic_tensor(plane_pinv(Sx))
         @test Ka ≈ inv(X) atol = 1.0e-12
+        # And it is n ⊗ˢ X ⊗ˢ n, X symmetric or not, in a random frame whose
+        # third axis is n: against the symmetrized products of the components.
+        for Y in (X, [1.0 0.7 -0.2; 0.1 2.0 0.4; 0.5 -0.3 3.0])
+            ℬ = random_basis(rng)
+            n̂ = TensND.tens_basis(ℬ, 3)
+            Yt = Tens(Y, ℬ)
+            H = from_mandel(mandel_op_embed(compliance_op_block(Y)), ℬ)
+            @test Array(components_canon(H)) ≈ Array(components_canon(n̂ ⊗ˢ Yt ⊗ˢ n̂)) atol = 1.0e-14
+        end
     end
 
     @testset "Schur inverse" begin
