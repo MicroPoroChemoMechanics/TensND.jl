@@ -1345,17 +1345,18 @@ function _km_in_frame(::Val{true}, t)
 end
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
-# Scalar ops (-, α*A, A*α, A/α) and _check_same_reference defined in
+# Scalar ops (-, α*A, A*α, A/α) defined in
 # structured_tens_ops.jl
 
-# Two forms of the same length add coefficient by coefficient; a nine-constant
+# Two forms of the same length on the same frame add coefficient by coefficient,
+# and take the generic route on different frames; a nine-constant
 # operand is written in the twelve-constant form against a general one.
 # (One method per shape: a free `N` shared by both arguments would make the
 # method less specific than the mixed one, which would then call itself.)
 for OP in (:+, :-)
     for (order, N) in ((2, 3), (4, 9), (4, 12))
         @eval @inline function Base.$OP(A::TensOrtho{$order, <:Any, $N}, B::TensOrtho{$order, <:Any, $N})
-            _check_same_reference(A, B)
+            frame(A) == frame(B) || return _generic_binary($OP, A, B)
             return _rebuild(A, map($OP, get_data(A), get_data(B)))
         end
     end

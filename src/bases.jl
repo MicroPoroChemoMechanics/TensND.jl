@@ -13,7 +13,7 @@ Base.getindex(ℬ::AbstractBasis, i::Integer, j::Integer) =
 # Equality compares the primal bases as a whole.  The `AbstractArray` fallback
 # would do it entry by entry through the `getindex` above, i.e. `2·dim²`
 # separate `vecbasis` calls: measured at 1117 ns for two 3×3 bases, which made
-# it the dominant cost of every `_check_same_reference` — more expensive than
+# it the dominant cost of every check of a shared frame — more expensive than
 # the tensor algebra it was guarding.  Semantics are unchanged (still an
 # elementwise comparison of the primal bases, so a `RotatedBasis` holding the
 # identity still equals a `CanonicalBasis`); only the number of dispatches is.

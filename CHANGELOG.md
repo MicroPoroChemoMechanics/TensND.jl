@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.8.5 — sums of structured tensors on different references
+
+A patch release. The sum or the difference of two structured tensors whose
+references do not match (two cubic tensors on different cubes, two orthotropic
+tensors on different frames, a cubic or a transversely isotropic tensor with an
+orthotropic one off its frame) threw an `ArgumentError`, although the rule
+stated for the cross-type operations, and followed by the transversely
+isotropic ones, is to fall back to the generic tensor. They now take that route:
+the result is the generic tensor whose canonical components are the sums of
+those of the operands, exact, where the refusal stopped any computation built
+on such sums (the self-consistent scheme of MeanFieldHomogenization on cubic
+crystals of different orientations, for one). On shared references the class is
+kept as before. Such sums are inferred as a small union of tensors, the
+references being compared at run time, as they already were for transversely
+isotropic tensors.
+
+A new test sums and subtracts every pair of structured classes at orders 2 and
+4, on frames and axes drawn at random, against the canonical components, and
+with dual coefficients: none of these pairs was tested before.
+
 ## v0.8.4 — the inverse of a Kelvin-Mandel matrix on the deviators
 
 A patch release, adding one function. `deviatoric_pinv(M)` is the

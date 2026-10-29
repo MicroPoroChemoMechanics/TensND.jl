@@ -272,28 +272,16 @@ end
 
 # ── TensCubic ± TensOrtho (same frame) ──────────────────────────────────────
 # Cubic is orthotropic with the three families equal, so on a shared frame the
-# sum is orthotropic. On different frames it is generally fully anisotropic and
-# the refusal says which frame to align, rather than returning something wrong.
+# sum is orthotropic. On different frames it is generally fully anisotropic: the
+# generic route, as the rule at the top of this file says.
 
 for OP in (:+, :-)
     @eval function Base.$OP(A::TensCubic, B::TensOrtho{4})
-        frame(A) == frame(B) || throw(
-            ArgumentError(
-                "TensCubic $($(string(OP))) TensOrtho requires the same frame; " *
-                    "express one of them in the other's frame first, or add their " *
-                    "canonical arrays."
-            )
-        )
+        frame(A) == frame(B) || return _generic_binary($OP, A, B)
         return $OP(cubic_to_ortho(A), B)
     end
     @eval function Base.$OP(A::TensOrtho{4}, B::TensCubic)
-        frame(A) == frame(B) || throw(
-            ArgumentError(
-                "TensOrtho $($(string(OP))) TensCubic requires the same frame; " *
-                    "express one of them in the other's frame first, or add their " *
-                    "canonical arrays."
-            )
-        )
+        frame(A) == frame(B) || return _generic_binary($OP, A, B)
         return $OP(A, cubic_to_ortho(B))
     end
 end
@@ -315,22 +303,12 @@ end
 for OP in (:+, :-), NW in (5, 6)
     @eval function Base.$OP(A::TensTI{4, <:Any, $NW}, B::TensOrtho{4})
         k = _axis_on_frame_index(axis(A), frame(B))
-        k == 0 && throw(
-            ArgumentError(
-                "TensTI{4,N=$($NW)} $($(string(OP))) TensOrtho requires the Walpole axis " *
-                    "to be aligned with one of the frame axes",
-            ),
-        )
+        k == 0 && return _generic_binary($OP, A, B)
         return $OP(walpole_to_ortho(A, frame(B), k), B)
     end
     @eval function Base.$OP(A::TensOrtho{4}, B::TensTI{4, <:Any, $NW})
         k = _axis_on_frame_index(axis(B), frame(A))
-        k == 0 && throw(
-            ArgumentError(
-                "TensOrtho $($(string(OP))) TensTI{4,N=$($NW)} requires the Walpole axis " *
-                    "to be aligned with one of the frame axes",
-            ),
-        )
+        k == 0 && return _generic_binary($OP, A, B)
         return $OP(A, walpole_to_ortho(B, frame(A), k))
     end
 end
@@ -599,28 +577,18 @@ function walpole_to_ortho(A::TensTI{2, T, 2}, frame::OrthonormalBasis{3}, axis_i
 end
 
 # ± : an isotropic operand on the frame of the other; a TI operand when its
-# axis is one of the frame axes, refused otherwise (as at order 4).
+# axis is one of the frame axes, the generic route otherwise (as at order 4).
 for OP in (:+, :-)
     @eval @inline Base.$OP(A::TensISO{2, 3}, B::TensOrtho{2}) = $OP(iso_to_ortho(A, frame(B)), B)
     @eval @inline Base.$OP(A::TensOrtho{2}, B::TensISO{2, 3}) = $OP(A, iso_to_ortho(B, frame(A)))
     @eval function Base.$OP(A::TensTI{2, <:Any, 2}, B::TensOrtho{2})
         k = _axis_on_frame_index(axis(A), frame(B))
-        k == 0 && throw(
-            ArgumentError(
-                "TensTI{2} $($(string(OP))) TensOrtho{2} requires the TI axis " *
-                    "to be aligned with one of the frame axes",
-            ),
-        )
+        k == 0 && return _generic_binary($OP, A, B)
         return $OP(walpole_to_ortho(A, frame(B), k), B)
     end
     @eval function Base.$OP(A::TensOrtho{2}, B::TensTI{2, <:Any, 2})
         k = _axis_on_frame_index(axis(B), frame(A))
-        k == 0 && throw(
-            ArgumentError(
-                "TensOrtho{2} $($(string(OP))) TensTI{2} requires the TI axis " *
-                    "to be aligned with one of the frame axes",
-            ),
-        )
+        k == 0 && return _generic_binary($OP, A, B)
         return $OP(A, walpole_to_ortho(B, frame(A), k))
     end
 end

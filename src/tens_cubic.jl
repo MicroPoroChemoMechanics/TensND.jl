@@ -306,19 +306,17 @@ function _same_cube_frame(A::TensCubic, B::TensCubic)
     return true
 end
 
-@inline _check_same_reference(A::TensCubic, B::TensCubic) =
-    _same_cube_frame(A, B) ||
-    throw(ArgumentError("TensCubic operation requires frames describing the same cube"))
-
 # ── Arithmetic ───────────────────────────────────────────────────────────────
-# Scalar operations (-, α*A, A*α, A/α) come from structured_tens_ops.jl.
+# Scalar operations (-, α*A, A*α, A/α) come from structured_tens_ops.jl. Two
+# cubic tensors on the same cube add coefficient by coefficient; on different
+# cubes the sum is generally fully anisotropic, and takes the generic route.
 
 @inline function Base.:+(A::TensCubic, B::TensCubic)
-    _check_same_reference(A, B)
+    _same_cube_frame(A, B) || return _generic_binary(+, A, B)
     return _rebuild(A, get_data(A) .+ get_data(B))
 end
 @inline function Base.:-(A::TensCubic, B::TensCubic)
-    _check_same_reference(A, B)
+    _same_cube_frame(A, B) || return _generic_binary(-, A, B)
     return _rebuild(A, get_data(A) .- get_data(B))
 end
 

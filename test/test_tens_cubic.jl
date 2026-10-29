@@ -151,10 +151,12 @@
         @test (C + Cp) isa TensCubic
         @test get_data(C + Cp) == 2 .* get_data(C)
 
-        # A general rotation is not, and the sum is refused rather than wrong.
+        # A general rotation is not, and the sum takes the generic route: the
+        # sum of the canonical arrays, which no cubic tensor holds.
         Cr = tens_cubic(10.0, 4.0, 2.0, rot)
         @test !TensND._same_cube_frame(C, Cr)
-        @test_throws ArgumentError C + Cr
+        @test !((C + Cr) isa TensCubic) && components_canon(C + Cr) ≈ components_canon(C) + components_canon(Cr)
+        @test components_canon(C - Cr) ≈ components_canon(C) - components_canon(Cr)
         # The product falls back to the dense route instead of pretending.
         @test !((C ⊡ Cr) isa TensCubic)
         @test Matrix(mandel(C ⊡ Cr)) ≈
@@ -172,7 +174,7 @@
         near = Basis([cos(θ) -sin(θ) 0.0; sin(θ) cos(θ) 0.0; 0.0 0.0 1.0])
         Cn = tens_cubic(10.0, 4.0, 2.0, near)
         @test !TensND._same_cube_frame(C, Cn)
-        @test_throws ArgumentError C + Cn
+        @test !((C + Cn) isa TensCubic) && components_canon(C + Cn) ≈ components_canon(C) + components_canon(Cn)
         @test !((C ⊡ Cn) isa TensCubic)
         # And the fallback is not an approximation of the structured route: it
         # is the dense answer, which differs from `2 .* get_data(C)` here.
@@ -208,9 +210,10 @@
         @test (O - C) isa TensOrtho
         @test Matrix(mandel(C + O)) ≈ 2 * Matrix(mandel(C)) atol = atol_num
 
-        # Different frames: refused, with the frame named rather than silently
-        # producing something wrong.
-        @test_throws ArgumentError C + cubic_to_ortho(tens_cubic(1.0, 0.0, 1.0, rot))
+        # Different frames: the generic route, the sum of the canonical arrays.
+        Or = cubic_to_ortho(tens_cubic(1.0, 0.0, 1.0, rot))
+        @test !((C + Or) isa TensOrtho) && components_canon(C + Or) ≈ components_canon(C) + components_canon(Or)
+        @test components_canon(Or - C) ≈ components_canon(Or) - components_canon(C)
 
         # CUBIC and TI are incomparable — their intersection is the isotropic
         # class — so the sum falls through to the unstructured route on purpose.
