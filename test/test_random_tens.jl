@@ -38,66 +38,78 @@ _rt_ks_bound(n) = 1.95 / sqrt(n)
             (Tens{4, 3}, TensND.AbstractTens{4, 3, Float64}), (Tens{4, 2}, TensND.AbstractTens{4, 2, Float64}),
             (Tens{2, 3}, TensND.AbstractTens{2, 3, Float64}), (Tens{2, 3, Float32}, TensND.AbstractTens{2, 3, Float32}),
         )
-        t = @inferred random_tens(_rt_rng, class)
+        t = @inferred rand(_rt_rng, class)
         @test t isa expected
     end
-    @test @inferred(random_tens(_rt_rng, Tens{4, 3}; symmetry = Val(:minor))) isa TensND.AbstractTens{4, 3, Float64}
+    @test @inferred(rand(_rt_rng, Tens{4, 3}; symmetry = Val(:minor))) isa TensND.AbstractTens{4, 3, Float64}
     # Without symmetry, `Tens` chooses its storage from the values, as everywhere
     # in the package: the union of the two.
-    @test @inferred(TensND.AbstractTens{4, 3, Float64}, random_tens(_rt_rng, Tens{4, 3}; symmetry = Val(:none))) isa TensND.AbstractTens{4, 3, Float64}
-    @test @inferred(TensND.AbstractTens{2, 3, Float64}, random_tens(_rt_rng, Tens{2, 3}; symmetry = Val(:none))) isa TensND.AbstractTens{2, 3, Float64}
-    @test random_tens(TensCubic) isa TensCubic{Float64}      # the default generator
+    @test @inferred(TensND.AbstractTens{4, 3, Float64}, rand(_rt_rng, Tens{4, 3}; symmetry = Val(:none))) isa TensND.AbstractTens{4, 3, Float64}
+    @test @inferred(TensND.AbstractTens{2, 3, Float64}, rand(_rt_rng, Tens{2, 3}; symmetry = Val(:none))) isa TensND.AbstractTens{2, 3, Float64}
+    @test rand(TensCubic) isa TensCubic{Float64}      # the default generator
+    @test rand(TensCubic; definite = true) isa TensCubic{Float64}
+    # The array forms of `rand`, with the default law: the draws of the scalar
+    # form, one per entry, from the same stream.
+    v = rand(Xoshiro(3), TensTI{4}, 4)
+    w = let rng = Xoshiro(3)
+        [rand(rng, TensTI{4}) for _ in 1:4]
+    end
+    @test length(v) == 4 && all(t -> t isa TensTI{4, Float64, 5}, v)
+    @test all(components_canon(a) == components_canon(b) for (a, b) in zip(v, w))
+    m = Matrix{TensISO{4, 3, Float64}}(undef, 2, 3)
+    @test rand!(Xoshiro(4), m) === m && all(t -> t isa TensISO{4, 3, Float64}, m)
+    @test !isdefined(TensND, :random_tens)
     @test @inferred(random_rotation(_rt_rng, Float32)) isa TensND.StaticArrays.SMatrix{3, 3, Float32}
     @test @inferred(random_axis(_rt_rng, Float32)) isa NTuple{3, Float32}
     @test @inferred(random_basis(_rt_rng)) isa RotatedBasis{3, Float64}
     @test random_rotation() isa TensND.StaticArrays.SMatrix && random_axis() isa NTuple{3} && random_basis() isa RotatedBasis
     # The same seed, the same tensor.
-    @test components_canon(random_tens(Xoshiro(7), TensOrtho{4})) == components_canon(random_tens(Xoshiro(7), TensOrtho{4}))
+    @test components_canon(rand(Xoshiro(7), TensOrtho{4})) == components_canon(rand(Xoshiro(7), TensOrtho{4}))
 end
 
 @testset "symmetries of the generic draws" begin
-    A = Array(components_canon(random_tens(_rt_rng, Tens{4, 3})))
+    A = Array(components_canon(rand(_rt_rng, Tens{4, 3})))
     @test A ≈ permutedims(A, (2, 1, 3, 4)) && A ≈ permutedims(A, (3, 4, 1, 2))
-    A = Array(components_canon(random_tens(_rt_rng, Tens{4, 3}; symmetry = Val(:minor))))
+    A = Array(components_canon(rand(_rt_rng, Tens{4, 3}; symmetry = Val(:minor))))
     @test A ≈ permutedims(A, (2, 1, 3, 4)) && A ≈ permutedims(A, (1, 2, 4, 3)) && !(A ≈ permutedims(A, (3, 4, 1, 2)))
-    A = Array(components_canon(random_tens(_rt_rng, Tens{4, 3}; symmetry = Val(:none))))
+    A = Array(components_canon(rand(_rt_rng, Tens{4, 3}; symmetry = Val(:none))))
     @test !(A ≈ permutedims(A, (2, 1, 3, 4)))
-    A = Array(components_canon(random_tens(_rt_rng, Tens{2, 3})))
+    A = Array(components_canon(rand(_rt_rng, Tens{2, 3})))
     @test A ≈ transpose(A)
 end
 
 @testset "positive definite draws, and the refusals" begin
     spectrum(t) = eigvals(Symmetric(Matrix(mandel(t))))
     for class in (TensISO{4, 3}, TensTI{4}, TensOrtho{4}, TensCubic, Tens{4, 3}), _ in 1:50
-        @test minimum(spectrum(random_tens(_rt_rng, class; definite = true))) > 0
+        @test minimum(spectrum(rand(_rt_rng, class; definite = true))) > 0
     end
     for class in (TensISO{2, 3}, TensTI{2}, TensOrtho{2}, Tens{2, 3}), _ in 1:50
-        @test minimum(eigvals(Symmetric(Array(components_canon(random_tens(_rt_rng, class; definite = true)))))) > 0
+        @test minimum(eigvals(Symmetric(Array(components_canon(rand(_rt_rng, class; definite = true)))))) > 0
     end
     # Without the request, indefinite tensors come too.
-    @test any(minimum(spectrum(random_tens(_rt_rng, TensOrtho{4}))) < 0 for _ in 1:50)
+    @test any(minimum(spectrum(rand(_rt_rng, TensOrtho{4}))) < 0 for _ in 1:50)
     for class in (TensTI{4, Float64, 6}, TensTI{4, Float64, 8}, TensTI{2, Float64, 3}, TensOrtho{4, Float64, 12})
-        @test_throws ArgumentError random_tens(_rt_rng, class; definite = true)
+        @test_throws ArgumentError rand(_rt_rng, class; definite = true)
     end
-    @test_throws ArgumentError random_tens(_rt_rng, Tens{4, 3}; symmetry = Val(:minor), definite = true)
-    @test_throws ArgumentError random_tens(_rt_rng, Tens{4, 3}; symmetry = Val(:none), definite = true)
-    @test_throws ArgumentError random_tens(_rt_rng, Tens{2, 3}; symmetry = Val(:none), definite = true)
-    @test_throws ArgumentError random_tens(_rt_rng, Tens{4, 3}; symmetry = Val(:symmetric))
-    @test_throws ArgumentError random_tens(_rt_rng, Tens{2, 3}; symmetry = Val(:major))
+    @test_throws ArgumentError rand(_rt_rng, Tens{4, 3}; symmetry = Val(:minor), definite = true)
+    @test_throws ArgumentError rand(_rt_rng, Tens{4, 3}; symmetry = Val(:none), definite = true)
+    @test_throws ArgumentError rand(_rt_rng, Tens{2, 3}; symmetry = Val(:none), definite = true)
+    @test_throws ArgumentError rand(_rt_rng, Tens{4, 3}; symmetry = Val(:symmetric))
+    @test_throws ArgumentError rand(_rt_rng, Tens{2, 3}; symmetry = Val(:major))
 end
 
 @testset "a fixed direction is kept" begin
     n, ℬ = (0.0, 0.6, 0.8), RotatedBasis(0.3, 1.2, 2.0)
     for class in (TensTI{4}, TensTI{4, Float64, 6}, TensTI{4, Float64, 8}, TensTI{2}, TensTI{2, Float64, 3})
-        @test axis(random_tens(_rt_rng, class; axis = n)) == n
+        @test axis(rand(_rt_rng, class; axis = n)) == n
         # A frame gives its third vector as the axis, the convention of `frame_from_axis`.
-        @test collect(axis(random_tens(_rt_rng, class; frame = ℬ))) ≈ TensND.vecbasis(ℬ, :cov)[:, 3]
-        @test_throws ArgumentError random_tens(_rt_rng, class; axis = n, frame = ℬ)
+        @test collect(axis(rand(_rt_rng, class; frame = ℬ))) ≈ TensND.vecbasis(ℬ, :cov)[:, 3]
+        @test_throws ArgumentError rand(_rt_rng, class; axis = n, frame = ℬ)
     end
     for class in (TensOrtho{4}, TensOrtho{4, Float64, 12}, TensOrtho{2}, TensCubic)
-        @test frame(random_tens(_rt_rng, class; frame = ℬ)) == ℬ
+        @test frame(rand(_rt_rng, class; frame = ℬ)) == ℬ
     end
-    @test frame(random_tens(_rt_rng, TensCubic; frame = CanonicalBasis{3, Float64}())) isa CanonicalBasis
+    @test frame(rand(_rt_rng, TensCubic; frame = CanonicalBasis{3, Float64}())) isa CanonicalBasis
 end
 
 @testset "uniform orientations" begin
@@ -152,8 +164,8 @@ end
     # whatever the basis it is read in.
     n = 20_000
     ℛ = RotatedBasis(0.7, 2.1, -0.4)
-    canonical = [Matrix(mandel(random_tens(_rt_rng, Tens{4, 3}))) for _ in 1:n]
-    rotated = [Matrix(mandel(change_tens(random_tens(_rt_rng, Tens{4, 3}), ℛ))) for _ in 1:n]
+    canonical = [Matrix(mandel(rand(_rt_rng, Tens{4, 3}))) for _ in 1:n]
+    rotated = [Matrix(mandel(change_tens(rand(_rt_rng, Tens{4, 3}), ℛ))) for _ in 1:n]
     for sample in (canonical, rotated)
         s = _rt_mean(K -> K .^ 2, sample)
         tol = 5 * sqrt(2 / length(sample))

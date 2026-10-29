@@ -335,7 +335,7 @@ end
         rng = Random.Xoshiro(20261029)
         𝕀 = TensISO{3}(3.0, 2.0)
         canon(t) = Array(components_canon(t))
-        for G in (random_tens(rng, Tens{4, 3}), change_tens(random_tens(rng, Tens{4, 3}), random_basis(rng)))
+        for G in (rand(rng, Tens{4, 3}), change_tens(rand(rng, Tens{4, 3}), random_basis(rng)))
             for op in (+, -, ⊡)
                 for (A, B) in ((𝕀, G), (G, 𝕀))
                     R = @inferred op(A, B)
@@ -349,7 +349,7 @@ end
         end
         # A symbolic coefficient, the same components once substituted.
         TensND.Symbolics.@variables a
-        G = random_tens(rng, Tens{4, 3})
+        G = rand(rng, Tens{4, 3})
         S = TensISO{3}(3a, 2a) ⊡ G + TensISO{3}(a, a)
         v = [TensND.Symbolics.value(TensND.Symbolics.substitute(x, Dict(a => 2.0))) for x in canon(S)]
         @test Float64.(v) ≈ canon(TensISO{3}(6.0, 4.0) ⊡ G + TensISO{3}(2.0, 2.0))

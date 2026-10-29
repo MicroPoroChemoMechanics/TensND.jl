@@ -19,7 +19,7 @@ independent standard normal numbers (see [Random rotations](@ref th-random-rotat
 Drawing the three Euler angles uniformly does **not** give this law: the axis
 `e₃` would then fall near the poles as often as near the equator.
 
-See also [`random_axis`](@ref), [`random_basis`](@ref), [`random_tens`](@ref).
+See also [`random_axis`](@ref), [`random_basis`](@ref), [`rand`](@ref Base.rand(::Type{<:TensND._RandomClass})).
 """
 random_rotation(rng::AbstractRNG, ::Type{T} = Float64) where {T <: AbstractFloat} =
     SMatrix{3, 3, T}(rand(rng, RotMatrix{3, T}))
@@ -88,10 +88,16 @@ _refuse_definite(definite::Bool, what) =
     )
 )
 
-# ── random_tens ──────────────────────────────────────────────────────────────
+# The classes `rand` draws. A class given without its parameters (`TensCubic`,
+# `TensTI{4}`) is not a subtype of `AbstractTens`, whose element type is
+# bounded, so the union of the classes is what the methods dispatch on.
+const _RandomClass = Union{TensISO, TensTI, TensOrtho, TensCubic, Tens}
+
+# ── rand ──────────────────────────────────────────────────────────────
 
 """
-    random_tens([rng], class; definite = false, ...) -> AbstractTens
+    rand([rng], class; definite = false, ...) -> AbstractTens
+    rand([rng], class, dims...) -> Array
 
 A tensor of `class` with random coefficients and, for a class with a
 direction, a random orientation. `class` is the type of the tensor, given
@@ -110,7 +116,10 @@ full for another shape or element type:
 
 Passing `axis` or `frame` fixes the direction and leaves only the coefficients
 random; a transversely isotropic tensor takes either, the axis being the third
-vector of the frame. Without a generator `rng`, `Random.default_rng()` is used. `definite = true` draws a positive definite tensor, for the shapes
+vector of the frame. Without a generator `rng`, `Random.default_rng()` is used;
+`rand(class, n)` draws an array of `n` tensors of the default law, as `rand`
+does for numbers; with keywords, an array is a comprehension,
+`[rand(rng, class; definite = true) for _ in 1:n]`. `definite = true` draws a positive definite tensor, for the shapes
 with the major symmetry (the default ones); the others refuse it. A generic
 tensor takes `symmetry`: `Val(:major)` (the default, minor and major
 symmetries, the class of elastic moduli), `Val(:minor)` or `Val(:none)` at
@@ -129,23 +138,26 @@ rotations. See [Random tensors](@ref man-random-tensors).
 ```julia
 julia> using Random; rng = Xoshiro(1);
 
-julia> ℂ = random_tens(rng, TensCubic; definite = true);   # a cubic crystal, random cube
+julia> ℂ = rand(rng, TensCubic; definite = true);   # a cubic crystal, random cube
 
 julia> ℂ isa TensCubic && minimum(eigvals(Symmetric(Matrix(mandel(ℂ))))) > 0
 true
 
-julia> random_tens(rng, TensTI{4}; axis = (0.0, 0.0, 1.0)) isa TensTI{4, Float64, 5}
+julia> rand(rng, TensTI{4}; axis = (0.0, 0.0, 1.0)) isa TensTI{4, Float64, 5}
 true
 ```
 """
-random_tens(class::Type; kwargs...) = random_tens(Random.default_rng(), class; kwargs...)
+Random.rand(class::Type{<:_RandomClass}; kwargs...) = rand(Random.default_rng(), class; kwargs...)
+
+# `rand(class, dims...)` and `rand!`: the draws of the default law, one per entry.
+Random.rand(rng::AbstractRNG, ::Random.SamplerType{C}) where {C <: _RandomClass} = rand(rng, C)
 
 # Isotropic.
-random_tens(rng::AbstractRNG, ::Type{TensISO{order, dim}}; kwargs...) where {order, dim} =
-    random_tens(rng, TensISO{order, dim, Float64}; kwargs...)
-random_tens(rng::AbstractRNG, ::Type{TensISO{4, dim, T}}; definite::Bool = false) where {dim, T} =
+Random.rand(rng::AbstractRNG, ::Type{TensISO{order, dim}}; kwargs...) where {order, dim} =
+    rand(rng, TensISO{order, dim, Float64}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensISO{4, dim, T}}; definite::Bool = false) where {dim, T} =
     TensISO{dim}(_random_eigenvalue(rng, T, definite), _random_eigenvalue(rng, T, definite))
-random_tens(rng::AbstractRNG, ::Type{TensISO{2, dim, T}}; definite::Bool = false) where {dim, T} =
+Random.rand(rng::AbstractRNG, ::Type{TensISO{2, dim, T}}; definite::Bool = false) where {dim, T} =
     TensISO{dim}(_random_eigenvalue(rng, T, definite))
 
 # The axis of a transversely isotropic draw: the one given, the third vector of
@@ -158,59 +170,59 @@ _ti_axis(rng, ::Type, axis, frame) =
 
 # Transversely isotropic: the 2×2 block coupling the axial and the transverse
 # normal directions, and the two eigenvalues of multiplicity two.
-random_tens(rng::AbstractRNG, ::Type{TensTI{4}}; kwargs...) = random_tens(rng, TensTI{4, Float64, 5}; kwargs...)
-function random_tens(rng::AbstractRNG, ::Type{TensTI{4, T, 5}}; axis = nothing, frame = nothing, definite::Bool = false) where {T}
+Random.rand(rng::AbstractRNG, ::Type{TensTI{4}}; kwargs...) = rand(rng, TensTI{4, Float64, 5}; kwargs...)
+function Random.rand(rng::AbstractRNG, ::Type{TensTI{4, T, 5}}; axis = nothing, frame = nothing, definite::Bool = false) where {T}
     B = _random_symmetric(rng, T, Val(2), definite)
     return TensTI{4}(B[1, 1], B[2, 2], B[1, 2], _random_eigenvalue(rng, T, definite), _random_eigenvalue(rng, T, definite), _ti_axis(rng, T, axis, frame))
 end
-function random_tens(rng::AbstractRNG, ::Type{TensTI{4, T, 6}}; axis = nothing, frame = nothing, definite::Bool = false) where {T}
+function Random.rand(rng::AbstractRNG, ::Type{TensTI{4, T, 6}}; axis = nothing, frame = nothing, definite::Bool = false) where {T}
     _refuse_definite(definite, "a TensTI{4} of 6 coefficients")
     B = _random_general(rng, T, Val(2))
     return TensTI{4}(B[1, 1], B[2, 2], B[1, 2], B[2, 1], randn(rng, T), randn(rng, T), _ti_axis(rng, T, axis, frame))
 end
-function random_tens(rng::AbstractRNG, ::Type{TensTI{4, T, 8}}; axis = nothing, frame = nothing, definite::Bool = false) where {T}
+function Random.rand(rng::AbstractRNG, ::Type{TensTI{4, T, 8}}; axis = nothing, frame = nothing, definite::Bool = false) where {T}
     _refuse_definite(definite, "a TensTI{4} of 8 coefficients")
     B = _random_general(rng, T, Val(2))
     return TensTI{4}(B[1, 1], B[2, 2], B[1, 2], B[2, 1], randn(rng, T), randn(rng, T), randn(rng, T), randn(rng, T), _ti_axis(rng, T, axis, frame))
 end
-random_tens(rng::AbstractRNG, ::Type{TensTI{2}}; kwargs...) = random_tens(rng, TensTI{2, Float64, 2}; kwargs...)
-random_tens(rng::AbstractRNG, ::Type{TensTI{2, T, 2}}; axis = nothing, frame = nothing, definite::Bool = false) where {T} =
+Random.rand(rng::AbstractRNG, ::Type{TensTI{2}}; kwargs...) = rand(rng, TensTI{2, Float64, 2}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensTI{2, T, 2}}; axis = nothing, frame = nothing, definite::Bool = false) where {T} =
     TensTI{2}(_random_eigenvalue(rng, T, definite), _random_eigenvalue(rng, T, definite), _ti_axis(rng, T, axis, frame))
-function random_tens(rng::AbstractRNG, ::Type{TensTI{2, T, 3}}; axis = nothing, frame = nothing, definite::Bool = false) where {T}
+function Random.rand(rng::AbstractRNG, ::Type{TensTI{2, T, 3}}; axis = nothing, frame = nothing, definite::Bool = false) where {T}
     _refuse_definite(definite, "a TensTI{2} of 3 coefficients")
     return TensTI{2}(randn(rng, T), randn(rng, T), randn(rng, T), _ti_axis(rng, T, axis, frame))
 end
 
 # Orthotropic: the 3×3 normal block and the three shear eigenvalues, 2C₄₄,
 # 2C₅₅, 2C₆₆ in the Kelvin–Mandel matrix.
-random_tens(rng::AbstractRNG, ::Type{TensOrtho{4}}; kwargs...) = random_tens(rng, TensOrtho{4, Float64, 9}; kwargs...)
-function random_tens(rng::AbstractRNG, ::Type{TensOrtho{4, T, 9}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4}}; kwargs...) = rand(rng, TensOrtho{4, Float64, 9}; kwargs...)
+function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, T, 9}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
     B = _random_symmetric(rng, T, Val(3), definite)
     s = ntuple(_ -> _random_eigenvalue(rng, T, definite) / 2, Val(3))
     return TensOrtho{4}(B[1, 1], B[2, 2], B[3, 3], B[1, 2], B[1, 3], B[2, 3], s..., frame)
 end
-function random_tens(rng::AbstractRNG, ::Type{TensOrtho{4, T, 12}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
+function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, T, 12}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
     _refuse_definite(definite, "a TensOrtho{4} of 12 coefficients")
     B = _random_general(rng, T, Val(3))
     s = ntuple(_ -> randn(rng, T) / 2, Val(3))
     return TensOrtho{4}(B[1, 1], B[2, 2], B[3, 3], B[1, 2], B[1, 3], B[2, 3], s..., B[2, 1], B[3, 1], B[3, 2], frame)
 end
-random_tens(rng::AbstractRNG, ::Type{TensOrtho{2}}; kwargs...) = random_tens(rng, TensOrtho{2, Float64}; kwargs...)
-random_tens(rng::AbstractRNG, ::Type{TensOrtho{2, T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2}}; kwargs...) = rand(rng, TensOrtho{2, Float64}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2, T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
     TensOrtho{2}(ntuple(_ -> _random_eigenvalue(rng, T, definite), Val(3))..., frame)
 
 # Cubic: the three eigenvalues, on 𝕁, 𝔼 and 𝕋.
-random_tens(rng::AbstractRNG, ::Type{TensCubic}; kwargs...) = random_tens(rng, TensCubic{Float64}; kwargs...)
-random_tens(rng::AbstractRNG, ::Type{TensCubic{T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
+Random.rand(rng::AbstractRNG, ::Type{TensCubic}; kwargs...) = rand(rng, TensCubic{Float64}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensCubic{T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
     TensCubic(ntuple(_ -> _random_eigenvalue(rng, T, definite), Val(3))..., frame)
 
 # Generic: the whole Kelvin–Mandel matrix, or the whole array.
-random_tens(rng::AbstractRNG, ::Type{Tens{order, dim}}; kwargs...) where {order, dim} =
-    random_tens(rng, Tens{order, dim, Float64}; kwargs...)
-random_tens(
+Random.rand(rng::AbstractRNG, ::Type{Tens{order, dim}}; kwargs...) where {order, dim} =
+    rand(rng, Tens{order, dim, Float64}; kwargs...)
+Random.rand(
     rng::AbstractRNG, ::Type{Tens{4, dim, T}}; symmetry::Val = Val(:major), definite::Bool = false
 ) where {dim, T} = _random_generic(rng, Val(4), Val(dim), T, symmetry, definite)
-random_tens(
+Random.rand(
     rng::AbstractRNG, ::Type{Tens{2, dim, T}}; symmetry::Val = Val(:symmetric), definite::Bool = false
 ) where {dim, T} = _random_generic(rng, Val(2), Val(dim), T, symmetry, definite)
 
@@ -238,4 +250,4 @@ _random_generic(rng, ::Val{order}, ::Val, ::Type, ::Val{S}, definite) where {ord
     )
 )
 
-export random_rotation, random_axis, random_basis, random_tens
+export random_rotation, random_axis, random_basis

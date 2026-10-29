@@ -20,7 +20,7 @@ Manual: [Random tensors](@ref man-random-tensors). Theory:
 [Uniform random rotations](@ref th-random-rotations).
 
 ```@docs
-random_tens
+Base.rand(::Type{<:TensND._RandomClass})
 random_rotation
 random_axis
 random_basis

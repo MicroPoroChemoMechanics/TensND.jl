@@ -119,7 +119,7 @@ automatic differentiation.
 Three structured types — [`TensISO`](@ref), [`TensTI`](@ref) and
 [`TensCubic`](@ref), [`TensOrtho`](@ref) — store the 2, 5, 3 and 9 scalars a
 symmetry class really has,
-and compute products and inverses in closed form; [`random_tens`](@ref) draws
+and compute products and inverses in closed form; [`rand`](@ref Base.rand(::Type{<:TensND._RandomClass})) draws
 any of them, or a generic tensor, with uniformly random orientations. The same code runs on
 `Float64`, `ForwardDiff.Dual`, `SymPyPythonCall.Sym` and `Symbolics.Num`.
 
