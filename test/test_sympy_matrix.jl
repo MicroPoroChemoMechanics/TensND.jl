@@ -13,6 +13,11 @@
     shape(x) = SymPyPythonCall.PythonCall.pyconvert(Tuple{Int, Int}, SymPyPythonCall.SymPyCore.:↓(x).shape)
     @test shape(M) == (2, 2)
     @test shape([a, b, c]) == (3, 1)
+    # A vector that is not a `Vector` (a view) takes the `AbstractVector`
+    # method, a `Vector` its own: both are columns.
+    @test shape(view([a, b, c, d], 2:4)) == (3, 1)
+    @test shape(view(Sym[1, 2, 3, 4], 1:2)) == (2, 1)
+    @test shape(Sym[1, 2]) == (2, 1)
     @test shape([a b c]) == (1, 3)
     # `Sym` itself is not a concrete type: `Sym[...]` arrays take the same route.
     ext = Base.get_extension(TensND, :TensNDSymPyPythonCallExt)
