@@ -19,6 +19,12 @@ Each curvilinear system is drawn, with its normalized basis and its surfaces of
 constant coordinate, in an interactive figure of
 [Predefined systems](@ref th-predefined-systems).
 
+!!! note "Load SymPyPythonCall for the default coordinates"
+    Called without coordinates (`coorsys_spherical()`), a constructor names its
+    coordinates with SymPy symbols, which needs `using TensND, SymPyPythonCall`.
+    With Symbolics, pass the variables, `coorsys_spherical(Tuple(@variables θ ϕ r))`,
+    or the type, `coorsys_spherical(Val(Num))`.
+
 !!! note "Spherical coordinates are ordered ``(\theta,\varphi,r)``"
     Not ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the
     canonical basis in the canonical order.

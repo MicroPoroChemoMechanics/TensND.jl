@@ -7,12 +7,16 @@ differentiated — numerically without rewriting anything.
 
 ## The four scalar worlds
 
-| Element type | Comes from | Use for |
+| Element type | Load | Use for |
 | :--- | :--- | :--- |
-| `Float64` (and any `Real`) | Base | numerical work |
-| `ForwardDiff.Dual` | `ForwardDiff` | derivatives and sensitivities |
-| `Sym` | `SymPy` | symbolic derivation, `dsolve`, `solve` |
-| `Num` | `Symbolics` | native Julia CAS, code generation |
+| `Float64` (and any `Real`) | `using TensND` | numerical work |
+| `ForwardDiff.Dual` | `using TensND, ForwardDiff` | derivatives and sensitivities |
+| `Sym` | `using TensND, SymPyPythonCall` | symbolic derivation, `dsolve`, `solve` |
+| `Num` | `using TensND, Symbolics` | native Julia CAS, code generation |
+
+`SymPyPythonCall` must be loaded explicitly: it is an optional dependency of
+TensND, whose SymPy-specific methods (the symbolic simplifications of a `Sym`,
+the default coordinates of the coordinate systems) it activates.
 
 ### Integer and rational coefficients
 

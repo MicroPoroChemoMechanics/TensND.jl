@@ -127,6 +127,7 @@ include("test_submanifold.jl")
 # Calls that tied a TensND method with one of a package it loads.
 include("test_third_party_ties.jl")
 include("test_sympy_matrix.jl")
+include("test_sympy_extension.jl")
 include("test_tensors_bridge.jl")
 include("test_symmetric_parts.jl")
 include("test_frame_from_axis.jl")

@@ -153,7 +153,8 @@ for OP in (
     @eval $OP(m::Tuple, args...; kwargs...) = map(x -> $OP(x, args...; kwargs...), m)
 end
 
-tlimit(x::T, args...; kwargs...) where {T <: Sym} = sympy.limit(x, args...; kwargs...)
+# The methods on a SymPy `Sym` call Python: they are defined by the extension
+# that SymPyPythonCall loads (`ext/TensNDSymPyPythonCallExt.jl`).
 tlimit(::Num, args...; kwargs...) = throw(
     ArgumentError(
         "tlimit: Symbolics.jl provides no limit. Use the SymPy backend " *
@@ -161,12 +162,6 @@ tlimit(::Num, args...; kwargs...) = throw(
     )
 )
 
-for OP in (:(simplify), :(factor), :(subs), :(diff))
-    @eval $(Symbol("t", OP))(x::T, args...; kwargs...) where {T <: Sym} = SymPyPythonCall.$OP(x, args...; kwargs...)
-end
-for OP in (:(trigsimp), :(expand_trig))
-    @eval $(Symbol("t", OP))(x::T, args...; kwargs...) where {T <: Sym} = sympy.$OP(x, args...; kwargs...)
-end
 for OP in (:(tsimplify), :(tfactor), :(tsubs), :(tdiff), :(ttrigsimp), :(texpand_trig), :(tlimit))
     @eval $OP(m::AbstractArray{T}, args...; kwargs...) where {T <: Sym} = $OP.(m, args...; kwargs...)
     @eval $OP(m::Array{T}, args...; kwargs...) where {T <: Sym} = $OP.(m, args...; kwargs...)
