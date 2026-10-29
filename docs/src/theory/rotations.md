@@ -176,7 +176,7 @@ invariant under rotations. The Gaussian orthogonal ensemble (symmetric, normal
 entries of variance ``1`` on the diagonal and ``1/2`` off it) is one; so is
 ``Q\,\Lambda\,Q^{\mathsf{T}}`` with ``Q`` of Haar law on ``O(6)`` and
 ``\Lambda`` any law of eigenvalues, and a matrix of independent standard normal
-entries. [`random_tens`](@ref) draws generic tensors from them, and the blocks
+entries. [`rand`](@ref Base.rand(::Type{<:TensND._RandomClass})) draws generic tensors from them, and the blocks
 of the structured classes from their analogues of size 2 or 3. In Voigt
 notation the same draws would not be invariant: the change of basis is not
 orthogonal there.

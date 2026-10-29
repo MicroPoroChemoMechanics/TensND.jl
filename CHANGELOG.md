@@ -1,5 +1,30 @@
 # Changelog
 
+## v0.10.0 — random tensors through `rand`
+
+A minor release that gives random tensors the name Julia gives every random
+draw. Drawing a tensor was `random_tens(rng, class)`, a name of its own where
+Julia's standard library, and Tensors.jl beside it, write `rand(rng, T)`.
+Code that already draws numbers with `rand` now draws tensors the same way, and
+gets the forms of `rand` it knows: without a generator, with a size, `rand!`.
+
+### Breaking changes
+
+- **`random_tens` is removed**; it is now `rand`, with the same arguments and
+  keywords: `rand(rng, TensCubic; definite = true)`,
+  `rand(rng, TensTI{4}; axis = (0.0, 0.0, 1.0))`, `rand(TensOrtho{4})`. The
+  laws of the draws are unchanged, so a seeded draw gives the same tensor as
+  before. No package of the organization called `random_tens`.
+- As for any minor release before 1.0, a `[compat]` entry `TensND = "0.9"`
+  does not accept 0.10: dependents widen it to `"0.9, 0.10"` (nothing else to
+  change unless they called `random_tens`).
+
+### Added
+
+- `rand(rng, class, dims...)` and `rand!(rng, A)`: an array of tensors, each
+  from the default law of the class, from the same stream as the scalar form.
+  With keywords, an array is a comprehension.
+
 ## v0.9.0 — SymPy as an extension, Julia 1.13
 
 A minor release, whose aim is a lighter load: two thirds of the time of
