@@ -91,8 +91,8 @@ k_fd = (dilute_k(60.0 + 1.0e-6) - dilute_k(60.0 - 1.0e-6)) / 2.0e-6
 n_fixed = [0.0, 0.0, 1.0]
 
 function projected_ℓ₁(α)
-    C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])
-    B, _, _ = proj_tens(:TI, arr(C), n_fixed)
+    C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])
+    B, _, _ = project(arr(C), :TI, n_fixed)
     return get_data(B)[1]
 end
 
@@ -113,8 +113,8 @@ end
 frame_rot = Basis(0.3, 0.8, 0.2)
 
 function projected_C₁₁(α, frame)
-    C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])
-    B, _, _ = proj_tens(:ORTHO, arr(C), frame)
+    C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])
+    B, _, _ = project(arr(C), :ORTHO, frame)
     return get_data(B)[1]
 end
 
@@ -166,7 +166,7 @@ norm(arr(from_mandel(mandel(tc))) - arr(tc))
 # optimization, so it needs a numeric element type. Projection onto a class with
 # a *given* axis or frame is closed-form and works symbolically.
 
-Bsym, dsym, _ = proj_tens(:TI, arr(TensISO{3}(3ks, 2μs)), [Sym(0), Sym(0), Sym(1)])
+Bsym, dsym, _ = project(arr(TensISO{3}(3ks, 2μs)), :TI, [Sym(0), Sym(0), Sym(1)])
 (typeof(Bsym), tsimplify(dsym))
 
 # An isotropic tensor is exactly transversely isotropic about any axis, so the

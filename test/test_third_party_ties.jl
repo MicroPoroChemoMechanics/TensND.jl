@@ -22,7 +22,7 @@ import Symbolics
                 TensISO{3}(3.0, 2.0), TensISO{3}(2.0),
                 TensTI{4}(1.0, 2.0, 3.0, 4.0, 5.0, 6.0, n3),
                 TensOrtho(10.0, 8.0, 9.0, 3.0, 2.0, 4.0, 2.5, 3.0, 1.5, can),
-                tens_cubic(10.0, 4.0, 2.0, can),
+                cubic_from_constants(10.0, 4.0, 2.0, can),
                 Tens([1.0 2.0 0.0; 2.0 3.0 1.0; 0.0 1.0 4.0]),
             )
             B = A / x

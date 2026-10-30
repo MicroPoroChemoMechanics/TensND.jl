@@ -227,13 +227,13 @@ _as_array(x::AbstractArray) = x
 
 # The same change, kept in its Tensors.jl form: the type of the new tensor is
 # then that of its storage, known at compile time.
-function change_tens(t::TensOrthonormal{order, dim}, ℬ::OrthonormalBasis{dim}) where {order, dim}
+function express(t::TensOrthonormal{order, dim}, ℬ::OrthonormalBasis{dim}) where {order, dim}
     isequal(ℬ, get_basis(t)) && return t
     return Tens(_components_in_orthonormal(get_array(t), t, ℬ), ℬ)
 end
 # Covariant and contravariant components coincide in an orthonormal basis.
-change_tens(t::TensOrthonormal{order, dim}, ℬ::OrthonormalBasis{dim}, ::NTuple{order, Symbol}) where {order, dim} =
-    change_tens(t, ℬ)
+express(t::TensOrthonormal{order, dim}, ℬ::OrthonormalBasis{dim}, ::NTuple{order, Symbol}) where {order, dim} =
+    express(t, ℬ)
 
 components(
     t::TensOrthonormal{order, dim, T},
@@ -242,21 +242,25 @@ components(
 ) where {order, dim, T} = components(t, basis)
 
 """
-    components_canon(t::AbstractTens)
+    canonical_components(t::AbstractTens)
 
-Extract the components of a tensor in the canonical basis
+The components of `t` in the canonical basis, with its variances: the array
+[`components`](@ref)`(t, ℬ)` gives in a basis `ℬ`, for the canonical one. The
+tensor itself, re-expressed in that basis, is [`canonical`](@ref)`(t)`.
 """
-components_canon(t::AbstractTens) =
+canonical_components(t::AbstractTens) =
     components(t, CanonicalBasis{get_dim(t), eltype(t)}(), get_var(t))
 
-components_canon(t::TensOrthonormal) = components(t, CanonicalBasis{get_dim(t), eltype(t)}())
+canonical_components(t::TensOrthonormal) = components(t, CanonicalBasis{get_dim(t), eltype(t)}())
 
 """
-    change_tens(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim},var::NTuple{order,Symbol})
-    change_tens(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim})
-    change_tens(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})
+    express(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim},var::NTuple{order,Symbol})
+    express(t::AbstractTens{order,dim,T},ℬ::AbstractBasis{dim})
+    express(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})
 
-Rewrite the same tensor with components corresponding to new variances and/or to a new basis
+The same tensor, expressed in the basis `ℬ` and/or with the variances `var`: its
+components are those [`components`](@ref) gives there, and the result is again a
+tensor. [`canonical`](@ref)`(t)` expresses it in the canonical basis.
 
 ```julia
 julia> ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;
@@ -281,7 +285,7 @@ julia> factor.(components(TV, ℬ, (:cont,)))
 
 julia> ℬ₀ = Basis(Sym[0 1 1; 1 0 1; 1 1 1]) ;
 
-julia> TV0 = change_tens(TV, ℬ₀)
+julia> TV0 = express(TV, ℬ₀)
 Tens{1, 3, Sym, Vec{3, Sym}}
 # data: 3-element Vec{3, Sym}:
      -v₁ + v₃
@@ -294,34 +298,48 @@ Tens{1, 3, Sym, Vec{3, Sym}}
 # var: (:cont,)
 ```
 """
-function change_tens(t::AbstractTens, ℬ::AbstractBasis, newvar::NTuple)
+function express(t::AbstractTens, ℬ::AbstractBasis, newvar::NTuple)
     if isequal(ℬ, get_basis(t)) && isequal(newvar, get_var(t))
         return t
     else
-        return Tens(components(t, ℬ, newvar), ℬ, newvar)
+        return Tens(_kept_symmetric(get_array(t), components(t, ℬ, newvar), newvar), ℬ, newvar)
     end
 end
 
-function change_tens(t::AbstractTens, newbasis::AbstractBasis)
+function express(t::AbstractTens, newbasis::AbstractBasis)
     if isequal(newbasis, get_basis(t))
         return t
     else
-        return Tens(components(t, newbasis, get_var(t)), newbasis, get_var(t))
+        return Tens(_kept_symmetric(get_array(t), components(t, newbasis, get_var(t)), get_var(t)), newbasis, get_var(t))
     end
 end
 
-function change_tens(t::AbstractTens, newvar::NTuple)
+function express(t::AbstractTens, newvar::NTuple)
     if isequal(newvar, get_var(t))
         return t
     else
-        return Tens(components(t, get_basis(t), newvar), get_basis(t), newvar)
+        return Tens(_kept_symmetric(get_array(t), components(t, get_basis(t), newvar), newvar), get_basis(t), newvar)
     end
 end
 
-"""
-    change_tens_canon(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})
+# A change of basis keeps the symmetry of a tensor stored symmetric, when both
+# indices of each symmetric pair keep the same variance: the new components are
+# symmetrized as the constructor symmetrizes them when they pass its test, but unconditionally. From a non-orthonormal basis the round-off of the new
+# components grows with the conditioning of the basis, beyond the tolerance of
+# `_store_symmetric`, and a minor-symmetric tensor came back in full storage,
+# whose 9×9 inverse is singular (a dilute localization `inv(𝕀 + ℙ : δℂ)` failed
+# in some bases). Exact element types are exact already and left as they are.
+_kept_symmetric(source, c, var) = c
+_kept_symmetric(::SymmetricTensor{2, dim}, c::AbstractArray{T, 2}, var) where {dim, T <: ApproxType} =
+    var[1] == var[2] ? Tensors.symmetric(Tensor{2, dim}(c)) : c
+_kept_symmetric(::SymmetricTensor{4, dim}, c::AbstractArray{T, 4}, var) where {dim, T <: ApproxType} =
+    var[1] == var[2] && var[3] == var[4] ? Tensors.symmetric(Tensor{4, dim}(c)) : c
 
-Rewrite the same tensor with components corresponding to the canonical basis.
+"""
+    canonical(t::AbstractTens)
+
+The same tensor, expressed in the canonical basis: [`express`](@ref)`(t, ℬ)` for
+the canonical `ℬ`, its components being [`canonical_components`](@ref)`(t)`.
 A `TensISO`, `TensTI`, `TensOrtho` or `TensCubic` has canonical components
 already and is returned as it is, in its class.
 
@@ -340,7 +358,7 @@ Tens{1, 3, Sym, Vec{3, Sym}}
  1  1  1
 # var: (:cont,)
 
-julia> TV0 = change_tens_canon(TV)
+julia> TV0 = canonical(TV)
 TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
 # data: 3-element Vec{3, Sym}:
       v₂ + v₃
@@ -353,7 +371,7 @@ TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
 # var: (:cont,)
 ```
 """
-change_tens_canon(t::AbstractTens) = change_tens(t, CanonicalBasis{get_dim(t), eltype(t)}())
+canonical(t::AbstractTens) = express(t, CanonicalBasis{get_dim(t), eltype(t)}())
 
 
 for OP in (:(tsimplify), :(tfactor), :(tsubs), :(ttrigsimp), :(texpand_trig), :(tlimit))
@@ -380,7 +398,7 @@ depends on the differentiation variable — as a rotated or curvilinear frame do
 classic way to lose the Christoffel terms.
 """
 diff_with_basis(t::AbstractTens{order, dim, T}, args...; kwargs...) where {order, dim, T <: Sym} =
-    change_tens(Tens(diff(components_canon(t), args...; kwargs...)), get_basis(t), get_var(t))
+    express(Tens(diff(canonical_components(t), args...; kwargs...)), get_basis(t), get_var(t))
 
 
 for OP in (:(tsimplify), :(tsubs))
@@ -396,7 +414,7 @@ for OP in (:(tdiff),)
         Tens($OP(get_array(t), args...; kwargs...), get_basis(t), get_var(t))
 end
 diff_with_basis(t::AbstractTens{order, dim, Num}, args...; kwargs...) where {order, dim} =
-    change_tens(Tens(diff(components_canon(t), args...; kwargs...)), get_basis(t), get_var(t))
+    express(Tens(diff(canonical_components(t), args...; kwargs...)), get_basis(t), get_var(t))
 
 
 # ── The common basis of two operands, and equality ───────────────────────────
@@ -424,7 +442,7 @@ function same_basis(
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
     ℬ = choose_best_basis(get_basis(t1), get_basis(t2))
-    return change_tens(t1, ℬ), change_tens(t2, ℬ)
+    return express(t1, ℬ), express(t2, ℬ)
 end
 
 # Two tensors in the canonical basis are in the same basis already, whatever
@@ -439,7 +457,7 @@ function same_basis_same_var(
         t2::AbstractTens{order2, dim},
     ) where {order1, order2, dim}
     ℬ = choose_best_basis(get_basis(t1), get_basis(t2))
-    return change_tens(t1, ℬ, get_var(t1)), change_tens(t2, ℬ, get_var(t1))
+    return express(t1, ℬ, get_var(t1)), express(t2, ℬ, get_var(t1))
 end
 
 
@@ -494,6 +512,6 @@ tens_basis(ℬ::AbstractBasis, i::Integer, var::Symbol = :cov) = _by_variance(te
 tens_basis(ℬ::AbstractBasis, var::Symbol = :cov) = _by_variance(tens_basis, var, ℬ)
 tens_basis(ℬ::AbstractBasis{dim}, var::Val) where {dim} = ntuple(i -> tens_basis(ℬ, i, var), Val(dim))
 
-export components, components_canon, change_tens, change_tens_canon
+export components, canonical_components, express, canonical
 export diff_with_basis
 export tens_basis

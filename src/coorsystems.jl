@@ -50,7 +50,7 @@ Declaring the block once keeps the two in step: a fix to one is a fix to
 the other.
 
 Reached through `core` (internal); user code should go through the accessors
-([`getcoords`](@ref), [`lame_coefficients`](@ref), [`christoffel`](@ref), …) instead.
+([`get_coords`](@ref), [`lame_coefficients`](@ref), [`christoffel`](@ref), …) instead.
 """
 struct ExactGeometry{dim, T, VEC, BNORM, BNAT} <: AbstractGeometry
     OM::VEC
@@ -125,9 +125,9 @@ without which a non-trivial chart produces correct but unusable nested radicals:
 See [Adding a coordinate system](@ref dev-adding-coorsystem) for the recipe and
 [`coorsys_spheroidal`](@ref) for a worked example.
 
-!!! note "Renamed in 0.8"
-    `CoorSystemSym` and `CoorSystemNum` are the two geometries of this one type;
-    the former names still work, with a deprecation warning.
+!!! note "One type since 0.8"
+    The former `CoorSystemSym` and `CoorSystemNum` are the two geometries of this
+    one type; their names were removed in 0.11.
 """
 struct CoordinateSystem{dim, T <: Number, G <: AbstractGeometry} <: AbstractCoorSystem{dim, T}
     geometry::G
@@ -189,13 +189,13 @@ function CoordinateSystem(
     # The natural vectors are the derivatives of the canonical components
     # of the position vector, taken here directly: what they are must not
     # depend on any method a chart adds to `∂`. `Submanifold` does the same.
-    ∂coord(t, xᵢ) = change_tens(Tens(tdiff(components_canon(t), xᵢ)), get_basis(t), get_var(t))
+    ∂coord(t, xᵢ) = express(Tens(tdiff(canonical_components(t), xᵢ)), get_basis(t), get_var(t))
     aᵢ = ntuple(i -> simp(chvar(∂coord(OMc, coords[i]), tmp_var)), dim)
     χᵢ = ntuple(i -> simp(norm(aᵢ[i])), dim)
     eᵢ = ntuple(i -> simp(aᵢ[i] / χᵢ[i]), dim)
     χᵢ = ntuple(i -> simp(chvar(χᵢ[i], to_coords)), dim)
     eᵢ = ntuple(i -> simp(chvar(eᵢ[i], to_coords)), dim)
-    normalized_basis = Basis(tsimplify(hcat(components_canon.(eᵢ)...)))
+    normalized_basis = Basis(tsimplify(hcat(canonical_components.(eᵢ)...)))
     eᵢ, aᵢ, aⁱ = _build_basis_vectors(normalized_basis, χᵢ)
     Γ = compute_Christoffel(
         coords,
@@ -218,16 +218,16 @@ end
 only_coords(CS::AbstractCoorSystem, t) = length(core(CS).to_coords) > 0 ? tsubs(t, core(CS).to_coords...) : t
 
 """
-    getcoords(CS::AbstractCoorSystem) → NTuple
-    getcoords(CS::AbstractCoorSystem, i::Integer)
+    get_coords(CS::AbstractCoorSystem) → NTuple
+    get_coords(CS::AbstractCoorSystem, i::Integer)
 
 Coordinate symbols of `CS`, or the `i`-th one.
 
 Note the ordering of the spherical system, `(θ, ϕ, r)` and not `(r, θ, ϕ)`, so
 that `θ = ϕ = 0` reproduces the canonical basis in the canonical order.
 """
-getcoords(CS::AbstractCoorSystem) = core(CS).coords
-getcoords(CS::AbstractCoorSystem, i::Integer) = getcoords(CS)[i]
+get_coords(CS::AbstractCoorSystem) = core(CS).coords
+get_coords(CS::AbstractCoorSystem, i::Integer) = get_coords(CS)[i]
 
 get_dim(::AbstractCoorSystem{dim}) where {dim} = dim
 
@@ -335,7 +335,7 @@ Tens.TensRotated{2, 3, Sym, SymmetricTensor{2, 3, Sym, 6}}
 ```
 """
 ∂(t::AbstractTens{order, dim, T}, xᵢ...) where {order, dim, T <: SymType} =
-    change_tens(Tens(tdiff(components_canon(t), xᵢ...)), get_basis(t), get_var(t))
+    express(Tens(tdiff(canonical_components(t), xᵢ...)), get_basis(t), get_var(t))
 
 ∂(t::SymType, xᵢ...) = tdiff(t, xᵢ...)
 
@@ -349,15 +349,15 @@ function ∂(
     var = ntuple(_ -> :cont, order)
     t = Array(components(t, ℬ, var))
     Γ = christoffel(CS)
-    data = tdiff(t, getcoords(CS, i))
+    data = tdiff(t, get_coords(CS, i))
     for o in 1:order
         data += _contract_index(t, view(Γ, i, :, :), o)
     end
-    return change_tens(Tens(simprules(data, CS), ℬ, var), normalized_basis(CS), var)
+    return express(Tens(simprules(data, CS), ℬ, var), normalized_basis(CS), var)
 end
 
 ∂(t::T, i::Integer, CS::AbstractCoorSystem{dim}) where {dim, T <: SymType} =
-    tdiff(only_coords(CS, t), getcoords(CS, i))
+    tdiff(only_coords(CS, t), get_coords(CS, i))
 
 # `T` stays coupled to the tensor here, unlike the other operators: loosening it
 # to `AbstractTens{order,dim}` makes this method ambiguous with the variadic
@@ -368,7 +368,7 @@ function ∂(
         x::T,
         CS::AbstractCoorSystem{dim},
     ) where {order, dim, T <: SymType}
-    ind = findfirst(i -> i == x, getcoords(CS))
+    ind = findfirst(i -> i == x, get_coords(CS))
     return ind === nothing ? zero(t) : ∂(t, ind, CS)
 end
 
@@ -377,7 +377,7 @@ function ∂(
         x::T,
         CS::AbstractCoorSystem{dim},
     ) where {dim, T <: SymType}
-    ind = findfirst(i -> i == x, getcoords(CS))
+    ind = findfirst(i -> i == x, get_coords(CS))
     return ind === nothing ? zero(t) : ∂(t, ind, CS)
 end
 
@@ -405,7 +405,7 @@ argument may be omitted.
 
 # Examples
 ```julia
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
 
 julia> @set_coorsys Spherical
 
@@ -442,7 +442,7 @@ argument may be omitted.
 
 # Examples
 ```julia
-julia> Cylindrical = coorsys_cylindrical() ; r, θ, z = getcoords(Cylindrical) ;
+julia> Cylindrical = coorsys_cylindrical() ; r, θ, z = get_coords(Cylindrical) ;
 
 julia> 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; @set_coorsys Cylindrical
 
@@ -478,7 +478,7 @@ argument may be omitted.
 
 # Examples
 ```julia
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
 
 julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; @set_coorsys Spherical
 
@@ -513,7 +513,7 @@ argument may be omitted.
 
 # Examples
 ```julia
-julia> Polar = coorsys_polar() ; r, θ = getcoords(Polar) ; @set_coorsys Polar
+julia> Polar = coorsys_polar() ; r, θ = get_coords(Polar) ; @set_coorsys Polar
 
 julia> laplacian(SymFunction("f", real = true)(r, θ))   # the polar Laplacian
 
@@ -545,7 +545,7 @@ argument may be omitted.
 
 # Examples
 ```julia
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
 
 julia> @set_coorsys Spherical
 
@@ -572,7 +572,7 @@ The divergence of a general symmetric order-2 field, which in cartesian
 coordinates reduces to the plain sum of partial derivatives:
 
 ```julia
-julia> Cartesian = coorsys_cartesian() ; 𝐗 = getcoords(Cartesian) ;
+julia> Cartesian = coorsys_cartesian() ; 𝐗 = get_coords(Cartesian) ;
 
 julia> ℬ = normalized_basis(Cartesian) ;
 
@@ -607,7 +607,7 @@ Return the polar coordinate system
 
 # Examples
 ```julia
-julia> Polar = coorsys_polar() ; r, θ = getcoords(Polar) ; 𝐞ʳ, 𝐞ᶿ = unitvec(Polar) ; ℬᵖ = get_basis(Polar)
+julia> Polar = coorsys_polar() ; r, θ = get_coords(Polar) ; 𝐞ʳ, 𝐞ᶿ = unitvec(Polar) ; ℬᵖ = get_basis(Polar)
 
 julia> f = SymFunction("f", real = true)(r, θ) ;
 
@@ -640,7 +640,7 @@ Return the cylindrical coordinate system
 
 # Examples
 ```julia
-julia> Cylindrical = coorsys_cylindrical() ; rθz = getcoords(Cylindrical) ; 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; ℬᶜ = get_basis(Cylindrical)
+julia> Cylindrical = coorsys_cylindrical() ; rθz = get_coords(Cylindrical) ; 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; ℬᶜ = get_basis(Cylindrical)
 
 julia> 𝐯 = Tens(Vec{3}(i -> SymFunction("v\$(rθz[i])", real = true)(rθz...)), ℬᶜ) ;
 
@@ -669,7 +669,7 @@ Return the spherical coordinate system
 
 # Examples
 ```julia
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; ℬˢ = get_basis(Spherical)
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; ℬˢ = get_basis(Spherical)
 
 julia> for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ") @eval \$(Symbol(σⁱʲ)) = SymFunction(\$σⁱʲ, real = true)(\$r) end ;
 
@@ -855,7 +855,7 @@ stores the system — and it leaves the meaning of `∂(t, x)` untouched.
 
 # Examples
 ```julia
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ;
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
 
 julia> @set_coorsys Spherical
 
@@ -881,19 +881,19 @@ function pprint(t::AbstractTens{order, dim, T}) where {order, dim, T <: SymType}
     d = _DEFAULT_COORSYS[]
     d === nothing && return pprint(t; vec = '𝐞', coords = ntuple(i -> i, dim))
     get_dim(d.CS) != dim && return pprint(t; vec = d.vec, coords = ntuple(i -> i, dim))
-    coords = d.coords === nothing ? string.(getcoords(d.CS)) : d.coords
+    coords = d.coords === nothing ? string.(get_coords(d.CS)) : d.coords
     length(coords) == dim - 1 && (coords = (coords..., dim))
-    return pprint(change_tens(t, normalized_basis(d.CS)); vec = d.vec, coords = coords)
+    return pprint(express(t, normalized_basis(d.CS)); vec = d.vec, coords = coords)
 end
 
 function pprint(t::AbstractTens{order, dim, T}, CS::AbstractCoorSystem; vec = '𝐞') where {order, dim, T}
-    coords = string.(getcoords(CS))
+    coords = string.(get_coords(CS))
     ℬ = normalized_basis(CS)
-    return pprint(change_tens(t, ℬ); vec = vec, coords = coords)
+    return pprint(express(t, ℬ); vec = vec, coords = coords)
 end
 
 export ∂, AbstractGeometry, ExactGeometry, PointwiseGeometry, CoordinateSystem, lame_coefficients, christoffel, nderiv
 export grad, symgrad, divergence, laplacian, hess
-export normalized_basis, natural_basis, natvec, unitvec, getcoords, position_vector
+export normalized_basis, natural_basis, natvec, unitvec, get_coords, position_vector
 export coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal
 export @set_coorsys, set_coorsys!, default_coorsys, unset_coorsys!

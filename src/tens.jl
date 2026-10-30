@@ -83,7 +83,7 @@ julia> components(T, (:cont, :cov))
  0  0  1
 ```
 
-See also [`components`](@ref), [`change_tens`](@ref), [`get_var`](@ref).
+See also [`components`](@ref), [`express`](@ref), [`get_var`](@ref).
 """
 struct Tens{order, dim, T, A <: AbstractArray, B <: Basis} <: AbstractTens{order, dim, T}
     data::A
@@ -222,7 +222,7 @@ tensor_or_array(tab::AbstractArray{T, 1}) where {T} = size(tab, 1) ≤ 3 ? Vec{s
 # compile time, so the construction is fully dynamic: measured at 3147 ns and
 # 3120 bytes for an 81-element array — versus 311 ns to produce that array in
 # the first place.  Since every structured tensor reaches the generic route
-# through this function (`change_tens` → `same_basis` → every binary
+# through this function (`express` → `same_basis` → every binary
 # operation), that cost was paid twice per `⊡` between structured operands.
 #
 # Funnel the runtime `dim` through `Val` so each branch constructs a concrete

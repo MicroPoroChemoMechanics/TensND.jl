@@ -102,8 +102,9 @@ include("test_tens.jl")
 include("test_tensor_products.jl")
 include("test_hot_paths.jl")
 include("test_dual_inverse.jl")
-include("test_renamed.jl")
+include("test_names.jl")
 include("test_tens_isotropic.jl")
+include("test_iso_moduli.jl")
 include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
 include("test_coefficient_types.jl")
@@ -111,7 +112,11 @@ include("test_coefficient_types.jl")
 include("test_ortho_general.jl")
 include("test_structured_binary_frames.jl")
 include("test_random_tens.jl")
-# `mandel` and `change_tens` of the structured classes in closed form.
+# Symmetries kept through a change of basis; inverses on the symmetric tensors.
+include("test_symmetry_kept.jl")
+# Symmetric tensors as Kelvin–Mandel vectors.
+include("test_mandel_vectors.jl")
+# `mandel` and `express` of the structured classes in closed form.
 include("test_structured_closed_forms.jl")
 # Kelvin-Mandel block algebra about a normal (in-plane / out-of-plane).
 include("test_km_blocks.jl")

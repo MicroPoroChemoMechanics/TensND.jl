@@ -106,7 +106,7 @@ rotated basis** (`false`, the default):
 
 ```@example bases2
 (θs, ϕs, rs), (𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ), ℬˢ = init_spherical()
-components_canon(𝐞ʳ)
+canonical_components(𝐞ʳ)
 ```
 
 The default is usually what you want: further calculations then stay in the

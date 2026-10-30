@@ -15,7 +15,7 @@ Tensors.majorsymmetric(t::TensTI{4, T, 5}) where {T} = t
 # of ℓ₇ and ℓ₈, the major-antisymmetric generators of the six- and
 # eight-parameter forms: the major-symmetric part is the five-parameter tensor.
 function Tensors.majorsymmetric(t::TensTI{4, T}) where {T}
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, _, _ = get_ℓ8(t)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, _, _ = walpole_coeffs(t, Val(8))
     return TensTI{4, T, 5}((ℓ₁, ℓ₂, (ℓ₃ + ℓ₄) / 2, ℓ₅, ℓ₆), axis(t))
 end
 

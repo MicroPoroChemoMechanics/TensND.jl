@@ -13,7 +13,7 @@ flowchart TB
     BA["<b>bases.jl</b><br/>Basis hierarchy,<br/>metric, variance"]
     TE["<b>tens.jl</b><br/>AbstractTens, Tens,<br/>accessors, storage"]
     TD["<b>tens_display.jl</b><br/>show, pprint"]
-    TC["<b>tens_components.jl</b><br/>components, change_tens,<br/>equality"]
+    TC["<b>tens_components.jl</b><br/>components, express,<br/>equality"]
     KMF["<b>kelvin_mandel.jl</b><br/>mandel, from_mandel"]
     TA["<b>tens_algebra.jl</b><br/>arithmetic, products,<br/>contractions"]
     ISO["<b>tens_isotropic.jl</b><br/>TensISO"]
@@ -25,7 +25,7 @@ flowchart TB
     ORI["<b>orientation_search.jl</b><br/>free axis or frame"]
     SYM["<b>symmetry_search.jl</b><br/>best_sym_tens"]
     RA["<b>tens_rotational_average.jl</b><br/>isotropic and transverse averages"]
-    SPE["<b>special_tens.jl</b><br/>levi_civita, rot2/3/6, init_*"]
+    SPE["<b>special_tens.jl</b><br/>levi_civita, rotation_matrix/3/6, init_*"]
     CSS["<b>coorsystems.jl</b><br/>CoordinateSystem, ExactGeometry"]
     CSN["<b>coorsystems_num.jl</b><br/>PointwiseGeometry"]
     SUB["<b>submanifold.jl</b><br/>Submanifold"]
@@ -84,9 +84,9 @@ model that a shared body would obscure rather than simplify.
 material frame as a separate type parameter, so `Dual`-valued constants can sit
 on a `Float64` frame. Forcing them to agree broke every attempt to differentiate
 a scheme with respect to a modulus. The same reasoning applies to the symmetry
-axis of a `TensTI` and to the frame passed to `proj_tens`, where converting the
+axis of a `TensTI` and to the frame passed to `project`, where converting the
 frame to the field's element type once produced `NaN` derivatives — see the
-comment in `proj_tens(::Val{:ORTHO}, …)`.
+comment in `project(…, ::Val{:ORTHO}, …)`.
 
 **Closed forms only while the result stays in the class.** The structured
 methods return the generic tensor whenever the exact result leaves the class —

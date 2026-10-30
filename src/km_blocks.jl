@@ -14,7 +14,7 @@
 # triclinic one tests it.
 #
 # Everything is written on static matrices with no pivoting and no SVD, so that it
-# holds for duals and for symbols: a 3×3 inverse by cofactors (`_inv3`), the
+# holds for duals and for symbols: a 3×3 inverse by cofactors (`inv3`), the
 # 6×6 inverse by a Schur complement on the partition.
 
 """
@@ -94,10 +94,16 @@ in-plane / out-of-plane partition ([`MANDEL_IP`](@ref), [`MANDEL_OP`](@ref)).
     )
 end
 
-# The inverse of a 3×3 matrix by its cofactors and one determinant: no pivot, and
-# on symbols an expression of the size of the cofactors (the generic inverse of
-# StaticArrays swells symbolic results by orders of magnitude).
-@inline function _inv3(K::AbstractMatrix{T}) where {T}
+"""
+    inv3(K) → SMatrix{3,3}
+
+The inverse of a 3×3 matrix by its cofactors and one determinant, as a static
+matrix: no pivot, no allocation, for duals as for floats, and on symbols an
+expression of the size of the cofactors (the generic inverse of StaticArrays
+swells symbolic results by orders of magnitude). Singular matrices are not
+detected: the determinant is inverted as it is.
+"""
+@inline function inv3(K::AbstractMatrix{T}) where {T}
     return @inbounds begin
         a11, a12, a13 = K[1, 1], K[1, 2], K[1, 3]
         a21, a22, a23 = K[2, 1], K[2, 2], K[2, 3]
@@ -124,9 +130,9 @@ acoustic tensor about `n` is positive definite.
     A, D = mandel_ip_block(M), mandel_op_block(M)
     B = SMatrix{3, 3}(M[MANDEL_IP, MANDEL_OP])
     C = SMatrix{3, 3}(M[MANDEL_OP, MANDEL_IP])
-    Di = _inv3(D)
+    Di = inv3(D)
     BDi, DiC = B * Di, Di * C
-    S = _inv3(A - BDi * C)
+    S = inv3(A - BDi * C)
     return mandel_from_blocks(S, -S * BDi, -DiC * S, Di + DiC * S * BDi)
 end
 
@@ -142,7 +148,7 @@ supported on the out-of-plane subspace it is its pseudo-inverse. `plane_pinv2` i
 the order-2 counterpart for a 3×3 matrix written in the frame `(ℓ, m, n)`:
 `(1/K₃₃) n⊗n`. No SVD, so duals and symbols go through.
 """
-@inline plane_pinv(M::AbstractMatrix) = mandel_op_embed(_inv3(mandel_op_block(M)))
+@inline plane_pinv(M::AbstractMatrix) = mandel_op_embed(inv3(mandel_op_block(M)))
 "The order-2 out-of-plane pseudo-inverse `(1/K₃₃) n⊗n`; see [`plane_pinv`](@ref)."
 @inline function plane_pinv2(K3::AbstractMatrix{T}) where {T}
     z = zero(T)
@@ -166,6 +172,54 @@ from a tensor and a direction.
     return SMatrix{3, 3, T}(K11, K12, K13, K12, K22, K23, K13, K23, K33)
 end
 acoustic_tensor(ℂ::AbstractTens{4, 3}, n) = dotdot(Tens(Vec{3}(_extract_vec(n))), ℂ, Tens(Vec{3}(_extract_vec(n))))
+
+"""
+    acoustic_components(C, ζ) → NTuple{6}
+
+The six independent entries ``(K_{11}, K_{22}, K_{33}, K_{12}, K_{13}, K_{23})`` of
+the acoustic tensor ``K_{ij} = \\zeta_k\\,C_{kijl}\\,\\zeta_l`` of a fourth-order array of
+canonical components `C` with the minor symmetries, along a direction `ζ` of
+any length: the kernel of an integral over the directions, with no tensor object
+and no allocation (a recurrence over the nine pairs ``(k, l)`` accumulating the
+six sums at once). [`acoustic_tensor`](@ref) is the same tensor as an object;
+[`sym3_inv`](@ref) inverts it from these entries.
+"""
+@inline function acoustic_components(C::AbstractArray{T, 4}, ζ) where {T}
+    K11 = zero(T); K22 = zero(T); K33 = zero(T)
+    K12 = zero(T); K13 = zero(T); K23 = zero(T)
+    for k in 1:3, l in 1:3
+        ζζ = ζ[k] * ζ[l]
+        K11 += ζζ * C[k, 1, 1, l]
+        K22 += ζζ * C[k, 2, 2, l]
+        K33 += ζζ * C[k, 3, 3, l]
+        K12 += ζζ * C[k, 1, 2, l]
+        K13 += ζζ * C[k, 1, 3, l]
+        K23 += ζζ * C[k, 2, 3, l]
+    end
+    return K11, K22, K33, K12, K13, K23
+end
+
+"""
+    sym3_inv(K11, K22, K33, K12, K13, K23) → NTuple{9}
+
+The inverse of a symmetric 3×3 matrix from its six entries, by its adjugate and
+determinant, flattened in column-major order (`iK[i + 3(j - 1)]` is ``(K^{-1})_{ij}``):
+the symmetric case of [`inv3`](@ref), with the cofactors a symmetric matrix shares
+computed once, for the kernels of integrals over directions where it is evaluated
+millions of times. Singular matrices are not detected.
+"""
+@inline function sym3_inv(K11, K22, K33, K12, K13, K23)
+    det = K11 * K22 * K33 + 2 * K12 * K13 * K23 -
+        K11 * K23 * K23 - K22 * K13 * K13 - K33 * K12 * K12
+    inv_det = inv(det)
+    iK11 = (K22 * K33 - K23 * K23) * inv_det
+    iK22 = (K11 * K33 - K13 * K13) * inv_det
+    iK33 = (K11 * K22 - K12 * K12) * inv_det
+    iK12 = (K13 * K23 - K33 * K12) * inv_det
+    iK13 = (K12 * K23 - K22 * K13) * inv_det
+    iK23 = (K12 * K13 - K11 * K23) * inv_det
+    return (iK11, iK12, iK13, iK12, iK22, iK23, iK13, iK23, iK33)
+end
 
 """
     compliance_op_block(X) → SMatrix{3,3}
@@ -210,3 +264,4 @@ end
 
 export MANDEL_IP, MANDEL_OP, mandel_ip_block, mandel_op_block, mandel_ip_embed, mandel_op_embed, mandel_from_blocks
 export mandel_inv_schur, plane_pinv, plane_pinv2, acoustic_tensor, compliance_op_block, deviatoric_pinv
+export inv3, acoustic_components, sym3_inv

@@ -20,8 +20,10 @@ include("tens_display.jl")
 include("tens_components.jl")
 include("tensors_bridge.jl")
 include("kelvin_mandel.jl")
+include("mandel_vectors.jl")
 include("tens_algebra.jl")
 include("tens_isotropic.jl")
+include("iso_moduli.jl")
 include("tens_anisotropic.jl")
 include("tens_cubic.jl")
 include("structured_tens_ops.jl")
@@ -37,7 +39,6 @@ include("random_tens.jl")
 include("coorsystems.jl")
 include("coorsystems_num.jl")
 include("submanifold.jl")
-include("deprecated.jl")
 
 # The constructors whose default coordinates are SymPy symbols get them from the
 # extension that SymPyPythonCall loads. Called without coordinates while it is

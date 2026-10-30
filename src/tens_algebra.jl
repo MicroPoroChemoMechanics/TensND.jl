@@ -52,10 +52,22 @@ end
 
 # The components of the inverse of a 4th-order tensor: the matrix inverse of its
 # Mandel (minor symmetries) or Voigt (none) form, as Tensors.jl takes it.
+#
+# A tensor left in full storage by an operation although its components have
+# the minor symmetries (to the tolerance of `_store_symmetric`, which decides
+# the storage when a tensor is built) is singular as a 9×9 matrix: its three
+# minor-antisymmetric directions are null. `inv(𝕀 + ℙ : δℂ)` then failed, or
+# returned the inverse of round-off, depending on the basis the operands were
+# written in. Such a tensor is inverted on the symmetric tensors, as it would
+# be had it been stored symmetric.
 _inv_array(A) = inv(A)
 _inv_array(A::SymmetricTensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
     frommandel(SymmetricTensor{4, dim}, _inv_matrix(tomandel(SMatrix, A)))
-_inv_array(A::Tensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
+_inv_array(A::Tensor{4, dim}) where {dim} =
+    _store_symmetric(A) ? Tensor{4, dim}(_inv_array(Tensors.symmetric(A))) : _inv_full(A)
+
+_inv_full(A::Tensor{4}) = inv(A)
+_inv_full(A::Tensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
     fromvoigt(Tensor{4, dim}, _inv_matrix(tovoigt(SMatrix, A)))
 
 # The inverse of a matrix of duals by the implicit-function theorem,
@@ -155,7 +167,7 @@ function LinearAlgebra.dot(
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
     var = (invvar(get_var(nt1)[end]), get_var(nt2)[(begin + 1):end]...)
-    nt2 = change_tens(nt2, get_basis(nt2), var)
+    nt2 = express(nt2, get_basis(nt2), var)
     data = scontract(get_array(nt1), get_array(nt2))
     var = (get_var(nt1)[begin:(end - 1)]..., get_var(nt2)[(begin + 1):end]...)
     return Tens(data, get_basis(nt1), var)
@@ -173,7 +185,7 @@ end
 function LinearAlgebra.dot(t1::AbstractTens{1, dim}, t2::AbstractTens{1, dim}) where {dim}
     nt1, nt2 = same_basis(t1, t2)
     var = (invvar(get_var(nt1)[end]), get_var(nt2)[(begin + 1):end]...)
-    nt2 = change_tens(nt2, get_basis(nt2), var)
+    nt2 = express(nt2, get_basis(nt2), var)
     return scontract(get_array(nt1), get_array(nt2))
 end
 
@@ -257,7 +269,7 @@ Calculate the tensor obtained after contraction with respect to the indices `i` 
 """
 function contract(t::AbstractTens{order, dim}, i::Integer, j::Integer) where {order, dim}
     var = ntuple(k -> k == j ? invvar(get_var(t, i)) : get_var(t, k), order)
-    nt = change_tens(t, get_basis(t), var)
+    nt = express(t, get_basis(t), var)
     data = contract(get_array(nt), i, j)
     m = min(i, j)
     M = max(i, j)
@@ -273,7 +285,7 @@ end
 
 function contract(t::AbstractTens{2, dim}, i::Integer, j::Integer) where {dim}
     var = ntuple(k -> k == j ? invvar(get_var(t, i)) : get_var(t, k), 2)
-    nt = change_tens(t, get_basis(t), var)
+    nt = express(t, get_basis(t), var)
     return contract(get_array(nt), i, j)
 end
 
@@ -320,7 +332,7 @@ function Tensors.dcontract(
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
     var = (invvar(get_var(nt1)[end - 1]), invvar(get_var(nt1)[end]), get_var(nt2)[(begin + 2):end]...)
-    nt2 = change_tens(nt2, get_basis(nt2), var)
+    nt2 = express(nt2, get_basis(nt2), var)
     data = Tensors.dcontract(get_array(nt1), get_array(nt2))
     var = (get_var(nt1)[begin:(end - 2)]..., get_var(nt2)[(begin + 2):end]...)
     return Tens(data, get_basis(nt1), var)
@@ -362,9 +374,9 @@ function Tensors.dotdot(
     ) where {order1, orderS, order2, dim}
     nS, nv1, nv2 = _same_basis3(S, v1, v2)
     var = (invvar(get_var(nS)[begin]),)
-    nv1 = change_tens(nv1, get_basis(nv1), var)
+    nv1 = express(nv1, get_basis(nv1), var)
     var = (invvar(get_var(nS)[end]),)
-    nv2 = change_tens(nv2, get_basis(nv2), var)
+    nv2 = express(nv2, get_basis(nv2), var)
     data = dotdot(get_array(nv1), get_array(nS), get_array(nv2))
     var = (get_var(nS)[begin + 1], get_var(nS)[end - 1])
     return Tens(data, get_basis(nS), var)
@@ -387,7 +399,7 @@ end
 function _same_basis3(S::AbstractTens, v1::AbstractTens, v2::AbstractTens)
     nS, nv1 = same_basis(S, v1)
     nS, nv2 = same_basis(nS, v2)
-    return nS, change_tens(nv1, get_basis(nS)), nv2
+    return nS, express(nv1, get_basis(nS)), nv2
 end
 
 """
@@ -426,7 +438,7 @@ function qcontract(
         invvar(get_var(nt1)[end]),
         get_var(nt2)[(begin + 4):end]...,
     )
-    nt2 = change_tens(nt2, get_basis(nt2), var)
+    nt2 = express(nt2, get_basis(nt2), var)
     data = qcontract(get_array(nt1), get_array(nt2))
     var = (get_var(nt1)[begin:(end - 4)]..., get_var(nt2)[(begin + 4):end]...)
     return Tens(data, get_basis(nt1), var)
@@ -450,7 +462,7 @@ function qcontract(t1::AbstractTens{4, dim}, t2::AbstractTens{4, dim}) where {di
         invvar(get_var(nt1)[end]),
         get_var(nt2)[(begin + 4):end]...,
     )
-    nt2 = change_tens(nt2, get_basis(nt2), var)
+    nt2 = express(nt2, get_basis(nt2), var)
     return qcontract(get_array(nt1), get_array(nt2))
 end
 
@@ -531,7 +543,7 @@ function otimesul(
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
     var = (get_var(nt1)[end - 1], get_var(nt1)[end], get_var(nt2)[(begin + 2):end]...)
-    nt2 = change_tens(nt2, get_basis(nt2), var)
+    nt2 = express(nt2, get_basis(nt2), var)
     data = otimesul(get_array(nt1), get_array(nt2))
     var = (get_var(nt1)..., get_var(nt2)...)
     return Tens(data, get_basis(nt1), var)
@@ -560,7 +572,7 @@ function sotimes(
     ) where {order1, order2, dim}
     nt1, nt2 = same_basis(t1, t2)
     var = (get_var(nt1)[end], get_var(nt2)[(begin + 1):end]...)
-    nt2 = change_tens(nt2, get_basis(nt2), var)
+    nt2 = express(nt2, get_basis(nt2), var)
     data = sotimes(get_array(nt1), get_array(nt2))
     var = (get_var(nt1)..., get_var(nt2)...)
     return Tens(data, get_basis(nt1), var)
@@ -575,7 +587,7 @@ function sotimes(
     else
         nt1, nt2 = same_basis(t1, t2)
         var = (get_var(nt1)[end], get_var(nt2)[(begin + 1):end]...)
-        nt2 = change_tens(nt2, get_basis(nt2), var)
+        nt2 = express(nt2, get_basis(nt2), var)
         data = sotimes(get_array(nt1), get_array(nt2))
         var = (get_var(nt1)..., get_var(nt2)...)
         return Tens(data, get_basis(nt1), var)

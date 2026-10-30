@@ -5,7 +5,7 @@ Theory: [Projection onto a symmetry class](@ref th-projection); usage:
 [Projection](@ref man-projection).
 
 ```@docs
-proj_tens
+project
 best_sym_tens
 isisotropic
 istransverselyisotropic
@@ -36,14 +36,9 @@ which carries no major symmetry — and the fits only to report parameters.
 ```@docs
 isotropify
 transverse_isotropify
-mandel66_minor
-array_from_mandel66
-mandel66
-mandel33_minor
-array_from_mandel33
 ti8_params_from_mandel
 mandel_from_ti8_params
-ti_average_mandel66
-ti_average_mat33
-iso_average_mandel66
+ti_average_mandel
+ti_average_matrix
+iso_average_mandel
 ```

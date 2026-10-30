@@ -12,18 +12,18 @@
     # The default coordinates, against the symbols written out.
     x, y, z = symbols("x y z", real = true)
     r, θ, ϕ = symbols("r", positive = true), symbols("θ", real = true), symbols("ϕ", real = true)
-    @test getcoords(coorsys_cartesian()) == (x, y, z)
-    @test getcoords(coorsys_cartesian(Val(Sym))) == (x, y, z)
-    @test getcoords(coorsys_polar()) == (r, θ)
-    @test getcoords(coorsys_polar(Val(Sym); canonical = true)) == (r, θ)
-    @test getcoords(coorsys_cylindrical()) == (r, θ, symbols("z", real = true))
-    @test getcoords(coorsys_cylindrical(Val(Sym))) == getcoords(coorsys_cylindrical())
-    @test getcoords(coorsys_spherical()) == (θ, ϕ, r)
-    @test getcoords(coorsys_spherical(Val(Sym))) == (θ, ϕ, r)
+    @test get_coords(coorsys_cartesian()) == (x, y, z)
+    @test get_coords(coorsys_cartesian(Val(Sym))) == (x, y, z)
+    @test get_coords(coorsys_polar()) == (r, θ)
+    @test get_coords(coorsys_polar(Val(Sym); canonical = true)) == (r, θ)
+    @test get_coords(coorsys_cylindrical()) == (r, θ, symbols("z", real = true))
+    @test get_coords(coorsys_cylindrical(Val(Sym))) == get_coords(coorsys_cylindrical())
+    @test get_coords(coorsys_spherical()) == (θ, ϕ, r)
+    @test get_coords(coorsys_spherical(Val(Sym))) == (θ, ϕ, r)
     spheroidal = (symbols("ϕ", real = true), symbols("p", real = true), symbols("q", positive = true))
-    @test getcoords(coorsys_spheroidal()) == spheroidal
-    @test getcoords(coorsys_spheroidal(spheroidal)) == spheroidal
-    @test getcoords(coorsys_spheroidal(Val(Sym))) == spheroidal
+    @test get_coords(coorsys_spheroidal()) == spheroidal
+    @test get_coords(coorsys_spheroidal(spheroidal)) == spheroidal
+    @test get_coords(coorsys_spheroidal(Val(Sym))) == spheroidal
     @test first(init_cartesian()) == (x, y, z)
     @test first(init_cartesian(2)) == symbols("x y", real = true)
     @test first(init_polar()) == symbols("r θ", real = true)

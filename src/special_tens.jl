@@ -280,9 +280,13 @@ init_rotated(angles; canonical = false) = Tuple(angles),
     Basis(angles...)
 
 """
-    rot3(θ, ϕ = 0, ψ = 0)
+    rotation_matrix(θ, ϕ, ψ = 0)
 
-Return a rotation matrix with respect to the 3 Euler angles `θ, ϕ, ψ`
+The 3×3 rotation matrix of the Euler angles `θ, ϕ, ψ` (ZYZ: `θ` the inclination
+from ``\\mathbf{e}_3``, `ϕ` the azimuth, `ψ` the spin about the rotated axis).
+Its third column is the unit vector of inclination `θ` and azimuth `ϕ`. With a
+single angle, `rotation_matrix(θ)` is the 2D
+rotation.
 
 # Examples
 ```julia
@@ -290,35 +294,38 @@ julia> cθ, cϕ, cψ, sθ, sϕ, sψ = symbols("cθ cϕ cψ sθ sϕ sψ", real = 
 
 julia> d = Dict(cos(θ) => cθ, cos(ϕ) => cϕ, cos(ψ) => cψ, sin(θ) => sθ, sin(ϕ) => sϕ, sin(ψ) => sψ) ;
 
-julia> subs.(rot3(θ, ϕ, ψ),d...)
+julia> subs.(rotation_matrix(θ, ϕ, ψ),d...)
 3×3 StaticArrays.SMatrix{3, 3, Sym, 9} with indices SOneTo(3)×SOneTo(3):
  cθ⋅cψ⋅cϕ - sψ⋅sϕ  -cθ⋅cϕ⋅sψ - cψ⋅sϕ  cϕ⋅sθ
  cθ⋅cψ⋅sϕ + cϕ⋅sψ  -cθ⋅sψ⋅sϕ + cψ⋅cϕ  sθ⋅sϕ
            -cψ⋅sθ              sθ⋅sψ     cθ
 ```
 """
-rot3(θ, ϕ = 0, ψ = 0) = RotZYZ(ϕ, θ, ψ)
+rotation_matrix(θ, ϕ, ψ = 0) = RotZYZ(ϕ, θ, ψ)
 
 """
-    rot2(θ)
+    rotation_matrix(θ)
 
-Return a 2D rotation matrix with respect to the angle `θ`
+The 2D rotation matrix of angle `θ`, as a `Tensor{2, 2}`.
 
 # Examples
 ```julia
-julia> rot2(θ)
+julia> rotation_matrix(θ)
 2×2 Tensor{2, 2, Sym, 4}:
  cos(θ)  -sin(θ)
  sin(θ)   cos(θ)
 ```
 """
-rot2(θ) = Tensor{2, 2}((cos(θ), sin(θ), -sin(θ), cos(θ)))
+rotation_matrix(θ) = Tensor{2, 2}((cos(θ), sin(θ), -sin(θ), cos(θ)))
 
 
 """
-    rot6(θ, ϕ = 0, ψ = 0)
+    rotation_tensor4(θ, ϕ = 0, ψ = 0)
 
-Return a rotation matrix with respect to the 3 Euler angles `θ, ϕ, ψ`
+The fourth-order tensor ``\\mathbf{R} \\boxtimes^s \\mathbf{R}`` that rotates a
+symmetric second-order tensor, ``\\mathbf{R}\\,\\boldsymbol{\\varepsilon}\\,\\mathbf{R}^T``,
+`R = rotation_matrix(θ, ϕ, ψ)`; its Kelvin-Mandel matrix is the 6×6 rotation
+[`mandel_rotation`](@ref)`(θ, ϕ, ψ)`.
 
 # Examples
 ```julia
@@ -326,7 +333,7 @@ julia> cθ, cϕ, cψ, sθ, sϕ, sψ = symbols("cθ cϕ cψ sθ sϕ sψ", real = 
 
 julia> d = Dict(cos(θ) => cθ, cos(ϕ) => cϕ, cos(ψ) => cψ, sin(θ) => sθ, sin(ϕ) => sϕ, sin(ψ) => sψ) ;
 
-julia> R = Tens(subs.(rot3(θ, ϕ, ψ),d...))
+julia> R = Tens(subs.(rotation_matrix(θ, ϕ, ψ),d...))
 Tens.TensCanonical{2, 3, Sym, Tensor{2, 3, Sym, 9}}
 # data: 3×3 Tensor{2, 3, Sym, 9}:
  cθ⋅cψ⋅cϕ - sψ⋅sϕ  -cθ⋅cϕ⋅sψ - cψ⋅sϕ  cϕ⋅sθ
@@ -353,7 +360,7 @@ Tens.TensCanonical{4, 3, Sym, SymmetricTensor{4, 3, Sym, 36}}
  0  1  0
  0  0  1
 
-julia> R6 = from_mandel(subs.(mandel(rot6(θ, ϕ, ψ)),d...))
+julia> R6 = from_mandel(subs.(mandel(rotation_tensor4(θ, ϕ, ψ)),d...))
 Tens.TensCanonical{4, 3, Sym, SymmetricTensor{4, 3, Sym, 36}}
 # data: 6×6 Matrix{Sym}:
                           (cθ*cψ*cϕ - sψ*sϕ)^2                            (-cθ*cϕ*sψ - cψ*sϕ)^2           cϕ^2*sθ^2                      √2⋅cϕ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)                     √2⋅cϕ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
@@ -372,12 +379,12 @@ julia> R6 == RR
 true
 ```
 """
-function rot6(θ, ϕ = 0, ψ = 0)
-    R = TensCanonical(rot3(θ, ϕ, ψ))
+function rotation_tensor4(θ, ϕ = 0, ψ = 0)
+    R = TensCanonical(rotation_matrix(θ, ϕ, ψ))
     return sboxtimes(R, R)
 end
 
 export levi_civita
 export 𝐞, 𝐞ᵖ, 𝐞ᶜ, 𝐞ˢ
 export init_cartesian, init_polar, init_cylindrical, init_spherical, init_rotated
-export rot2, rot3, rot6
+export rotation_matrix, rotation_tensor4

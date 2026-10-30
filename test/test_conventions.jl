@@ -71,7 +71,7 @@
         P = A ⊡ B
         @test P isa TensTI{4, Float64, 6}
         @test arr(P) ≈ arr(A) ⊡ arr(B)
-        ℓ = get_ℓ(P)
+        ℓ = walpole_coeffs(P)
         @test !isapprox(ℓ[3], ℓ[4])          # major symmetry genuinely lost
     end
 
@@ -110,7 +110,7 @@
         @test arr(A ⊡ inv(A)) ≈ arr(𝕀)
 
         # The product rule: one 2×2 block and two complex numbers.
-        ℓA, ℓB, ℓP = get_ℓ8(A), get_ℓ8(B), get_ℓ8(P)
+        ℓA, ℓB, ℓP = walpole_coeffs(A, Val(8)), walpole_coeffs(B, Val(8)), walpole_coeffs(P, Val(8))
         LA = [ℓA[1] ℓA[3]; ℓA[4] ℓA[2]]
         LB = [ℓB[1] ℓB[3]; ℓB[4] ℓB[2]]
         @test LA * LB ≈ [ℓP[1] ℓP[3]; ℓP[4] ℓP[2]]
@@ -118,8 +118,8 @@
         @test (ℓA[5] + im * ℓA[8]) * (ℓB[5] + im * ℓB[8]) ≈ ℓP[5] + im * ℓP[8]
     end
 
-    @testset "get_ℓ8 zero-pads N=5 and N=6" begin
-        ℓ = get_ℓ8(TensTI{4}(2.0, 1.0, 0.5, 0.9, 1.3, n))
+    @testset "walpole_coeffs zero-pads N=5 and N=6" begin
+        ℓ = walpole_coeffs(TensTI{4}(2.0, 1.0, 0.5, 0.9, 1.3, n), Val(8))
         @test ℓ[3] == ℓ[4]
         @test ℓ[7] == 0 && ℓ[8] == 0
     end
@@ -140,8 +140,8 @@
         θ, ϕ, ψ = 0.37, 0.83, 0.29
         Q = TensND.mandel_rotation(θ, ϕ, ψ)
         @test Q'Q ≈ I
-        @test Q ≈ mandel(rot6(θ, ϕ, ψ))
-        @test arr(rot6(θ, ϕ, ψ)) ≈ arr(Tens(Matrix(rot3(θ, ϕ, ψ))) ⊠ˢ Tens(Matrix(rot3(θ, ϕ, ψ))))
+        @test Q ≈ mandel(rotation_tensor4(θ, ϕ, ψ))
+        @test arr(rotation_tensor4(θ, ϕ, ψ)) ≈ arr(Tens(Matrix(rotation_matrix(θ, ϕ, ψ))) ⊠ˢ Tens(Matrix(rotation_matrix(θ, ϕ, ψ))))
 
         # Mat(t) = Q · Mat_material(t) · Qᵀ, checked on a ROTATED frame: in the
         # canonical frame Q is the identity and every convention error hides.
@@ -201,10 +201,10 @@
         @test collect(TensND._project_TI_KM(C)) ≈ collect(by_hand)
     end
 
-    @testset "proj_tens round trips and returns (B, d, drel)" begin
+    @testset "project round trips and returns (B, d, drel)" begin
         nv = [0.0, 0.0, 1.0]
-        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, nv)
-        B, d, drel = proj_tens(:TI, arr(C), nv)
+        C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, nv)
+        B, d, drel = project(arr(C), :TI, nv)
         @test B isa TensTI{4, Float64, 5}
         @test drel < 1.0e-12
         @test drel ≈ d / norm(arr(C))
@@ -217,7 +217,7 @@
         # threw a DimensionMismatch.
         nf = [0.0, 0.0, 1.0]
         f(α) = get_data(
-            proj_tens(:TI, arr(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), nf)[1]
+            project(arr(ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), :TI, nf)[1]
         )[1]
         for α in (0.3, 0.7)
             fd = (f(α + 1.0e-6) - f(α - 1.0e-6)) / 2.0e-6
@@ -229,7 +229,7 @@
         # the gimbal-lock point of the canonical frame.
         for fr in (CanonicalBasis{3, Float64}(), Basis(0.3, 0.8, 0.2))
             g(α) = get_data(
-                proj_tens(:ORTHO, arr(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), fr)[1]
+                project(arr(ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), :ORTHO, fr)[1]
             )[1]
             ad = ForwardDiff.derivative(g, 0.5)
             @test isfinite(ad)
@@ -242,7 +242,7 @@
 
     @testset "Γᵏᵢⱼ = ∂ᵢ𝐚ⱼ ⋅ 𝐚ᵏ, with Γ[i,j,k] = Γᵏᵢⱼ" begin
         CS = coorsys_spherical()
-        coords = getcoords(CS)
+        coords = get_coords(CS)
         Γ = christoffel(CS)
         for i in 1:3, j in 1:3, k in 1:3
             direct = ∂(natvec(CS, j, :cov), coords[i], CS) ⋅ natvec(CS, k, :cont)
@@ -258,7 +258,7 @@
         # Both are invisible on symmetric fields, hence the deliberately
         # non-symmetric one below.
         Cartesian = coorsys_cartesian()
-        X = getcoords(Cartesian)
+        X = get_coords(Cartesian)
         E = unitvec(Cartesian)
         v = sum(SymFunction("v$i", real = true)(X...) * E[i] for i in 1:3)
         Gv = get_array(grad(v, Cartesian))
@@ -287,8 +287,8 @@
         @test !isorthonormal(normalized_basis(CS))               # genuinely skew
 
         # aᵢ = ∂OM/∂qⁱ
-        @test all(iszero, tsimplify(components_canon(natvec(CS, 1, :cov)) - [Sym(1), Sym(0)]))
-        @test all(iszero, tsimplify(components_canon(natvec(CS, 2, :cov)) - [2v, Sym(1)]))
+        @test all(iszero, tsimplify(canonical_components(natvec(CS, 1, :cov)) - [Sym(1), Sym(0)]))
+        @test all(iszero, tsimplify(canonical_components(natvec(CS, 2, :cov)) - [2v, Sym(1)]))
         # duality aᵢ ⋅ aʲ = δ
         for i in 1:2, j in 1:2
             @test iszero(tsimplify(natvec(CS, i, :cov) ⋅ natvec(CS, j, :cont) - (i == j)))
@@ -303,9 +303,9 @@
 
     @testset "Lamé coefficients of the predefined systems" begin
         @test all(isone, lame_coefficients(coorsys_cartesian()))
-        r, θ = getcoords(coorsys_polar())
+        r, θ = get_coords(coorsys_polar())
         @test collect(lame_coefficients(coorsys_polar())) == [1, r]
-        θs, ϕs, rs = getcoords(coorsys_spherical())
+        θs, ϕs, rs = get_coords(coorsys_spherical())
         @test collect(lame_coefficients(coorsys_spherical())) == [rs, rs * sin(θs), 1]
     end
 
@@ -323,7 +323,7 @@
                 CoordinateSystem(Tens([uu + vv^2, vv]), (uu, vv)),   # non-orthogonal
             )
             d = get_dim(CS)
-            q = getcoords(CS)
+            q = get_coords(CS)
             f = SymFunction("f", real = true)(q...)
             g = SymFunction("g", real = true)(q...)
             𝐯 = sum(SymFunction("v$i", real = true)(q...) * unitvec(CS, i) for i in 1:d)
@@ -354,19 +354,19 @@
         # The single strongest check on a coordinate system: it fails unless
         # every connection term is right.
         Polar = coorsys_polar()
-        r, θ = getcoords(Polar)
+        r, θ = get_coords(Polar)
         nn = symbols("n", integer = true)
         @test iszero(simplify(laplacian(r^nn * cos(nn * θ), Polar)))
 
         Spherical = coorsys_spherical()
-        θs, ϕs, rs = getcoords(Spherical)
+        θs, ϕs, rs = get_coords(Spherical)
         @test iszero(tsimplify(laplacian(1 / rs, Spherical)))
         @test iszero(tsimplify(tr(hess(1 / rs, Spherical)) - laplacian(1 / rs, Spherical)))
     end
 
     @testset "symbolic and numerical operators agree" begin
         CS = coorsys_spherical()
-        θs, ϕs, rs = getcoords(CS)
+        θs, ϕs, rs = get_coords(CS)
         Γ = christoffel(CS)
         x₀ = [0.7, 1.1, 2.3]
         Γnum = christoffel(coorsys_spherical(PointwiseGeometry), x₀)

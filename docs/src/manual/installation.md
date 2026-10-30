@@ -51,7 +51,7 @@ worlds — `Float64`, `ForwardDiff.Dual`, `Sym` and `Num` — relate.
 using TensND
 
 Spherical = coorsys_spherical()
-θ, ϕ, r = getcoords(Spherical)
+θ, ϕ, r = get_coords(Spherical)
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
 @set_coorsys Spherical
 

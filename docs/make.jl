@@ -242,6 +242,7 @@ makedocs(
             "manual/tensors.md",
             "manual/structured_tensors.md",
             "manual/parametrizations.md",
+            "manual/elastic_moduli.md",
             "manual/random_tensors.md",
             "manual/projection.md",
             "manual/coorsystems.md",

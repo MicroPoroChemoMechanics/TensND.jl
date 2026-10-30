@@ -105,7 +105,7 @@ z_1=\ell_6+i\ell_7,\quad z_2=\ell_5+i\ell_8
 with an ordinary matrix product and ordinary **complex** products.
 
 ````@example walpole_extended
-ℓA, ℓB, ℓP = get_ℓ8(A), get_ℓ8(B), get_ℓ8(A ⊡ B)
+ℓA, ℓB, ℓP = walpole_coeffs(A, Val(8)), walpole_coeffs(B, Val(8)), walpole_coeffs(A ⊡ B, Val(8))
 LA = [ℓA[1] ℓA[3]; ℓA[4] ℓA[2]]
 LB = [ℓB[1] ℓB[3]; ℓB[4] ℓB[2]]
 
@@ -118,7 +118,7 @@ Inversion is the same rule read backwards — a ``2\times2`` inverse and two
 complex reciprocals:
 
 ````@example walpole_extended
-ℓI = get_ℓ8(inv(A))
+ℓI = walpole_coeffs(inv(A), Val(8))
 LI = [ℓI[1] ℓI[3]; ℓI[4] ℓI[2]]
 println("L⁻¹  : ", round.(inv(LA) - LI, digits = 12))
 println("1/z₁ : ", round(1 / (ℓA[6] + im * ℓA[7]) - (ℓI[6] + im * ℓI[7]), digits = 12))
@@ -127,12 +127,12 @@ println("1/z₂ : ", round(1 / (ℓA[5] + im * ℓA[8]) - (ℓI[5] + im * ℓI[8
 
 ## What a best fit discards
 
-`get_ℓ` returns the six classical coefficients; `get_ℓ8` always returns all
+`walpole_coeffs` returns the six classical coefficients; `walpole_coeffs` always returns all
 eight, padding with zeros for `N=5` and `N=6` inputs.
 
 ````@example walpole_extended
-println("get_ℓ(A)  = ", round.(get_ℓ(A), digits = 4))
-println("get_ℓ8(A) = ", round.(get_ℓ8(A), digits = 4))
+println("walpole_coeffs(A)  = ", round.(walpole_coeffs(A), digits = 4))
+println("walpole_coeffs(A, Val(8)) = ", round.(walpole_coeffs(A, Val(8)), digits = 4))
 ````
 
 A major-symmetric input has ``\ell_3=\ell_4`` and ``\ell_7=\ell_8=0``, so
@@ -140,7 +140,7 @@ nothing is lost:
 
 ````@example walpole_extended
 A5 = TensTI{4}(2.0, 1.0, 0.5, 0.9, 1.3, n)
-println("get_ℓ8 of an N=5 tensor = ", round.(get_ℓ8(A5), digits = 6))
+println("walpole_coeffs of an N=5 tensor = ", round.(walpole_coeffs(A5, Val(8)), digits = 6))
 ````
 
 But projecting the *general* tensor `A` onto the five-parameter
@@ -148,7 +148,7 @@ major-symmetric subspace loses the ``\ell_3\neq\ell_4`` split and both
 couplings:
 
 ````@example walpole_extended
-Bfit, d, drel = proj_tens(:TI, arr(A), [0.0, 0.0, 1.0])
+Bfit, d, drel = project(arr(A), :TI, [0.0, 0.0, 1.0])
 @printf "best fit → (ℓ₁,ℓ₂,ℓ₃,ℓ₅,ℓ₆) = %s\n" string(round.(get_data(Bfit), digits = 6))
 @printf "relative distance discarded  = %.4f\n" drel
 println("ℓ₃−ℓ₄ in A : ", round(ℓA[3] - ℓA[4], digits = 6))

@@ -41,7 +41,7 @@ Cartesian = coorsys_cartesian(symbols("x y z", real = true))
 𝐞₁, 𝐞₂, 𝐞₃ = unitvec(Cartesian)
 
 Spherical = coorsys_spherical((symbols("θ ϕ", real = true)..., symbols("ξ", positive = true)))
-θ, ϕ, ξ = getcoords(Spherical)
+θ, ϕ, ξ = get_coords(Spherical)
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
 
 𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
@@ -101,22 +101,22 @@ Identically zero.
 
 ## The transversely isotropic case
 
-The same three lines, with a stiffness built by [`tens_ti`](@ref) instead.
+The same three lines, with a stiffness built by [`ti_from_constants`](@ref) instead.
 Nothing in the construction changes: `⋅`, `inv` and `⊡` dispatch on the
 structured type.
 
 !!! note "This replaces a legacy hand-rolled Walpole basis"
     An earlier research script re-defined the Walpole tensors and the TI
     constructors locally. Everything it needed is now in the library —
-    [`walpole_basis`](@ref), [`tens_ti`](@ref), [`tens_ti_eng`](@ref),
-    [`tens_ti_hoenig`](@ref) — so the local definitions are gone.
+    [`walpole_basis`](@ref) and [`ti_from_constants`](@ref) in its three forms — so the
+    local definitions are gone.
 
 ````@example hill_tensors
 C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃ = symbols("C₁₁₁₁ C₁₁₂₂ C₁₁₃₃ C₃₃₃₃ C₂₃₂₃", positive = true)
 n = 𝐞₃
-ℂᵗⁱ = tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, [Sym(0), Sym(0), Sym(1)])
+ℂᵗⁱ = ti_from_constants(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, [Sym(0), Sym(0), Sym(1)])
 
-typeof(ℂᵗⁱ), get_ℓ(ℂᵗⁱ)
+typeof(ℂᵗⁱ), walpole_coeffs(ℂᵗⁱ)
 ````
 
 The acoustic tensor along the symmetry axis. Taking

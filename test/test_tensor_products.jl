@@ -264,7 +264,7 @@ end
 
 @testsection "best_sym_tens — restricting proj" begin
     Ciso = TensISO{3}(3 * 10.0, 2 * 4.0)
-    Cti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
+    Cti = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
 
     @testset "the most restrictive symmetry wins when all are offered" begin
         @test best_sym_tens(Ciso)[4] === :ISO
@@ -396,8 +396,8 @@ end
             @test get_var(p) == (v1..., v2...)
             # Basis-independent invariant: the canonical components of the
             # product are the product of the canonical components.
-            @test Array(components_canon(p)) ≈ _ref_placed(
-                Array(components_canon(t1)), Array(components_canon(t2)),
+            @test Array(canonical_components(p)) ≈ _ref_placed(
+                Array(canonical_components(t1)), Array(canonical_components(t2)),
                 _ec_otimes(o1, o2)...
             )
 
@@ -406,8 +406,8 @@ end
             # basis and wrong on any other.
             pu = t1 ⊠ t2
             @test get_var(pu) == (v1[1:(end - 1)]..., v2[1], v1[end], v2[2:end]...)
-            @test Array(components_canon(pu)) ≈ _ref_placed(
-                Array(components_canon(t1)), Array(components_canon(t2)),
+            @test Array(canonical_components(pu)) ≈ _ref_placed(
+                Array(canonical_components(t1)), Array(canonical_components(t2)),
                 _ec_otimesu(o1, o2)...
             )
         end

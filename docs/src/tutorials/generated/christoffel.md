@@ -36,7 +36,7 @@ natural basis and compare with the stored array. In spherical coordinates:
 
 ````@example christoffel
 Spherical = coorsys_spherical()
-coords = getcoords(Spherical)
+coords = get_coords(Spherical)
 Γ = christoffel(Spherical)
 d = 3
 
@@ -63,7 +63,7 @@ Only the non-vanishing symbols are listed.
 
 ````@example christoffel
 function christoffel_table(name, CS)
-    c = getcoords(CS)
+    c = get_coords(CS)
     G = christoffel(CS)
     dim = length(c)
     println("── ", name, "   coords = ", c, "   Lamé = ", lame_coefficients(CS))
@@ -95,7 +95,7 @@ although the field has constant components ``(0,0,1)`` in the normalized
 basis. The whole answer comes from the connection.
 
 ````@example christoffel
-θ, ϕ, r = getcoords(Spherical)
+θ, ϕ, r = get_coords(Spherical)
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
 @set_coorsys Spherical
 
@@ -145,11 +145,11 @@ Prolate spheroidal coordinates ``(\varphi,p,q)`` with focal distance ``c``:
 
 ````@example christoffel
 Spheroidal = coorsys_spheroidal()
-getcoords(Spheroidal)
+get_coords(Spheroidal)
 ````
 
 ````@example christoffel
-components_canon(position_vector(Spheroidal))
+canonical_components(position_vector(Spheroidal))
 ````
 
 The Lamé coefficients, which without the simplification machinery come out as
@@ -173,7 +173,7 @@ in this chart — a genuine test of the connection, since the result is zero
 only if every ``\Gamma`` term is right.
 
 ````@example christoffel
-ϕs, ps, qs = getcoords(Spheroidal)
+ϕs, ps, qs = get_coords(Spheroidal)
 P = sympy.assoc_legendre
 
 for (n, m) in ((2, 0), (2, 1), (3, 2))

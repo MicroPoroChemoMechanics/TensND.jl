@@ -180,6 +180,6 @@ major-symmetric subspace — which is what a *best-fit* projection does, see
 projecting are different operations, and this space is where the difference
 lives.
 
-Accessors: [`get_ℓ`](@ref) returns the six classical coefficients (dropping
-``\ell_7,\ell_8``), [`get_ℓ8`](@ref) always returns the full eight-tuple, padding
+Accessors: [`walpole_coeffs`](@ref) returns the six classical coefficients (dropping
+``\ell_7,\ell_8``), [`walpole_coeffs`](@ref) always returns the full eight-tuple, padding
 with zeros for `N=5` and `N=6` inputs.

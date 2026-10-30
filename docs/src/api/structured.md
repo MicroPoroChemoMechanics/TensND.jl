@@ -13,15 +13,52 @@ tens_K4
 iso_projectors
 ```
 
-## Isotropic elastic moduli
+## [Isotropic elastic moduli](@id api-iso-moduli)
+
+The conversions between the six moduli, and plane strain and plane stress, are
+explained on [Elastic moduli](@ref man-elastic-moduli).
 
 ```@docs
 iso_stiffness
-bulk_shear
-young_poisson
-shear_poisson
-poisson_ratio
+iso_stiffness_bulk_young
+iso_stiffness_bulk_lame
+iso_stiffness_bulk_poisson
+iso_stiffness_bulk_pwave
+iso_stiffness_young_lame
+iso_stiffness_young_shear
 iso_stiffness_young_poisson
+iso_stiffness_young_pwave
+iso_stiffness_lame_shear
+iso_stiffness_lame_poisson
+iso_stiffness_lame_pwave
+iso_stiffness_shear_poisson
+iso_stiffness_shear_pwave
+iso_stiffness_poisson_pwave
+lame_lambda
+bulk_modulus
+young_modulus
+shear_modulus
+poisson_ratio
+pwave_modulus
+bulk_young
+bulk_lame
+bulk_shear
+bulk_poisson
+bulk_pwave
+young_lame
+young_shear
+young_poisson
+young_pwave
+lame_shear
+lame_poisson
+lame_pwave
+shear_poisson
+shear_pwave
+poisson_pwave
+plane_strain_stiffness
+plane_stress_stiffness
+plane_stress_to_plane_strain
+plane_strain_to_plane_stress
 ```
 
 `isotropify` is the exact rotation-group average, not a form of compact

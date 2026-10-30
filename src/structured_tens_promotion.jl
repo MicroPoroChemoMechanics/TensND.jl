@@ -131,7 +131,7 @@ stress, transverse strain), `ℓ₄/√2` in the axial column.
 See also [`iso_to_ortho`](@ref), `_axis_on_frame_index`.
 """
 function walpole_to_ortho(A::TensTI{4, T, 5}, frame::OrthonormalBasis{3}, axis_idx::Int) where {T}
-    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(A)
+    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = walpole_coeffs(A)
     sq2 = sqrt(T(2))
     Ctrtr = (ℓ₂ + ℓ₅) / 2
     Cmix = (ℓ₂ - ℓ₅) / 2
@@ -169,7 +169,7 @@ function walpole_to_ortho(A::TensTI{4, T, 5}, frame::OrthonormalBasis{3}, axis_i
 end
 
 function walpole_to_ortho(A::TensTI{4, T, 6}, frame::OrthonormalBasis{3}, axis_idx::Int) where {T}
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(A)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = walpole_coeffs(A)
     sq2 = sqrt(T(2))
     Ctrtr = (ℓ₂ + ℓ₅) / 2
     Cmix = (ℓ₂ - ℓ₅) / 2
@@ -205,7 +205,7 @@ Lift a major-symmetric `N=5` Walpole tensor to the general `N=6` form by
 duplicating the shared coefficient `ℓ₃ = ℓ₄`.
 """
 function _lift_walpole_N6(A::TensTI{4, T, 5}) where {T}
-    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(A)
+    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = walpole_coeffs(A)
     return TensTI{4, T, 6}((ℓ₁, ℓ₂, ℓ₃, ℓ₃, ℓ₅, ℓ₆), axis(A))
 end
 
@@ -258,7 +258,7 @@ cubic_to_ortho(A::TensCubic) = _cubic_as_ortho(A, frame(A))
 # axes permuted and signed): the same coefficients, the octahedral group
 # leaving it unchanged.
 function _cubic_as_ortho(A::TensCubic, ℱ)
-    C₁₁, C₁₂, C₄₄ = arg_cubic(A)
+    C₁₁, C₁₂, C₄₄ = cubic_constants(A)
     return TensOrtho(C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄, ℱ)
 end
 
@@ -325,11 +325,11 @@ const _KMStructured = Union{TensOrtho{4}, TensCubic, TensTI{4}}
 # of their sum is decided by its value.
 const _SymmetricOrder2 = Union{TensTI{2, <:Any, 2}, TensOrtho{2}}
 @noinline function _structured_sum(op::F, A::_SymmetricOrder2, B::_SymmetricOrder2) where {F}
-    a, b = components_canon(A), components_canon(B)
+    a, b = canonical_components(A), canonical_components(B)
     return Tens(Tensors.SymmetricTensor{2, 3}((i, j) -> op(a[i, j], b[i, j])))
 end
 @noinline _structured_sum(op::F, A::Union{TensTI{2}, TensOrtho{2}}, B::Union{TensTI{2}, TensOrtho{2}}) where {F} =
-    Tens(Tensors.Tensor{2, 3}(broadcast(op, components_canon(A), components_canon(B))))
+    Tens(Tensors.Tensor{2, 3}(broadcast(op, canonical_components(A), canonical_components(B))))
 
 # ── TensCubic ± TensTI{4,N=5|6} (axis along a cube axis) ────────────────────
 # Cubic and TI are incomparable classes, but a TI axis along an axis of the cube
@@ -485,7 +485,7 @@ function Tensors.dcontract(A::TensTI{4}, B::TensTI{2, <:Any, 2})
     axis(A) == axis(B) ||
         return Tensors.dcontract(generic_tens(A), generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(A)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = walpole_coeffs(A)
     a, b = get_data(B)
     sq2 = sqrt(T(2))
     new_a = ℓ₂ * a + ℓ₄ * b / sq2
@@ -497,7 +497,7 @@ function Tensors.dcontract(A::TensTI{2, <:Any, 2}, B::TensTI{4})
     axis(A) == axis(B) ||
         return Tensors.dcontract(generic_tens(A), generic_tens(B))
     T = promote_type(eltype(A), eltype(B))
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = get_ℓ(B)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, _, _ = walpole_coeffs(B)
     a, b = get_data(A)
     sq2 = sqrt(T(2))
     # For `t ⊡ W`, the contraction is on the FIRST pair of W, swapping the
@@ -542,7 +542,7 @@ function LinearAlgebra.dot(A::TensTI{2}, v::AbstractVector)
 end
 # A TensND vector is an `AbstractVector` too: its canonical components, and a
 # tensor back, as the generic contraction gives.
-LinearAlgebra.dot(A::TensTI{2}, v::AbstractTens{1, 3}) = Tens(A ⋅ Vec{3}(Tuple(components_canon(v))))
+LinearAlgebra.dot(A::TensTI{2}, v::AbstractTens{1, 3}) = Tens(A ⋅ Vec{3}(Tuple(canonical_components(v))))
 _ti2_abc(A::TensTI{2, T, 2}) where {T} = (get_data(A)..., zero(T))
 _ti2_abc(A::TensTI{2, T, 3}) where {T} = get_data(A)
 
@@ -691,7 +691,7 @@ function LinearAlgebra.dot(A::TensOrtho{2}, v::AbstractVector)
     E = SMatrix{3, 3}(vecbasis(frame(A), :cov))
     return Vec{3}(Tuple(E * (SVector(get_data(A)) .* (transpose(E) * SVector{3}(v[1], v[2], v[3])))))
 end
-LinearAlgebra.dot(A::TensOrtho{2}, v::AbstractTens{1, 3}) = Tens(A ⋅ Vec{3}(Tuple(components_canon(v))))
+LinearAlgebra.dot(A::TensOrtho{2}, v::AbstractTens{1, 3}) = Tens(A ⋅ Vec{3}(Tuple(canonical_components(v))))
 
 # ── Double contraction with an order-4 orthotropic tensor ────────────────────
 # On a shared frame `ℂ : 𝐀 = Σₘ (Σₙ Cₘₙ aₙ) Pₘ` and `𝐀 : ℂ = Σₙ (Σₘ aₘ Cₘₙ) Pₙ`:

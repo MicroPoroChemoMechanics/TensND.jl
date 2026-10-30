@@ -27,7 +27,7 @@ and what makes comparing raw component arrays a mistake.
 using TensND, SymPyPythonCall
 
 Spherical = coorsys_spherical()
-θ, ϕ, r = getcoords(Spherical)
+θ, ϕ, r = get_coords(Spherical)
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
 @set_coorsys Spherical
 
@@ -70,8 +70,8 @@ Transverse isotropy uses five coefficients on the Walpole basis
 
 ```@example gs2
 n = [0.0, 0.0, 1.0]
-𝕊 = tens_ti_eng(9.0, 140.0, 0.40, 0.30, 4.6, n)   # a carbon/epoxy ply
-ti_args_hoenig(𝕊)
+𝕊 = ti_from_constants(9.0, 140.0, 0.40, 0.30, 4.6, n; form = :engineering)   # a carbon/epoxy ply
+ti_constants(𝕊; form = :hoenig)
 ```
 
 The dimensionless Hoenig parameters read off the anisotropy directly — see
@@ -82,7 +82,7 @@ The dimensionless Hoenig parameters read off the anisotropy directly — see
 Given an arbitrary tensor, ask what symmetry it has:
 
 ```@example gs2
-C = get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))
+C = get_array(ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0]))
 _, _, drel, sym = best_sym_tens(Tens(C))
 (sym, drel)
 ```
@@ -90,7 +90,7 @@ _, _, drel, sym = best_sym_tens(Tens(C))
 and project onto a class, with the distance as evidence:
 
 ```@example gs2
-B, d, drel = proj_tens(:ISO, C)
+B, d, drel = project(C, :ISO)
 (B, round(drel, digits = 4))
 ```
 

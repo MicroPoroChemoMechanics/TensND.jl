@@ -12,6 +12,8 @@ A 3-D isotropic stiffness is ``\mathbb{C} = 3k\,\mathbb{J} + 2\mu\,\mathbb{K}``:
 [`iso_stiffness_young_poisson`](@ref) from Young's modulus and Poisson's ratio;
 [`bulk_shear`](@ref) and [`young_poisson`](@ref) read them back. A compliance is the inverse,
 exact in the class, so its moduli are those of `inv(𝕊)`.
+Every other pair of the six isotropic moduli, the two dimensions, and plane
+strain and plane stress are on [Elastic moduli](@ref man-elastic-moduli).
 
 ```@example par
 using TensND, LinearAlgebra
@@ -22,20 +24,21 @@ bulk_shear(ℂ), young_poisson(ℂ)
 
 ## The three TI conventions
 
-| Constructor | Extractor | Parameters | Builds |
-| :--- | :--- | :--- | :--- |
-| [`tens_ti`](@ref) | [`ti_args`](@ref) | ``C_{1111},C_{1122},C_{1133},C_{3333},C_{2323}`` | stiffness *or* compliance |
-| [`tens_ti_eng`](@ref) | [`ti_args_eng`](@ref) | ``E_1,E_3,\nu_{12},\nu_{31},G_{31}`` | **compliance** |
-| [`tens_ti_hoenig`](@ref) | [`ti_args_hoenig`](@ref) | ``E,\nu_1,\nu_2,H,\Gamma`` | **compliance** |
+| `form` | Parameters | Builds |
+| :--- | :--- | :--- |
+| `:components` (default) | ``C_{1111},C_{1122},C_{1133},C_{3333},C_{2323}`` | stiffness *or* compliance |
+| `:engineering` | ``E_1,E_3,\nu_{12},\nu_{31},G_{31}`` | **compliance** |
+| `:hoenig` | ``E,\nu_1,\nu_2,H,\Gamma`` | **compliance** |
 
-All three take the symmetry axis as their last argument and return a
-`TensTI{4,T,5}`.
+[`ti_from_constants`](@ref)`(c₁, …, c₅, n; form)` builds the tensor, with the
+symmetry axis as its last argument, and returns a `TensTI{4,T,5}`;
+[`ti_constants`](@ref)`(t; form)` reads the five constants back.
 
 ```@example par
 n = [0.0, 0.0, 1.0]
-𝕊 = tens_ti_eng(9.0, 140.0, 0.40, 0.30, 4.6, n)   # a carbon/epoxy ply, GPa
+𝕊 = ti_from_constants(9.0, 140.0, 0.40, 0.30, 4.6, n; form = :engineering)   # a carbon/epoxy ply, GPa
 ℂ = inv(𝕊)
-ti_args_eng(𝕊)
+ti_constants(𝕊; form = :engineering)
 ```
 
 ## Converting between them
@@ -45,36 +48,36 @@ read with another extractor. Because all three produce the same object, the
 conversion is exact rather than fitted.
 
 ```@example par
-ti_args(𝕊)          # the same compliance, in component form
+ti_constants(𝕊)          # the same compliance, in component form
 ```
 
 ```@example par
-ti_args_hoenig(𝕊)   # and in dimensionless Hoenig ratios
+ti_constants(𝕊; form = :hoenig)   # and in dimensionless Hoenig ratios
 ```
 
 ``H`` is the axial-to-transverse modulus ratio and ``\Gamma`` the shear
 anisotropy; an isotropic material sits at ``H=\Gamma=1`` with ``\nu_1=\nu_2``.
 
 !!! warning "The engineering and Hoenig forms build a compliance"
-    `tens_ti_eng` and `tens_ti_hoenig` return ``\mathbb{S}``, not
+    `ti_from_constants(…; form = :engineering)` and `form = :hoenig` return ``\mathbb{S}``, not
     ``\mathbb{C}``. To get the stiffness, invert — which is exact and stays in
     the class:
 
     ```julia
-    ℂ = inv(tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n))
+    ℂ = inv(ti_from_constants(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n; form = :engineering))
     ```
 
-    Applying `ti_args_eng` to a *stiffness* returns numbers that are not the
+    Applying `ti_constants` to a *stiffness* returns numbers that are not the
     engineering constants of that material.
 
 ## Walpole coefficients
 
-[`get_ℓ`](@ref) reads the six classical coefficients, [`get_ℓ8`](@ref) all
+[`walpole_coeffs`](@ref)`(t)` reads the six classical coefficients, `walpole_coeffs(t, Val(8))` all
 eight. Stiffness and compliance are inverse in the synthetic algebra, so their
 ``2\times2`` blocks are inverse matrices and their ``\ell_5,\ell_6`` reciprocal:
 
 ```@example par
-ℓC, ℓS = get_ℓ(ℂ), get_ℓ(𝕊)
+ℓC, ℓS = walpole_coeffs(ℂ), walpole_coeffs(𝕊)
 LC = [ℓC[1] ℓC[3]; ℓC[4] ℓC[2]]
 LS = [ℓS[1] ℓS[3]; ℓS[4] ℓS[2]]
 round.(LC * LS, digits = 12)
@@ -125,5 +128,5 @@ ti_params_from_mandel(mandel(ℂ))
 norm(mandel_from_ti_params(ti_params_from_mandel(mandel(ℂ))...) - mandel(ℂ))
 ```
 
-For a matrix in an arbitrary frame, use [`proj_tens`](@ref) instead — it handles
+For a matrix in an arbitrary frame, use [`project`](@ref) instead — it handles
 the rotation. See [Projection](@ref man-projection).

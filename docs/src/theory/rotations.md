@@ -3,8 +3,8 @@
 Every symmetry class in this library is defined up to an orientation — an axis
 for transverse isotropy, a full frame for orthotropy — so the angular convention
 is part of the specification, not a detail. This page states the one `TensND`
-implements, read off `_rot3_raw` in `src/tens_projection.jl` and `rot2`/`rot3`/
-`rot6` in `src/special_tens.jl`.
+implements, read off `_rot3_raw` in `src/tens_projection.jl` and `rotation_matrix` and
+`rotation_tensor4` in `src/special_tens.jl`.
 
 ```@raw html
 <ClientOnly><FrameFigure kind="euler" /></ClientOnly>
@@ -109,9 +109,9 @@ provides the three cases that occur in practice:
 
 | Function | Returns | Acts on |
 | :------- | :------ | :------ |
-| [`rot2`](@ref)`(θ)` | ``2\times2`` rotation | 2-D |
-| [`rot3`](@ref)`(θ, ϕ, ψ)` | ``3\times3`` rotation ``R`` | vectors, order-2 tensors |
-| [`rot6`](@ref)`(θ, ϕ, ψ)` | order-4 tensor | minor-symmetric order-4 tensors |
+| [`rotation_matrix`](@ref)`(θ)` | ``2\times2`` rotation | 2-D |
+| [`rotation_matrix`](@ref)`(θ, ϕ, ψ)` | ``3\times3`` rotation ``R`` | vectors, order-2 tensors |
+| [`rotation_tensor4`](@ref)`(θ, ϕ, ψ)` | order-4 tensor | minor-symmetric order-4 tensors |
 
 with
 

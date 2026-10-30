@@ -4,7 +4,7 @@
     (θ, ϕ, r), (𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ), ℬˢ = init_spherical()
 
     @testsection "Usual coordinate systems" begin
-        @test components(𝐞ʳ ⊗ 𝐞ᵠ, ℬˢ) == components(𝐞₃ ⊗ 𝐞₂, ℬ) == components_canon(𝐞₃ ⊗ 𝐞₂)
+        @test components(𝐞ʳ ⊗ 𝐞ᵠ, ℬˢ) == components(𝐞₃ ⊗ 𝐞₂, ℬ) == canonical_components(𝐞₃ ⊗ 𝐞₂)
     end
 
     @testsection "Partial derivatives" begin
@@ -17,7 +17,7 @@
     @testsection "Coordinate systems" begin
         # Cartesian
         Cartesian = coorsys_cartesian()
-        𝐗 = getcoords(Cartesian)
+        𝐗 = get_coords(Cartesian)
         𝐄 = unitvec(Cartesian)
         ℬ = normalized_basis(Cartesian)
         𝛔 = Tens(SymmetricTensor{2, 3}((i, j) -> SymFunction("σ$i$j", real = true)(𝐗...)))
@@ -26,7 +26,7 @@
 
         # Polar
         Polar = coorsys_polar()
-        r, θ = getcoords(Polar)
+        r, θ = get_coords(Polar)
         𝐞ʳ, 𝐞ᶿ = unitvec(Polar)
         ℬᵖ = normalized_basis(Polar)
         f = SymFunction("f", real = true)(r, θ)
@@ -35,7 +35,7 @@
 
         # Cylindrical
         Cylindrical = coorsys_cylindrical()
-        rθz = getcoords(Cylindrical)
+        rθz = get_coords(Cylindrical)
         𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical)
         ℬᶜ = normalized_basis(Cylindrical)
         r, θ, z = rθz
@@ -46,7 +46,7 @@
 
         # Spherical
         Spherical = coorsys_spherical()
-        θ, ϕ, r = getcoords(Spherical)
+        θ, ϕ, r = get_coords(Spherical)
         𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
         ℬˢ = normalized_basis(Spherical)
         for σⁱʲ in ("σʳʳ", "σᶿᶿ", "σᵠᵠ")
@@ -57,7 +57,7 @@
         @test tsimplify(div𝛔 ⋅ 𝐞ʳ) == tsimplify(∂(σʳʳ, r) + (2σʳʳ - σᶿᶿ - σᵠᵠ) / r)
 
         # Concentric sphere - hydrostatic part
-        θ, ϕ, r = getcoords(Spherical)
+        θ, ϕ, r = get_coords(Spherical)
         𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical)
         ℬˢ = normalized_basis(Spherical)
         𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
@@ -94,7 +94,7 @@
         unset_coorsys!()
         @test_throws ErrorException default_coorsys()
         Polar = coorsys_polar()
-        r, θ = getcoords(Polar)
+        r, θ = get_coords(Polar)
         f = SymFunction("f", real = true)(r, θ)
         @test set_coorsys!(Polar; vec = '𝐮') === Polar
         @test default_coorsys() === Polar

@@ -4,7 +4,7 @@
 # restrictive with the projections of `tens_projection.jl`, and returns the
 # first one the tensor belongs to within a tolerance.
 
-proj_tens(sym::Symbol, A::AbstractArray) = proj_tens(Val(sym), A)
+project(A::AbstractArray, sym::Symbol) = project(A, Val(sym))
 
 # The axis a TI container carries, the frame an orthotropic or cubic one does;
 # for any other tensor, the candidate read off the eigenstructure of its array
@@ -48,7 +48,7 @@ for order in (2, 4)
           Kelvin-Mandel eigenstructure (otherwise); for `:ORTHO` the material frame
           is taken from `t` or derived likewise.
         - `optimize_angles=true`: the `:TI` axis and the `:ORTHO` and `:CUBIC`
-          frames are searched by [`proj_tens`](@ref) (a screening of fixed
+          frames are searched by [`project`](@ref) (a screening of fixed
           orientations, then Newton's method on the best ones).
 
         Returns `(projected, d, drel, sym)` where
@@ -58,7 +58,7 @@ for order in (2, 4)
         ```julia
         julia> n = [0., 0., 1.];
 
-        julia> C = tens_ti(10., 3., 2.5, 12., 2., n);
+        julia> C = ti_from_constants(10., 3., 2.5, 12., 2., n);
 
         julia> _, _, _, sym = best_sym_tens(C);
 
@@ -67,7 +67,7 @@ for order in (2, 4)
         ```
 
         See also [`best_sym_tens(t, n_or_frame)`](@ref) for fixed-axis/frame use,
-        [`proj_tens`](@ref).
+        [`project`](@ref).
         """
         function best_sym_tens(
                 t::AbstractTens{$order, dim, T};
@@ -76,7 +76,7 @@ for order in (2, 4)
                 optimize_angles::Bool = false,
             ) where {dim, T}
             basis = relevant_OrthonormalBasis(get_basis(t))
-            newt = change_tens(t, basis)
+            newt = express(t, basis)
             A = Array(get_array(newt))
             # `A` is read in the orthonormal frame `basis`; `Q` takes that frame
             # to the canonical one (`nothing` when it is canonical). Candidates
@@ -84,7 +84,7 @@ for order in (2, 4)
             # the result is brought back: the 81 components are never rotated.
             Q = _rotation_to_canon(basis)
             if optimize_angles
-                return _best_sym_loop(newt, proj, ε, sym -> _from_frame(Q, proj_tens(sym, A)))
+                return _best_sym_loop(newt, proj, ε, sym -> _from_frame(Q, project(A, sym)))
             else
                 # Cheap path: the axis or frame a structured container carries,
                 # otherwise a candidate from the eigendecomposition of the trace
@@ -104,13 +104,13 @@ for order in (2, 4)
                     newt, proj, ε,
                     function (sym)
                         if sym === :ISO
-                            return proj_tens(sym, A)
+                            return project(A, sym)
                         elseif sym === :TI
-                            return _from_frame(Q, proj_tens(sym, A, n_default))
+                            return _from_frame(Q, project(A, sym, n_default))
                         elseif sym === :CUBIC
-                            return _from_frame(Q, proj_tens(sym, A, cube_default))
+                            return _from_frame(Q, project(A, sym, cube_default))
                         else    # :ORTHO
-                            return _from_frame(Q, proj_tens(sym, A, frame_default))
+                            return _from_frame(Q, project(A, sym, frame_default))
                         end
                     end,
                 )
@@ -138,7 +138,7 @@ for order in (2, 4)
         ```julia
         julia> n = [0., 0., 1.];
 
-        julia> C = tens_ti(10., 3., 2.5, 12., 2., n);
+        julia> C = ti_from_constants(10., 3., 2.5, 12., 2., n);
 
         julia> _, _, drel, sym = best_sym_tens(C, n);
 
@@ -153,7 +153,7 @@ for order in (2, 4)
                 ε = 1.0e-6,
             ) where {dim, T}
             basis = relevant_OrthonormalBasis(get_basis(t))
-            newt = change_tens(t, basis)
+            newt = express(t, basis)
             A = Array(get_array(newt))
             # `A` is read in the orthonormal frame `basis`; `Q` takes that frame
             # to the canonical one (`nothing` when it is canonical). Candidates
@@ -162,7 +162,7 @@ for order in (2, 4)
             Q = _rotation_to_canon(basis)
             # `:TI` wants an axis, `:ORTHO` and `:CUBIC` a frame, and there is
             # one argument for both. Rather than let the mismatch surface as a
-            # `MethodError` from deep inside `proj_tens` — which is what
+            # `MethodError` from deep inside `project` — which is what
             # happened before `:CUBIC` existed, whenever `:ORTHO` was reached
             # with an axis — the classes the argument cannot serve are dropped,
             # and the docstring says so.
@@ -170,11 +170,11 @@ for order in (2, 4)
             local_arg = _to_frame(Q, n_or_frame)
             return _best_sym_loop(
                 newt, usable, ε,
-                sym -> sym == :ISO ? proj_tens(sym, A) :
-                    _from_frame(Q, proj_tens(sym, A, local_arg))
+                sym -> sym == :ISO ? project(A, sym) :
+                    _from_frame(Q, project(A, sym, local_arg))
             )
         end
     end
 end
 
-export proj_tens, best_sym_tens
+export project, best_sym_tens

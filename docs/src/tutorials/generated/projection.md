@@ -5,7 +5,7 @@ EditURL = "../../../../scripts/05_projection.jl"
 # Projection and symmetry detection
 
 Given a tensor, what symmetry does it have — and if it has one, in what
-orientation? This tutorial runs [`proj_tens`](@ref) and
+orientation? This tutorial runs [`project`](@ref) and
 [`best_sym_tens`](@ref) on tensors of known symmetry in known frames,
 with the axis fixed and with the axis optimized, and measures what each mode
 costs.
@@ -25,15 +25,15 @@ arr(x) = get_array(x)
 
 ## The return contract
 
-[`proj_tens`](@ref) returns `(B, d, drel)`: the projected tensor, the absolute
+[`project`](@ref) returns `(B, d, drel)`: the projected tensor, the absolute
 Frobenius distance and the relative one. The relative distance is what makes a
 tolerance dimensionless and independent of the units of the moduli.
 
 ````@example projection
 nv = [0.0, 0.0, 1.0]
-C_ti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, nv)
+C_ti = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, nv)
 
-B, d, drel = proj_tens(:TI, arr(C_ti), nv)
+B, d, drel = project(arr(C_ti), :TI, nv)
 @printf "projecting a TI tensor onto TI (right axis): d = %.3e, drel = %.3e\n" d drel
 println("returned type: ", typeof(B))
 ````
@@ -49,7 +49,7 @@ true one:
 ````@example projection
 for α in (0.0, 15.0, 30.0, 45.0, 90.0)
     m = [sin(deg2rad(α)), 0.0, cos(deg2rad(α))]
-    _, _, dr = proj_tens(:TI, arr(C_ti), m)
+    _, _, dr = project(arr(C_ti), :TI, m)
     @printf "  axis tilted by %5.1f°  →  drel = %.4e\n" α dr
 end
 ````
@@ -65,19 +65,19 @@ hide that fact from the projector.
 ````@example projection
 θ, ϕ = 0.6, 1.1
 n_tilt = [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]
-C_tilt = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
+C_tilt = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
 
-_, _, drel_canon = proj_tens(:TI, arr(C_tilt), [0.0, 0.0, 1.0])
-_, _, drel_true = proj_tens(:TI, arr(C_tilt), n_tilt)
+_, _, drel_canon = project(arr(C_tilt), :TI, [0.0, 0.0, 1.0])
+_, _, drel_true = project(arr(C_tilt), :TI, n_tilt)
 @printf "assuming the canonical axis : drel = %.4e\n" drel_canon
 @printf "using the true axis         : drel = %.4e\n" drel_true
 ````
 
-Without an axis, `proj_tens` searches it: the objective is screened on fixed
+Without an axis, `project` searches it: the objective is screened on fixed
 orientations, then Newton's method on the angles refines the best ones.
 
 ````@example projection
-B_opt, d_opt, drel_opt = proj_tens(:TI, arr(C_tilt))
+B_opt, d_opt, drel_opt = project(arr(C_tilt), :TI)
 @printf "optimized axis              : drel = %.4e\n" drel_opt
 println("recovered axis : ", round.(collect(axis(B_opt)), digits = 8))
 println("true axis      : ", round.(n_tilt, digits = 8))
@@ -99,7 +99,7 @@ The search has no random step, so repeated calls return bit-identical
 results.
 
 ````@example projection
-results = [proj_tens(:TI, arr(C_tilt))[3] for _ in 1:5]
+results = [project(arr(C_tilt), :TI)[3] for _ in 1:5]
 all(r === results[1] for r in results), results[1]
 ````
 
@@ -109,8 +109,8 @@ all(r === results[1] for r in results), results[1]
 ℬmat = Basis(0.4, 0.9, 0.3)
 t_ortho = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, ℬmat)
 
-_, _, dr_fixed = proj_tens(:ORTHO, arr(t_ortho), CanonicalBasis{3, Float64}())
-Bo, _, dr_opt = proj_tens(:ORTHO, arr(t_ortho))
+_, _, dr_fixed = project(arr(t_ortho), :ORTHO, CanonicalBasis{3, Float64}())
+Bo, _, dr_opt = project(arr(t_ortho), :ORTHO)
 @printf "ORTHO, canonical frame assumed : drel = %.4e\n" dr_fixed
 @printf "ORTHO, frame optimized         : drel = %.4e\n" dr_opt
 ````

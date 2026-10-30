@@ -78,7 +78,7 @@ it (`N=5 ⊡ N=5 → N=6`), the inverse keeps the shape, the major transpose swa
 `ℓ₃` and `ℓ₄` (and changes the sign of `ℓ₇`, `ℓ₈`), and
 `Tensors.majorsymmetric` returns `N=5`.
 
-See also [`TensOrtho`](@ref), [`tens_ti`](@ref), [`tens_ti_eng`](@ref), [`tens_ti_hoenig`](@ref).
+See also [`TensOrtho`](@ref), [`ti_from_constants`](@ref).
 """
 struct TensTI{order, T, N} <: AbstractTens{order, 3, T}
     data::NTuple{N, T}
@@ -134,14 +134,14 @@ _ti_eltype(::Val, ::Type{T}) where {T} = T
 # ── 4th-order TI accessors ───────────────────────────────────────────────────
 
 """
-    get_ℓ(t::TensTI{4,T,N}) → NTuple{6,T}
+    walpole_coeffs(t::TensTI{4,T,N}) → NTuple{6,T}
 
 Always returns a 6-tuple `(ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆)` of Walpole coefficients.
 For `N=5` (major-symmetric), `ℓ₃ = ℓ₄` is stored once and duplicated on read.
 """
-get_ℓ(t::TensTI{4, T, 5}) where {T} =
+walpole_coeffs(t::TensTI{4, T, 5}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[3], t.data[4], t.data[5])
-get_ℓ(t::TensTI{4, T, 6}) where {T} = t.data
+walpole_coeffs(t::TensTI{4, T, 6}) where {T} = t.data
 
 
 # ── Constructors ──────────────────────────────────────────────────────────────
@@ -185,7 +185,7 @@ _extract_vec(n::Tuple{Number, Number, Number}) = promote(n...)
 _extract_vec(n::AbstractVector) = (n[1], n[2], n[3])
 # Canonical components: an axis is canonical, whatever basis the vector that
 # gives it is written in.
-_extract_vec(n::AbstractTens) = _extract_vec(components_canon(n))
+_extract_vec(n::AbstractTens) = _extract_vec(canonical_components(n))
 _extract_vec(n::Vec{3}) = (n[1], n[2], n[3])
 _extract_vec(n::AbstractArray) = (n[1], n[2], n[3])
 
@@ -280,7 +280,7 @@ end
 Compute the 3×3×3×3 component array from the Walpole coefficients and axis.
 """
 function get_array(t::TensTI{4, T}) where {T}
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(t)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = walpole_coeffs(t)
     n = t.n
     sq2 = sqrt(T(2))
     δ(i, j) = i == j ? one(T) : zero(T)
@@ -300,7 +300,7 @@ function get_array(t::TensTI{4, T}) where {T}
 end
 
 function Base.getindex(t::TensTI{4}, i::Integer, j::Integer, k::Integer, l::Integer)
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(t)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = walpole_coeffs(t)
     n = t.n
     T = eltype(t)
     sq2 = sqrt(T(2))
@@ -319,11 +319,11 @@ end
 # ── Kelvin-Mandel matrix ──────────────────────────────────────────────────────
 
 """
-    mandel(t::TensTI{4})
+    _mandel(t::TensTI{4})
 
 Kelvin-Mandel (6×6) matrix of the Walpole tensor.
 """
-mandel(t::TensTI{4}) = Matrix(_km_by_entries(t))
+_mandel(t::TensTI{4}) = Matrix(_km_by_entries(t))
 
 # ── Arithmetic ────────────────────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -351,8 +351,8 @@ end
 # callers that build one operand on the other's axis call it directly, so that
 # the result is inferred as a `TensTI` rather than a union with the generic route.
 function _dcontract_coaxial(A::TensTI{4}, B::TensTI{4})
-    ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆ = get_ℓ(A)
-    ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆ = get_ℓ(B)
+    ℓA₁, ℓA₂, ℓA₃, ℓA₄, ℓA₅, ℓA₆ = walpole_coeffs(A)
+    ℓB₁, ℓB₂, ℓB₃, ℓB₄, ℓB₅, ℓB₆ = walpole_coeffs(B)
     # 2×2 matrix rule: M_A × M_B where M = [[ℓ₁,ℓ₃],[ℓ₄,ℓ₂]]
     n₁ = ℓA₁ * ℓB₁ + ℓA₃ * ℓB₄
     n₃ = ℓA₁ * ℓB₃ + ℓA₃ * ℓB₂
@@ -373,13 +373,13 @@ end
 Inverse via the 2×2 Walpole matrix and scalar inverses for ℓ₅, ℓ₆.
 """
 function Base.inv(t::TensTI{4, T, 5}) where {T}
-    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(t)   # ℓ₄=ℓ₃ for N=5
+    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = walpole_coeffs(t)   # ℓ₄=ℓ₃ for N=5
     det = ℓ₁ * ℓ₂ - ℓ₃ * ℓ₃
     return TensTI{4, T, 5}((ℓ₂ / det, ℓ₁ / det, -ℓ₃ / det, one(T) / ℓ₅, one(T) / ℓ₆), t.n)
 end
 
 function Base.inv(t::TensTI{4, T, 6}) where {T}
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(t)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = walpole_coeffs(t)
     det = ℓ₁ * ℓ₂ - ℓ₃ * ℓ₄
     return TensTI{4, T, 6}((ℓ₂ / det, ℓ₁ / det, -ℓ₃ / det, -ℓ₄ / det, one(T) / ℓ₅, one(T) / ℓ₆), t.n)
 end
@@ -427,25 +427,66 @@ function Tensors.dcontract(A::TensISO{4, 3}, B::TensTI{4})
     return _dcontract_coaxial(iso_to_ti(A, B.n), B)
 end
 
-# ── TI convenience constructors ──────────────────────────────────────────────
+# ── TI constants ─────────────────────────────────────────────────────────────
 
 """
-    tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n) → TensTI{4, T, 5}
+    ti_from_constants(c₁, c₂, c₃, c₄, c₅, n; form = :components) → TensTI{4, T, 5}
 
-Construct a major-symmetric TI 4th-order tensor from its 5 independent
-components and symmetry axis `n`.  Works for both stiffness and compliance
-tensors (the formula is the same).
+The major-symmetric transversely isotropic tensor of axis `n` given by five
+constants, read according to `form`:
 
-Walpole coefficients:
-- `ℓ₁ = C₃₃₃₃`
-- `ℓ₂ = C₁₁₁₁ + C₁₁₂₂`
-- `ℓ₃ = √2 C₁₁₃₃`
-- `ℓ₅ = C₁₁₁₁ − C₁₁₂₂`
-- `ℓ₆ = 2 C₂₃₂₃`
+- `:components` (the default): its components
+  `(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)` in a frame whose third axis is `n`, for
+  a stiffness or a compliance alike. Its Walpole coefficients are
+  `ℓ₁ = C₃₃₃₃`, `ℓ₂ = C₁₁₁₁ + C₁₁₂₂`, `ℓ₃ = √2 C₁₁₃₃`, `ℓ₅ = C₁₁₁₁ − C₁₁₂₂`,
+  `ℓ₆ = 2 C₂₃₂₃`.
+- `:engineering`: the **compliance** of the engineering constants
+  `(E₁, E₃, ν₁₂, ν₃₁, G₃₁)`: the transverse and axial Young's moduli, the
+  in-plane and axial-transverse Poisson's ratios (`ν₃₁/E₃ = ν₁₃/E₁`) and the
+  axial shear modulus, so that `S₁₁₁₁ = 1/E₁`, `S₃₃₃₃ = 1/E₃`,
+  `S₁₁₂₂ = −ν₁₂/E₁`, `S₁₁₃₃ = −ν₃₁/E₃`, `S₂₃₂₃ = 1/(4G₃₁)`.
+- `:hoenig`: the **compliance** of Hoenig's parameters `(E, ν₁, ν₂, H, Γ)`
+  (Hoenig, 1978): `S₁₁₁₁ = 1/E`, `S₁₁₂₂ = −ν₁/E`, `S₁₁₃₃ = −ν₂/E`,
+  `S₃₃₃₃ = 1/(E H)`, `S₂₃₂₃ = (1 + ν₁)/(2 E Γ)`.
 
-See also [`ti_args`](@ref), [`tens_ti_eng`](@ref).
+The stiffness of the last two is `inv` of the result. [`ti_constants`](@ref)
+reads the constants back.
 """
-function tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
+function ti_from_constants(c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components)
+    form === :components && return _ti_from_components(c₁, c₂, c₃, c₄, c₅, n)
+    form === :engineering && return _ti_from_components(_compliance_engineering(c₁, c₂, c₃, c₄, c₅)..., n)
+    form === :hoenig && return _ti_from_components(_compliance_hoenig(c₁, c₂, c₃, c₄, c₅)..., n)
+    throw(_unknown_ti_form(form))
+end
+
+"""
+    ti_constants(t::TensTI{4}; form = :components) → NTuple{5}
+
+The five constants of a transversely isotropic tensor, the reciprocal of
+[`ti_from_constants`](@ref) for the same `form`: its components
+`(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)` in its axis frame, read from the stored
+Walpole coefficients (`C₃₃₃₃ = ℓ₁`, `C₁₁₁₁ = (ℓ₂ + ℓ₅)/2`,
+`C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`, `C₁₁₃₃ = ℓ₃/√2`, `C₂₃₂₃ = ℓ₆/2`); with
+`form = :engineering`, `(E₁, E₃, ν₁₂, ν₃₁, G₃₁)` of the **compliance** `t`; with
+`form = :hoenig`, `(E, ν₁, ν₂, H, Γ)` of the **compliance** `t`.
+
+A six- or eight-parameter tensor (a product of TI tensors lands there) has
+these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
+``\\ell_7 = \\ell_8 = 0``: exactly for symbolic coefficients, to rounding for
+numbers. Otherwise it is refused, rather than read as if `ℓ₄`, `ℓ₇` and `ℓ₈` were
+not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant.
+"""
+function ti_constants(t::TensTI{4}; form::Symbol = :components)
+    form === :components && return _ti_components(t)
+    form === :engineering && return _engineering_of_compliance(_ti_components(t)...)
+    form === :hoenig && return _hoenig_of_compliance(_ti_components(t)...)
+    throw(_unknown_ti_form(form))
+end
+
+_unknown_ti_form(form) =
+    ArgumentError("unknown form `:$form` of the TI constants; use `:components`, `:engineering` or `:hoenig`")
+
+function _ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
     T = promote_type(
         typeof(C₁₁₁₁), typeof(C₁₁₂₂), typeof(C₁₁₃₃),
         typeof(C₃₃₃₃), typeof(C₂₃₂₃)
@@ -459,41 +500,20 @@ function tens_ti(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C�
     return TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆, n)
 end
 
-"""
-    ti_args(t::TensTI{4}) → (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
-
-Extract the 5 independent TI components from a Walpole tensor,
-directly from the stored coefficients (no array materialization).
-
-Inverse of [`tens_ti`](@ref):
-- `C₃₃₃₃ = ℓ₁`
-- `C₁₁₁₁ = (ℓ₂ + ℓ₅)/2`
-- `C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`
-- `C₁₁₃₃ = ℓ₃/√2`
-- `C₂₃₂₃ = ℓ₆/2`
-
-A six- or eight-parameter tensor (a product of TI tensors lands there) has
-these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
-``\\ell_7 = \\ell_8 = 0``: exactly for symbolic coefficients, to rounding for
-numbers. Otherwise it is refused, rather than read as if `ℓ₄`, `ℓ₇` and `ℓ₈` were
-not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant.
-
-See also [`ti_args_eng`](@ref).
-"""
-function ti_args(t::TensTI{4})
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = get_ℓ8(t)
+function _ti_components(t::TensTI{4})
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = walpole_coeffs(t, Val(8))
     _major_symmetric_ti(ℓ₃ - ℓ₄, ℓ₇, ℓ₈, max(abs(ℓ₁), abs(ℓ₂), abs(ℓ₃), abs(ℓ₅), abs(ℓ₆))) || throw(
         ArgumentError(
-            "ti_args: the tensor is not major-symmetric (ℓ₃ ≠ ℓ₄, or ℓ₇, ℓ₈ ≠ 0), so it has " *
+            "ti_constants: the tensor is not major-symmetric (ℓ₃ ≠ ℓ₄, or ℓ₇, ℓ₈ ≠ 0), so it has " *
                 "no five TI constants; take `Tensors.majorsymmetric(t)` first if its " *
                 "symmetric part is meant"
         )
     )
-    return ti_args(TensTI{4, eltype(t), 5}((ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆), axis(t)))
+    return _ti_components(TensTI{4, eltype(t), 5}((ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆), axis(t)))
 end
 
-function ti_args(t::TensTI{4, T, 5}) where {T}
-    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(t)
+function _ti_components(t::TensTI{4, T, 5}) where {T}
+    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = walpole_coeffs(t)
     sq2 = sqrt(T(2))
     C₃₃₃₃ = ℓ₁
     C₁₁₁₁ = (ℓ₂ + ℓ₅) / 2
@@ -511,96 +531,19 @@ _major_symmetric_ti(::Val{true}, d, ℓ₇, ℓ₈, s) =
 _major_symmetric_ti(::Val{false}, d, ℓ₇, ℓ₈, s) =
     all(x -> isequal(tsimplify(x), zero(x)), (d, ℓ₇, ℓ₈))
 
-"""
-    tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n) → TensTI{4, T, 5}
+# The compliance components of the engineering constants, and back.
+_compliance_engineering(E₁, E₃, ν₁₂, ν₃₁, G₃₁) = (inv(E₁), -ν₁₂ / E₁, -ν₃₁ / E₃, inv(E₃), inv(4 * G₃₁))
 
-Construct the TI **compliance** tensor from 5 engineering constants
-and symmetry axis `n`.
+_engineering_of_compliance(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃) =
+    _engineering(inv(S₁₁₁₁), inv(S₃₃₃₃), S₁₁₂₂, S₁₁₃₃, S₂₃₂₃)
+_engineering(E₁, E₃, S₁₁₂₂, S₁₁₃₃, S₂₃₂₃) = (E₁, E₃, -E₁ * S₁₁₂₂, -E₃ * S₁₁₃₃, inv(4 * S₂₃₂₃))
 
-- `E₁` : transverse Young's modulus (isotropic plane)
-- `E₃` : axial Young's modulus (symmetry axis)
-- `ν₁₂`: in-plane Poisson's ratio
-- `ν₃₁`: axial-transverse Poisson's ratio  (`ν₃₁/E₃ = ν₁₃/E₁`)
-- `G₃₁`: axial shear modulus
+# The compliance components of Hoenig's parameters, and back.
+_compliance_hoenig(E, ν₁, ν₂, H, Γ) = (inv(E), -ν₁ / E, -ν₂ / E, inv(E * H), (1 + ν₁) / (2 * E * Γ))
 
-To obtain the stiffness tensor, invert the result: `inv(tens_ti_eng(…))`.
-
-See also [`ti_args_eng`](@ref), [`tens_ti`](@ref).
-"""
-function tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n)
-    S₁₁₁₁ = inv(E₁)
-    S₃₃₃₃ = inv(E₃)
-    S₁₁₂₂ = -ν₁₂ / E₁
-    S₁₁₃₃ = -ν₃₁ / E₃
-    S₂₃₂₃ = inv(4 * G₃₁)
-    return tens_ti(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃, n)
-end
-
-"""
-    ti_args_eng(𝕊::TensTI{4}) → (E₁, E₃, ν₁₂, ν₃₁, G₃₁)
-
-Extract engineering constants from a TI **compliance** tensor.
-
-See also [`tens_ti_eng`](@ref), [`ti_args`](@ref).
-"""
-function ti_args_eng(𝕊::TensTI{4})
-    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = ti_args(𝕊)
-    E₁ = inv(S₁₁₁₁)
-    E₃ = inv(S₃₃₃₃)
-    ν₁₂ = -E₁ * S₁₁₂₂
-    ν₃₁ = -E₃ * S₁₁₃₃
-    G₃₁ = inv(4 * S₂₃₂₃)
-    return (E₁, E₃, ν₁₂, ν₃₁, G₃₁)
-end
-
-"""
-    tens_ti_hoenig(E, ν₁, ν₂, H, Γ, n) → TensTI{4, T, 5}
-
-Construct the TI **compliance** tensor from 5 Hoenig parameters
-(Hoenig, 1978) and symmetry axis `n`.
-
-- `E`  : transverse Young's modulus (`= 1/S₁₁₁₁`)
-- `ν₁` : in-plane Poisson's ratio (`= −E S₁₁₂₂`)
-- `ν₂` : axial-transverse Poisson's ratio (`= −E S₁₁₃₃`)
-- `H`  : axial-to-transverse modulus ratio (`= 1/(E S₃₃₃₃)`)
-- `Γ`  : shear anisotropy parameter (`= (1+ν₁)/(2 E S₂₃₂₃)`)
-
-Compliance components:
-- `S₁₁₁₁ = 1/E`
-- `S₁₁₂₂ = −ν₁/E`
-- `S₁₁₃₃ = −ν₂/E`
-- `S₃₃₃₃ = 1/(E H)`
-- `S₂₃₂₃ = (1+ν₁)/(2 E Γ)`
-
-To obtain the stiffness tensor, invert the result: `inv(tens_ti_hoenig(…))`.
-
-See also [`ti_args_hoenig`](@ref), [`tens_ti_eng`](@ref), [`tens_ti`](@ref).
-"""
-function tens_ti_hoenig(E, ν₁, ν₂, H, Γ, n)
-    S₁₁₁₁ = inv(E)
-    S₃₃₃₃ = inv(E * H)
-    S₁₁₂₂ = -ν₁ / E
-    S₁₁₃₃ = -ν₂ / E
-    S₂₃₂₃ = (1 + ν₁) / (2 * E * Γ)
-    return tens_ti(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃, n)
-end
-
-"""
-    ti_args_hoenig(𝕊::TensTI{4}) → (E, ν₁, ν₂, H, Γ)
-
-Extract the 5 Hoenig parameters from a TI **compliance** tensor.
-
-See also [`tens_ti_hoenig`](@ref), [`ti_args_eng`](@ref).
-"""
-function ti_args_hoenig(𝕊::TensTI{4})
-    S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃ = ti_args(𝕊)
-    E = inv(S₁₁₁₁)
-    ν₁ = -E * S₁₁₂₂
-    ν₂ = -E * S₁₁₃₃
-    H = inv(S₃₃₃₃ * E)
-    Γ = (1 + ν₁) / (2 * E * S₂₃₂₃)
-    return (E, ν₁, ν₂, H, Γ)
-end
+_hoenig_of_compliance(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃) = _hoenig(inv(S₁₁₁₁), S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃)
+# `1 − E·S₁₁₂₂` is `1 + ν₁` to the last bit: adding a negated number is subtracting it.
+_hoenig(E, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃) = (E, -E * S₁₁₂₂, -E * S₁₁₃₃, inv(S₃₃₃₃ * E), (1 - E * S₁₁₂₂) / (2 * E * S₂₃₂₃))
 
 # ── isisotropic / istransverselyisotropic ─────────────────────────────────────────────────────────────
 
@@ -619,7 +562,7 @@ isorthotropic(::TensTI{4}) = false
 # ── Display ───────────────────────────────────────────────────────────────────
 
 function Base.show(io::IO, A::TensTI{4, <:Any, 5})
-    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(A)
+    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = walpole_coeffs(A)
     print(
         io, "(", ℓ₁, ") W₁ˢ + (", ℓ₂, ") W₂ˢ + (", ℓ₃,
         ") W₃ˢ + (", ℓ₅, ") W₄ˢ + (", ℓ₆, ") W₅ˢ"
@@ -627,7 +570,7 @@ function Base.show(io::IO, A::TensTI{4, <:Any, 5})
     return print(io, "\n  axis n = ", A.n)
 end
 function Base.show(io::IO, A::TensTI{4, <:Any, 6})
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(A)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = walpole_coeffs(A)
     print(
         io, "(", ℓ₁, ") W₁ + (", ℓ₂, ") W₂ + (", ℓ₃,
         ") W₃ + (", ℓ₄, ") W₄ + (", ℓ₅, ") W₅ + (", ℓ₆, ") W₆"
@@ -636,7 +579,7 @@ function Base.show(io::IO, A::TensTI{4, <:Any, 6})
 end
 
 function pprint(A::TensTI{4, <:Any, 5})
-    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = get_ℓ(A)
+    ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = walpole_coeffs(A)
     println(
         "(", ℓ₁, ") W₁ˢ + (", ℓ₂, ") W₂ˢ + (", ℓ₃,
         ") W₃ˢ + (", ℓ₅, ") W₄ˢ + (", ℓ₆, ") W₅ˢ"
@@ -644,7 +587,7 @@ function pprint(A::TensTI{4, <:Any, 5})
     return println("  axis n = ", A.n)
 end
 function pprint(A::TensTI{4, <:Any, 6})
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(A)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = walpole_coeffs(A)
     println(
         "(", ℓ₁, ") W₁ + (", ℓ₂, ") W₂ + (", ℓ₃,
         ") W₃ + (", ℓ₄, ") W₄ + (", ℓ₅, ") W₅ + (", ℓ₆, ") W₆"
@@ -723,7 +666,7 @@ end
 
 # ── KM ───────────────────────────────────────────────────────────────────────
 
-mandel(t::TensTI{2}) = tomandel(_static_tensor(t))
+_mandel(t::TensTI{2}) = tomandel(_static_tensor(t))
 
 # ── Arithmetic — axis-aware ± ────────────────────────────────────────────────
 # Scalar ops (-, α*A, A*α, A/α) defined in structured_tens_ops.jl.
@@ -855,7 +798,7 @@ function pprint(A::TensTI{2})
 end
 
 
-# ── change_tens / components for TensTI ──────────────────────────────────────
+# ── express / components for TensTI ──────────────────────────────────────
 #
 # A structured tensor keeps its Walpole/parametric components in the CANONICAL
 # frame — `get_basis(::TensTI) === CanonicalBasis` — with the symmetry axis
@@ -868,14 +811,14 @@ end
 # The rotation itself is not re-derived here: the components are wrapped as a
 # plain `Tens` in the canonical basis and handed to the generic
 # `TensOrthonormal` path, which is the one already exercised by the rest of the
-# package. `change_tens` short-circuits on an equal basis, so the canonical
+# package. `express` short-circuits on an equal basis, so the canonical
 # target stays allocation-free apart from the wrapper.
 
 _as_canonical_tens(t::AbstractTens{order, 3, T}) where {order, T} =
     Tens(_static_tensor(t), CanonicalBasis{3, T}())
 
-change_tens(t::TensTI{2, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    change_tens(_as_canonical_tens(t), ℬ)
+express(t::TensTI{2, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
+    express(_as_canonical_tens(t), ℬ)
 components(t::TensTI{2, T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{2, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
 components(t::TensTI{2}) = get_array(t)
@@ -1252,7 +1195,7 @@ Base.IndexStyle(::Type{<:TensOrtho}) = IndexCartesian()
 Returns the 6×6 Kelvin-Mandel matrix in the **canonical** frame.
 Use `mandel_material(t)` for the block-diagonal form in the material frame.
 """
-mandel(t::TensOrtho{4}) = Matrix(_km_in_frame(t))
+_mandel(t::TensOrtho{4}) = Matrix(_km_in_frame(t))
 
 """
     mandel_material(t::TensOrtho)
@@ -1341,7 +1284,7 @@ _ortho_general(t::TensOrtho{4, T, 9}) where {T} =
 #     mandel(t) == Q * mandel_material(t) * transpose(Q)
 #
 # where `Q` is the 6×6 Kelvin-Mandel representation of the 4th-order rotation
-# operator `R ⊠ˢ R` (i.e. `mandel(rot6(θ,ϕ,ψ))`, see `rot6`), built here directly
+# operator `R ⊠ˢ R` (i.e. `mandel(rotation_tensor4(θ,ϕ,ψ))`, see `rotation_tensor4`), built here directly
 # from the frame vectors so that no angles need to be recovered.  `Q` is
 # orthogonal, which is what makes Kelvin-Mandel the right normalization for
 # this: in Voigt notation the analogous matrix is not.
@@ -1563,7 +1506,7 @@ symmetry.  For value-level detection use `best_sym_tens(t)`.
 julia> symmetry(TensISO{3}(2.0, 3.0))
 :ISO
 
-julia> symmetry(tens_ti(10., 3., 2.5, 12., 2., [0., 0., 1.]))
+julia> symmetry(ti_from_constants(10., 3., 2.5, 12., 2., [0., 0., 1.]))
 :TI
 ```
 
@@ -1585,7 +1528,7 @@ tensor without a structured reference.
 
 # Examples
 ```julia
-julia> reference(tens_ti(10., 3., 2.5, 12., 2., [0., 0., 1.]))
+julia> reference(ti_from_constants(10., 3., 2.5, 12., 2., [0., 0., 1.]))
 (0.0, 0.0, 1.0)
 
 julia> reference(TensISO{3}(2.0, 3.0)) === nothing
@@ -1655,7 +1598,7 @@ The 3×3 component array in the canonical frame, `Σₘ aₘ eₘ⊗eₘ`.
 """
 get_array(t::TensOrtho{2}) = Array(_static_tensor(t))
 
-mandel(t::TensOrtho{2}) = tomandel(_static_tensor(t))
+_mandel(t::TensOrtho{2}) = tomandel(_static_tensor(t))
 
 # The same tensor on another frame (geometry only): what the projections rotate.
 _rebuild_frame(t::TensOrtho{order}, frame::OrthonormalBasis{3}) where {order} =
@@ -1681,7 +1624,7 @@ isisotropic(t::TensOrtho{2}) = ((a1, a2, a3) = get_data(t); a1 == a2 && a2 == a3
 
 # The components in an orthonormal basis ℬ in closed form: the same
 # coefficients with the frame written in ℬ, as for the order-4 tensor.
-function change_tens(t::TensOrtho{2, T}, ℬ::OrthonormalBasis{3, T}) where {T}
+function express(t::TensOrtho{2, T}, ℬ::OrthonormalBasis{3, T}) where {T}
     F = vecbasis(frame(t), :cov)
     Tf = promote_type(T, eltype(F))
     E = transpose(SMatrix{3, 3, Tf}(vecbasis(ℬ, :cov))) * SMatrix{3, 3, Tf}(F)
@@ -1697,7 +1640,7 @@ function _show_ortho_terms(io::IO, A::TensOrtho{2})
 end
 
 ##############################################################################
-# Shared change_tens / components for TensTI{4} and TensOrtho
+# Shared express / components for TensTI{4} and TensOrtho
 # (both are 3D order-4 tensors stored in the canonical frame)
 ##############################################################################
 
@@ -1707,10 +1650,10 @@ end
 # from the Walpole formula itself, exact for every element type, instead of the
 # 81 canonical ones rotated index by index. The eight-coefficient form keeps the
 # generic route: its ℓ₇ and ℓ₈ terms change sign with the orientation of ℬ.
-change_tens(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
+express(t::TensTI{4, T}, ℬ::OrthonormalBasis{3, T}) where {T} =
     Tens(_static_tensor(_with_axis_in(t, ℬ)), ℬ, get_var(t))
-change_tens(t::TensTI{4, T, 8}, ℬ::OrthonormalBasis{3, T}) where {T} =
-    change_tens(_as_canonical_tens(t), ℬ)
+express(t::TensTI{4, T, 8}, ℬ::OrthonormalBasis{3, T}) where {T} =
+    express(_as_canonical_tens(t), ℬ)
 
 # The same tensor written about the components of its axis in ℬ.
 _with_axis_in(t::TensTI{4, T, N}, ℬ::OrthonormalBasis{3, T}) where {T, N} =
@@ -1721,7 +1664,7 @@ components(t::TensTI{4}) = get_array(t)
 components(t::TensTI{4}, ::NTuple{4, Symbol}) = get_array(t)
 
 # TensOrtho — same reasoning: stored in the canonical frame, so a rotated basis
-# needs a genuine change of components (`change_tens` in `tens_cubic.jl`, shared
+# needs a genuine change of components (`express` in `tens_cubic.jl`, shared
 # with `TensCubic`).
 components(t::TensOrtho{4, T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
     components(_as_canonical_tens(t), ℬ, v)
@@ -1826,25 +1769,25 @@ tens_W8(n) = TensTI{4}(
 
 # ── Accessors ────────────────────────────────────────────────────────────────
 
-# For N=8, `get_ℓ` returns the six Walpole coefficients (dropping ℓ₇, ℓ₈).
+# For N=8, `walpole_coeffs` returns the six Walpole coefficients (dropping ℓ₇, ℓ₈).
 # This keeps every ℓ₁..ℓ₄-based 4th⊡2nd contraction rule valid (W₅..W₈
-# annihilate symmetric 2nd-order tensors); use `get_ℓ8` when the
+# annihilate symmetric 2nd-order tensors); use `walpole_coeffs(t, Val(8))` when the
 # antisymmetric couplings matter.
-get_ℓ(t::TensTI{4, T, 8}) where {T} =
+walpole_coeffs(t::TensTI{4, T, 8}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[4], t.data[5], t.data[6])
 
 """
-    get_ℓ8(t::TensTI{4,T,N}) → NTuple{8,T}
+    walpole_coeffs(t::TensTI{4,T,N}, ::Val{8}) → NTuple{8,T}
 
 Always returns the 8-tuple `(ℓ₁, …, ℓ₆, ℓ₇, ℓ₈)` of coefficients in the full
 axially-invariant basis `{W₁,…,W₈}`.  For `N=5`/`N=6` the antisymmetric
 couplings `ℓ₇ = ℓ₈ = 0`.
 """
-get_ℓ8(t::TensTI{4, T, 5}) where {T} =
+walpole_coeffs(t::TensTI{4, T, 5}, ::Val{8}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[3], t.data[4], t.data[5], zero(T), zero(T))
-get_ℓ8(t::TensTI{4, T, 6}) where {T} =
+walpole_coeffs(t::TensTI{4, T, 6}, ::Val{8}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[4], t.data[5], t.data[6], zero(T), zero(T))
-get_ℓ8(t::TensTI{4, T, 8}) where {T} = t.data
+walpole_coeffs(t::TensTI{4, T, 8}, ::Val{8}) where {T} = t.data
 
 """
     _lift_walpole_N8(A::TensTI{4, T, N}) → TensTI{4, T, 8}
@@ -1852,8 +1795,8 @@ get_ℓ8(t::TensTI{4, T, 8}) where {T} = t.data
 Lift a Walpole tensor (`N=5` or `N=6`) to the full axially-invariant `N=8`
 form with vanishing antisymmetric couplings.
 """
-_lift_walpole_N8(A::TensTI{4, T, 5}) where {T} = TensTI{4, T, 8}(get_ℓ8(A), axis(A))
-_lift_walpole_N8(A::TensTI{4, T, 6}) where {T} = TensTI{4, T, 8}(get_ℓ8(A), axis(A))
+_lift_walpole_N8(A::TensTI{4, T, 5}) where {T} = TensTI{4, T, 8}(walpole_coeffs(A, Val(8)), axis(A))
+_lift_walpole_N8(A::TensTI{4, T, 6}) where {T} = TensTI{4, T, 8}(walpole_coeffs(A, Val(8)), axis(A))
 
 # ── Major transpose ───────────────────────────────────────────────────────────
 #
@@ -2169,7 +2112,7 @@ end
 export TensTI, TensOrtho
 export tens_W1, tens_W2, tens_W3, tens_W4, tens_W5, tens_W6, tens_W7, tens_W8
 export walpole_basis, walpole_basis_sym
-export get_ℓ, get_ℓ8, axis, frame, reference, symmetry
+export walpole_coeffs, axis, frame, reference, symmetry
 export iso_to_ti, istransverselyisotropic, isorthotropic
-export tens_ti, ti_args, tens_ti_eng, ti_args_eng, tens_ti_hoenig, ti_args_hoenig
+export ti_from_constants, ti_constants
 export mandel_material

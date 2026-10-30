@@ -55,17 +55,17 @@ ort = TensOrtho(10.0, 8.0, 9.0, 3.0, 2.0, 4.0, 2.5, 3.0, 1.5, ℬ)
 ```
 
 ```@example struct
-cub = tens_cubic(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄₄)
+cub = cubic_from_constants(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄₄)
 ```
 
 ## Constructors
 
 | Class | Constructors |
 | :--- | :--- |
-| ISO | [`TensISO`](@ref), [`tens_Id2`](@ref), [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref), [`iso_projectors`](@ref), [`iso_projectors`](@ref) |
-| TI order 4 | [`TensTI`](@ref), [`tens_ti`](@ref), [`tens_ti_eng`](@ref), [`tens_ti_hoenig`](@ref), [`iso_to_ti`](@ref), [`tens_W1`](@ref)…[`tens_W8`](@ref), [`walpole_basis`](@ref), [`walpole_basis_sym`](@ref) |
+| ISO | [`TensISO`](@ref), [`tens_Id2`](@ref), [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref), [`iso_projectors`](@ref) |
+| TI order 4 | [`TensTI`](@ref), [`ti_from_constants`](@ref), [`iso_to_ti`](@ref), [`tens_W1`](@ref)…[`tens_W8`](@ref), [`walpole_basis`](@ref), [`walpole_basis_sym`](@ref) |
 | TI order 2 | [`TensTI`](@ref)`{2}(a, b, n)` and `(a, b, c, n)` |
-| CUBIC | [`TensCubic`](@ref), [`tens_cubic`](@ref), [`iso_to_cubic`](@ref) |
+| CUBIC | [`TensCubic`](@ref), [`cubic_from_constants`](@ref), [`iso_to_cubic`](@ref) |
 | ORTHO order 4 | [`TensOrtho`](@ref)`{4}(C₁₁, …, C₆₆, frame)` (nine constants) and `(…, C₂₁, C₃₁, C₃₂, frame)` (twelve), `TensOrtho(KM, frame[, Val(12)])`, [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref), [`cubic_to_ortho`](@ref) |
 | ORTHO order 2 | [`TensOrtho`](@ref)`{2}(a₁, a₂, a₃, frame)`, [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref) |
 
@@ -74,18 +74,18 @@ cub = tens_cubic(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄₄)
 | Function | Applies to | Returns |
 | :--- | :--- | :--- |
 | [`get_data`](@ref) | all | the stored coefficient tuple |
-| [`get_ℓ`](@ref) | `TensTI{4}` | the six classical Walpole coefficients |
-| [`get_ℓ8`](@ref) | `TensTI{4}` | all eight, zero-padded |
+| [`walpole_coeffs`](@ref) | `TensTI{4}` | the six classical Walpole coefficients |
+| [`walpole_coeffs`](@ref) | `TensTI{4}` | all eight, zero-padded |
 | [`axis`](@ref) | `TensTI` | the symmetry axis |
 | [`frame`](@ref) | `TensOrtho`, `TensCubic` | the material or cube frame |
 | [`reference`](@ref) | `TensTI`, `TensOrtho`, `TensCubic` | axis or frame, whichever applies |
 | [`symmetry`](@ref) | all | the class as a `Symbol` |
 | [`mandel_material`](@ref) | `TensOrtho`, `TensCubic` | the sparse matrix in the class's own frame |
-| [`arg_cubic`](@ref) | `TensCubic` | the constants ``(C_{11},C_{12},C_{44})`` |
+| [`cubic_constants`](@ref) | `TensCubic` | the constants ``(C_{11},C_{12},C_{44})`` |
 | [`cubic_anisotropy`](@ref) | `TensCubic` | the Zener-type departure from isotropy |
 
 ```@example struct
-get_ℓ(ti), axis(ti)
+walpole_coeffs(ti), axis(ti)
 ```
 
 ```@example struct

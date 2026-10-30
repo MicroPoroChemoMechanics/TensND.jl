@@ -244,7 +244,7 @@ function _proj_tens_opt(::Val{:TI}, A::AbstractArray{T, 4}) where {T <: Abstract
         return TensTI{4}(z, z, z, z, z, (z, z, one(T))), z, z
     end
     x = _optimize_angles(x -> _obj_TI4(x, C_KM, sqnorm_C), _ti_starts(A), _TI_GRID, _TI_SCREENED)
-    return proj_tens(Val(:TI), A, _n_from_angles(x[1], x[2]))
+    return project(A, Val(:TI), _n_from_angles(x[1], x[2]))
 end
 
 function _proj_tens_opt(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
@@ -253,7 +253,7 @@ function _proj_tens_opt(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: Abstract
         z = zero(T)
         return TensTI{2}(z, z, (z, z, one(T))), z, z
     end
-    return proj_tens(Val(:TI), A, _best_TI2_axis(A))
+    return project(A, Val(:TI), _best_TI2_axis(A))
 end
 
 function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
@@ -264,7 +264,7 @@ function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: Abstr
         return TensOrtho(z, z, z, z, z, z, z, z, z, CanonicalBasis{3, T}()), z, z
     end
     x = _optimize_angles(x -> _obj_ORTHO4(x, C_KM, sqnorm_C), _ortho_starts(A), _FRAME_GRID, _FRAME_SCREENED)
-    return proj_tens(Val(:ORTHO), A, RotatedBasis(x[1], x[2], x[3]))
+    return project(A, Val(:ORTHO), RotatedBasis(x[1], x[2], x[3]))
 end
 
 function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
@@ -275,7 +275,7 @@ function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: Abstr
     end
     # The eigenframe of the symmetric part: in it the projection keeps all of
     # that part, the most any frame can.
-    return proj_tens(Val(:ORTHO), A, _candidate_ORTHO_frame(A))
+    return project(A, Val(:ORTHO), _candidate_ORTHO_frame(A))
 end
 
 function _proj_tens_opt(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
@@ -286,5 +286,5 @@ function _proj_tens_opt(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: Abstr
         return TensCubic{T}((z, z, z), CanonicalBasis{3, T}()), z, z
     end
     x = _optimize_angles(x -> _obj_CUBIC4(x, C_KM, sqnorm_C), _cubic_starts(A), _FRAME_GRID, _FRAME_SCREENED)
-    return proj_tens(Val(:CUBIC), A, RotatedBasis(x[1], x[2], x[3]))
+    return project(A, Val(:CUBIC), RotatedBasis(x[1], x[2], x[3]))
 end

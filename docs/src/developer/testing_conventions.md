@@ -41,7 +41,7 @@ against a transcribed number.
   on a coordinate system.
 - A closed form matched against the operator route — the Green's function pages
   do this — exercises `hess`, the symmetrization and the basis handling at once.
-- A round trip (`ti_args(tens_ti(x...)) == x`) catches parametrization errors
+- A round trip (`ti_constants(ti_from_constants(x...)) == x`) catches parametrization errors
   that a one-way check cannot.
 - Equilibrium residuals: `divergence(σ) ≈ 0` for an exact solution tests the full
   order-2 divergence including connection terms.
@@ -58,7 +58,7 @@ variance with [`components`](@ref) before subtracting — see
 declared on `ApproxType` (`src/array_utils.jl`), which includes `Dual`; before
 that union existed, a few ulp of round-off made a `Dual`-valued tensor look
 non-minor-symmetric, `_KM_of_array` built a ``9\times9`` matrix instead of a
-``6\times6`` one, and every `proj_tens` call on a `Dual` died with a
+``6\times6`` one, and every `project` call on a `Dual` died with a
 `DimensionMismatch`. Any new predicate should use `ApproxType`, not
 `AbstractFloat`.
 

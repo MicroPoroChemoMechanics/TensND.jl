@@ -30,12 +30,12 @@ components.
     ones; `to_tensors` performs the change of basis.
 """
 function to_tensors(t::AbstractTens{2, dim}) where {dim}
-    A = components_canon(t)
+    A = canonical_components(t)
     return SymmetricTensor{2, dim}((i, j) -> (A[i, j] + A[j, i]) / 2)
 end
 
 function to_tensors(t::AbstractTens{4, dim}) where {dim}
-    A = components_canon(t)
+    A = canonical_components(t)
     return SymmetricTensor{4, dim}((i, j, k, l) -> A[i, j, k, l])
 end
 
@@ -62,9 +62,9 @@ classic way to lose a factor of two between the strain that goes in and the
 stress that comes out. Voigt is not an isometry, unlike the Kelvin–Mandel form
 of [`mandel`](@ref), and belongs only at the boundary with codes that demand it.
 """
-voigt_stress(σ::AbstractTens{2, 3}) = _voigt(components_canon(σ), 1)
+voigt_stress(σ::AbstractTens{2, 3}) = _voigt(canonical_components(σ), 1)
 
-voigt_strain(ε::AbstractTens{2, 3}) = _voigt(components_canon(ε), 2)
+voigt_strain(ε::AbstractTens{2, 3}) = _voigt(canonical_components(ε), 2)
 
 @doc (@doc voigt_stress) voigt_strain
 

@@ -111,7 +111,7 @@ random frame:
 km(t) = Matrix(mandel(t))
 m(f) = sum(_ -> km(f()) .^ 2, 1:4000) / 4000      # mean squares of the entries
 a = m(() -> rand(rng, Tens{4, 3}))                     # read in the canonical basis
-b = m(() -> change_tens(rand(rng, Tens{4, 3}), ℛ))     # read in a rotated one
+b = m(() -> express(rand(rng, Tens{4, 3}), ℛ))     # read in a rotated one
 round.(a; digits = 1), maximum(abs, a - b) < 0.2
 ```
 
@@ -125,5 +125,5 @@ the generic route:
 ```@example rnd
 A = rand(rng, TensCubic)
 B = rand(rng, TensTI{4})
-Array(components_canon(A + B)) ≈ Array(components_canon(A)) + Array(components_canon(B))
+Array(canonical_components(A + B)) ≈ Array(canonical_components(A)) + Array(canonical_components(B))
 ```

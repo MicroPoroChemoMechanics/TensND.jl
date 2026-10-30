@@ -66,7 +66,7 @@ all four combinations exist:
 
 related by the metric, ``a^{ij}=g^{ik}g^{jl}a_{kl}`` and so on. In `TensND` the
 conversion is [`components`](@ref)`(t, var)`, or
-[`change_tens`](@ref)`(t, ℬ, var)` when the basis changes too.
+[`express`](@ref)`(t, ℬ, var)` when the basis changes too.
 
 !!! note "Why an identity looks like a metric"
     Storing the covariant metric ``g_{ij}`` as a twice-covariant tensor and

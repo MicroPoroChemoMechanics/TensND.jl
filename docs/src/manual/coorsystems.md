@@ -35,7 +35,7 @@ constant coordinate, in an interactive figure of
 using TensND, SymPyPythonCall
 
 Polar = coorsys_polar()
-r, θ = getcoords(Polar)
+r, θ = get_coords(Polar)
 𝐞ʳ, 𝐞ᶿ = unitvec(Polar)
 @set_coorsys Polar
 
@@ -81,7 +81,7 @@ simplify(laplacian(r^n * cos(n * θ)))
 
 | Function | Returns |
 | :--- | :--- |
-| [`getcoords`](@ref) | the coordinate symbols |
+| [`get_coords`](@ref) | the coordinate symbols |
 | [`position_vector`](@ref) | the position vector |
 | [`unitvec`](@ref) | vectors of the normalized basis |
 | [`natvec`](@ref) | vectors of the natural basis (`:cov` or `:cont`) |

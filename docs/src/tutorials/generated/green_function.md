@@ -34,7 +34,7 @@ modulus:
 
 ````@example green_function
 Polar = coorsys_polar()
-r, θ = getcoords(Polar)
+r, θ = get_coords(Polar)
 𝐞ʳ, 𝐞ᶿ = unitvec(Polar)
 @set_coorsys Polar
 ℬᵖ = normalized_basis(Polar)
@@ -111,7 +111,7 @@ equivalently written with the bulk modulus, and the two forms must agree:
 
 ````@example green_function
 Spherical = coorsys_spherical()
-θs, ϕs, rs = getcoords(Spherical)
+θs, ϕs, rs = get_coords(Spherical)
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳˢ = unitvec(Spherical)
 ℬˢ = normalized_basis(Spherical)
 @set_coorsys Spherical

@@ -93,13 +93,13 @@ struct Submanifold{dim, T, G <: AbstractGeometry, TENSA, TENSB} <: AbstractCoorS
         # throwing `NonInvertibleMatrixError`. Calling `∂` with an explicit
         # `Val` disambiguator would work too; going straight to `tdiff` is
         # simpler and makes the intent obvious.
-        ∂coord(t, x) = change_tens(Tens(tdiff(components_canon(t), x)), get_basis(t), get_var(t))
+        ∂coord(t, x) = express(Tens(tdiff(canonical_components(t), x)), get_basis(t), get_var(t))
         aᵢ = ntuple(i -> simp(chvar(∂coord(OMc, coords[i]), tmp_var)), dimm1)
         χᵢ = ntuple(i -> simp(norm(aᵢ[i])), dimm1)
         eᵢ = ntuple(i -> simp(aᵢ[i] / χᵢ[i]), dimm1)
         χᵢ = (ntuple(i -> simp(chvar(χᵢ[i], to_coords)), dimm1)..., one(Sym))
         eᵢ = ntuple(i -> simp(chvar(eᵢ[i], to_coords)), dimm1)
-        A₀ = tsimplify(hcat(components_canon.(eᵢ)...))
+        A₀ = tsimplify(hcat(canonical_components.(eᵢ)...))
         n = [tsimplify(det(hcat(A₀, [j == i ? one(Sym) : zero(Sym) for j in 1:dim]))) for i in 1:dim]
         n = n / tsimplify(norm(n))
         A = hcat(A₀, n)
@@ -120,7 +120,7 @@ struct Submanifold{dim, T, G <: AbstractGeometry, TENSA, TENSB} <: AbstractCoorS
             metric(normalized_basis, :cont),
         )
         Γ₁ = cat(Γ₀, b[1:(dim - 1), 1:(dim - 1)], dims = 3)
-        bc = change_tens(b, (:cov, :cont))
+        bc = express(b, (:cov, :cont))
         Γ = cat(Γ₁, reshape(-bc[1:(dim - 1), 1:dim], dim - 1, 1, dim), dims = 2)
         geometry = ExactGeometry{dim, Sym, typeof(OM), typeof(normalized_basis), typeof(natural_basis)}(
             OMc,
@@ -223,14 +223,12 @@ and [`submetric`](@ref).
 
 !!! note "Renamed from `Riemann`"
     This function was called `Riemann`, which named the wrong object entirely —
-    it never returned a Riemann curvature tensor. `Riemann` still works and
-    forwards here, with a deprecation warning.
+    it never returned a Riemann curvature tensor. The former name was removed in
+    0.11.
 
 See also [`Submanifold`](@ref), [`christoffel`](@ref), [`curvature`](@ref).
 """
 connection(SM::Submanifold{dim}) where {dim} = core(SM).Γ[1:(dim - 1), 1:(dim - 1), 1:(dim - 1)]
-
-@deprecate Riemann(SM::Submanifold) connection(SM)
 
 # ── Differentiation directions ───────────────────────────────────────────────
 #

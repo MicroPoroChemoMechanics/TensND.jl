@@ -32,7 +32,7 @@ called with one argument.
 
 ````@example symbolic_operators
 Polar = coorsys_polar()
-r, θ = getcoords(Polar)
+r, θ = get_coords(Polar)
 𝐞ʳ, 𝐞ᶿ = unitvec(Polar)
 @set_coorsys Polar
 ````
@@ -86,7 +86,7 @@ anywhere in the field.
 
 ````@example symbolic_operators
 Cylindrical = coorsys_cylindrical()
-rc, θc, zc = getcoords(Cylindrical)
+rc, θc, zc = get_coords(Cylindrical)
 𝐞ʳᶜ, 𝐞ᶿᶜ, 𝐞ᶻᶜ = unitvec(Cylindrical)
 @set_coorsys Cylindrical
 
@@ -110,11 +110,11 @@ Recall the unusual ordering ``(\theta,\varphi,r)``, chosen so that
 
 ````@example symbolic_operators
 Spherical = coorsys_spherical()
-θs, ϕs, rs = getcoords(Spherical)
+θs, ϕs, rs = get_coords(Spherical)
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳˢ = unitvec(Spherical)
 @set_coorsys Spherical
 
-getcoords(Spherical), lame_coefficients(Spherical)
+get_coords(Spherical), lame_coefficients(Spherical)
 ````
 
 The gradient of the radius is the radial unit vector, and the divergence of
@@ -163,7 +163,7 @@ read off:
 
 ````@example symbolic_operators
 Cartesian = coorsys_cartesian()
-X = getcoords(Cartesian)
+X = get_coords(Cartesian)
 E = unitvec(Cartesian)
 @set_coorsys Cartesian
 

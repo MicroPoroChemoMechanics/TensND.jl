@@ -32,7 +32,7 @@ using SymPyPythonCall
 # called with one argument.
 
 Polar = coorsys_polar()
-r, θ = getcoords(Polar)
+r, θ = get_coords(Polar)
 𝐞ʳ, 𝐞ᶿ = unitvec(Polar)
 @set_coorsys Polar
 
@@ -76,7 +76,7 @@ simplify(tr(H) - laplacian(r^n))
 # anywhere in the field.
 
 Cylindrical = coorsys_cylindrical()
-rc, θc, zc = getcoords(Cylindrical)
+rc, θc, zc = get_coords(Cylindrical)
 𝐞ʳᶜ, 𝐞ᶿᶜ, 𝐞ᶻᶜ = unitvec(Cylindrical)
 @set_coorsys Cylindrical
 
@@ -96,11 +96,11 @@ get_array(𝛆)[2, 2]
 # ``\theta=\varphi=0`` gives the canonical basis in the canonical order.
 
 Spherical = coorsys_spherical()
-θs, ϕs, rs = getcoords(Spherical)
+θs, ϕs, rs = get_coords(Spherical)
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳˢ = unitvec(Spherical)
 @set_coorsys Spherical
 
-getcoords(Spherical), lame_coefficients(Spherical)
+get_coords(Spherical), lame_coefficients(Spherical)
 
 # The gradient of the radius is the radial unit vector, and the divergence of
 # that vector is ``2/r``:
@@ -139,7 +139,7 @@ simplify(divergence(𝛔))
 # read off:
 
 Cartesian = coorsys_cartesian()
-X = getcoords(Cartesian)
+X = get_coords(Cartesian)
 E = unitvec(Cartesian)
 @set_coorsys Cartesian
 

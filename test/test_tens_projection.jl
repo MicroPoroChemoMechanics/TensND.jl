@@ -81,114 +81,114 @@
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "proj_tens :TI order 4 — round-trip (n=e₃)" begin
-        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+    @testsection "project :TI order 4 — round-trip (n=e₃)" begin
+        C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         A = get_array(C)
-        B, d, drel = proj_tens(:TI, A, n_e3)
+        B, d, drel = project(A, :TI, n_e3)
         @test d < atol_num
         @test drel < atol_num
         @test B isa TensTI{4}
         # Walpole coefficients should match
-        @test collect(ti_args(B)) ≈ collect(ti_args(C))  atol = atol_num
+        @test collect(ti_constants(B)) ≈ collect(ti_constants(C))  atol = atol_num
     end
 
-    @testsection "proj_tens :TI order 4 — isotropic tensor" begin
+    @testsection "project :TI order 4 — isotropic tensor" begin
         𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
         k, μ = 10.0, 5.0
         C_iso = 3k * 𝕁 + 2μ * 𝕂
         A = get_array(C_iso)
         # Any axis should give distance ≈ 0 for an isotropic tensor
-        B, d, drel = proj_tens(:TI, A, n_e3)
+        B, d, drel = project(A, :TI, n_e3)
         @test drel < 1.0e-10
     end
 
-    @testsection "proj_tens :TI order 4 — rotated axis" begin
+    @testsection "project :TI order 4 — rotated axis" begin
         n45 = [1 / √2, 0.0, 1 / √2]
-        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n45)
+        C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n45)
         A = get_array(C)
-        B, d, drel = proj_tens(:TI, A, n45)
+        B, d, drel = project(A, :TI, n45)
         @test drel < 1.0e-8
     end
 
-    @testsection "proj_tens :TI order 4 — non-trivial projection" begin
+    @testsection "project :TI order 4 — non-trivial projection" begin
         # Random anisotropic tensor → project to TI → should have TI structure
-        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         A_TI = get_array(C)
         # Add a perturbation that breaks TI symmetry
         A_pert = copy(A_TI)
         A_pert[1, 1, 1, 1] += 1.0
-        B, d, drel = proj_tens(:TI, A_pert, n_e3)
+        B, d, drel = project(A_pert, :TI, n_e3)
         @test d > 0  # non-zero distance (perturbation was applied)
         @test drel < 0.1  # but not too far from TI
         # Re-projecting should give distance 0
-        B2, d2, _ = proj_tens(:TI, get_array(B), n_e3)
+        B2, d2, _ = project(get_array(B), :TI, n_e3)
         @test d2 < atol_num
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "proj_tens :TI order 2 — round-trip (n=e₃)" begin
+    @testsection "project :TI order 2 — round-trip (n=e₃)" begin
         A_TI = TensTI{2}(5.0, 8.0, n_e3)
         M = get_array(A_TI)
-        B, d, drel = proj_tens(:TI, M, n_e3)
+        B, d, drel = project(M, :TI, n_e3)
         @test d < atol_num
         @test B isa TensTI{2}
         @test B.data[1] ≈ 5.0  atol = atol_num
         @test B.data[2] ≈ 8.0  atol = atol_num
     end
 
-    @testsection "proj_tens :TI order 2 — rotated axis" begin
+    @testsection "project :TI order 2 — rotated axis" begin
         n45 = [1 / √2, 0.0, 1 / √2]
         A_TI = TensTI{2}(5.0, 8.0, n45)
         M = get_array(A_TI)
-        B, d, drel = proj_tens(:TI, M, n45)
+        B, d, drel = project(M, :TI, n45)
         @test drel < 1.0e-8
         @test B.data[1] ≈ 5.0  atol = 1.0e-8
         @test B.data[2] ≈ 8.0  atol = 1.0e-8
     end
 
-    @testsection "proj_tens :TI order 2 — isotropic → TI" begin
+    @testsection "project :TI order 2 — isotropic → TI" begin
         M_iso = 7.0 * I(3) |> Matrix{Float64}
-        B, d, drel = proj_tens(:TI, M_iso, n_e3)
+        B, d, drel = project(M_iso, :TI, n_e3)
         @test drel < atol_num
         @test isisotropic(B)
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "proj_tens :ORTHO order 4 — round-trip" begin
+    @testsection "project :ORTHO order 4 — round-trip" begin
         t = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame_canon)
         A = get_array(t)
-        B, d, drel = proj_tens(:ORTHO, A, frame_canon)
+        B, d, drel = project(A, :ORTHO, frame_canon)
         @test drel < atol_num
         @test B isa TensOrtho
         @test collect(get_data(B)) ≈ collect(get_data(t))  atol = atol_num
     end
 
-    @testsection "proj_tens :ORTHO order 4 — TI tensor → ORTHO distance ≈ 0" begin
-        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+    @testsection "project :ORTHO order 4 — TI tensor → ORTHO distance ≈ 0" begin
+        C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         A = get_array(C)
-        B, d, drel = proj_tens(:ORTHO, A, frame_canon)
+        B, d, drel = project(A, :ORTHO, frame_canon)
         @test drel < 1.0e-8
     end
 
-    @testsection "proj_tens :ORTHO order 4 — rotated frame" begin
+    @testsection "project :ORTHO order 4 — rotated frame" begin
         frame_rot = RotatedBasis(0.3, 0.5, 0.7)
         t = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame_rot)
         A = get_array(t)
-        B, d, drel = proj_tens(:ORTHO, A, frame_rot)
+        B, d, drel = project(A, :ORTHO, frame_rot)
         @test drel < 1.0e-8
     end
 
     # ═══════════════════════════════════════════════════════════════════════════
-    @testsection "proj_tens :ORTHO order 2 — round-trip" begin
+    @testsection "project :ORTHO order 2 — round-trip" begin
         M = diagm([5.0, 8.0, 12.0])
-        B, d, drel = proj_tens(:ORTHO, M, frame_canon)
+        B, d, drel = project(M, :ORTHO, frame_canon)
         @test drel < atol_num
         @test B ≈ M  atol = atol_num
     end
 
-    @testsection "proj_tens :ORTHO order 2 — non-diagonal" begin
+    @testsection "project :ORTHO order 2 — non-diagonal" begin
         M = Float64[5 1 2; 1 8 3; 2 3 12]
-        B, d, drel = proj_tens(:ORTHO, M, frame_canon)
+        B, d, drel = project(M, :ORTHO, frame_canon)
         @test B ≈ diagm([5.0, 8.0, 12.0])  atol = atol_num
         @test d > 0  # off-diagonal terms removed
     end
@@ -197,7 +197,7 @@
     @testsection "best_sym_tens — fixed basis" begin
         # TI tensor → should detect :TI
         # (skip :ISO in proj due to pre-existing simplify ambiguity in tens_isotropic.jl)
-        C_ti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C_ti = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         _, _, _, sym_ti = best_sym_tens(C_ti, n_e3; proj = (:TI, :ORTHO))
         @test sym_ti == :TI
 
@@ -262,7 +262,7 @@
         @test !isisotropic(Float64[10 3 2.5; 3 8 1.5; 2.5 1.5 12])
 
         # ── istransverselyisotropic (fixed axis)
-        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         @test istransverselyisotropic(get_array(C), n_e3)
         @test !istransverselyisotropic(get_array(C), n_e1)
 
@@ -279,14 +279,14 @@
         @test sym === :ISO
 
         # ── TI axis = e₃: candidate axis matches, cheap path succeeds
-        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         _, _, drel, sym = best_sym_tens(C)
         @test sym === :TI
         @test drel < 1.0e-10
 
         # ── TI axis = (1,1,1)/√3: KM eigendecomposition recovers the axis
         n_tilt = [1.0, 1.0, 1.0] ./ sqrt(3.0)
-        Ct = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
+        Ct = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt)
         _, _, drel_t, sym_t = best_sym_tens(Ct)
         @test sym_t === :TI
         @test drel_t < 1.0e-8
@@ -317,7 +317,7 @@
     # ═══════════════════════════════════════════════════════════════════════════
     @testsection "best_sym_tens — fixed-axis/frame path" begin
         # Given axis, TI projection must be exact for a TI tensor
-        C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
+        C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_e3)
         _, _, drel, sym = best_sym_tens(C, n_e3; proj = (:ISO, :TI))
         @test sym === :TI
         @test drel < 1.0e-12
@@ -360,7 +360,7 @@
         # `proj` restricted to the class at stake: the default list would
         # compile every projection for every number type, for nothing more.
         for (mk, sym) in ((ti, :TI), (ortho, :ORTHO))
-            plain(p) = Tens(Array(components_canon(mk(p))))
+            plain(p) = Tens(Array(canonical_components(mk(p))))
             p = 0.4
             @test best_sym_tens(plain(p); proj = (sym,))[4] === sym
             # The class must be found under differentiation too — the old
@@ -372,9 +372,9 @@
             function proj(p)
                 t, _, _, found = best_sym_tens(plain(p); proj = (sym,))
                 found === sym || error("$found found under differentiation")
-                return Array(components_canon(t))
+                return Array(canonical_components(t))
             end
-            ref(p) = Array(components_canon(mk(p)))
+            ref(p) = Array(canonical_components(mk(p)))
             @test ForwardDiff.derivative(proj, p) ≈ ForwardDiff.derivative(ref, p) atol = 1.0e-9
         end
 
@@ -393,33 +393,33 @@
 
         # The optimized projections refuse duals by name rather than with a
         # `MethodError`: the orientation they find carries no derivative.
-        Ad = Array(components_canon(ti(ForwardDiff.Dual(0.4, 1.0))))
+        Ad = Array(canonical_components(ti(ForwardDiff.Dual(0.4, 1.0))))
         for S in (:TI, :ORTHO, :CUBIC)
-            @test_throws ArgumentError proj_tens(Val(S), Ad)
+            @test_throws ArgumentError project(Ad, Val(S))
         end
-        @test_throws ArgumentError proj_tens(Val(:TI), Ad[:, :, 1, 1])
-        @test proj_tens(Val(:CUBIC), Ad[:, :, 1, 1])[1] isa TensISO   # no orientation at order 2
+        @test_throws ArgumentError project(Ad[:, :, 1, 1], Val(:TI))
+        @test project(Ad[:, :, 1, 1], Val(:CUBIC))[1] isa TensISO   # no orientation at order 2
     end
 
 end
 
-@testsection "proj_tens of a null tensor, and istransverselyisotropic with the axis searched" begin
+@testsection "project of a null tensor, and istransverselyisotropic with the axis searched" begin
     frame = CanonicalBasis{3, Float64}()
     n = (0.0, 0.0, 1.0)
     # A null tensor projects onto the null tensor of each class, at distance 0.
-    B4, d4, r4 = proj_tens(:TI, zeros(3, 3, 3, 3), n)
+    B4, d4, r4 = project(zeros(3, 3, 3, 3), :TI, n)
     @test B4 isa TensTI{4} && iszero(get_array(B4)) && d4 == 0 && r4 == 0
-    B2, d2, r2 = proj_tens(:TI, zeros(3, 3), n)
+    B2, d2, r2 = project(zeros(3, 3), :TI, n)
     @test B2 isa TensTI{2} && iszero(get_array(B2)) && d2 == 0 && r2 == 0
-    O4, e4, s4 = proj_tens(:ORTHO, zeros(3, 3, 3, 3), frame)
+    O4, e4, s4 = project(zeros(3, 3, 3, 3), :ORTHO, frame)
     @test O4 isa TensOrtho && iszero(get_array(O4)) && e4 == 0 && s4 == 0
-    O2, e2, s2 = proj_tens(:ORTHO, zeros(3, 3), frame)
+    O2, e2, s2 = project(zeros(3, 3), :ORTHO, frame)
     @test iszero(O2) && e2 == 0 && s2 == 0
-    I4, f4, t4 = proj_tens(:ISO, zeros(3, 3, 3, 3))
+    I4, f4, t4 = project(zeros(3, 3, 3, 3), :ISO)
     @test iszero(I4) && f4 == 0 && t4 == 0
     # The axis search finds the axis of a TI tensor off the frame, and no axis
     # makes an orthotropic tensor with three distinct axial moduli TI.
-    W = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, (0.6, 0.0, 0.8))
+    W = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, (0.6, 0.0, 0.8))
     @test istransverselyisotropic(get_array(W); optimize_angles = true)
     O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame)
     @test !istransverselyisotropic(get_array(O); optimize_angles = true)
@@ -429,17 +429,17 @@ end
     # A symbol of unknown realness: `'` would turn it into `conjugate(a)`.
     @syms a b
     n = (0.0, 0.0, 1.0)
-    P, _, _ = proj_tens(:TI, Sym[a b 0; b a 0; 0 0 a], n)
+    P, _, _ = project(Sym[a b 0; b a 0; 0 0 a], :TI, n)
     @test !occursin("conjugate", string(get_data(P)))
-    B, _, _ = proj_tens(:ORTHO, Sym[a b 0; b a 0; 0 0 a], CanonicalBasis{3, Sym}())
+    B, _, _ = project(Sym[a b 0; b a 0; 0 0 a], :ORTHO, CanonicalBasis{3, Sym}())
     @test !occursin("conjugate", string(B))
     @test B == Sym[a 0 0; 0 a 0; 0 0 a]
     # The ORTHO projection reads the frame's matrix: a derivative through it at
     # the canonical frame (gimbal lock for Euler angles) is finite and exact.
     A = [5.0 1.0 0.5; 1.0 8.0 2.0; 0.5 2.0 12.0]
-    d = ForwardDiff.derivative(x -> proj_tens(:ORTHO, x * A, CanonicalBasis{3, Float64}())[1], 1.0)
+    d = ForwardDiff.derivative(x -> project(x * A, :ORTHO, CanonicalBasis{3, Float64}())[1], 1.0)
     @test d ≈ Diagonal(diag(A))
     R = Matrix(qr(randn(Xoshiro(3), 3, 3)).Q); det(R) < 0 && (R[:, 1] .*= -1)
-    Br, _, _ = proj_tens(:ORTHO, A, RotatedBasis(R))
+    Br, _, _ = project(A, :ORTHO, RotatedBasis(R))
     @test Br ≈ R * Diagonal(diag(transpose(R) * A * R)) * transpose(R)
 end

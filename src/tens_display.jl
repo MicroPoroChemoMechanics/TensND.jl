@@ -66,8 +66,8 @@ prints `𝐞ʳ`, `𝐞ᶿ`, … rather than `𝐞₁`, `𝐞₂`, ….
     — it changes with the chart — whereas "intrinsic" denotes the basis-free
     form. `print_tensor` was misleading in turn, because the fallback below
     accepts a **scalar**, and `pprint` is the name MPCM already uses for a
-    generic pretty-printer (`ChemistryLab.pprint`). Both former names still work
-    and forward here, with a deprecation warning.
+    generic pretty-printer (`ChemistryLab.pprint`). Both former names were
+    removed in 0.11.
 
 # Examples
 ```julia
@@ -143,10 +143,5 @@ function _pprint_string(t::AbstractTens{order, dim, T}; vec = '𝐞', coords = n
     return length(s) > 0 ? s : "0"
 end
 
-
-@deprecate intrinsic(t; kwargs...) pprint(t; kwargs...)
-@deprecate intrinsic(t, CS; kwargs...) pprint(t, CS; kwargs...)
-@deprecate print_tensor(t; kwargs...) pprint(t; kwargs...)
-@deprecate print_tensor(t, CS; kwargs...) pprint(t, CS; kwargs...)
 
 export pprint

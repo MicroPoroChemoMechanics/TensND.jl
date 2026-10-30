@@ -45,8 +45,8 @@ _og_tens(N, s, ℬ) = TensOrtho(
             # Change of basis in closed form, against the generic route.
             ℬ2 = RotatedBasis(0.3, 1.2, -0.8)
             @test _og_rel(
-                get_array(change_tens(A, ℬ2)),
-                get_array(change_tens(TensND.generic_tens(A), ℬ2)),
+                get_array(express(A, ℬ2)),
+                get_array(express(TensND.generic_tens(A), ℬ2)),
             ) < 1.0e-13
         end
         # The nine-constant form keeps its type, now with its length.
@@ -89,7 +89,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
         @test (A + B) isa TensOrtho{4, Float64, 12}
         @test (O + O) isa TensOrtho{4, Float64, 9}
         Ar = _og_tens(N2, (4.0, 3.5, 2.5), RotatedBasis(0.1, 0.2, 0.3))
-        @test !((A + Ar) isa TensOrtho) && components_canon(A + Ar) ≈ components_canon(A) + components_canon(Ar)
+        @test !((A + Ar) isa TensOrtho) && canonical_components(A + Ar) ≈ canonical_components(A) + canonical_components(Ar)
         # The frames are compared at run time: inferred as a small union of
         # tensors, never as `Any`.
         @test (@inferred TensND.AbstractTens{4, 3, Float64} A + O) isa TensOrtho
@@ -252,7 +252,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
         E = _og_frame(ℬ)
         D2 = [E * Diagonal(collect(d)) * transpose(E) for d in ((1, 1, 1), (1, -1, -1), (-1, 1, -1), (-1, -1, 1))]
         D2h = vcat(D2, [-Q for Q in D2])
-        rot2(A, Q) = Q * A * transpose(Q)
+        rotate2(A, Q) = Q * A * transpose(Q)
         function rot4(A, Q)
             R = zeros(eltype(A), 3, 3, 3, 3)
             for i in 1:3, j in 1:3, k in 1:3, l in 1:3, a in 1:3, b in 1:3, c in 1:3, d in 1:3
@@ -264,8 +264,8 @@ _og_tens(N, s, ℬ) = TensOrtho(
         # Order 2: the inversion acts trivially, and the average is diagonal in
         # the frame, hence symmetric even for a non-symmetric tensor.
         A2 = [1.0 2.0 3.0; -4.0 5.0 6.0; 0.5 -7.0 8.0]
-        a2 = avg(rot2, A2, D2)
-        @test a2 ≈ avg(rot2, A2, D2h)
+        a2 = avg(rotate2, A2, D2)
+        @test a2 ≈ avg(rotate2, A2, D2h)
         M = transpose(E) * a2 * E
         @test M ≈ Diagonal(diag(M)) atol = 1.0e-14
         @test a2 ≈ transpose(a2)
@@ -275,7 +275,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
         G = get_array(TensND.generic_tens(Tens(SymmetricTensor{4, 3}((i, j, k, l) -> sin(i + 2j) * cos(3k - l) + i * j / (k + l)))))
         a4 = avg(rot4, Array(G), D2)
         @test a4 ≈ avg(rot4, Array(G), D2h)
-        Km = mandel(change_tens(Tens(a4), ℬ))
+        Km = mandel(express(Tens(a4), ℬ))
         @test Km[1:3, 4:6] ≈ zeros(3, 3) atol = 1.0e-13
         @test Km[4:6, 1:3] ≈ zeros(3, 3) atol = 1.0e-13
         @test Km[4:6, 4:6] ≈ Diagonal(diag(Km[4:6, 4:6])) atol = 1.0e-13
@@ -327,8 +327,8 @@ _og_tens(N, s, ℬ) = TensOrtho(
             @test !(Wo ⋅ A isa TensOrtho) && get_array(Wo ⋅ A) ≈ get_array(Wo) * get_array(A)
             @test !(A ⋅ Wo isa TensOrtho) && get_array(A ⋅ Wo) ≈ get_array(A) * get_array(Wo)
             T2 = TensTI{2}(1.5, 9.0, normalize([1.0, 2.0, 2.0]))
-            @test !((T2 + A) isa TensOrtho) && components_canon(T2 + A) ≈ components_canon(T2) + components_canon(A)
-            @test components_canon(A - T2) ≈ components_canon(A) - components_canon(T2)
+            @test !((T2 + A) isa TensOrtho) && canonical_components(T2 + A) ≈ canonical_components(T2) + canonical_components(A)
+            @test canonical_components(A - T2) ≈ canonical_components(A) - canonical_components(T2)
             @test_throws "axis_idx must be 1, 2 or 3" TensND.walpole_to_ortho(TensTI{2}(1.0, 2.0, E[:, 1]), ℬ, 0)
             # Double contraction with the order-4 classes, against the generic route.
             C = _og_tens(_OG_N, _OG_S, ℬ)
@@ -352,10 +352,10 @@ _og_tens(N, s, ℬ) = TensOrtho(
             end
             # Change of basis in closed form.
             ℬ2 = RotatedBasis(0.3, 1.2, -0.8)
-            @test get_array(change_tens(A, ℬ2)) ≈ get_array(change_tens(TensND.generic_tens(A), ℬ2)) rtol = 1.0e-13
-            @test components(A, ℬ2, (:cov, :cov)) ≈ get_array(change_tens(TensND.generic_tens(A), ℬ2)) rtol = 1.0e-13
+            @test get_array(express(A, ℬ2)) ≈ get_array(express(TensND.generic_tens(A), ℬ2)) rtol = 1.0e-13
+            @test components(A, ℬ2, (:cov, :cov)) ≈ get_array(express(TensND.generic_tens(A), ℬ2)) rtol = 1.0e-13
             # The order-2 projection returns the class.
-            P, d, _ = proj_tens(Val(:ORTHO), get_array(A) + [0 1 0; 1 0 0; 0 0 0], ℬ)
+            P, d, _ = project(get_array(A) + [0 1 0; 1 0 0; 0 0 0], Val(:ORTHO), ℬ)
             @test P isa TensOrtho{2}
             @test best_fit_ortho(A, ℬ) isa TensOrtho{2} && get_array(best_fit_ortho(A, ℬ)) ≈ get_array(A)
         end
@@ -364,8 +364,8 @@ _og_tens(N, s, ℬ) = TensOrtho(
         B = TensOrtho{2}(2.0, -1.0, 0.5, RotatedBasis(0.1, 0.2, 0.3))
         @test !(A ⋅ B isa TensOrtho) && get_array(A ⋅ B) ≈ get_array(A) * get_array(B)
         @test !(A ⊗ B isa TensOrtho)
-        @test !((A + B) isa TensOrtho) && components_canon(A + B) ≈ components_canon(A) + components_canon(B)
-        @test components_canon(A - B) ≈ components_canon(A) - components_canon(B)
+        @test !((A + B) isa TensOrtho) && canonical_components(A + B) ≈ canonical_components(A) + canonical_components(B)
+        @test canonical_components(A - B) ≈ canonical_components(A) - canonical_components(B)
         C = _og_tens(_OG_N, _OG_S, RotatedBasis(0.1, 0.2, 0.3))
         @test !(C ⊡ A isa TensOrtho) && !(A ⊡ C isa TensOrtho)
         @test occursin("(5.0) P₂", sprint(show, A))

@@ -80,8 +80,8 @@ and the coefficients on the three projectors are
 \gamma = 2C_{44}.
 ```
 
-[`tens_cubic`](@ref) builds one from ``(C_{11},C_{12},C_{44})`` and
-[`arg_cubic`](@ref) reads them back; the type stores the projector coefficients,
+[`cubic_from_constants`](@ref) builds one from ``(C_{11},C_{12},C_{44})`` and
+[`cubic_constants`](@ref) reads them back; the type stores the projector coefficients,
 following [`TensISO`](@ref)'s ``(3k,2\mu)`` rather than the engineering
 constants, because that is what makes the algebra below literal. The matrix in
 the canonical frame is [`mandel`](@ref) and the one above is
@@ -134,7 +134,7 @@ comparisons, rather than enumerating 24 rotations.
 
 The octahedral group leaves no second-order tensor invariant but a multiple of
 the identity, so there is no `TensCubic` at order 2 and
-`proj_tens(Val(:CUBIC), ::AbstractArray{T,2}, frame)` returns the isotropic
+`project(::AbstractArray{T,2}, Val(:CUBIC), frame)` returns the isotropic
 projection.
 
 This is not a technicality. It is why a cube-symmetric pore has a **single
@@ -206,7 +206,7 @@ the unstructured route rather than pretending otherwise.
 Pushing an arbitrary tensor *down* the chain is approximation, and is the
 subject of [Projection onto a symmetry class](@ref th-projection);
 [`best_fit_cubic`](@ref) is the entry point at a **fixed** cube frame,
-`proj_tens(Val(:CUBIC), A)` optimizes the orientation as it does for a TI axis
+`project(A, Val(:CUBIC))` optimizes the orientation as it does for a TI axis
 or an orthotropic frame, and both report how much was discarded.
 
 That the orientation can be optimized deserves a word, because the group is
