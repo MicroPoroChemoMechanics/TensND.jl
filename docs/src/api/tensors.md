@@ -47,6 +47,8 @@ structured tensor where the class allows it.
 
 ```@docs
 TensND.Tensors.majorsymmetric(::TensND.AbstractTens{4})
+TensND.Tensors.minorsymmetric(::TensND.AbstractTens{4})
+TensND.SymmetricFirstPair
 TensND.Tensors.symmetric(::TensND.AbstractTens{2})
 ```
 

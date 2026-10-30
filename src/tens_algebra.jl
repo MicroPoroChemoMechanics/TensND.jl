@@ -154,6 +154,40 @@ for TT1 in (Vec, SecondOrderTensor), TT2 in (Vec, SecondOrderTensor)
     @eval scontract(S1::$TT1, S2::$TT2) = dot(S1, S2)
 end
 
+# A vector with a fourth-order tensor, and the third-order result with a vector:
+# the two steps of `y ⋅ ℂ ⋅ y`, the acoustic tensor, on static arrays. The
+# general method reshapes into heap matrices for one BLAS product per step,
+# twenty times slower at these sizes. The sums run in index order with
+# `muladd`, so that the last bit may differ from the BLAS product's.
+function scontract(a::Vec{dim, T1}, C::FourthOrderTensor{dim, T2}) where {dim, T1, T2}
+    T = promote_type(T1, T2)
+    # Components read once into a full tensor: indexing the symmetric storage
+    # computes the position of every component, ten times slower.
+    Cf = Tensor{4, dim}(C)
+    return SArray{Tuple{dim, dim, dim}}(
+        ntuple(Val(dim^3)) do n
+            j, k, l = Tuple(CartesianIndices((dim, dim, dim))[n])
+            s = zero(T)
+            @inbounds for i in 1:dim
+                s = muladd(a[i], Cf[i, j, k, l], s)
+            end
+            s
+        end
+    )
+end
+function scontract(t::SArray{Tuple{dim, dim, dim}, T1}, b::Vec{dim, T2}) where {dim, T1, T2}
+    T = promote_type(T1, T2)
+    return Tensor{2, dim}(
+        @inline function (j, k)
+            s = zero(T)
+            @inbounds for l in 1:dim
+                s = muladd(t[j, k, l], b[l], s)
+            end
+            return s
+        end
+    )
+end
+
 """
     dot(t1::AbstractTens{order1,dim}, t2::AbstractTens{order2,dim})
 

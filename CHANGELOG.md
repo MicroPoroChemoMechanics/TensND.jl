@@ -23,6 +23,10 @@ its own instead of as half of a pair.
   constants, in closed form (``E_3 = C_{3333} - 2C_{1133}^2/(C_{1111} + C_{1122})``,
   …), without inverting.
 
+- `Tensors.minorsymmetric` on TensND tensors, the companion of
+  `majorsymmetric`: a structured tensor is its own minor-symmetric part, a
+  general one stays in its basis, stored symmetric.
+
 ### Changed
 
 - Each single reader computes its own modulus: `young_modulus` no longer
@@ -34,9 +38,17 @@ its own instead of as half of a pair.
   search stops at the first pair that differs, where nested generators
   allocated 155 kB per tensor. `Tens(::Tensor{4})` goes from 8.9 µs to 150 ns,
   with the same storage decisions.
-- `a ⊗ˢ N ⊗ˢ a`, the symmetrized product of a vector, a second-order tensor and
-  the vector (the integrand of a Hill tensor as it is defined), stays on static
-  arrays: 173 ns instead of 10.5 µs, with the same bits.
+- The Hill integrand as it is written, `y ⊗ˢ inv(y ⋅ ℂ ⋅ y) ⊗ˢ y`, in 82 ns
+  without allocation instead of about 11 µs, faster than the half sum of two
+  symmetrized box products: `a ⊗ˢ N` is computed on static arrays and its
+  symmetry in the first two indices is in its type (`SymmetricFirstPair`), so
+  that `⊗ˢ` with a vector next gives a `SymmetricTensor{4}`, with the bits of the
+  general method; `y ⋅ ℂ` and its contraction with a vector are computed on
+  static arrays too (`y ⋅ ℂ ⋅ y` in 39 ns instead of 773), the sums in index
+  order where the general method called BLAS, so that the last bit may differ.
+- Every constructor of a tensor builds its type from the stored array, once its
+  storage (symmetric or full) is decided, through a second method: about 100 ns
+  less on every construction, the same tensors.
 
 ### Documentation
 
