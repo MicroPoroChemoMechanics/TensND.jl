@@ -458,6 +458,8 @@ being those of ``E_1 = E``, ``E_3 = EH``, ``\\nu_{12} = \\nu_1``, ``\\nu_{31} = 
 ``G_{31} = E\\Gamma/(2(1 + \\nu_1))``. `role` is `:compliance` by default, and has
 no effect on `form = :components`. [`ti_constants`](@ref) reads the constants back.
 """
+function ti_from_constants end
+
 Base.@constprop :aggressive function ti_from_constants(
         c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components, role::Symbol = :compliance
     )
@@ -491,6 +493,8 @@ these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
 numbers. Otherwise it is refused, rather than read as if `ℓ₄`, `ℓ₇` and `ℓ₈` were
 not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant.
 """
+function ti_constants end
+
 Base.@constprop :aggressive function ti_constants(t::TensTI{4}; form::Symbol = :components, role::Symbol = :compliance)
     form === :components && return _ti_components(t)
     form === :engineering && return _constants(_role(role), Val(:engineering), _ti_components(t)...)

@@ -240,38 +240,23 @@ the conversion of a pair of moduli to another is
 """
 function lame_lambda end
 
-for (reader, kernel, what) in (
-        (:bulk_modulus, :_bulk, "The bulk modulus, in 2-D the in-plane one ``\\\\lambda + \\\\mu``,"),
-        (:shear_modulus, :_shear, "The shear modulus"),
-        (:lame_lambda, :_lame, nothing),
-        (:young_modulus, :_young, "Young's modulus"),
-        (:poisson_ratio, :_poisson, "Poisson's ratio"),
-        (:pwave_modulus, :_pwave, "The P-wave (oedometric) modulus ``M = \\\\lambda + 2\\\\mu``"),
+"The bulk modulus of an isotropic stiffness, in 2-D the in-plane one ``\\lambda + \\mu``, or of a compliance with `role = :compliance`; see [`lame_lambda`](@ref)."
+function bulk_modulus end
+"The shear modulus of an isotropic stiffness, or of a compliance with `role = :compliance`; see [`lame_lambda`](@ref)."
+function shear_modulus end
+"Young's modulus of an isotropic stiffness, or of a compliance with `role = :compliance`; see [`lame_lambda`](@ref)."
+function young_modulus end
+"The P-wave (oedometric) modulus ``M = \\lambda + 2\\mu`` of an isotropic stiffness, or of a compliance with `role = :compliance`; see [`lame_lambda`](@ref)."
+function pwave_modulus end
+
+for (reader, kernel) in (
+        (:bulk_modulus, :_bulk), (:shear_modulus, :_shear), (:lame_lambda, :_lame),
+        (:young_modulus, :_young), (:poisson_ratio, :_poisson), (:pwave_modulus, :_pwave),
     )
     @eval Base.@constprop :aggressive function $reader(t::TensISO{4, dim}; role::Symbol = :stiffness) where {dim}
         α, β = get_data(t)
         return $kernel(_role(role), Val(dim), α, β)
     end
-    what === nothing && continue
-    doc = "    $reader(t::TensISO{4}; role = :stiffness)\n\n$what of an isotropic stiffness, " *
-        "or of a compliance with `role = :compliance`; see [`lame_lambda`](@ref)."
-    @eval @doc $doc $reader(::TensISO{4})
-end
-
-# The readers of the pairs: the two moduli of their single readers.
-const _ISO_READERS = Dict(
-    :bulk => :bulk_modulus, :young => :young_modulus, :lame => :lame_lambda,
-    :shear => :shear_modulus, :poisson => :poisson_ratio, :pwave => :pwave_modulus,
-)
-for i in eachindex(_ISO_MODULI), j in (i + 1):length(_ISO_MODULI)
-    p, q = first(_ISO_MODULI[i]), first(_ISO_MODULI[j])
-    f, rp, rq = Symbol(p, :_, q), _ISO_READERS[p], _ISO_READERS[q]
-    @eval Base.@constprop :aggressive $f(t::TensISO{4}; role::Symbol = :stiffness) = ($rp(t; role), $rq(t; role))
-    (p, q) in ((:bulk, :shear), (:young, :poisson), (:shear, :poisson)) && continue
-    doc = "    $f(t::TensISO{4}; role = :stiffness) → ($(p), $(q))\n\nThe $(p) and $(q) moduli of an " *
-        "isotropic stiffness, or of a compliance with `role = :compliance` (`$rp(t; role)`, " *
-        "`$rq(t; role)`); see [`lame_lambda`](@ref) for the conventions."
-    @eval @doc $doc $f(::TensISO{4})
 end
 
 """
@@ -288,7 +273,7 @@ or [`best_fit_iso`](@ref) (the closest isotropic tensor).
 
 `k_mu` and `k_μ` are the same function, under the symbols of the moduli.
 """
-bulk_shear(::TensISO{4})
+function bulk_shear end
 
 """
     young_poisson(t::TensISO{4,dim}; role = :stiffness) → (E, ν)
@@ -306,7 +291,7 @@ and [`lame_lambda`](@ref) for every other modulus and pair.
 
 `E_nu` and `E_ν` are the same function, under the symbols of the moduli.
 """
-young_poisson(::TensISO{4})
+function young_poisson end
 
 """
     shear_poisson(t::TensISO{4,dim}; role = :stiffness) → (μ, ν)
@@ -318,7 +303,24 @@ whose plane-strain stiffness is `t` (see [`young_poisson`](@ref)).
 
 `mu_nu` and `μ_ν` are the same function, under the symbols of the moduli.
 """
-shear_poisson(::TensISO{4})
+function shear_poisson end
+
+# The readers of the pairs: the two moduli of their single readers.
+const _ISO_READERS = Dict(
+    :bulk => :bulk_modulus, :young => :young_modulus, :lame => :lame_lambda,
+    :shear => :shear_modulus, :poisson => :poisson_ratio, :pwave => :pwave_modulus,
+)
+for i in eachindex(_ISO_MODULI), j in (i + 1):length(_ISO_MODULI)
+    p, q = first(_ISO_MODULI[i]), first(_ISO_MODULI[j])
+    f, rp, rq = Symbol(p, :_, q), _ISO_READERS[p], _ISO_READERS[q]
+    @eval Base.@constprop :aggressive $f(t::TensISO{4}; role::Symbol = :stiffness) = ($rp(t; role), $rq(t; role))
+    (p, q) in ((:bulk, :shear), (:young, :poisson), (:shear, :poisson)) && continue
+    doc = "    $f(t::TensISO{4}; role = :stiffness) → ($(p), $(q))\n\nThe $(p) and $(q) moduli of an " *
+        "isotropic stiffness, or of a compliance with `role = :compliance` (`$rp(t; role)`, " *
+        "`$rq(t; role)`); see [`lame_lambda`](@ref) for the conventions."
+    @eval @doc $doc $f(::TensISO{4})
+end
+
 
 # The symbols: exact aliases of the functions named in words, shorter and closer
 # to the formulas, in ASCII and with Greek letters.
