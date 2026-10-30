@@ -115,8 +115,8 @@ end
 # Reading the Walpole coefficients of the three directly:
 
 for (name, t) in (("𝕀", 𝕀), ("𝕁", 𝕁), ("𝕂", 𝕂))
-    B, _, _ = proj_tens(:TI, arr(t), [0.0, 0.0, 1.0])
-    println(rpad(name, 3), " → (ℓ₁,…,ℓ₆) = ", round.(get_ℓ(B), digits = 6))
+    B, _, _ = project(arr(t), :TI, [0.0, 0.0, 1.0])
+    println(rpad(name, 3), " → (ℓ₁,…,ℓ₆) = ", round.(walpole_coeffs(B), digits = 6))
 end
 
 # ## The synthetic algebra
@@ -136,7 +136,7 @@ println("typeof(A⊡B) = ", typeof(P))
 # major-symmetric — ``L\,M\neq{}^{t}(L\,M)`` unless the blocks commute — so the
 # storage widens from `N=5` to `N=6`:
 
-ℓA, ℓB, ℓP = get_ℓ(A), get_ℓ(B), get_ℓ(P)
+ℓA, ℓB, ℓP = walpole_coeffs(A), walpole_coeffs(B), walpole_coeffs(P)
 LA = [ℓA[1] ℓA[3]; ℓA[4] ℓA[2]]
 LB = [ℓB[1] ℓB[3]; ℓB[4] ℓB[2]]
 
@@ -181,20 +181,20 @@ Ws = walpole_basis_sym(n)
 nv = [0.0, 0.0, 1.0]
 E₁, E₃, ν₁₂, ν₃₁, G₃₁ = 9.0, 140.0, 0.40, 0.30, 4.6
 
-𝕊 = tens_ti_eng(E₁, E₃, ν₁₂, ν₃₁, G₃₁, nv)     # compliance
+𝕊 = ti_from_constants(E₁, E₃, ν₁₂, ν₃₁, G₃₁, nv; form = :engineering)     # compliance
 ℂ = inv(𝕊)                                       # stiffness
 
-println("engineering → back      : ", round.(ti_args_eng(𝕊), digits = 8))
+println("engineering → back      : ", round.(ti_constants(𝕊; form = :engineering), digits = 8))
 println("‖ℂ:𝕊 − 𝕀‖               : ", norm(arr(ℂ ⊡ 𝕊) - arr(𝕀)))
 
 # The same compliance read in **component** form,
 # ``(S_{1111},S_{1122},S_{1133},S_{3333},S_{2323})``:
 
-round.(ti_args(𝕊), sigdigits = 6)
+round.(ti_constants(𝕊), sigdigits = 6)
 
 # and in **Hoenig** form, the dimensionless ratios:
 
-Eh, ν₁, ν₂, H, Γ = ti_args_hoenig(𝕊)
+Eh, ν₁, ν₂, H, Γ = ti_constants(𝕊; form = :hoenig)
 @printf "E  = %8.4f GPa\nν₁ = %8.4f\nν₂ = %8.4f\nH  = %8.4f   (axial/transverse modulus ratio)\nΓ  = %8.4f   (shear anisotropy)\n" Eh ν₁ ν₂ H Γ
 
 # ``H`` and ``\Gamma`` quantify the anisotropy directly and dimensionlessly:
@@ -203,13 +203,13 @@ Eh, ν₁, ν₂, H, Γ = ti_args_hoenig(𝕊)
 # modulus departs from its in-plane counterpart by rather less.
 # Rebuilding from the Hoenig parameters returns the same tensor:
 
-norm(arr(tens_ti_hoenig(Eh, ν₁, ν₂, H, Γ, nv)) - arr(𝕊))
+norm(arr(ti_from_constants(Eh, ν₁, ν₂, H, Γ, nv; form = :hoenig)) - arr(𝕊))
 
 # An isotropic material sits at the point ``H=\Gamma=1`` with
 # ``\nu_1=\nu_2`` — the Hoenig parameters measure departure from isotropy:
 
 𝕊iso = inv(3 * 20.0 * 𝕁 + 2 * 8.0 * 𝕂)
-Eᵢ, ν₁ᵢ, ν₂ᵢ, Hᵢ, Γᵢ = ti_args_hoenig(iso_to_ti(𝕊iso, nv))
+Eᵢ, ν₁ᵢ, ν₂ᵢ, Hᵢ, Γᵢ = ti_constants(iso_to_ti(𝕊iso, nv); form = :hoenig)
 @printf "E = %.6f   ν₁ = %.6f   ν₂ = %.6f   H = %.10f   Γ = %.10f\n" Eᵢ ν₁ᵢ ν₂ᵢ Hᵢ Γᵢ
 
 # ## The Walpole coefficients of the ply
@@ -218,7 +218,7 @@ Eᵢ, ν₁ᵢ, ν₂ᵢ, Hᵢ, Γᵢ = ti_args_hoenig(iso_to_ti(𝕊iso, nv))
 # ``2\times2`` blocks are inverse matrices and their ``\ell_5,\ell_6`` are
 # reciprocal:
 
-ℓC, ℓS = get_ℓ(ℂ), get_ℓ(𝕊)
+ℓC, ℓS = walpole_coeffs(ℂ), walpole_coeffs(𝕊)
 LC = [ℓC[1] ℓC[3]; ℓC[4] ℓC[2]]
 LS = [ℓS[1] ℓS[3]; ℓS[4] ℓS[2]]
 

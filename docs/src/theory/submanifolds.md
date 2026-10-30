@@ -79,8 +79,7 @@ slice ``\Gamma[:,:,d]`` (Gauss), and ``-b_\alpha{}^{\beta}`` in ``\Gamma[:,d,:]`
     components, they change under a change of chart by an inhomogeneous rule, and
     they can be made to vanish at any single point. A Riemann curvature tensor
     can do none of those things — which is why the accessor, once misleadingly
-    called `Riemann`, is now [`connection`](@ref). The old name still works and
-    forwards, with a deprecation warning.
+    called `Riemann`, is now [`connection`](@ref).
 
     For a sphere of radius ``R`` parametrized by ``(\theta,\varphi)`` the
     function returns
@@ -156,7 +155,7 @@ curvature sign agree, and it is pinned by a test
     ``R^2``, so the discrepancy even vanishes for ``R=1``.
 
     Bring both to a common basis and variance first —
-    [`components`](@ref)`(t, ℬ, var)` or [`change_tens`](@ref) — after which the
+    [`components`](@ref)`(t, ℬ, var)` or [`express`](@ref) — after which the
     difference is exactly zero in *every* variance. This is the practical face
     of [Bases and variance](@ref th-bases-variance): a tensor is not its
     component array, and only components in the same basis may be compared.

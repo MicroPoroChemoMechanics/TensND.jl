@@ -17,23 +17,23 @@ const _SK = TensND.Tensors
         # canonical one by the product: every intermediate keeps the symmetric storage.
         B = Basis(Matrix(random_rotation(rng)) + randn(rng, 3, 3), Val(:cov))
         P = rand(rng, Tens{4, 3}; definite = true)
-        δC = change_tens(rand(rng, Tens{4, 3}; definite = true), B)
-        @test get_array(change_tens(δC, CanonicalBasis{3, Float64}())) isa _SK.SymmetricTensor{4, 3}
+        δC = express(rand(rng, Tens{4, 3}; definite = true), B)
+        @test get_array(express(δC, CanonicalBasis{3, Float64}())) isa _SK.SymmetricTensor{4, 3}
         M = I4 + P ⊡ δC
         @test get_array(M) isa _SK.SymmetricTensor{4, 3}
         # The inverse is the inverse: M⁻¹ : M is the symmetric identity.
-        @test components_canon(inv(M) ⊡ M) ≈ components_canon(I4) atol = 1.0e-10
+        @test canonical_components(inv(M) ⊡ M) ≈ canonical_components(I4) atol = 1.0e-10
     end
     # At order 2, a symmetric tensor stays symmetric, components and storage.
     for _ in 1:20
         B = Basis(Matrix(random_rotation(rng)) + randn(rng, 3, 3), Val(:cov))
         K = rand(rng, Tens{2, 3}; definite = true)
-        KB = change_tens(K, B)
+        KB = express(K, B)
         @test get_array(KB) isa _SK.SymmetricTensor{2, 3}
-        @test components_canon(KB) ≈ components_canon(K)
+        @test canonical_components(KB) ≈ canonical_components(K)
     end
     # A pair of different variances is not symmetrized.
-    T2 = change_tens(rand(rng, Tens{2, 3}; definite = true), Basis(Matrix(random_rotation(rng)) + 0.3 * randn(rng, 3, 3), Val(:cov)), (:cont, :cov))
+    T2 = express(rand(rng, Tens{2, 3}; definite = true), Basis(Matrix(random_rotation(rng)) + 0.3 * randn(rng, 3, 3), Val(:cov)), (:cont, :cov))
     @test get_var(T2) == (:cont, :cov)
 end
 

@@ -30,7 +30,7 @@ _tensors() = (
 _vals(x::Number) = Float64[x]
 _vals(x::AbstractArray) = Float64.(vec(collect(x)))
 _vals(t::AbstractTens) = _vals(get_array(t))
-_canon(t) = _vals(change_tens(t, _CANON))
+_canon(t) = _vals(express(t, _CANON))
 
 function golden_cases()
     T = _tensors()
@@ -39,7 +39,7 @@ function golden_cases()
     for (name, t) in pairs(T)
         push!(cases, "$name/own" => () -> _vals(t))
         push!(cases, "$name/canonical" => () -> _canon(t))
-        push!(cases, "$name/other_basis" => () -> _vals(change_tens(t, _R2)))
+        push!(cases, "$name/other_basis" => () -> _vals(express(t, _R2)))
         push!(cases, "$name/KM" => () -> _vals(mandel(t)))
         push!(cases, "$name/inv" => () -> _canon(inv(t)))
         push!(cases, "$name/dcontract_order2" => () -> _canon(t ⊡ S))
@@ -59,7 +59,7 @@ function golden_cases()
     push!(cases, "order2/otimesu" => () -> _canon(otimesu(S, S)))
     push!(cases, "order2/sotimes" => () -> _canon(sotimes(S, S)))
     push!(cases, "order2/inv" => () -> _canon(inv(S)))
-    push!(cases, "order2/rotated" => () -> _vals(change_tens(S, _R)))
+    push!(cases, "order2/rotated" => () -> _vals(express(S, _R)))
     return cases
 end
 

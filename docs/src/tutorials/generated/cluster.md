@@ -72,7 +72,7 @@ The unit vector along the separation, brought back to the canonical basis:
 
 ````@example cluster
 𝐍 = Δ𝐱 / ρ
-𝐧 = tsimplify(change_tens_canon(𝐍))
+𝐧 = tsimplify(canonical(𝐍))
 ````
 
 ## The Green operator

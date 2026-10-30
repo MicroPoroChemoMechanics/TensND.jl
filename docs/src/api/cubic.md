@@ -12,8 +12,8 @@ one.
 
 ```@docs
 TensCubic
-tens_cubic
-arg_cubic
+cubic_from_constants
+cubic_constants
 cubic_anisotropy
 iso_to_cubic
 cubic_to_ortho

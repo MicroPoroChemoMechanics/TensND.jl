@@ -100,7 +100,7 @@ projections:
 using TensND, ForwardDiff, LinearAlgebra
 
 n = [0.0, 0.0, 1.0]
-f(α) = get_data(proj_tens(:TI, get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), n)[1])[1]
+f(α) = get_data(project(get_array(ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [sin(α), 0.0, cos(α)])), :TI, n)[1])[1]
 
 ad = ForwardDiff.derivative(f, 0.3)
 fd = (f(0.3 + 1.0e-6) - f(0.3 - 1.0e-6)) / 2.0e-6

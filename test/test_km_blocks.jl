@@ -30,7 +30,7 @@ using TensND.StaticArrays: SMatrix, SVector
         n = collect(random_axis(rng))
         ℬ = frame_from_axis(n)
         Kn = acoustic_tensor(SMatrix{6, 6}(mandel(C, ℬ)))
-        @test Array(get_array(change_tens(acoustic_tensor(C, n), ℬ))) ≈ Kn atol = 1.0e-10
+        @test Array(get_array(express(acoustic_tensor(C, n), ℬ))) ≈ Kn atol = 1.0e-10
         k, μ = 2.0, 0.8
         λ = k - 2μ / 3
         @test acoustic_tensor(iso_km(k, μ)) ≈ Diagonal([μ, μ, λ + 2μ]) atol = 1.0e-12
@@ -63,7 +63,7 @@ using TensND.StaticArrays: SMatrix, SVector
             n̂ = TensND.tens_basis(ℬ, 3)
             Yt = Tens(Y, ℬ)
             H = from_mandel(mandel_op_embed(compliance_op_block(Y)), ℬ)
-            @test Array(components_canon(H)) ≈ Array(components_canon(n̂ ⊗ˢ Yt ⊗ˢ n̂)) atol = 1.0e-14
+            @test Array(canonical_components(H)) ≈ Array(canonical_components(n̂ ⊗ˢ Yt ⊗ˢ n̂)) atol = 1.0e-14
         end
     end
 
@@ -134,8 +134,8 @@ end
         @test collect(sym3_inv(S[1, 1], S[2, 2], S[3, 3], S[1, 2], S[1, 3], S[2, 3])) ≈ vec(inv(S))
         ℂ = rand(rng, Tens{4, 3}; definite = true)
         ζ = randn(rng, 3)                          # a direction of any length
-        A = acoustic_components(Array(components_canon(ℂ)), ζ)
-        Kζ = components_canon(acoustic_tensor(ℂ, ζ))
+        A = acoustic_components(Array(canonical_components(ℂ)), ζ)
+        Kζ = canonical_components(acoustic_tensor(ℂ, ζ))
         @test collect(A) ≈ [Kζ[1, 1], Kζ[2, 2], Kζ[3, 3], Kζ[1, 2], Kζ[1, 3], Kζ[2, 3]]
     end
     # Derivatives: d(K⁻¹)/dx = -K⁻¹ (dK/dx) K⁻¹ for K(x) = K₀ + x E.

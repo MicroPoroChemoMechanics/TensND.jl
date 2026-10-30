@@ -125,17 +125,17 @@ end
     for i in 1:3, var in (:cov, :cont)
         e = @inferred tens_basis(ℬ, i, Val(var))
         @test get_array(e) isa Vec{3, Float64}
-        @test components_canon(e) == vecbasis(ℬ, var)[:, i]
+        @test canonical_components(e) == vecbasis(ℬ, var)[:, i]
     end
     e = @inferred tens_basis(RotatedBasis(0.3), 2)
-    @test components_canon(e) ≈ vecbasis(RotatedBasis(0.3))[:, 2]
+    @test canonical_components(e) ≈ vecbasis(RotatedBasis(0.3))[:, 2]
     @test (@inferred tens_basis(CanonicalBasis{3, Float64}(), 1)) == Tens(Vec{3}((1.0, 0.0, 0.0)))
     # Above dimension 3 the components stay a `Vector`, as `tensor_or_array`
     # keeps them (whose storage it then decides at run time).
     ℬ₄ = Basis(Matrix(1.0I, 4, 4) + [0 0 0 0; 0 0 0 0; 0 1 0 0; 0 0 0 0])
     e₄ = tens_basis(ℬ₄, 2)
     @test get_array(e₄) isa Vector{Float64}
-    @test components_canon(e₄) == vecbasis(ℬ₄)[:, 2]
+    @test canonical_components(e₄) == vecbasis(ℬ₄)[:, 2]
 end
 
 @testsection "Bases from contravariant vectors" begin

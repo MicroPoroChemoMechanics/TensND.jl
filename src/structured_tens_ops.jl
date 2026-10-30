@@ -59,13 +59,13 @@ end
 # Minor-symmetric by construction, so the `SymmetricTensor` is built from its 36
 # independent components in closed form (`getindex`), instead of all 81 into an
 # array whose symmetry `_store_symmetric` then checks: the same storage,
-# `change_tens`, `⊡` and every path through `_static_tensor` without the detour.
+# `express`, `⊡` and every path through `_static_tensor` without the detour.
 @inline _static_tensor(t::Union{TensTI{4}, TensOrtho{4}, TensCubic}) =
     SymmetricTensor{4, 3, eltype(t)}((i, j, k, l) -> @inbounds t[i, j, k, l])
 
 # An isotropic tensor of order 2 or 4 is symmetric by construction too: built at
 # the static dimension of its type, where the array route read the dimension at
-# run time and left `change_tens` uninferred.
+# run time and left `express` uninferred.
 @inline _static_tensor(t::TensISO{order, dim}) where {order, dim} =
     order in (2, 4) && dim in (2, 3) ?
     SymmetricTensor{order, dim, eltype(t)}((ij...) -> @inbounds t[ij...]) :
@@ -102,7 +102,7 @@ _part(f, t::AbstractTens) = _part(f, t, get_basis(t))
 _part(f, t::AbstractTens, ℬ::Union{CanonicalBasis, AbstractBasis{<:Any, <:Real}}) =
     Tens(f.(Array(get_array(t))), ℬ, get_var(t))
 _part(f, t::AbstractTens{order, dim}, ::AbstractBasis) where {order, dim} =
-    Tens(f.(Array(components_canon(t))), CanonicalBasis{dim, real(eltype(t))}())
+    Tens(f.(Array(canonical_components(t))), CanonicalBasis{dim, real(eltype(t))}())
 
 # ── Coefficients: rebuild, norms of the coefficient basis, flat vectors ──────
 
@@ -185,12 +185,12 @@ export rebuild, param_norms, to_vector, from_vector
 # A structured tensor is written with its canonical components already (its
 # axis or frame is carried apart): rewriting it in the canonical basis is the
 # identity, and keeps its class.
-change_tens_canon(t::Union{TensISO, TensTI, TensOrtho, TensCubic}) = t
+canonical(t::Union{TensISO, TensTI, TensOrtho, TensCubic}) = t
 
 # A generic tensor is generic already: `generic_tens` writes it in the canonical
 # basis, its own components rotated if need be (they are not canonical in
 # another basis). The structured classes keep `generic_tens(t::AbstractTens)`,
 # their components being canonical.
-generic_tens(t::TensArray) = change_tens_canon(t)
+generic_tens(t::TensArray) = canonical(t)
 
 export generic_tens

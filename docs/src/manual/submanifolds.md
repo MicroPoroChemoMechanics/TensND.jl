@@ -26,7 +26,7 @@ Sphere = Submanifold(
     Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,);
     rules = Dict(abs(sin(θ)) => sin(θ)),
 )
-tsimplify.(components_canon(normal(Sphere)))
+tsimplify.(canonical_components(normal(Sphere)))
 ```
 
 !!! note "Use `rules` to resolve sign ambiguities"
@@ -72,8 +72,8 @@ tsimplify.(get_array(curvature(Sphere)) + get_array(submetric(Sphere)) / R)
 !!! note "`connection` — renamed from `Riemann`"
     [`connection`](@ref) returns the **connection coefficients** (Christoffel
     symbols) of the induced metric, never a Riemann curvature tensor. The old
-    name `Riemann` named the wrong object; it still works and forwards, with a
-    deprecation warning. For the sphere it
+    name `Riemann` named the wrong object, and was removed in 0.11. For the
+    sphere it
     gives ``\Gamma^\theta_{\varphi\varphi}=-\sin\theta\cos\theta`` and
     ``\Gamma^\varphi_{\theta\varphi}=\cot\theta``. These are connection
     coefficients: not tensor components, and removable at any single point.

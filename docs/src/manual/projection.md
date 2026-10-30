@@ -4,11 +4,11 @@ Finding the closest tensor of a given material symmetry, and identifying which
 symmetry a tensor has. The algorithms are on
 [Projection onto a symmetry class](@ref th-projection).
 
-## `proj_tens`
+## `project`
 
 ```julia
-B, d, drel = proj_tens(sym, A)              # orientation searched
-B, d, drel = proj_tens(sym, A, n_or_frame)  # orientation given
+B, d, drel = project(A, sym)              # orientation searched
+B, d, drel = project(A, sym, n_or_frame)  # orientation given
 ```
 
 with `sym ∈ (:ISO, :TI, :ORTHO, :CUBIC)`, `A` an order-2 or order-4 array or
@@ -27,9 +27,9 @@ tolerance on it is independent of the units of the moduli.
 using TensND, LinearAlgebra
 
 n = [0.0, 0.0, 1.0]
-C = get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n))
+C = get_array(ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n))
 
-B, d, drel = proj_tens(:TI, C, n)
+B, d, drel = project(C, :TI, n)
 (typeof(B), drel)
 ```
 
@@ -37,7 +37,7 @@ Projecting onto a class the tensor already belongs to is exact. Projecting about
 the wrong axis is not:
 
 ```@example proj
-[round(proj_tens(:TI, C, [sind(α), 0.0, cosd(α)])[3], digits = 5) for α in (0, 15, 30, 45, 90)]
+[round(project(C, :TI, [sind(α), 0.0, cosd(α)])[3], digits = 5) for α in (0, 15, 30, 45, 90)]
 ```
 
 That function of the orientation is what the search minimizes.
@@ -50,9 +50,9 @@ it:
 ```@example proj
 θ, ϕ = 0.6, 1.1
 n_tilt = [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]
-C_tilt = get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt))
+C_tilt = get_array(ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n_tilt))
 
-B_opt, _, drel_opt = proj_tens(:TI, C_tilt)
+B_opt, _, drel_opt = project(C_tilt, :TI)
 (round.(collect(axis(B_opt)), digits = 8), drel_opt)
 ```
 
@@ -66,7 +66,7 @@ Newton's method on the angles from the best ones, with no random step — so
 repeated calls return bit-identical results:
 
 ```@example proj
-length(unique([proj_tens(:TI, C_tilt)[3] for _ in 1:5]))
+length(unique([project(C_tilt, :TI)[3] for _ in 1:5]))
 ```
 
 ## `best_sym_tens`
@@ -93,7 +93,7 @@ best_sym_tens(Tens(C_tilt))[4]
 | `optimize_angles` | axis / frame |
 | :--- | :--- |
 | `false` (default) | from the tensor if it is a structured container, otherwise from the Kelvin–Mandel eigenstructure |
-| `true` | searched, as by `proj_tens(sym, A)` |
+| `true` | searched, as by `project(A, sym)` |
 
 !!! note "The cheap path is usually enough"
     The eigenstructure candidate is **exact** whenever the tensor genuinely has
@@ -110,8 +110,8 @@ coinciding there.
 
 ```@example proj
 ℬ = CanonicalBasis{3, Float64}()
-cub = tens_cubic(10.0, 4.0, 2.0, ℬ)
-B, d, drel = proj_tens(:CUBIC, get_array(cub), ℬ)
+cub = cubic_from_constants(10.0, 4.0, 2.0, ℬ)
+B, d, drel = project(get_array(cub), :CUBIC, ℬ)
 drel
 ```
 
@@ -156,8 +156,8 @@ give different materials:
 
 ```@example proj
 ort = TensOrtho(10.0, 8.0, 9.0, 3.0, 2.0, 4.0, 2.5, 3.0, 1.5, CanonicalBasis{3, Float64}())
-Biso, _, _ = proj_tens(:ISO, get_array(ort))
-Siso, _, _ = proj_tens(:ISO, get_array(inv(ort)))
+Biso, _, _ = project(get_array(ort), :ISO)
+Siso, _, _ = project(get_array(inv(ort)), :ISO)
 round(norm(get_array(inv(Biso)) - get_array(Siso)) / norm(get_array(Siso)), digits = 4)
 ```
 

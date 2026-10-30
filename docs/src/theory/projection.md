@@ -22,7 +22,7 @@ orientation is fixed. With the Frobenius scalar product of
 ```
 
 so ``\mathbb{B}^\star`` is the **orthogonal projection** of ``\mathbb{A}`` onto
-``\mathcal{S}``. [`proj_tens`](@ref) returns the triple
+``\mathcal{S}``. [`project`](@ref) returns the triple
 
 | Returned | Meaning |
 | :------- | :------ |
@@ -195,7 +195,7 @@ removes any risk of the analytic expression drifting from the code.
 
 ### The search
 
-When the orientation is free, [`proj_tens`](@ref) searches it, with no
+When the orientation is free, [`project`](@ref) searches it, with no
 dependency beyond `ForwardDiff`:
 
 1. the objective is **screened** on a fixed, quasi-uniform set of orientations:

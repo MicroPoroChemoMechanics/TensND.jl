@@ -21,12 +21,12 @@
 
         @test SM isa Submanifold{3}
 
-        n = components_canon(normal(SM))
+        n = canonical_components(normal(SM))
         # Unit normal.
         @test _at(sum(n .^ 2), θ, ϕ, R) == 1
 
         # Orthogonal to both tangent vectors ∂OM/∂θ and ∂OM/∂ϕ.
-        OMc = components_canon(OM)
+        OMc = canonical_components(OM)
         for c in (θ, ϕ)
             tang = [tdiff(OMc[i], c) for i in 1:3]
             @test _at(sum(n .* tang), θ, ϕ, R) == 0
@@ -94,7 +94,7 @@
         @test tsimplify(b[2, 2]) == 0
 
         # Unit normal, radial.
-        n = components_canon(normal(SM))
+        n = canonical_components(normal(SM))
         @test tsimplify(sum(n .^ 2) - 1) == 0
     end
 
@@ -118,7 +118,7 @@
         @test all(tsimplify.(connection(SM)) .== 0)
 
         # Normal is the constant e₃.
-        n = components_canon(normal(SM))
+        n = canonical_components(normal(SM))
         @test tsimplify(n[1]) == 0
         @test tsimplify(n[2]) == 0
         @test tsimplify(abs(n[3]) - 1) == 0
@@ -142,7 +142,7 @@
         @test tsimplify(∂(f, symbols("w", real = true), SM)) == 0
 
         # grad of a scalar, expressed in the canonical basis.
-        g = components_canon(grad(f, SM))
+        g = canonical_components(grad(f, SM))
         @test tsimplify(g[1] - 2x * y) == 0
         @test tsimplify(g[2] - (x^2 + 3)) == 0
 
@@ -150,7 +150,7 @@
         @test tsimplify(laplacian(f, SM) - 2y) == 0
 
         # hess is the gradient of the gradient; its trace is the Laplacian.
-        H = components_canon(hess(f, SM))
+        H = canonical_components(hess(f, SM))
         @test tsimplify(H[1, 1] + H[2, 2] - 2y) == 0
 
         # divergence of a vector field on the plane.
@@ -158,7 +158,7 @@
         @test tsimplify(divergence(V, SM) - (2x + 3y^2)) == 0
 
         # symgrad of a vector field is the symmetric part of grad.
-        S = components_canon(symgrad(V, SM))
+        S = canonical_components(symgrad(V, SM))
         @test tsimplify(S[1, 2] - S[2, 1]) == 0
     end
 

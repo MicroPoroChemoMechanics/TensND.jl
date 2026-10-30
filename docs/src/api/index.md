@@ -11,7 +11,7 @@ curated, so a newly exported symbol can never go undocumented.
 | [Structured tensors](structured.md) | `TensISO` and the isotropic projectors |
 | [Walpole and orthotropy](walpole.md) | `TensTI`, `TensOrtho`, parametrizations |
 | [Cubic symmetry](cubic.md) | `TensCubic`, three constants and a cube frame |
-| [Projection](projection.md) | `proj_tens`, `best_sym_tens`, predicates |
+| [Projection](projection.md) | `project`, `best_sym_tens`, predicates |
 | [Special tensors](special.md) | Levi-Civita, rotations, unit vectors, random tensors |
 | [Coordinate systems](coorsystems.md) | `CoordinateSystem`, its exact geometry and the operators |
 | [Numerical coordinate systems](coorsystems_num.md) | `PointwiseGeometry` |
@@ -19,34 +19,32 @@ curated, so a newly exported symbol can never go undocumented.
 | [Symbolic helpers](symbolic.md) | `tsimplify`, `tsubs`, and the array algebra |
 | [Full index](full_index.md) | everything, alphabetically |
 
-## [Renamed in 0.8](@id api-renamed-0-8)
+## [Renamed in 0.11](@id api-renamed-0-11)
 
-TensND 0.8 names its functions as Julia does: lowercase, a proper name included,
-as `cholesky` or `schur` in LinearAlgebra; types keep their capitals. The former
-names still work and warn once, naming their successor; they will be removed in
-a later minor release. The moduli keep their symbols as exact aliases, without a
-warning.
+TensND 0.11 names each operation after what it does. The former names are
+removed, without a deprecation period, as are those 0.8 had
+deprecated (`KM`, `tens_TI`, `Walpole`, `coorsys_*_num`, …: the
+[changelog](https://github.com/MicroPoroChemoMechanics/TensND.jl/blob/main/CHANGELOG.md)
+lists them with their successors). The moduli keep their symbols as exact
+aliases: `E_nu`, `k_mu`, `mu_nu` and `iso_stiffness_E_nu` are
+[`young_poisson`](@ref), [`bulk_shear`](@ref), [`shear_poisson`](@ref) and
+[`iso_stiffness_young_poisson`](@ref).
 
-| Former name | Name in 0.8 |
+| Name in 0.10 | Name in 0.11 |
 | :--- | :--- |
-| `KM`, `inv_KM` | [`mandel`](@ref), [`from_mandel`](@ref) |
-| `KM_material`, `KM_rotation` | [`mandel_material`](@ref), [`mandel_rotation`](@ref) |
-| `KM_from_ti_params`, `KM_from_ti8_params`, `KM_from_ortho_params`, `KM_from_cubic_params` | `mandel_from_ti_params`, `mandel_from_ti8_params`, `mandel_from_ortho_params`, `mandel_from_cubic_params` |
-| `ti_params_from_KM`, `ti8_params_from_KM`, `ortho_params_from_KM`, `cubic_params_from_KM` | `ti_params_from_mandel`, `ti8_params_from_mandel`, `ortho_params_from_mandel`, `cubic_params_from_mandel` |
-| `KM_IP`, `KM_OP` (constants) | [`MANDEL_IP`](@ref), [`MANDEL_OP`](@ref) |
-| `km_ip_block`, `km_op_block`, `km_ip_embed`, `km_op_embed`, `km_from_blocks`, `km_inv_schur` | `mandel_ip_block`, `mandel_op_block`, `mandel_ip_embed`, `mandel_op_embed`, `mandel_from_blocks`, `mandel_inv_schur` |
-| `is_ISO`, `is_TI`, `is_ORTHO`, `is_CUBIC` | [`isisotropic`](@ref), [`istransverselyisotropic`](@ref), [`isorthotropic`](@ref), [`iscubic`](@ref) |
-| `tens_TI`, `tens_TI_eng`, `tens_TI_Hoenig` | [`tens_ti`](@ref), [`tens_ti_eng`](@ref), [`tens_ti_hoenig`](@ref) |
-| `arg_TI`, `arg_TI_eng`, `arg_TI_Hoenig` | [`ti_args`](@ref), [`ti_args_eng`](@ref), [`ti_args_hoenig`](@ref) |
-| `fromISO` | [`iso_to_ti`](@ref) |
-| `ISO`, `Walpole` | [`iso_projectors`](@ref), [`walpole_basis`](@ref) (or [`walpole_basis_sym`](@ref) for `sym = true`) |
-| `LeviCivita` | [`levi_civita`](@ref) |
-| `Christoffel`, `Lame`, `getOM` | [`christoffel`](@ref), [`lame_coefficients`](@ref), [`position_vector`](@ref) |
-| `GRAD`, `SYMGRAD`, `DIV`, `LAPLACE`, `HESS` | [`grad`](@ref), [`symgrad`](@ref), [`divergence`](@ref), [`laplacian`](@ref), [`hess`](@ref) |
-| `CoorSystemSym`, `CoorSystemNum` (types and constructors) | [`CoordinateSystem`](@ref), of an [`ExactGeometry`](@ref) or a [`PointwiseGeometry`](@ref) |
-| `coorsys_cartesian_num`, `coorsys_polar_num`, `coorsys_cylindrical_num`, `coorsys_spherical_num` | `coorsys_cartesian(PointwiseGeometry)`, … (with an optional element type, `coorsys_polar(PointwiseGeometry, Float32)`) |
-| `SubManifoldSym` | [`Submanifold`](@ref) |
-| `E_nu`, `k_mu`, `mu_nu`, `iso_stiffness_E_nu` | [`young_poisson`](@ref), [`bulk_shear`](@ref), [`shear_poisson`](@ref), [`iso_stiffness_young_poisson`](@ref); the former names stay as aliases |
+| `change_tens(t, ℬ[, var])`, `change_tens(t, var)` | [`express`](@ref)`(t, ℬ[, var])`, `express(t, var)` |
+| `change_tens_canon(t)`, `components_canon(t)` | [`canonical`](@ref)`(t)`, [`canonical_components`](@ref)`(t)` |
+| `mandel66_minor(A)`, `mandel33_minor(A)`, `mandel66(A)` | [`mandel`](@ref)`(A; symmetrize = true)` |
+| `array_from_mandel66(M)`, `array_from_mandel33(M)` | [`from_mandel`](@ref)`(M)` (its components: `get_array(from_mandel(M))`) |
+| `tens_ti(C…, n)`, `ti_args(t)` | [`ti_from_constants`](@ref)`(C…, n)`, [`ti_constants`](@ref)`(t)` |
+| `tens_ti_eng(…)`, `ti_args_eng(t)` | `ti_from_constants(…; form = :engineering)`, `ti_constants(t; form = :engineering)` |
+| `tens_ti_hoenig(…)`, `ti_args_hoenig(t)` | `ti_from_constants(…; form = :hoenig)`, `ti_constants(t; form = :hoenig)` |
+| `tens_cubic(C₁₁, C₁₂, C₄₄, frame)`, `arg_cubic(t)` | [`cubic_from_constants`](@ref), [`cubic_constants`](@ref) |
+| `get_ℓ(t)`, `get_ℓ8(t)` | [`walpole_coeffs`](@ref)`(t)`, `walpole_coeffs(t, Val(8))` |
+| `getcoords` | [`get_coords`](@ref) |
+| `rot2(θ)`, `rot3(θ, ϕ, ψ)`, `rot6(θ, ϕ, ψ)` | [`rotation_matrix`](@ref)`(θ)`, `rotation_matrix(θ, ϕ, ψ)`, [`rotation_tensor4`](@ref)`(θ, ϕ, ψ)` |
+| `proj_tens(:TI, A, n)` | [`project`](@ref)`(A, :TI, n)` |
+| `ti_average_mandel66`, `iso_average_mandel66`, `ti_average_mat33` | [`ti_average_mandel`](@ref), [`iso_average_mandel`](@ref), [`ti_average_matrix`](@ref) |
 
 `divergence` is Tensors.jl's function, extended to the coordinate systems, so
 that `using TensND, Tensors` leaves one `divergence`. The Hessian is `hess`, not

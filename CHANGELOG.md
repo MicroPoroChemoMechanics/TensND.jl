@@ -1,6 +1,6 @@
 # Changelog
 
-## v0.11.0 — symmetries kept through a change of basis, Kelvin–Mandel vectors
+## v0.11.0 — one name per operation, symmetries kept through a change of basis, Kelvin–Mandel vectors
 
 A minor release. Its fixes: a tensor stored with its symmetries, written in
 another basis, could come back in full storage: from a non-orthonormal basis
@@ -11,12 +11,48 @@ failed, or inverted round-off, on tensors that were perfectly invertible: in
 MeanFieldHomogenization, the dilute localization `inv(𝕀 + ℙ : δℂ)` of a matrix
 written in a random non-orthonormal basis failed in 2 cases of 200. Its
 additions: the tensor operations MeanFieldHomogenization kept for itself, so
-that a tensor computation has one home.
+that a tensor computation has one home. And its names: each operation now has
+one name, which says what it does (`express` a tensor in a basis, `project` it
+on a class, `ti_constants` of a transversely isotropic tensor), where 0.10 had
+several (`mandel`, `mandel66`, `mandel66_minor`, `mandel33_minor` for one
+matrix) or abbreviations (`rot6`, `get_ℓ8`, `arg_cubic`). The former names are
+removed rather than deprecated, together with those 0.8 had deprecated, so
+that the package and its documentation show only one vocabulary.
 
 ### Breaking changes
 
-- None in the API. As for any minor release before 1.0, a `[compat]` entry
-  `TensND = "0.10"` does not accept 0.11: dependents widen it.
+- Renamed, the former names removed:
+
+  | 0.10 | 0.11 |
+  | :--- | :--- |
+  | `change_tens(t, ℬ[, var])`, `change_tens(t, var)` | `express(t, ℬ[, var])`, `express(t, var)` |
+  | `change_tens_canon(t)`, `components_canon(t)` | `canonical(t)`, `canonical_components(t)` |
+  | `mandel66_minor(A)`, `mandel33_minor(A)`, `mandel66(A)` | `mandel(A; symmetrize = true)` |
+  | `array_from_mandel66(M)`, `array_from_mandel33(M)` | `from_mandel(M)`, a tensor (`get_array` for its components) |
+  | `tens_ti(C…, n)`, `ti_args(t)` | `ti_from_constants(C…, n)`, `ti_constants(t)` |
+  | `tens_ti_eng`, `ti_args_eng` | `ti_from_constants(…; form = :engineering)`, `ti_constants(t; form = :engineering)` |
+  | `tens_ti_hoenig`, `ti_args_hoenig` | `ti_from_constants(…; form = :hoenig)`, `ti_constants(t; form = :hoenig)` |
+  | `tens_cubic`, `arg_cubic` | `cubic_from_constants`, `cubic_constants` |
+  | `get_ℓ(t)`, `get_ℓ8(t)` | `walpole_coeffs(t)`, `walpole_coeffs(t, Val(8))` |
+  | `getcoords` | `get_coords` |
+  | `rot2(θ)`, `rot3(θ, ϕ, ψ)`, `rot6(θ, ϕ, ψ)` | `rotation_matrix(θ)`, `rotation_matrix(θ, ϕ, ψ)`, `rotation_tensor4(θ, ϕ, ψ)` |
+  | `proj_tens(:TI, A, n)` | `project(A, :TI, n)`: the tensor first, as in every other function |
+  | `ti_average_mandel66`, `iso_average_mandel66`, `ti_average_mat33` | `ti_average_mandel`, `iso_average_mandel`, `ti_average_matrix` |
+
+  `rot3(θ)` with one angle was a 3D rotation; `rotation_matrix(θ)` is the 2D
+  one, so the 3D rotation takes at least two angles. The moduli keep their
+  symbols as exact aliases (`E_nu`, `k_mu`, `mu_nu`, `iso_stiffness_E_nu`).
+- Removed, deprecated since 0.8: `KM`, `inv_KM`, `KM_material`, `KM_rotation`,
+  `KM_IP`, `KM_OP`, the `*_from_KM` and `KM_from_*` parameter forms, the
+  `km_*` blocks, `is_ISO`, `is_TI`, `is_ORTHO`, `is_CUBIC`, `tens_TI`,
+  `tens_TI_eng`, `tens_TI_Hoenig`, `arg_TI`, `arg_TI_eng`, `arg_TI_Hoenig`,
+  `fromISO`, `ISO`, `Walpole`, `LeviCivita`, `Christoffel`, `Lame`, `getOM`,
+  `GRAD`, `SYMGRAD`, `DIV`, `LAPLACE`, `HESS`, `CoorSystemSym`, `CoorSystemNum`,
+  `SubManifoldSym`, `coorsys_*_num`, the fields `χ_func`, `R_func`, `Γ_func` of
+  a pointwise system (`CS.geometry.χ_func`, …), `intrinsic`, `print_tensor` and
+  `Riemann`; the 0.8 and 0.3 sections of this file give their successors.
+- As for any minor release before 1.0, a `[compat]` entry `TensND = "0.10"`
+  does not accept 0.11: dependents widen it.
 
 ### Added
 
@@ -33,9 +69,32 @@ that a tensor computation has one home.
   the kernels of the integrals over directions of MeanFieldHomogenization's
   anisotropic Hill tensors, moved here.
 
+- The isotropic elastic moduli, all of them: the stiffness from any of the
+  fifteen pairs of the bulk modulus `k`, Young's modulus `E`, Lamé's `λ`, the
+  shear modulus `μ`, Poisson's ratio `ν` and the P-wave modulus `M`
+  (`iso_stiffness_bulk_young`, …, `iso_stiffness_poisson_pwave`), each modulus
+  read from a stiffness (`bulk_modulus`, `young_modulus`, `lame_lambda`,
+  `shear_modulus`, `poisson_ratio`, `pwave_modulus`) and each pair
+  (`young_shear`, `lame_poisson`, …), so that any conversion is one composition.
+  The builders take `Val(2)` for the plane-strain stiffness, with the in-plane
+  bulk modulus as `bulk_shear` reads it. The pairs without `M` have the short
+  names of their symbols, in ASCII and in Greek letters (`k_mu` and `k_μ`,
+  `E_nu` and `E_ν`, `λ_μ`, `iso_stiffness_E_ν`, …), the former ones kept. No
+  formula branches on a value: symbols and dual numbers go through.
+- `plane_strain_stiffness` and `plane_stress_stiffness`, the in-plane stiffness
+  of an isotropic material under either hypothesis, and
+  `plane_stress_to_plane_strain`, `plane_strain_to_plane_stress`, the moduli
+  with which one is computed as the other. A manual page, *Elastic moduli*,
+  gives the formulas of every conversion.
+- `mandel(t; symmetrize = true)`, on a tensor, a Tensors.jl tensor or a
+  component array, of order 2 or 4, in 3D or 2D: the Kelvin–Mandel form of the
+  minor-symmetric part of the components, whatever their storage, with no
+  assumption of major symmetry, read exactly (to the last bit) where the
+  components have the minor symmetries.
+
 ### Fixed
 
-- `change_tens` keeps the symmetries of a tensor stored symmetric when both
+- `express` (formerly `change_tens`) keeps the symmetries of a tensor stored symmetric when both
   indices of each symmetric pair keep the same variance: the new components
   are symmetrized as the constructor symmetrizes those that pass its test, but
   unconditionally. Where the old components passed the test, the bits are

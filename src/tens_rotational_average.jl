@@ -36,94 +36,48 @@
 # ── Kelvin-Mandel helpers (minor-symmetric, Tensors.jl index convention) ─────
 
 const _MANDEL_IDX = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
-
-"""
-    mandel66_minor(arr::AbstractArray{T,4}) → Matrix{T} (6×6)
-
-Kelvin-Mandel 6×6 matrix of a 4th-order array, minor-symmetrizing on read
-(exactly, so tensors that are minor-symmetric up to round-off are cleanly
-projected).  Index convention (11, 22, 33, 23, 13, 12), weights √2.
-
-Unlike [`mandel`](@ref) this makes no assumption of major symmetry and never goes
-through a `Tensors.SymmetricTensor`, so it accepts a concentration tensor.
-"""
-function mandel66_minor(arr::AbstractArray{T, 4}) where {T}
-    sq2 = sqrt(T(2))
-    Λ(I) = I ≤ 3 ? one(T) : sq2
-    M = Matrix{T}(undef, 6, 6)
-    @inbounds for I in 1:6, J in 1:6
-        (i, j) = _MANDEL_IDX[I]
-        (k, l) = _MANDEL_IDX[J]
-        v = (arr[i, j, k, l] + arr[j, i, k, l] + arr[i, j, l, k] + arr[j, i, l, k]) / 4
-        M[I, J] = Λ(I) * Λ(J) * v
-    end
-    return M
-end
-
-"""
-    array_from_mandel66(M::AbstractMatrix{T}) → Array{T,4}
-
-Inverse of [`mandel66_minor`](@ref): rebuild the (exactly minor-symmetric)
-3×3×3×3 array from a 6×6 Kelvin-Mandel matrix.
-"""
-function array_from_mandel66(M::AbstractMatrix{T}) where {T}
-    sq2 = sqrt(T(2))
-    Λ(I) = I ≤ 3 ? one(T) : sq2
-    arr = Array{T, 4}(undef, 3, 3, 3, 3)
-    @inbounds for I in 1:6, J in 1:6
-        (i, j) = _MANDEL_IDX[I]
-        (k, l) = _MANDEL_IDX[J]
-        v = M[I, J] / (Λ(I) * Λ(J))
-        arr[i, j, k, l] = v
-        arr[j, i, k, l] = v
-        arr[i, j, l, k] = v
-        arr[j, i, l, k] = v
-    end
-    return arr
-end
-
-"""
-    mandel66(arr::AbstractArray{T,4}) → Matrix{T} (6×6)
-    mandel66(t::AbstractTens{4,3}) → Matrix (6×6)
-
-Kelvin-Mandel 6×6 matrix of a 4th-order array (of a tensor: its canonical
-components) read as it is, with no averaging of the minor symmetries: entry
-`(I, J)` is `wᵢ wⱼ A[i,j,k,l]` for the pairs `(i,j)`, `(k,l)` of `I`, `J` in the
-order (11, 22, 33, 23, 13, 12), `w = √2` on the last three. On a minor-symmetric
-array it is [`mandel66_minor`](@ref) to the last bit of the averaging.
-"""
-function mandel66(arr::AbstractArray{T, 4}) where {T}
-    sq2 = sqrt(T(2))
-    w(I) = I ≤ 3 ? one(T) : sq2
-    return [w(I) * w(J) * arr[_MANDEL_IDX[I]..., _MANDEL_IDX[J]...] for I in 1:6, J in 1:6]
-end
-mandel66(t::AbstractTens{4, 3}) = mandel66(components_canon(t))
-
 const _MANDEL_IDX_2D = ((1, 1), (2, 2), (1, 2))
 
-"""
-    mandel33_minor(arr::AbstractArray{T,4}) → Matrix{T} (3×3)
-    array_from_mandel33(M::AbstractMatrix{T}) → Array{T,4} (2×2×2×2)
+# The Kelvin-Mandel components of the minor-symmetric part of a component array,
+# read as it is, with no assumption of major symmetry (a concentration tensor
+# has none), for `mandel(A; symmetrize = true)`. The four entries of a pair are
+# summed two by two, so that on a minor-symmetric array the average is exact:
+# `((a + a) + (a + a)) / 4 == a` to the last bit.
+_minor_part(A, i, j, k, l) = ((A[i, j, k, l] + A[j, i, k, l]) + (A[i, j, l, k] + A[j, i, l, k])) / 4
+_minor_part(A, i, j) = (A[i, j] + A[j, i]) / 2
 
-The two-dimensional counterparts of [`mandel66_minor`](@ref) and
-[`array_from_mandel66`](@ref): the Kelvin-Mandel 3×3 matrix of a 2×2×2×2 array,
-minor-symmetrized on read, in the order (11, 22, 12) with weight `√2` on the
-last; and the minor-symmetric array it comes from.
-"""
-function mandel33_minor(arr::AbstractArray{T, 4}) where {T}
-    sq2 = sqrt(T(2))
-    Λ(I) = I ≤ 2 ? one(T) : sq2
-    v(i, j, k, l) = (arr[i, j, k, l] + arr[j, i, k, l] + arr[i, j, l, k] + arr[j, i, l, k]) / 4
-    return [Λ(I) * Λ(J) * v(_MANDEL_IDX_2D[I]..., _MANDEL_IDX_2D[J]...) for I in 1:3, J in 1:3]
+_mandel_pairs(::Val{3}) = _MANDEL_IDX
+_mandel_pairs(::Val{2}) = _MANDEL_IDX_2D
+
+function _mandel_minor(A::AbstractArray{T, 4}) where {T}
+    d = size(A, 1)
+    d == 3 && return _mandel_minor(A, Val(3))
+    d == 2 && return _mandel_minor(A, Val(2))
+    throw(DimensionMismatch("no Kelvin-Mandel matrix for a component array of size $(size(A))"))
 end
 
-"The minor-symmetric 2×2×2×2 array of a 3×3 Kelvin-Mandel matrix; see [`mandel33_minor`](@ref)."
-function array_from_mandel33(M::AbstractMatrix{T}) where {T}
-    sq2 = sqrt(T(2))
-    Λ(I) = I ≤ 2 ? one(T) : sq2
-    slot(i, j) = i == j ? i : 3
-    return [M[slot(i, j), slot(k, l)] / (Λ(slot(i, j)) * Λ(slot(k, l))) for i in 1:2, j in 1:2, k in 1:2, l in 1:2]
+function _mandel_minor(A::AbstractArray{T, 2}) where {T}
+    d = size(A, 1)
+    d == 3 && return _mandel_minor(A, Val(3))
+    d == 2 && return _mandel_minor(A, Val(2))
+    throw(DimensionMismatch("no Kelvin-Mandel vector for a component array of size $(size(A))"))
 end
+
+function _mandel_minor(A::AbstractArray{T, 4}, v::Val{dim}) where {T, dim}
+    w = _mandel_weights(T, v)
+    P = _mandel_pairs(v)
+    return [w[I] * w[J] * _minor_part(A, P[I]..., P[J]...) for I in eachindex(P), J in eachindex(P)]
+end
+
+function _mandel_minor(A::AbstractArray{T, 2}, v::Val{dim}) where {T, dim}
+    w = _mandel_weights(T, v)
+    P = _mandel_pairs(v)
+    return [w[I] * _minor_part(A, P[I]...) for I in eachindex(P)]
+end
+
+# The weights of the Kelvin-Mandel slots: one on the normal pairs, √2 on the shear ones.
+_mandel_weights(::Type{T}, ::Val{3}) where {T} = (one(T), one(T), one(T), sqrt(T(2)), sqrt(T(2)), sqrt(T(2)))
+_mandel_weights(::Type{T}, ::Val{2}) where {T} = (one(T), one(T), sqrt(T(2)))
 
 """
     _axis_frame(n) → (R, n̂)
@@ -179,7 +133,7 @@ end
 # whose columns are `E`: `Qᵀ M Q`, `Q` the Kelvin-Mandel matrix of `E ⊠ˢ E`
 # (`_km_congruence`), orthogonal for any orthogonal `E`, left-handed included.
 # A 6×6 congruence instead of the 81 components rotated index by index, and
-# minor symmetrization (`mandel66_minor`) commutes with it.
+# minor symmetrization (`mandel(A; symmetrize = true)`) commutes with it.
 function _km_in_frame_of(M::AbstractMatrix, E::AbstractMatrix)
     Q = _km_congruence(E)
     return transpose(Q) * SMatrix{6, 6}(M) * Q
@@ -286,7 +240,7 @@ end
 #
 # `ℓ₇` and `ℓ₈` (the antisymmetric azimuthal couplings of the `N = 8` form)
 # contribute to neither invariant — W₇ and W₈ annihilate `𝟏` and are purely
-# off-diagonal in Kelvin-Mandel, hence traceless — so `get_ℓ`, which drops
+# off-diagonal in Kelvin-Mandel, hence traceless — so `walpole_coeffs`, which drops
 # them, is the right accessor here.
 #
 # Motivation: `get_array` rebuilds all 81 components from the Walpole basis,
@@ -294,7 +248,7 @@ end
 # larger than the answer. This path also speeds up a numeric polycrystal
 # self-consistent scheme, where the average runs once per phase per iteration.
 function isotropify(t::TensTI{4})
-    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = get_ℓ(t)
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = walpole_coeffs(t)
     r2 = sqrt(2 * one(eltype(t)))
     α = (ℓ₁ + 2ℓ₂ + r2 * (ℓ₃ + ℓ₄)) / 3
     β = (ℓ₁ + ℓ₂ + 2ℓ₅ + 2ℓ₆ - α) / 5
@@ -371,34 +325,34 @@ function transverse_isotropify(t::TensTI{4}, n)
 end
 
 """
-    proj_tens(::Val{:TI6}, t, n) → (TensTI{4,T,6}, d, drel)
+    project(t, ::Val{:TI6}, n) → (TensTI{4,T,6}, d, drel)
 
 Projection of a fourth-order tensor with the minor symmetries onto the
 transversely isotropic tensors about `n` **without** major symmetry: the six
 Walpole coefficients, ℓ₃ ≠ ℓ₄ allowed — the class of a strain or flux
-concentration tensor, where `proj_tens(Val(:TI), …)` returns the
+concentration tensor, where `project(A, Val(:TI), …)` returns the
 major-symmetric five. It is the exact average about `n`
 ([`transverse_isotropify`](@ref)) without its two coefficients odd in `n`
 (ℓ₇, ℓ₈), which a reflection through the plane normal to `n` reverses: the
 orthogonal projection onto the tensors invariant under that reflection too.
 `d` is the Frobenius distance to `t`, `drel` its ratio to `‖t‖`.
 """
-function proj_tens(::Val{:TI6}, t::AbstractTens{4, 3}, n)
+function project(t::AbstractTens{4, 3}, ::Val{:TI6}, n)
     a = transverse_isotropify(t, n)
-    ℓ = get_ℓ8(a)
+    ℓ = walpole_coeffs(a, Val(8))
     B = TensTI{4}(ℓ[1], ℓ[2], ℓ[3], ℓ[4], ℓ[5], ℓ[6], axis(a))
     d = norm(generic_tens(B) - t)
     nt = norm(t)
     return B, d, iszero(nt) ? d : d / nt
 end
-proj_tens(v::Val{:TI6}, A::AbstractArray{T, 4}, n) where {T} = proj_tens(v, Tens(A), n)
+project(A::AbstractArray{T, 4}, v::Val{:TI6}, n) where {T} = project(Tens(A), v, n)
 
 function _transverse_isotropify(t::AbstractTens{4, 3}, R, n̂)
     # The averaging frame `R` (columns u, v, n̂ in canonical coordinates) is
     # brought into the orthonormal frame `t` is written in, a 3×3 product: the
     # components of `t` are rotated once, into `R`, and never to canonical first.
     arr, Q = _orthonormal_components(t)
-    p = ti8_params_from_mandel(_km_in_frame_of(mandel66_minor(arr), _frame_in(Q, R)))
+    p = ti8_params_from_mandel(_km_in_frame_of(_mandel_minor(arr), _frame_in(Q, R)))
     return TensTI{4}(p..., n̂)
 end
 
@@ -458,12 +412,12 @@ end
 # motivating case.
 
 """
-    ti_average_mandel66(M::AbstractMatrix, n) → Matrix (6×6)
+    ti_average_mandel(M::AbstractMatrix, n) → Matrix (6×6)
 
 Exact azimuthal average about `n` of the minor-symmetric tensor whose 6×6
 Kelvin-Mandel matrix (Tensors.jl order) is `M`, returned as a 6×6 matrix.
 """
-function ti_average_mandel66(M::AbstractMatrix, n)
+function ti_average_mandel(M::AbstractMatrix, n)
     R, _ = _axis_frame(n)
     # Into the frame (e₁′, e₂′, n̂) of the columns of R, averaged there, and back:
     # `Q` is orthogonal, so the way back is its transpose.
@@ -473,23 +427,23 @@ function ti_average_mandel66(M::AbstractMatrix, n)
 end
 
 """
-    ti_average_mat33(M::AbstractMatrix, n) → Matrix (3×3)
+    ti_average_matrix(M::AbstractMatrix, n) → Matrix (3×3)
 
 Exact average about `n` of the second-order tensor whose canonical components
 are the 3×3 matrix `M`, returned as a matrix: `a (𝟏 − n⊗n) + b n⊗n + c [n]ₓ`,
 the in-plane antisymmetric part `c` kept (see [`transverse_isotropify`](@ref)).
-The order-2 counterpart of [`ti_average_mandel66`](@ref).
+The order-2 counterpart of [`ti_average_mandel`](@ref).
 """
-ti_average_mat33(M::AbstractMatrix, n) = Array(get_array(transverse_isotropify(Tens(Matrix(M)), n)))
+ti_average_matrix(M::AbstractMatrix, n) = Array(get_array(transverse_isotropify(Tens(Matrix(M)), n)))
 
 """
-    iso_average_mandel66(M::AbstractMatrix{T}) → (α, β)
+    iso_average_mandel(M::AbstractMatrix{T}) → (α, β)
 
 Exact SO(3) average of the minor-symmetric tensor whose Kelvin-Mandel matrix is
 `M`: `α = (1/3)Σ_{i,j≤3} M[i,j]`, `β = (tr M − α)/5`.  Returns the `(α, β)`
 coefficients of `α𝕁 + β𝕂`.
 """
-function iso_average_mandel66(M::AbstractMatrix{T}) where {T}
+function iso_average_mandel(M::AbstractMatrix{T}) where {T}
     α = (
         M[1, 1] + M[1, 2] + M[1, 3] + M[2, 1] + M[2, 2] +
             M[2, 3] + M[3, 1] + M[3, 2] + M[3, 3]
@@ -501,10 +455,8 @@ end
 # ── Exports ──────────────────────────────────────────────────────────────────
 
 export transverse_isotropify
-export mandel66_minor, array_from_mandel66
 export ti8_params_from_mandel, mandel_from_ti8_params
-export ti_average_mandel66, iso_average_mandel66, ti_average_mat33
-export mandel66, mandel33_minor, array_from_mandel33
+export ti_average_mandel, iso_average_mandel, ti_average_matrix
 
 """
     frame_from_axis(n; in_plane = nothing, T = nothing) -> RotatedBasis{3}

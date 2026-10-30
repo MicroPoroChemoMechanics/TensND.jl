@@ -194,7 +194,7 @@ equality: floating-point numbers, and `ForwardDiff.Dual` numbers built on them.
 existed a `Dual`-valued tensor fell through to the exact fallback, where a
 round-off of a few ulp was enough to report it as non-minor-symmetric. The
 consequence was not local: `_KM_of_array` then built a 9×9 matrix instead of a
-6×6 one, and every `proj_tens` call on a `Dual` input died with a
+6×6 one, and every `project` call on a `Dual` input died with a
 `DimensionMismatch` — automatic differentiation through a projection was
 impossible. Symbolic types keep their own exact methods and are unaffected.
 
@@ -481,7 +481,7 @@ Quadruple contraction: the last four indices of `t1` against the first four of
 
 Between two order-4 tensors it is the **Frobenius scalar product**
 `T ⊙ T' = Tᵢⱼₖₗ T'ᵢⱼₖₗ` — the inner product every projection in
-[`proj_tens`](@ref) minimizes against.
+[`project`](@ref) minimizes against.
 
 # Examples
 ```jldoctest

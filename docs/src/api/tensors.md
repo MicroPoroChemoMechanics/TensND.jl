@@ -7,9 +7,9 @@ The tensor hierarchy, component conversion and the Kelvin-Mandel map. Theory:
 AbstractTens
 Tens
 components
-components_canon
-change_tens
-change_tens_canon
+canonical_components
+express
+canonical
 generic_tens
 get_order
 get_basis

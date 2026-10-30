@@ -23,7 +23,7 @@ orientation, so it needs none stored. As [`TensTI`](@ref) and
 
 `TensISO{dim}(λ)` and `TensISO{dim}(α, β)`, plus the named ones
 [`tens_Id2`](@ref), [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref),
-[`iso_projectors`](@ref) and [`iso_projectors`](@ref).
+and [`iso_projectors`](@ref).
 
 # Examples
 ```jldoctest
@@ -218,9 +218,9 @@ components(
 components(t::TensISO{order, dim, T}, ::NTuple{order, Symbol}) where {order, dim, T} =
     get_array(t)
 
-change_tens(t::TensISO{order, dim}, ℬ::OrthonormalBasis{dim}) where {order, dim} =
+express(t::TensISO{order, dim}, ℬ::OrthonormalBasis{dim}) where {order, dim} =
     Tens(_static_tensor(t), ℬ)
-change_tens(
+express(
     t::TensISO{order, dim},
     ℬ::OrthonormalBasis{dim},
     ::NTuple{order, Symbol},
@@ -332,7 +332,7 @@ that cannot be answered on a `Symbolics.Num` and therefore concluded "not
 symmetric", so `mandel` of a symbolic isotropic tensor threw an `InexactError`.
 Displaying one did too, `show` going through `mandel`.
 """
-function mandel(A::TensISO{4, dim}) where {dim}
+function _mandel(A::TensISO{4, dim}) where {dim}
     α, β = get_data(A)
     m = dim * (dim + 1) ÷ 2
     sph = (α - β) / dim
@@ -349,7 +349,7 @@ function mandel(A::TensISO{4, dim}) where {dim}
     return M
 end
 
-function mandel(A::TensISO{2, dim}) where {dim}
+function _mandel(A::TensISO{2, dim}) where {dim}
     λ = get_data(A)[1]
     m = dim * (dim + 1) ÷ 2
     v = zeros(typeof(λ), m)
@@ -600,7 +600,7 @@ For an order-2 tensor this reduces to `tr(A)/dim · 𝟏`.
     corresponding compliance give different isotropic materials. State which one
     was projected whenever a result is reported.
 
-See also [`proj_tens`](@ref), [Isotropic tensors](@ref th-isotropic).
+See also [`project`](@ref), [Isotropic tensors](@ref th-isotropic).
 """
 isotropify(A::AbstractArray{T, 2}) where {T} = TensISO{size(A)[1]}(tr(A) / size(A)[1])
 
@@ -632,7 +632,7 @@ end
 
 TensISO(A::AbstractArray) = isotropify(Tens(A))
 
-function proj_tens(::Val{:ISO}, A::AbstractArray)
+function project(A::AbstractArray, ::Val{:ISO})
     norm = x -> tsimplify(√(sum(x .^ 2)))
     nA = norm(A)
     if nA == zero(eltype(A))
@@ -654,108 +654,4 @@ LinearAlgebra.issymmetric(::TensISO) = true
 Tensors.isminorsymmetric(::TensISO{4}) = true
 Tensors.ismajorsymmetric(::TensISO{4}) = true
 
-# ── Isotropic elastic moduli ───────────────────────────────────────────────────
-#
-# A 3-D isotropic stiffness is ℂ = 3k 𝕁 + 2μ 𝕂: its coefficients on the two
-# projectors are 3k and 2μ. A compliance is the inverse, 𝕊 = 𝕁/(3k) + 𝕂/(2μ),
-# and `inv` is exact on `TensISO`, so the moduli of a compliance are those of
-# `inv(𝕊)`: no second family of functions. Defined in three dimensions only; the
-# meaning of (k, μ) for a 2-D isotropic tensor depends on the plane hypothesis.
-
-"""
-    iso_stiffness(k, μ) → TensISO{4,3}
-
-Isotropic stiffness ``\\mathbb{C} = 3k\\,\\mathbb{J} + 2\\mu\\,\\mathbb{K}`` from the bulk
-modulus `k` and the shear modulus `μ`; the reciprocal of [`bulk_shear`](@ref). The
-compliance is `inv(iso_stiffness(k, μ))`.
-
-See also [`iso_stiffness_young_poisson`](@ref).
-"""
-iso_stiffness(k, μ) = TensISO{3}(3 * k, 2 * μ)
-
-"""
-    bulk_shear(ℂ::TensISO{4,dim}) → (k, μ)
-
-Bulk and shear moduli of an isotropic **stiffness** ``\\mathbb{C} = d\\,k\\,\\mathbb{J} +
-2\\mu\\,\\mathbb{K}`` in dimension ``d``: ``k`` relates the trace of the stress to the
-trace of the strain, ``\\mathrm{tr}\\,\\boldsymbol{\\sigma} = d\\,k\\,\\mathrm{tr}\\,\\boldsymbol{\\varepsilon}``.
-In 3-D it is the bulk modulus; in 2-D the in-plane (area) bulk modulus, ``\\lambda + \\mu``
-for the plane-strain restriction of a 3-D material. For a compliance
-``\\mathbb{S}``, use `bulk_shear(inv(𝕊))`. For a tensor that is not a `TensISO`, take its
-isotropic part first: [`isotropify`](@ref) (the exact rotation average) or
-[`best_fit_iso`](@ref) (the closest isotropic tensor).
-
-`k_mu` is the same function, under the symbols of the moduli.
-"""
-function bulk_shear(ℂ::TensISO{4, dim}) where {dim}
-    α, β = get_data(ℂ)
-    return α / dim, β / 2
-end
-
-"""
-    poisson_ratio(k, μ) → ν
-
-Poisson's ratio of a 3-D isotropic material from its bulk and shear moduli,
-``\\nu = (3k - 2\\mu)/(2(3k + \\mu))``.
-"""
-poisson_ratio(k, μ) = (3 * k - 2 * μ) / (2 * (3 * k + μ))
-
-"""
-    young_poisson(ℂ::TensISO{4,3}) → (E, ν)
-    young_poisson(ℂ::TensISO{4,2}) → (E, ν)
-
-Young's modulus and Poisson's ratio of an isotropic **stiffness**. In 3-D,
-``E = 9k\\mu/(3k + \\mu)`` and ``\\nu`` = [`poisson_ratio`](@ref)`(k, μ)`. In 2-D, those
-of the 3-D material whose plane-strain stiffness is ``\\mathbb{C}``: with
-``\\mathbb{C} = \\alpha\\,\\mathbb{J} + \\beta\\,\\mathbb{K}``, ``\\nu = (\\alpha - \\beta)/(2\\alpha)``
-and ``E = 2\\mu(1 + \\nu)``, ``\\mu = \\beta/2``. For a compliance, use `young_poisson(inv(𝕊))`.
-
-See also [`bulk_shear`](@ref), [`shear_poisson`](@ref), [`iso_stiffness_young_poisson`](@ref).
-
-`E_nu` is the same function, under the symbols of the moduli.
-"""
-function young_poisson(ℂ::TensISO{4, 3})
-    k, μ = bulk_shear(ℂ)
-    return 9 * k * μ / (3 * k + μ), poisson_ratio(k, μ)
-end
-function young_poisson(ℂ::TensISO{4, 2})
-    μ, ν = shear_poisson(ℂ)
-    return 2 * μ * (1 + ν), ν
-end
-
-"""
-    shear_poisson(ℂ::TensISO{4,dim}) → (μ, ν)
-
-Shear modulus and Poisson's ratio of an isotropic **stiffness**, the pair the
-Kelvin and plane-strain Green functions are written with; in 2-D, ``\\nu`` is
-that of the 3-D material whose plane-strain stiffness is ``\\mathbb{C}`` (see
-[`young_poisson`](@ref)).
-
-`mu_nu` is the same function, under the symbols of the moduli.
-"""
-shear_poisson(ℂ::TensISO{4, 3}) = (bulk_shear(ℂ)[2], young_poisson(ℂ)[2])
-function shear_poisson(ℂ::TensISO{4, 2})
-    α, β = get_data(ℂ)
-    return β / 2, (α - β) / (2 * α)
-end
-
-"""
-    iso_stiffness_young_poisson(E, ν) → TensISO{4,3}
-
-Isotropic stiffness from Young's modulus and Poisson's ratio,
-``k = E/(3(1 - 2\\nu))`` and ``\\mu = E/(2(1 + \\nu))``; the reciprocal of
-[`young_poisson`](@ref).
-
-`iso_stiffness_E_nu` is the same function, under the symbols of the moduli.
-"""
-iso_stiffness_young_poisson(E, ν) = iso_stiffness(E / (3 * (1 - 2 * ν)), E / (2 * (1 + ν)))
-
 export TensISO, tens_Id2, tens_Id4, tens_J4, tens_K4, iso_projectors, isotropify, isisotropic, istransverselyisotropic, isorthotropic
-export iso_stiffness, bulk_shear, young_poisson, iso_stiffness_young_poisson, poisson_ratio, shear_poisson
-
-# The moduli by their symbols: exact aliases of the functions named in words.
-const k_mu = bulk_shear
-const E_nu = young_poisson
-const mu_nu = shear_poisson
-const iso_stiffness_E_nu = iso_stiffness_young_poisson
-export k_mu, E_nu, mu_nu, iso_stiffness_E_nu

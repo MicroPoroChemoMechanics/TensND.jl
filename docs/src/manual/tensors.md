@@ -38,7 +38,7 @@ Data may come from a plain `Array`, or from a `Tensors.jl` container
 | [`components`](@ref)`(t, ℬ, var)` | components on `ℬ` with variance `var` |
 | [`components`](@ref)`(t, var)` | components on the tensor's own basis |
 | [`components`](@ref)`(t, ℬ)` | keeps the tensor's variance |
-| [`components_canon`](@ref)`(t)` | components in the canonical basis |
+| [`canonical_components`](@ref)`(t)` | components in the canonical basis |
 | [`get_array`](@ref)`(t)` | the **stored** array, as is |
 
 ```@example tens
@@ -55,7 +55,7 @@ components(V, ℬ, (:cov,))
     completely different `get_array`s. Comparing raw arrays is therefore
     meaningless unless both tensors are known to share a basis *and* a variance —
     bring them to a common one with [`components`](@ref) or
-    [`change_tens`](@ref) first. This is a real source of bugs; a worked
+    [`express`](@ref) first. This is a real source of bugs; a worked
     example is on [Submanifolds](@ref th-submanifolds).
 
     Indexing, `t[i, j, …]`, reads the same stored array. The structured types
@@ -71,18 +71,18 @@ components(V, ℬ, (:cov,))
 
 ## Changing basis
 
-[`change_tens`](@ref) returns a *tensor* re-expressed on another basis, where
+[`express`](@ref) returns a *tensor* re-expressed on another basis, where
 [`components`](@ref) returns a bare array:
 
 ```@example tens
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = init_spherical()[2]
 ℬˢ = init_spherical()[3]
 a = Tens(Vec{3}((i,) -> symbols("a$i", real = true)))
-A = Tens(rot3(symbols("θ", real = true), symbols("ϕ", real = true)) * get_array(a))
-simplify(change_tens(A, ℬˢ))
+A = Tens(rotation_matrix(symbols("θ", real = true), symbols("ϕ", real = true)) * get_array(a))
+simplify(express(A, ℬˢ))
 ```
 
-[`change_tens_canon`](@ref) is the shorthand for the canonical basis.
+[`canonical`](@ref) is the shorthand for the canonical basis.
 
 ## Accessors
 
@@ -140,7 +140,7 @@ Applied to a scalar it falls back to the rich `text/plain` display, so a
 symbolic expression comes out in SymPy's two-dimensional form:
 
 ```@example tens2
-laplacian(1 / getcoords(Spherical)[3], Spherical) |> pprint
+laplacian(1 / get_coords(Spherical)[3], Spherical) |> pprint
 ```
 
 Structured types print in their compact algebraic form instead — see
@@ -154,7 +154,7 @@ convention and what it buys are on
 [Kelvin–Mandel representation](@ref th-kelvin-mandel).
 
 ```@example tens2
-C = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
+C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
 mandel(C)
 ```
 

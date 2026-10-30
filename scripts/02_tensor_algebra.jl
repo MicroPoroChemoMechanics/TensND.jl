@@ -152,7 +152,7 @@ kiso = (Ct ⊙ get_array(𝕁)) / 3
 
 #-
 
-Biso, d, drel = proj_tens(:ISO, Ct)
+Biso, d, drel = project(Ct, :ISO)
 println("closest isotropic tensor : ", Biso)
 println("relative distance        : ", round(drel, sigdigits = 4))
 
@@ -166,7 +166,7 @@ norm(get_array(Biso) - (3kiso * get_array(𝕁) + 2μiso * get_array(𝕂)))
 # isotropic materials, because the Euclidean distance is not invariant under
 # inversion.
 
-Siso, _, _ = proj_tens(:ISO, get_array(inv(t)))
+Siso, _, _ = project(get_array(inv(t)), :ISO)
 lhs = get_array(inv(Biso))          # ISO(ℂ) then invert
 rhs = get_array(Siso)               # invert then ISO
 

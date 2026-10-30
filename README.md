@@ -48,7 +48,7 @@ shows a condensed version of it.
 ```julia
 julia> using SymPyPythonCall, TensND
 
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = getcoords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
 
 julia> @set_coorsys Spherical
 
@@ -155,13 +155,7 @@ The documentation is organized as a reading path:
 
 ## Release notes
 
-See [CHANGELOG.md](CHANGELOG.md). Three names have changed since v0.2.7, each keeping a deprecated alias that forwards:
-
-| Was | Is | Since | Why |
-| :--- | :--- | :--- | :--- |
-| `Riemann(SM)` | `connection(SM)` | v0.3.0 | it returns the connection coefficients of the induced metric, never a Riemann curvature tensor |
-| `intrinsic(t)` | `pprint(t)` | v0.3.0 | what it prints is explicitly *basis dependent*, the opposite of intrinsic |
-| `print_tensor(t)` | `pprint(t)` | v0.3.1 | its fallback method accepts a **scalar**, so the name promised more than it delivered; `pprint` is the MPCM-wide name for a pretty-printer |
+See [CHANGELOG.md](CHANGELOG.md). TensND 0.11 keeps one name per operation, named after what it does, and removes the former ones; the [API overview](https://MicroPoroChemoMechanics.github.io/TensND.jl/dev/api/) gives the correspondence.
 
 `@set_coorsys` no longer defines methods — it stores the default chart, alongside the new `set_coorsys!`, `default_coorsys` and `unset_coorsys!`. As a consequence `∂(t, x)` always means the plain derivative with respect to the symbol `x`; the covariant derivative is `∂(t, x, CS)`.
 

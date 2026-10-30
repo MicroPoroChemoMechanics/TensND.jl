@@ -56,7 +56,7 @@ Sphere = Submanifold(
 
 # The unit normal is the radial vector:
 
-tsimplify.(components_canon(normal(Sphere)))
+tsimplify.(canonical_components(normal(Sphere)))
 
 # First fundamental form — the familiar ``\mathrm{d}s^2=R^2\mathrm{d}\theta^2
 # +R^2\sin^2\theta\,\mathrm{d}\varphi^2``:

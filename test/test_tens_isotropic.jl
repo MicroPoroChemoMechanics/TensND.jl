@@ -334,8 +334,8 @@ end
         # and in a random one, with a dual coefficient.
         rng = Random.Xoshiro(20261029)
         𝕀 = TensISO{3}(3.0, 2.0)
-        canon(t) = Array(components_canon(t))
-        for G in (rand(rng, Tens{4, 3}), change_tens(rand(rng, Tens{4, 3}), random_basis(rng)))
+        canon(t) = Array(canonical_components(t))
+        for G in (rand(rng, Tens{4, 3}), express(rand(rng, Tens{4, 3}), random_basis(rng)))
             for op in (+, -, ⊡)
                 for (A, B) in ((𝕀, G), (G, 𝕀))
                     R = @inferred op(A, B)

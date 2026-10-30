@@ -1,13 +1,25 @@
 # ── Kelvin-Mandel notation ────────────────────────────────────────────────────
 
 """
-    mandel(t::AbstractTens{order,dim}; kwargs...)
-    mandel(t::AbstractTens{order,dim}, b::AbstractBasis{dim}; kwargs...)
-    mandel(t::AbstractTens{order,dim}, b::AbstractBasis{dim}, var::NTuple{order,Symbol}; kwargs...)
+    mandel(t; symmetrize = false, kwargs...)
+    mandel(t, b::AbstractBasis; symmetrize = false, kwargs...)
+    mandel(t, b::AbstractBasis, var::NTuple{order,Symbol}; symmetrize = false, kwargs...)
 
 Write the components of a second or fourth order tensor in Kelvin-Mandel notation,
 in its own basis or in the basis `b` (with the variances `var`, in the order of
-[`components`](@ref)). The keyword arguments go to `Tensors.tomandel`.
+[`components`](@ref)). `t` is a TensND tensor, a Tensors.jl one, or an array of
+components. A `TensISO`, `TensTI`, `TensOrtho` or `TensCubic` is written from its
+coefficients, in the canonical basis.
+
+The size follows the symmetries of the storage: a matrix 6×6 (3×3 in 2D) for a
+fourth-order tensor stored with its minor symmetries, 9×9 (4×4) otherwise, and a
+vector of 6 (3) or 9 (4) components at order 2. With `symmetrize = true` the
+result is the Kelvin-Mandel matrix or vector of the **minor-symmetric part** of
+the components, whatever the storage, with no assumption of major symmetry: the
+form a concentration tensor is handled in. On components that have the minor
+symmetries it reads them exactly, to the last bit.
+
+The other keyword arguments go to `Tensors.tomandel`.
 
 # Examples
 ```julia
@@ -34,21 +46,35 @@ julia> mandel(C)
       √2⋅C₂₁₁₁  √2⋅C₂₁₂₂  √2⋅C₂₁₃₃   2⋅C₂₁₃₂   2⋅C₂₁₃₁   2⋅C₂₁₂₁
 ```
 """
-mandel(t::Tensors.AllTensors; kwargs...) = tomandel(t; kwargs...)
-mandel(t::AbstractTens; kwargs...) = tomandel(get_array(t); kwargs...)
+mandel(t::Tensors.AllTensors; symmetrize::Bool = false, kwargs...) =
+    symmetrize ? _mandel_minor(t) : tomandel(t; kwargs...)
+mandel(t::AbstractTens; symmetrize::Bool = false, kwargs...) =
+    symmetrize ? _mandel_minor(get_array(t)) : _mandel(t; kwargs...)
 
-mandel(
-    t::AbstractTens{order, dim},
-    b::AbstractBasis{dim},
-    var::NTuple{order, Symbol};
-    kwargs...,
-) where {order, dim} = tomandel(_static_tensor(components(t, b, var), Val(dim), Val(order)); kwargs...)
+# Without symmetrization, a structured tensor has a method of its own, written
+# from its coefficients; any other is read from its stored components.
+_mandel(t::AbstractTens; kwargs...) = tomandel(get_array(t); kwargs...)
 
-mandel(t::AbstractTens{order, dim}, b::AbstractBasis{dim}; kwargs...) where {order, dim} =
-    tomandel(_static_tensor(components(t, b), Val(dim), Val(order)); kwargs...)
+function mandel(
+        t::AbstractTens{order, dim},
+        b::AbstractBasis{dim},
+        var::NTuple{order, Symbol};
+        symmetrize::Bool = false,
+        kwargs...,
+    ) where {order, dim}
+    c = components(t, b, var)
+    return symmetrize ? _mandel_minor(c) : tomandel(_static_tensor(c, Val(dim), Val(order)); kwargs...)
+end
 
+function mandel(t::AbstractTens{order, dim}, b::AbstractBasis{dim}; symmetrize::Bool = false, kwargs...) where {order, dim}
+    c = components(t, b)
+    return symmetrize ? _mandel_minor(c) : tomandel(_static_tensor(c, Val(dim), Val(order)); kwargs...)
+end
 
-mandel(t::AbstractArray; kwargs...) = mandel(Tens(t); kwargs...)
+# Constant-propagated, so that `symmetrize = true` written at the call infers
+# the matrix it returns rather than the union with the generic branch.
+Base.@constprop :aggressive mandel(t::AbstractArray; symmetrize::Bool = false, kwargs...) =
+    symmetrize ? _mandel_minor(t) : mandel(Tens(t); kwargs...)
 mandel(t::AbstractArray, b::AbstractBasis; kwargs...) = mandel(Tens(t), b; kwargs...)
 
 

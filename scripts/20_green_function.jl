@@ -34,7 +34,7 @@ using Tensors
 # ```
 
 Polar = coorsys_polar()
-r, θ = getcoords(Polar)
+r, θ = get_coords(Polar)
 𝐞ʳ, 𝐞ᶿ = unitvec(Polar)
 @set_coorsys Polar
 ℬᵖ = normalized_basis(Polar)
@@ -103,7 +103,7 @@ get_array(𝕜)[1, 1, 1, 1]
 # equivalently written with the bulk modulus, and the two forms must agree:
 
 Spherical = coorsys_spherical()
-θs, ϕs, rs = getcoords(Spherical)
+θs, ϕs, rs = get_coords(Spherical)
 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳˢ = unitvec(Spherical)
 ℬˢ = normalized_basis(Spherical)
 @set_coorsys Spherical

@@ -418,7 +418,7 @@ function coorsys_cartesian(::Type{PointwiseGeometry}, ::Type{T} = Float64) where
     χ_func = x -> fill(one(x[1]), dim)
     R_func = x -> [i == j ? one(x[1]) : zero(x[1]) for i in 1:dim, j in 1:dim]
     Γ_func = x -> zeros(typeof(x[1]), dim, dim, dim)
-    return _PointwiseSystem{dim, T}(χ_func, R_func, Γ_func)
+    return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
 end
 
 """
@@ -438,7 +438,7 @@ function coorsys_polar(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T 
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return _PointwiseSystem{dim, T}(χ_func, R_func, Γ_func)
+    return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
 end
 
 """
@@ -459,7 +459,7 @@ function coorsys_cylindrical(::Type{PointwiseGeometry}, ::Type{T} = Float64) whe
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return _PointwiseSystem{dim, T}(χ_func, R_func, Γ_func)
+    return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
 end
 
 """
@@ -489,7 +489,7 @@ function coorsys_spherical(::Type{PointwiseGeometry}, ::Type{T} = Float64) where
         ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
         _christoffel_orthogonal(χ, ∂χ)
     end
-    return _PointwiseSystem{dim, T}(χ_func, R_func, Γ_func)
+    return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
 end
 
 """

@@ -55,7 +55,7 @@ _rt_ks_bound(n) = 1.95 / sqrt(n)
         [rand(rng, TensTI{4}) for _ in 1:4]
     end
     @test length(v) == 4 && all(t -> t isa TensTI{4, Float64, 5}, v)
-    @test all(components_canon(a) == components_canon(b) for (a, b) in zip(v, w))
+    @test all(canonical_components(a) == canonical_components(b) for (a, b) in zip(v, w))
     m = Matrix{TensISO{4, 3, Float64}}(undef, 2, 3)
     @test rand!(Xoshiro(4), m) === m && all(t -> t isa TensISO{4, 3, Float64}, m)
     @test !isdefined(TensND, :random_tens)
@@ -64,17 +64,17 @@ _rt_ks_bound(n) = 1.95 / sqrt(n)
     @test @inferred(random_basis(_rt_rng)) isa RotatedBasis{3, Float64}
     @test random_rotation() isa TensND.StaticArrays.SMatrix && random_axis() isa NTuple{3} && random_basis() isa RotatedBasis
     # The same seed, the same tensor.
-    @test components_canon(rand(Xoshiro(7), TensOrtho{4})) == components_canon(rand(Xoshiro(7), TensOrtho{4}))
+    @test canonical_components(rand(Xoshiro(7), TensOrtho{4})) == canonical_components(rand(Xoshiro(7), TensOrtho{4}))
 end
 
 @testset "symmetries of the generic draws" begin
-    A = Array(components_canon(rand(_rt_rng, Tens{4, 3})))
+    A = Array(canonical_components(rand(_rt_rng, Tens{4, 3})))
     @test A ≈ permutedims(A, (2, 1, 3, 4)) && A ≈ permutedims(A, (3, 4, 1, 2))
-    A = Array(components_canon(rand(_rt_rng, Tens{4, 3}; symmetry = Val(:minor))))
+    A = Array(canonical_components(rand(_rt_rng, Tens{4, 3}; symmetry = Val(:minor))))
     @test A ≈ permutedims(A, (2, 1, 3, 4)) && A ≈ permutedims(A, (1, 2, 4, 3)) && !(A ≈ permutedims(A, (3, 4, 1, 2)))
-    A = Array(components_canon(rand(_rt_rng, Tens{4, 3}; symmetry = Val(:none))))
+    A = Array(canonical_components(rand(_rt_rng, Tens{4, 3}; symmetry = Val(:none))))
     @test !(A ≈ permutedims(A, (2, 1, 3, 4)))
-    A = Array(components_canon(rand(_rt_rng, Tens{2, 3})))
+    A = Array(canonical_components(rand(_rt_rng, Tens{2, 3})))
     @test A ≈ transpose(A)
 end
 
@@ -84,7 +84,7 @@ end
         @test minimum(spectrum(rand(_rt_rng, class; definite = true))) > 0
     end
     for class in (TensISO{2, 3}, TensTI{2}, TensOrtho{2}, Tens{2, 3}), _ in 1:50
-        @test minimum(eigvals(Symmetric(Array(components_canon(rand(_rt_rng, class; definite = true)))))) > 0
+        @test minimum(eigvals(Symmetric(Array(canonical_components(rand(_rt_rng, class; definite = true)))))) > 0
     end
     # Without the request, indefinite tensors come too.
     @test any(minimum(spectrum(rand(_rt_rng, TensOrtho{4}))) < 0 for _ in 1:50)
@@ -146,14 +146,14 @@ end
     # isotropic tensor about random axes: their mean is the isotropic part of
     # either, computed in closed form by `isotropify`.
     n = 4000
-    C = tens_cubic(10.0, 4.0, 2.0, CanonicalBasis{3, Float64}())
-    T = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, (0.0, 0.0, 1.0))
+    C = cubic_from_constants(10.0, 4.0, 2.0, CanonicalBasis{3, Float64}())
+    T = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, (0.0, 0.0, 1.0))
     for (draw, ref) in (
-            (() -> tens_cubic(10.0, 4.0, 2.0, random_basis(_rt_rng)), C),
-            (() -> tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, random_axis(_rt_rng)), T),
+            (() -> cubic_from_constants(10.0, 4.0, 2.0, random_basis(_rt_rng)), C),
+            (() -> ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, random_axis(_rt_rng)), T),
         )
-        m = sum(_ -> Array(components_canon(draw())), 1:n) / n
-        iso = Array(components_canon(isotropify(ref)))
+        m = sum(_ -> Array(canonical_components(draw())), 1:n) / n
+        iso = Array(canonical_components(isotropify(ref)))
         @test maximum(abs, m - iso) < 0.05 * maximum(abs, iso)
     end
 end
@@ -165,7 +165,7 @@ end
     n = 20_000
     ℛ = RotatedBasis(0.7, 2.1, -0.4)
     canonical = [Matrix(mandel(rand(_rt_rng, Tens{4, 3}))) for _ in 1:n]
-    rotated = [Matrix(mandel(change_tens(rand(_rt_rng, Tens{4, 3}), ℛ))) for _ in 1:n]
+    rotated = [Matrix(mandel(express(rand(_rt_rng, Tens{4, 3}), ℛ))) for _ in 1:n]
     for sample in (canonical, rotated)
         s = _rt_mean(K -> K .^ 2, sample)
         tol = 5 * sqrt(2 / length(sample))

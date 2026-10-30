@@ -5,9 +5,8 @@ tensors. Theory: [Rotations and Euler angles](@ref th-rotations).
 
 ```@docs
 levi_civita
-rot2
-rot3
-rot6
+rotation_matrix
+rotation_tensor4
 𝐞
 𝐞ᵖ
 𝐞ᶜ

@@ -94,36 +94,36 @@ end
 
     @testset "ti8_params_from_mandel — exact read-off in the e₃ frame" begin
         t = TensTI{4}(1.3, 2.1, 0.7, -0.4, 1.7, 0.9, 0.55, -0.22, (0.0, 0.0, 1.0))
-        p = ti8_params_from_mandel(mandel66_minor(get_array(t)))
-        @test all(p .≈ TensND.get_ℓ8(t))
+        p = ti8_params_from_mandel(mandel(get_array(t); symmetrize = true))
+        @test all(p .≈ TensND.walpole_coeffs(t, Val(8)))
         # Round trip through the Kelvin-Mandel form.
-        @test maximum(abs, mandel_from_ti8_params(p) .- mandel66_minor(get_array(t))) < 1.0e-13
+        @test maximum(abs, mandel_from_ti8_params(p) .- mandel(get_array(t); symmetrize = true)) < 1.0e-13
         # It is a projection, not just a read-off: a matrix that is NOT axially
         # invariant comes back as its azimuthal average.
         arr = _rand_minor4(rng)
-        q = ti8_params_from_mandel(mandel66_minor(arr))
+        q = ti8_params_from_mandel(mandel(arr; symmetrize = true))
         @test all(
             q .≈ ti8_params_from_mandel(
-                mandel66_minor(get_array(transverse_isotropify(Tens(arr), (0.0, 0.0, 1.0))))
+                mandel(get_array(transverse_isotropify(Tens(arr), (0.0, 0.0, 1.0))); symmetrize = true)
             )
         )
     end
 
-    @testset "mandel66_minor / array_from_mandel66 round trip" begin
+    @testset "mandel(·; symmetrize = true) / from_mandel round trip" begin
         arr = _rand_minor4(rng)
-        @test maximum(abs, array_from_mandel66(mandel66_minor(arr)) .- arr) < 1.0e-13
+        @test maximum(abs, get_array(from_mandel(mandel(arr; symmetrize = true))) .- arr) < 1.0e-13
     end
 
     @testset "the Mandel block forms agree with the tensor ones" begin
         arr = _rand_minor4(rng)
-        M = mandel66_minor(arr)
-        α, β = iso_average_mandel66(M)
+        M = mandel(arr; symmetrize = true)
+        α, β = iso_average_mandel(M)
         d = get_data(isotropify(Tens(arr)))
         @test α ≈ d[1]
         @test β ≈ d[2]
-        Mti = ti_average_mandel66(M, nax)
+        Mti = ti_average_mandel(M, nax)
         @test maximum(
-            abs, Mti .- mandel66_minor(get_array(transverse_isotropify(Tens(arr), nax)))
+            abs, Mti .- mandel(get_array(transverse_isotropify(Tens(arr), nax)); symmetrize = true)
         ) < 1.0e-11
     end
 
@@ -146,16 +146,16 @@ end
         @test g ≈ (f(2.0 + h) - f(2.0 - h)) / 2h atol = 1.0e-6
     end
 
-    @testset "best-fit projections are the projection component of proj_tens" begin
+    @testset "best-fit projections are the projection component of project" begin
         arr = _rand_minor4(rng)
         t = Tens(arr)
-        @test get_data(best_fit_iso(t)) == get_data(proj_tens(Val(:ISO), t)[1])
-        @test get_data(best_fit_ti(t, nax)) == get_data(proj_tens(Val(:TI), t, nax)[1])
+        @test get_data(best_fit_iso(t)) == get_data(project(t, Val(:ISO))[1])
+        @test get_data(best_fit_ti(t, nax)) == get_data(project(t, Val(:TI), nax)[1])
         # On a minor-symmetric tensor the isotropic fit IS the SO(3) average.
         @test all(get_data(best_fit_iso(t)) .≈ get_data(isotropify(t)))
         # The TI fit is NOT the azimuthal average: it forces major symmetry.
         ti_avg = transverse_isotropify(t, nax)
-        ℓ = TensND.get_ℓ(ti_avg)
+        ℓ = TensND.walpole_coeffs(ti_avg)
         @test !(ℓ[3] ≈ ℓ[4])                      # the average keeps ℓ₃ ≠ ℓ₄
         @test length(get_data(best_fit_ti(t, nax))) == 5   # the fit cannot
     end
@@ -167,36 +167,56 @@ end
         @test get_data(transverse_isotropify(t, (1, 1, 1))) ==
             get_data(transverse_isotropify(t, (1.0, 1.0, 1.0)))
         M = Matrix(mandel(t))
-        @test TensND.ti_average_mandel66(M, (1, 1, 1)) == TensND.ti_average_mandel66(M, (1.0, 1.0, 1.0))
+        @test TensND.ti_average_mandel(M, (1, 1, 1)) == TensND.ti_average_mandel(M, (1.0, 1.0, 1.0))
     end
 end
 
-@testsection "Mandel matrices: without averaging, in 2-D, and the TI average of a 3×3" begin
+@testsection "Mandel matrices of the minor-symmetric part, in 3-D and 2-D, and the TI average of a 3×3" begin
     rng = Xoshiro(20261027)
-    # mandel66 reads the components as they are: on a minor-symmetric tensor it
-    # is KM in the canonical basis; on a non-symmetric array it is not averaged.
-    C = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> randn(rng)), RotatedBasis(0.3, 0.2, 0.1))
-    @test mandel66(C) ≈ mandel(C, CanonicalBasis{3, Float64}())
+    w = (1, 1, 1, sqrt(2), sqrt(2), sqrt(2))
+    pairs = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
+    # On components that have the minor symmetries, the entries are read exactly.
+    S = Array(SymmetricTensor{4, 3}((i, j, k, l) -> randn(rng)))
+    @test mandel(S; symmetrize = true) == [w[I] * w[J] * S[pairs[I]..., pairs[J]...] for I in 1:6, J in 1:6]
+    # On any array, the minor-symmetric part, against Tensors.jl's.
     A = randn(rng, 3, 3, 3, 3)
-    M = mandel66(A)
-    @test M[4, 1] ≈ sqrt(2) * A[2, 3, 1, 1] && M[4, 4] ≈ 2 * A[2, 3, 2, 3]
-    @test mandel66(A) ≉ mandel66_minor(A)
-    @test mandel66(Array(array_from_mandel66(M))) ≈ M
+    # Inferred where the keyword is written at the call, as it is in practice.
+    symmetrized(A) = mandel(A; symmetrize = true)
+    M = @inferred symmetrized(A)
+    @test M ≈ tomandel(minorsymmetric(Tensor{4, 3}(A)))
+    @test mandel(get_array(from_mandel(M)); symmetrize = true) ≈ M
+    # A tensor: in its own basis, or in the one given, as `mandel`.
+    C = Tens(SymmetricTensor{4, 3}((i, j, k, l) -> randn(rng)), RotatedBasis(0.3, 0.2, 0.1))
+    @test mandel(C; symmetrize = true) ≈ mandel(C)
+    can = CanonicalBasis{3, Float64}()
+    @test mandel(C, can; symmetrize = true) ≈ mandel(C, can)
+    @test mandel(C, can, (:cont, :cont, :cont, :cont); symmetrize = true) ≈ mandel(C, can)
+    T = TensTI{4}(1.3, 2.1, 0.7, 1.7, 0.9, (0.0, 0.6, 0.8))
+    @test mandel(T; symmetrize = true) ≈ mandel(T)
+    @test mandel(Tensor{4, 3}(A); symmetrize = true) ≈ M
+    # Order 2: the symmetric part.
+    G = randn(rng, 3, 3)
+    @test mandel(G; symmetrize = true) ≈ tomandel(symmetric(Tensor{2, 3}(G)))
+    G2 = randn(rng, 2, 2)
+    @test mandel(G2; symmetrize = true) ≈ tomandel(symmetric(Tensor{2, 2}(G2)))
     # 2-D: the Kelvin-Mandel matrix of an isotropic 2-D tensor, and the round trip.
     C2 = TensISO{2}(3.0, 2.0)
-    @test mandel33_minor(Array(get_array(C2))) ≈ mandel(C2)
+    @test mandel(Array(get_array(C2)); symmetrize = true) ≈ mandel(C2)
     B = randn(rng, 2, 2, 2, 2)
-    @test mandel33_minor(array_from_mandel33(mandel33_minor(B))) ≈ mandel33_minor(B)
-    @test array_from_mandel33(mandel(C2)) ≈ Array(get_array(C2))
+    @test mandel(B; symmetrize = true) ≈ tomandel(minorsymmetric(Tensor{4, 2}(B)))
+    @test get_array(from_mandel(mandel(C2))) ≈ Array(get_array(C2))
+    # No Kelvin-Mandel form in another dimension.
+    @test_throws DimensionMismatch mandel(randn(rng, 4, 4, 4, 4); symmetrize = true)
+    @test_throws DimensionMismatch mandel(randn(rng, 4, 4); symmetrize = true)
     # TI average of a 3×3 block, against the tensor-level average.
     n = random_axis(rng)
-    G = randn(rng, 3, 3)
-    @test ti_average_mat33(G, n) ≈ Array(get_array(transverse_isotropify(Tens(G), n)))
-    @test ti_average_mat33(ti_average_mat33(G, n), n) ≈ ti_average_mat33(G, n)
+    @test ti_average_matrix(G, n) ≈ Array(get_array(transverse_isotropify(Tens(G), n)))
+    @test ti_average_matrix(ti_average_matrix(G, n), n) ≈ ti_average_matrix(G, n)
     # Duals and symbols.
-    @test ForwardDiff.derivative(x -> mandel66(A .* x)[4, 4], 2.0) ≈ 2 * A[2, 3, 2, 3]
+    a = (A[2, 3, 2, 3] + A[3, 2, 2, 3] + A[2, 3, 3, 2] + A[3, 2, 3, 2]) / 2
+    @test ForwardDiff.derivative(x -> mandel(A .* x; symmetrize = true)[4, 4], 2.0) ≈ a
     @syms s::real
-    @test mandel33_minor(Array(get_array(TensISO{2}(s, 2s))))[3, 3] == 2s
+    @test mandel(Array(get_array(TensISO{2}(s, 2s))); symmetrize = true)[3, 3] == 2s
 end
 
 @testsection "The average of a TI tensor about another axis" begin

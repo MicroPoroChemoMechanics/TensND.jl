@@ -11,7 +11,7 @@
 #
 #  The reference of each check is the same tensor written in the canonical
 #  basis, its components rotated by a comprehension written here (not by
-#  `change_tens`), or an explicit sum over indices.
+#  `express`), or an explicit sum over indices.
 # =============================================================================
 
 const RB_SEED = 20261021
@@ -26,7 +26,7 @@ _rb_unit(rng) = collect(random_axis(rng))
 "A random minor- and major-symmetric 4th-order array (from a symmetric 6×6)."
 function _rb_sym4(rng)
     M = randn(rng, 6, 6)
-    return TensND.array_from_mandel66(M + transpose(M) + 12I)
+    return Array(get_array(TensND.from_mandel(M + transpose(M) + 12I)))
 end
 
 "Components in the frame whose vectors are the columns of `R`."
@@ -43,7 +43,7 @@ _rb_rotated(A, R) = Tens(_rb_in_frame(A, R), RotatedBasis(R))
 
 # `AbstractTens <: AbstractArray`: the tensor method must be the more specific
 # one, or `Array(t)` would read `t` in its own basis, the very defect tested.
-_rb_canon(t::TensND.AbstractTens) = Array(components_canon(t))
+_rb_canon(t::TensND.AbstractTens) = Array(canonical_components(t))
 _rb_canon(A::AbstractArray) = Array(A)
 
 @testset "random bases — draw $k" for k in 1:RB_DRAWS
@@ -59,8 +59,8 @@ _rb_canon(A::AbstractArray) = Array(A)
 
     @testset "fixed-axis and fixed-frame projections" begin
         for (args, sym) in (((), :ISO), ((n,), :TI), ((F,), :ORTHO), ((F,), :CUBIC))
-            Pc, dc, rc = proj_tens(sym, tc, args...)
-            Pr, dr, rr = proj_tens(sym, tr_, args...)
+            Pc, dc, rc = project(tc, sym, args...)
+            Pr, dr, rr = project(tr_, sym, args...)
             @test Pr ≈ Pc
             @test dr ≈ dc
             @test rr ≈ rc
@@ -69,22 +69,22 @@ _rb_canon(A::AbstractArray) = Array(A)
         a = randn(rng, 3, 3)
         sc, sr = Tens(a), _rb_rotated(a, R)
         for (args, sym) in (((), :ISO), ((n,), :TI), ((F,), :ORTHO))
-            Pc, dc, _ = proj_tens(sym, sc, args...)
-            Pr, dr, _ = proj_tens(sym, sr, args...)
+            Pc, dc, _ = project(sc, sym, args...)
+            Pr, dr, _ = project(sr, sym, args...)
             @test Pr ≈ Pc
             @test dr ≈ dc
         end
     end
 
     @testset "an exactly TI tensor is recognized about its own axis" begin
-        ti = Array(get_array(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)))
+        ti = Array(get_array(ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n)))
         t = _rb_rotated(ti, R)
         @test istransverselyisotropic(t, n)
-        P, d, drel = proj_tens(:TI, t, n)
+        P, d, drel = project(t, :TI, n)
         @test drel < 1.0e-12
         @test _rb_canon(P) ≈ ti
         # The search, with no axis: the same tensor, whatever axis sign it finds.
-        Ps, _, drels = proj_tens(:TI, t)
+        Ps, _, drels = project(t, :TI)
         @test drels < 1.0e-8
         @test _rb_canon(Ps) ≈ ti rtol = 1.0e-8
         # best_sym_tens returns the tensor itself, not one about another axis.
@@ -111,7 +111,7 @@ _rb_canon(A::AbstractArray) = Array(A)
         o = Array(get_array(TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, F)))
         t = _rb_rotated(o, R)
         @test isorthotropic(t, F)
-        P, _, drel = proj_tens(:ORTHO, t, F)
+        P, _, drel = project(t, :ORTHO, F)
         @test drel < 1.0e-12
         @test _rb_canon(P) ≈ o
         Pb, _, _, sym = best_sym_tens(t, F; proj = (:ISO, :CUBIC, :ORTHO))
@@ -133,7 +133,7 @@ _rb_canon(A::AbstractArray) = Array(A)
         @test transverse_isotropify(_rb_rotated(C, L), n) ≈ transverse_isotropify(tc, n)
         # A non-orthonormal basis: the traces need the metric.
         M = R + 0.3 * randn(rng, 3, 3)
-        tg = change_tens(tc, Basis(M, Val(:cov)))
+        tg = express(tc, Basis(M, Val(:cov)))
         @test isotropify(tg) ≈ isotropify(tc)
     end
 
@@ -146,7 +146,7 @@ _rb_canon(A::AbstractArray) = Array(A)
         @test _rb_canon(dotdot(U, tr_, V)) ≈ ref
         @test _rb_canon(dotdot(U, tc, V)) ≈ ref
         # A structured operand: its data is a coefficient tuple, not components.
-        ti = tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, n)
+        ti = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, n)
         T4 = Array(get_array(ti))
         refti = [sum(u[i] * T4[i, j, k, l] * v[l] for i in 1:3, l in 1:3) for j in 1:3, k in 1:3]
         @test _rb_canon(dotdot(U, ti, V)) ≈ refti
@@ -167,7 +167,7 @@ _rb_canon(A::AbstractArray) = Array(A)
 
     @testset "an axis given as a vector in a rotated basis" begin
         nv = Tens(_rb_in_frame(n, R), RotatedBasis(R))
-        @test collect(axis(tens_ti(10.0, 3.0, 2.5, 12.0, 2.0, nv))) ≈ n
+        @test collect(axis(ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, nv))) ≈ n
     end
 end
 
@@ -181,8 +181,8 @@ end
     # with no change of basis: the result is the array kernel's on `get_array(t)`
     # (what the wrappers passed before), to the bit.
     for (args, sym) in (((n,), :TI), ((F,), :ORTHO), ((F,), :CUBIC))
-        Pt, dt, rt = proj_tens(sym, t, args...)
-        Pa, da, ra = proj_tens(sym, get_array(t), args...)
+        Pt, dt, rt = project(t, sym, args...)
+        Pa, da, ra = project(get_array(t), sym, args...)
         @test get_data(Pt) == get_data(Pa)
         @test (dt, rt) == (da, ra)
     end
@@ -196,7 +196,7 @@ end
     @test size(TensND._KM_of_array(C)) == (6, 6)
     @test size(TensND._KM_of_array(_rb_sym4(rng))) == (6, 6)
     n = _rb_unit(rng)
-    _, _, drel = proj_tens(:TI, C, n)       # was a DimensionMismatch
+    _, _, drel = project(C, :TI, n)       # was a DimensionMismatch
     @test isfinite(drel)
 end
 
@@ -213,7 +213,7 @@ end
         R = _rb_rotation(rng)
         Q = mandel_rotation(R)
         @test transpose(Q) * Q ≈ I atol = 1.0e-12
-        M = TensND.mandel66_minor(_rb_sym4(rng))
+        M = TensND.mandel(_rb_sym4(rng); symmetrize = true)
         # The components in the basis of `R` are Qᵀ M Q, as `mandel` in that basis says.
         @test transpose(Q) * M * Q ≈ Matrix(mandel(Tens(from_mandel(M)), RotatedBasis(R))) atol = 1.0e-10
     end

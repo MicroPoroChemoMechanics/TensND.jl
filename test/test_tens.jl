@@ -43,15 +43,15 @@
     ]
 
     θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true)
-    R = rot3(θ, ϕ, ψ)
+    R = rotation_matrix(θ, ϕ, ψ)
     Λ = [symbols("λ$i", positive = true) for i in 1:3]
     bg = Basis(R .* Λ')
     bo = Basis(R)
     𝕀, 𝕁, 𝕂 = iso_projectors()
     α, β = symbols("α β", real = true)
     𝕋 = α * 𝕁 + β * 𝕂
-    @test change_tens(𝕋, bg) == 𝕋
-    @test change_tens(𝕋, bo) == 𝕋
+    @test express(𝕋, bg) == 𝕋
+    @test express(𝕋, bo) == 𝕋
     A = components(𝕋, bg)
     𝕋₂ = Tens(A, bg)
     @test 𝕋₂ == 𝕋
@@ -66,7 +66,7 @@ end
     # half, split out so the layout can be checked without capturing `stdout`.
     S = coorsys_spherical()
     𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(S)
-    θ, ϕ, r = getcoords(S)
+    θ, ϕ, r = get_coords(S)
 
     # Expanded on the basis; a unit coefficient carries no parentheses, and
     # zero components are dropped entirely.
@@ -82,15 +82,11 @@ end
 
     # The chart supplies the coordinate names, so the derived field reads in
     # spherical notation rather than 𝐞₁, 𝐞₂, 𝐞₃.
-    g = change_tens(grad(𝐞ʳ, S), normalized_basis(S))
+    g = express(grad(𝐞ʳ, S), normalized_basis(S))
     @test TensND._pprint_string(g; coords = ("θ", "ϕ", "r")) == "(1/r)𝐞ᶿ⊗𝐞ᶿ + (1/r)𝐞ᵠ⊗𝐞ᵠ"
 
-    # Every entry point returns `nothing` and writes to `stdout`; the two
-    # deprecated aliases resolve (a malformed `@deprecate` would be a
-    # `MethodError` here) — they emit a deprecation warning on stderr.
+    # Every entry point returns `nothing` and writes to `stdout`.
     @test pprint(t, S) === nothing
-    @test print_tensor(t, S) === nothing
-    @test intrinsic(t, S) === nothing
 
     # Fallback on a non-tensor: a scalar field, via the rich `text/plain`
     # display rather than `println`.
@@ -163,20 +159,20 @@ end
     # by θ about e₂, and a vector of components v in it has the canonical
     # components R(θ)·v.
     v = [1.0, 2.0, 3.0]
-    f(θ) = components_canon(Tens(v .* one(θ), RotatedBasis(θ, zero(θ), zero(θ))))
+    f(θ) = canonical_components(Tens(v .* one(θ), RotatedBasis(θ, zero(θ), zero(θ))))
     dR(θ) = [-sin(θ) 0 cos(θ); 0 0 0; -cos(θ) 0 -sin(θ)]
     d2R(θ) = [-cos(θ) 0 -sin(θ); 0 0 0; sin(θ) 0 -cos(θ)]
     for θ in (0.0, 0.7)
         @test ForwardDiff.derivative(f, θ) ≈ dR(θ) * v
         @test ForwardDiff.derivative(θ -> ForwardDiff.derivative(f, θ), θ) ≈ d2R(θ) * v
     end
-    g(θ) = components_canon(Tens([1.0, 2.0] .* one(θ), RotatedBasis(θ)))
+    g(θ) = canonical_components(Tens([1.0, 2.0] .* one(θ), RotatedBasis(θ)))
     @test ForwardDiff.derivative(g, 0.0) ≈ [0.0 -1.0; 1.0 0.0] * [1.0, 2.0]
 
     # A structured tensor in that frame: dℂ/dθ at 0 is the generator W acting
     # on each index, Σ W_ia ℂ_ajkl + W_jb ℂ_ibkl + W_kc ℂ_ijcl + W_ld ℂ_ijkd.
     C(θ) = TensOrtho(30.0, 25.0, 20.0, 8.0, 7.0, 6.0, 5.0, 4.0, 3.0, RotatedBasis(θ, zero(θ), zero(θ)))
-    c = components_canon(C(0.0))
+    c = canonical_components(C(0.0))
     W = dR(0.0)
     dc = [
         sum(W[i, a] * c[a, j, k, l] + W[j, a] * c[i, a, k, l] + W[k, a] * c[i, j, a, l] + W[l, a] * c[i, j, k, a] for a in 1:3)
@@ -206,7 +202,7 @@ end
     v = [1.0, 2.0, 3.0]
     R(θ) = [cos(θ) 0 sin(θ); 0 1 0; -sin(θ) 0 cos(θ)]
     dR(θ) = [-sin(θ) 0 cos(θ); 0 0 0; -cos(θ) 0 -sin(θ)]
-    f(θ) = components_canon(Tens(v, RotatedBasis(θ, zero(θ), zero(θ))))
+    f(θ) = canonical_components(Tens(v, RotatedBasis(θ, zero(θ), zero(θ))))
     for θ in (0.0, 0.7)
         @test ForwardDiff.derivative(f, θ) ≈ dR(θ) * v
     end
@@ -221,20 +217,20 @@ end
     # array route (a fourth-order operand is no Tensors.jl `dot` pair).
     𝔸 = Tens([0.1 * i + 0.2 * j + 0.3 * k + 0.05 * l for i in 1:3, j in 1:3, k in 1:3, l in 1:3])
     n(x) = [sin(x), 0.0, cos(x)]
-    a(x) = Array(components_canon(𝔸 ⋅ Tens(n(x))))
+    a(x) = Array(canonical_components(𝔸 ⋅ Tens(n(x))))
     dn = [cos(0.4), 0.0, -sin(0.4)]
     @test ForwardDiff.derivative(a, 0.4) ≈ [sum(get_array(𝔸)[i, j, k, l] * dn[l] for l in 1:3) for i in 1:3, j in 1:3, k in 1:3]
 
     # An orthogonal basis whose scale factors are duals: x = Σ vⁱ χᵢ 𝐫ᵢ, so
     # ∂x/∂χ₁ = v¹ 𝐫₁.
     ℬʳ = RotatedBasis(0.3, 0.2, 0.1)
-    s(χ) = components_canon(Tens(v, Basis(ℬʳ, [χ, 1.0, 1.0])))
+    s(χ) = canonical_components(Tens(v, Basis(ℬʳ, [χ, 1.0, 1.0])))
     @test Basis(ℬʳ, [ForwardDiff.Dual(2.0, 1.0), 1.0, 1.0]) isa OrthogonalBasis
     @test ForwardDiff.derivative(s, 2.0) ≈ v[1] * Array(vecbasis(ℬʳ, :cov))[:, 1]
 
     # Symbolic: a plain vector in a basis rotated by a symbolic angle.
     @syms ϑ::real
-    c = components_canon(Tens([1.0, 0.0], RotatedBasis(ϑ)))
+    c = canonical_components(Tens([1.0, 0.0], RotatedBasis(ϑ)))
     @test eltype(c) <: Sym
     @test simplify(c[1] - cos(ϑ)) == 0 && simplify(c[2] - sin(ϑ)) == 0
 
@@ -258,7 +254,7 @@ end
     # the canonical one, with different components and so a different hash.
     P = Basis([0.0 1.0 0.0; 0.0 0.0 1.0; 1.0 0.0 0.0])
     t = Tens([1.0, 2.0, 3.0])
-    tp = change_tens(t, P)
+    tp = express(t, P)
     @test t == tp
     tensors = (
         t, tp, Tens([1.0, 2.0, 3.0]), TensISO{3}(3.0, 2.0),
@@ -344,7 +340,7 @@ end
     ℬ = Basis([1.0 0.2 0.1; 0.0 1.0 0.3; 0.1 0.0 1.0])
     t = Tens([1.0 2.0 0.5; 0.3 4.0 1.0; 0.2 0.1 3.0], ℬ, (:cont, :cov))
     @test components(t, get_var(t)) === get_array(t)
-    @test change_tens(t, get_var(t)) === t
+    @test express(t, get_var(t)) === t
     o = Tens([2.0 0.5 0.1; 0.5 3.0 0.2; 0.1 0.2 4.0])
     @test components(o, (:cov, :cont)) === get_array(o)
     @test components(o, get_basis(o)) === get_array(o)
@@ -355,16 +351,16 @@ end
     # The product of a tensor with itself takes a short cut; it agrees with
     # the general route, which the same tensor written in another basis takes.
     v = Tens([1.0, 2.0, 3.0], ℬ, (:cont,))
-    v2 = change_tens(v, Basis([1.0 0.0 0.3; 0.2 1.0 0.0; 0.0 0.1 1.0]))
-    @test !isequal(v, v2) && components_canon(v) ≈ components_canon(v2)
-    @test components_canon(v ⊗ v) ≈ components_canon(v ⊗ v2)
+    v2 = express(v, Basis([1.0 0.0 0.3; 0.2 1.0 0.0; 0.0 0.1 1.0]))
+    @test !isequal(v, v2) && canonical_components(v) ≈ canonical_components(v2)
+    @test canonical_components(v ⊗ v) ≈ canonical_components(v ⊗ v2)
     # A non-symmetric order-2 tensor, and a vector of dimension 4, have no
     # symmetric storage for their square: they used to raise a MethodError.
     # Beyond dimension 3, where Tensors.jl has no type, the components stay a
     # plain array; building such a tensor used to raise a MethodError too.
     @test get_array(Tens([1.0, 2.0, 3.0, 4.0])) isa Vector{Float64}
     @test get_array(Tens(reshape(collect(1.0:16.0), 4, 4))) isa Matrix{Float64}
-    @test components_canon(t ⊗ t) ≈ components_canon(t ⊗ change_tens(t, RotatedBasis(0.3, 0.2, 0.1)))
+    @test canonical_components(t ⊗ t) ≈ canonical_components(t ⊗ express(t, RotatedBasis(0.3, 0.2, 0.1)))
     a = [1.0 2.0 0.5; 0.3 4.0 1.0; 0.2 0.1 3.0]
     @test get_array(Tens(a) ⊗ Tens(a)) == [a[i, j] * a[k, l] for i in 1:3, j in 1:3, k in 1:3, l in 1:3]
     w = Tens([1.0, 2.0, 3.0, 4.0])

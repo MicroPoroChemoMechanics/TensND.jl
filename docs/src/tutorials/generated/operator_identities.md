@@ -45,7 +45,7 @@ charts = [
 
 for (name, CS) in charts
     ortho = isorthonormal(normalized_basis(CS))
-    @printf "  %-16s dim %d   coords %-14s orthogonal: %s\n" name get_dim(CS) string(getcoords(CS)) ortho
+    @printf "  %-16s dim %d   coords %-14s orthogonal: %s\n" name get_dim(CS) string(get_coords(CS)) ortho
 end
 ````
 
@@ -83,7 +83,7 @@ cancel.
 ````@example operator_identities
 println("\n── scalar identities ──")
 for (name, CS) in charts
-    q = getcoords(CS)
+    q = get_coords(CS)
     f = SymFunction("f", real = true)(q...)
     g = SymFunction("g", real = true)(q...)
 
@@ -115,7 +115,7 @@ normalized basis**, so it has no special structure.
 println("\n── vector identities ──")
 for (name, CS) in charts
     d = get_dim(CS)
-    q = getcoords(CS)
+    q = get_coords(CS)
     f = SymFunction("f", real = true)(q...)
     𝐯 = sum(SymFunction("v$i", real = true)(q...) * unitvec(CS, i) for i in 1:d)
     𝟏 = tens_Id2(Val(d), Val(Sym))
@@ -143,7 +143,7 @@ the product rule for every product of the algebra.
 println("\n── Leibniz rule for ∂ ──")
 for (name, CS) in charts
     d = get_dim(CS)
-    q = getcoords(CS)
+    q = get_coords(CS)
     𝐚 = sum(SymFunction("a$i", real = true)(q...) * unitvec(CS, i) for i in 1:d)
     𝐛 = sum(SymFunction("b$i", real = true)(q...) * unitvec(CS, i) for i in 1:d)
     i = 1
@@ -176,7 +176,7 @@ connection is metric-compatible.
 println("\n── order-2 fields ──")
 for (name, CS) in charts
     d = get_dim(CS)
-    q = getcoords(CS)
+    q = get_coords(CS)
     𝟏 = tens_Id2(Val(d), Val(Sym))
     𝐯 = sum(SymFunction("v$i", real = true)(q...) * unitvec(CS, i) for i in 1:d)
     𝛔 = sum(
@@ -211,7 +211,7 @@ harmonics = [
     "non-orthogonal" => (charts[4][2], (q -> (q[1] + q[2]^2)^2 - q[2]^2)),
 ]
 for (name, (CS, f)) in harmonics
-    check("∇²(harmonic) = 0", name, laplacian(f(getcoords(CS)), CS))
+    check("∇²(harmonic) = 0", name, laplacian(f(get_coords(CS)), CS))
 end
 ````
 
@@ -224,7 +224,7 @@ symbols is correct.
 
 ````@example operator_identities
 Spheroidal = coorsys_spheroidal()
-ϕs, ps, qs = getcoords(Spheroidal)
+ϕs, ps, qs = get_coords(Spheroidal)
 P = sympy.assoc_legendre
 
 println("\n── spheroidal harmonics ──")

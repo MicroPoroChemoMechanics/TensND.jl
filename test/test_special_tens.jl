@@ -2,18 +2,18 @@
 
     # ── Rotations ────────────────────────────────────────────────────────────
 
-    @testset "rot3 / rot6 consistency" begin
+    @testset "rotation_matrix / rotation_tensor4 consistency" begin
         θ, ϕ, ψ = symbols("θ ϕ ψ", real = true)
         cθ, cϕ, cψ, sθ, sϕ, sψ = symbols("cθ cϕ cψ sθ sϕ sψ", real = true)
         d = Dict(cos(θ) => cθ, cos(ϕ) => cϕ, cos(ψ) => cψ, sin(θ) => sθ, sin(ϕ) => sϕ, sin(ψ) => sψ)
-        R = Tens(tsubs(rot3(θ, ϕ, ψ), d...))
-        R6 = from_mandel(tsubs(mandel(rot6(θ, ϕ, ψ)), d...))
+        R = Tens(tsubs(rotation_matrix(θ, ϕ, ψ), d...))
+        R6 = from_mandel(tsubs(mandel(rotation_tensor4(θ, ϕ, ψ)), d...))
         @test R6 == R ⊠ˢ R
     end
 
-    @testset "rot3 is Z-Y-Z and its third column is the axis" begin
+    @testset "rotation_matrix is Z-Y-Z and its third column is the axis" begin
         θ, ϕ, ψ = 0.37, 0.83, 0.29
-        R = Matrix(rot3(θ, ϕ, ψ))
+        R = Matrix(rotation_matrix(θ, ϕ, ψ))
         @test R ≈ RotZ(ϕ) * RotY(θ) * RotZ(ψ)
         @test R[:, 3] ≈ [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]
         @test R'R ≈ I
@@ -22,19 +22,19 @@
         @test vecbasis(Basis(θ, ϕ, ψ), :cov) ≈ R
     end
 
-    @testset "rot3 parametrization degeneracies" begin
+    @testset "rotation_matrix parametrization degeneracies" begin
         θ, ϕ, ψ = 0.41, 1.13, 0.77
         # (θ, ϕ, ψ) and (-θ, ϕ+π, ψ+π) name the same rotation.
-        @test Matrix(rot3(θ, ϕ, ψ)) ≈ Matrix(rot3(-θ, ϕ + π, ψ + π))
+        @test Matrix(rotation_matrix(θ, ϕ, ψ)) ≈ Matrix(rotation_matrix(-θ, ϕ + π, ψ + π))
         # At θ = 0 only ϕ + ψ matters; at θ = π only ϕ - ψ.
-        @test Matrix(rot3(0.0, 0.3, 0.9)) ≈ Matrix(rot3(0.0, 0.7, 0.5))
-        @test Matrix(rot3(π, 0.9, 0.3)) ≈ Matrix(rot3(π, 1.1, 0.5))
+        @test Matrix(rotation_matrix(0.0, 0.3, 0.9)) ≈ Matrix(rotation_matrix(0.0, 0.7, 0.5))
+        @test Matrix(rotation_matrix(π, 0.9, 0.3)) ≈ Matrix(rotation_matrix(π, 1.1, 0.5))
     end
 
-    @testset "rot2" begin
+    @testset "rotation_matrix" begin
         θ = 0.6
-        @test get_array(Tens(rot2(θ))) ≈ [cos(θ) -sin(θ); sin(θ) cos(θ)]
-        @test Matrix(get_array(Tens(rot2(θ)))) * Matrix(get_array(Tens(rot2(-θ)))) ≈ I
+        @test get_array(Tens(rotation_matrix(θ))) ≈ [cos(θ) -sin(θ); sin(θ) cos(θ)]
+        @test Matrix(get_array(Tens(rotation_matrix(θ)))) * Matrix(get_array(Tens(rotation_matrix(-θ)))) ≈ I
     end
 
     # ── Levi-Civita ──────────────────────────────────────────────────────────
@@ -99,9 +99,9 @@
         end
         # The third vector is the radial one, and θ = ϕ = 0 gives the canonical
         # basis *in the canonical order* — the reason for the (θ, ϕ, r) ordering.
-        @test tsimplify(tsubs(components_canon(s3), θs => Sym(0), ϕs => Sym(0))) == [0, 0, 1]
-        @test tsimplify(tsubs(components_canon(s1), θs => Sym(0), ϕs => Sym(0))) == [1, 0, 0]
-        @test tsimplify(tsubs(components_canon(s2), θs => Sym(0), ϕs => Sym(0))) == [0, 1, 0]
+        @test tsimplify(tsubs(canonical_components(s3), θs => Sym(0), ϕs => Sym(0))) == [0, 0, 1]
+        @test tsimplify(tsubs(canonical_components(s1), θs => Sym(0), ϕs => Sym(0))) == [1, 0, 0]
+        @test tsimplify(tsubs(canonical_components(s2), θs => Sym(0), ϕs => Sym(0))) == [0, 1, 0]
     end
 
     # ── init_* constructors ──────────────────────────────────────────────────
@@ -140,7 +140,7 @@
         (θ, ϕ, r), (𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ), ℬˢ = init_spherical()
         @test string(θ) == "θ" && string(ϕ) == "ϕ" && string(r) == "r"
         # 𝐞ʳ is the radial direction.
-        @test tsimplify(components_canon(𝐞ʳ)) ==
+        @test tsimplify(canonical_components(𝐞ʳ)) ==
             [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]
     end
 
@@ -150,6 +150,6 @@ end
     # The closed forms of `canonical = true` against the rotated frame.
     θ, ϕ, ψ = 0.4, 1.1, -0.7
     for i in 1:3
-        @test get_array(𝐞ˢ(Val(i), θ, ϕ, ψ; canonical = true)) ≈ components_canon(𝐞ˢ(Val(i), θ, ϕ, ψ))
+        @test get_array(𝐞ˢ(Val(i), θ, ϕ, ψ; canonical = true)) ≈ canonical_components(𝐞ˢ(Val(i), θ, ϕ, ψ))
     end
 end

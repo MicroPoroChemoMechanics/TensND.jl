@@ -18,7 +18,7 @@ divergence
 laplacian
 hess
 ∂
-getcoords
+get_coords
 position_vector
 unitvec
 natvec
