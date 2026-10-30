@@ -10,6 +10,16 @@ the inverse of its Mandel (or Voigt) matrix, which the symbolic packages compute
 by elimination without pivot. The choice is made on the type: numbers, duals
 included, keep the inverse of Tensors.jl, bit for bit.
 
+### Changed
+
+- The inverse of a fourth-order three-dimensional `Float64` tensor, in symmetric
+  or full storage, is compiled into the package image: its first call in a new
+  process took about 2 s (the inference of the static 6×6 or 9×9 LU of
+  Tensors.jl), now under a millisecond. In MeanFieldHomogenization the first
+  Mori-Tanaka estimate with a crack family goes from 2.2 to 0.4 s. The cost is
+  paid once, at installation: 3 s more precompilation and 4.8 MB more image;
+  loading time and results are unchanged.
+
 ### Fixed
 
 - `inv(t)` for a fourth-order `Tens` of symbolic components, in symmetric or full
