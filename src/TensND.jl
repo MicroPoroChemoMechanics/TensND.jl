@@ -60,4 +60,12 @@ end
 
 __init__() = Base.Experimental.register_error_hint(_sympy_defaults_hint, MethodError)
 
+# The inverse of a fourth-order tensor in three dimensions, symmetric or full,
+# goes through the LU factorization of a static 6×6 or 9×9 matrix, whose
+# inference took about two seconds at the first call of every new process.
+# Compiled into the package image instead; no dual is involved.
+for A in (Tensors.SymmetricTensor{4, 3, Float64, 36}, Tensors.Tensor{4, 3, Float64, 81})
+    precompile(inv, (TensCanonical{4, 3, Float64, A},))
+end
+
 end # module
