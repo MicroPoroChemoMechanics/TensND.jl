@@ -473,6 +473,9 @@ end
     𝕊 = ti_from_constants(E, ν₁, ν₂, H, Γ, _WO_N3; form = :hoenig)
     @test 𝕊 isa TensTI{4, Float64, 5}
 
+    # A form that does not exist is refused, by name, in both directions.
+    @test_throws "unknown form `:hoening`" ti_constants(𝕊; form = :hoening)
+    @test_throws ArgumentError ti_from_constants(E, ν₁, ν₂, H, Γ, _WO_N3; form = :voigt)
     e, n1, n2, h, g = ti_constants(𝕊; form = :hoenig)
     @test e ≈ E   atol = _WO_ATOL
     @test n1 ≈ ν₁  atol = _WO_ATOL

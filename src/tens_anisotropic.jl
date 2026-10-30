@@ -534,20 +534,16 @@ _major_symmetric_ti(::Val{false}, d, ℓ₇, ℓ₈, s) =
 # The compliance components of the engineering constants, and back.
 _compliance_engineering(E₁, E₃, ν₁₂, ν₃₁, G₃₁) = (inv(E₁), -ν₁₂ / E₁, -ν₃₁ / E₃, inv(E₃), inv(4 * G₃₁))
 
-function _engineering_of_compliance(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃)
-    E₁ = inv(S₁₁₁₁)
-    E₃ = inv(S₃₃₃₃)
-    return (E₁, E₃, -E₁ * S₁₁₂₂, -E₃ * S₁₁₃₃, inv(4 * S₂₃₂₃))
-end
+_engineering_of_compliance(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃) =
+    _engineering(inv(S₁₁₁₁), inv(S₃₃₃₃), S₁₁₂₂, S₁₁₃₃, S₂₃₂₃)
+_engineering(E₁, E₃, S₁₁₂₂, S₁₁₃₃, S₂₃₂₃) = (E₁, E₃, -E₁ * S₁₁₂₂, -E₃ * S₁₁₃₃, inv(4 * S₂₃₂₃))
 
 # The compliance components of Hoenig's parameters, and back.
 _compliance_hoenig(E, ν₁, ν₂, H, Γ) = (inv(E), -ν₁ / E, -ν₂ / E, inv(E * H), (1 + ν₁) / (2 * E * Γ))
 
-function _hoenig_of_compliance(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃)
-    E = inv(S₁₁₁₁)
-    ν₁ = -E * S₁₁₂₂
-    return (E, ν₁, -E * S₁₁₃₃, inv(S₃₃₃₃ * E), (1 + ν₁) / (2 * E * S₂₃₂₃))
-end
+_hoenig_of_compliance(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃) = _hoenig(inv(S₁₁₁₁), S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃)
+# `1 − E·S₁₁₂₂` is `1 + ν₁` to the last bit: adding a negated number is subtracting it.
+_hoenig(E, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃) = (E, -E * S₁₁₂₂, -E * S₁₁₃₃, inv(S₃₃₃₃ * E), (1 - E * S₁₁₂₂) / (2 * E * S₂₃₂₃))
 
 # ── isisotropic / istransverselyisotropic ─────────────────────────────────────────────────────────────
 

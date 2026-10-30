@@ -49,18 +49,13 @@ _minor_part(A, i, j) = (A[i, j] + A[j, i]) / 2
 _mandel_pairs(::Val{3}) = _MANDEL_IDX
 _mandel_pairs(::Val{2}) = _MANDEL_IDX_2D
 
-function _mandel_minor(A::AbstractArray{T, 4}) where {T}
+# The dimension is read from the size, and each branch names its `Val`, so that
+# the result is inferred.
+function _mandel_minor(A::AbstractArray)
     d = size(A, 1)
     d == 3 && return _mandel_minor(A, Val(3))
     d == 2 && return _mandel_minor(A, Val(2))
-    throw(DimensionMismatch("no Kelvin-Mandel matrix for a component array of size $(size(A))"))
-end
-
-function _mandel_minor(A::AbstractArray{T, 2}) where {T}
-    d = size(A, 1)
-    d == 3 && return _mandel_minor(A, Val(3))
-    d == 2 && return _mandel_minor(A, Val(2))
-    throw(DimensionMismatch("no Kelvin-Mandel vector for a component array of size $(size(A))"))
+    throw(DimensionMismatch("no Kelvin-Mandel form for a component array of size $(size(A))"))
 end
 
 function _mandel_minor(A::AbstractArray{T, 4}, v::Val{dim}) where {T, dim}
@@ -69,11 +64,8 @@ function _mandel_minor(A::AbstractArray{T, 4}, v::Val{dim}) where {T, dim}
     return [w[I] * w[J] * _minor_part(A, P[I]..., P[J]...) for I in eachindex(P), J in eachindex(P)]
 end
 
-function _mandel_minor(A::AbstractArray{T, 2}, v::Val{dim}) where {T, dim}
-    w = _mandel_weights(T, v)
-    P = _mandel_pairs(v)
-    return [w[I] * _minor_part(A, P[I]...) for I in eachindex(P)]
-end
+_mandel_minor(A::AbstractArray{T, 2}, v::Val) where {T} =
+    [w * _minor_part(A, P...) for (w, P) in zip(_mandel_weights(T, v), _mandel_pairs(v))]
 
 # The weights of the Kelvin-Mandel slots: one on the normal pairs, √2 on the shear ones.
 _mandel_weights(::Type{T}, ::Val{3}) where {T} = (one(T), one(T), one(T), sqrt(T(2)), sqrt(T(2)), sqrt(T(2)))
