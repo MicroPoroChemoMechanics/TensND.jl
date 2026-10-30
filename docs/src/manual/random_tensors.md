@@ -1,5 +1,14 @@
 # [Random tensors](@id man-random-tensors)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Rotations and Euler angles](@ref th-rotations)
+
+    **Manual**: [Tensors](@ref man-tensors)
+
+    **Tutorials**: [A two-point Green tensor between offset frames](@ref tut-cluster)
+<!-- /crosslinks -->
+
 [`rand`](@ref Base.rand(::Type{<:TensND._RandomClass})) draws a tensor of any class: isotropic, transversely
 isotropic, orthotropic, cubic or generic, with random coefficients and, for a
 class with a direction, a random orientation. The orientations are uniform:

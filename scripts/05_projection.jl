@@ -1,4 +1,11 @@
-# # Projection and symmetry detection
+# # [Projection and symmetry detection](@id tut-projection)
+#
+# <!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+# !!! tip "See also"
+#     **Theory**: [Orthotropy](@ref th-orthotropy) · [Cubic symmetry](@ref th-cubic) · [Projection onto a symmetry class](@ref th-projection)
+#
+#     **Manual**: [Structured tensors](@ref man-structured) · [Projection and symmetry detection](@ref man-projection)
+# <!-- /crosslinks -->
 #
 # Given a tensor, what symmetry does it have — and if it has one, in what
 # orientation? This tutorial runs [`project`](@ref) and

@@ -1,5 +1,14 @@
 # [Isotropic tensors](@id th-isotropic)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [The Walpole basis](@ref th-walpole)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations)
+
+    **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [A two-point Green tensor between offset frames](@ref tut-cluster) · [Acoustic and Hill tensors](@ref tut-hill-tensors)
+<!-- /crosslinks -->
+
 The most constrained symmetry class, and the template for every other one: a
 small closed algebra in which products and inverses are computed on a couple of
 scalars rather than on ``d^4`` components. Implemented by

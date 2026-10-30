@@ -139,3 +139,96 @@ end
     @test simplify(lame_lambda(Ss) - e * n / (1 - n^2)) == 0
     @test ForwardDiff.derivative(x -> first(plane_strain_to_plane_stress(x, ν)), E) ≈ 1 / (1 - ν^2)
 end
+
+# ── 0.11.1: each modulus on its own, on a stiffness or a compliance ─────────────
+
+# The readers of 0.11.0 on a stiffness, frozen: the new ones must give their bits.
+function _im_frozen(C::TensISO{4, 3})
+    α, β = get_data(C)
+    k, μ = α / 3, β / 2
+    return (
+        bulk = k, young = 9 * k * μ / (3 * k + μ), lame = (α - β) / 3, shear = μ,
+        poisson = (3 * k - 2 * μ) / (2 * (3 * k + μ)), pwave = (α - β) / 3 + 2 * μ,
+    )
+end
+function _im_frozen(C::TensISO{4, 2})
+    α, β = get_data(C)
+    μ, ν = β / 2, (α - β) / (2 * α)
+    return (bulk = α / 2, young = 2 * μ * (1 + ν), lame = (α - β) / 2, shear = μ, poisson = ν, pwave = (α - β) / 2 + 2 * μ)
+end
+
+@testset "isotropic moduli: a stiffness read as in 0.11.0, to the bit" begin
+    for v in (Val(3), Val(2)), ν in (-0.7, 0.0, 0.2, 0.3, 0.45), μ in (0.3, 7.0, 81.0)
+        C = _im_stiffness(v, 2μ * ν / (1 - 2ν), μ)
+        ref = _im_frozen(C)
+        for (n, r) in zip(_IM_NAMES, _IM_READERS)
+            @test r(C) === ref[n]
+            @test r(C; role = :stiffness) === ref[n]
+        end
+        @test young_poisson(C) === (ref.young, ref.poisson) && bulk_shear(C) === (ref.bulk, ref.shear)
+        @test shear_poisson(C) === (ref.shear, ref.poisson)
+    end
+end
+
+@testset "isotropic moduli: a compliance, directly, against its inverse" begin
+    for v in (Val(3), Val(2)), ν in (-0.99, -0.9, -0.5, -0.2, 0.0, 0.1, 0.25, 0.3, 0.45, 0.49)
+        μ = 7.0
+        λ = 2μ * ν / (1 - 2ν)
+        ref = _im_moduli(v, λ, μ)
+        C = _im_stiffness(v, λ, μ)
+        S = inv(C)
+        for (n, r) in zip(_IM_NAMES, _IM_READERS)
+            # Against the stiffness of the same material, and the closed forms.
+            @test r(S; role = :compliance) ≈ r(C) atol = 1.0e-12 * μ
+            @test r(S; role = :compliance) ≈ ref[n] atol = 1.0e-12 * μ
+        end
+        for i in 1:6, j in (i + 1):6
+            p, q = _IM_NAMES[i], _IM_NAMES[j]
+            @test all(isapprox.(_im_pair_reader(p, q)(S; role = :compliance), (ref[p], ref[q]); atol = 1.0e-12 * μ))
+            (v === Val(2) && (p, q) == (:bulk, :young) && ν < -0.25) && continue
+            ((p, q) == (:young, :pwave) && ν < 0) && continue
+            ((p, q) == (:lame, :poisson) && iszero(ν)) && continue
+            # The compliance builders, written directly, against the inverse of the stiffness.
+            B = getfield(TensND, (p, q) == (:bulk, :shear) ? :iso_compliance : Symbol(:iso_compliance_, p, :_, q))
+            Sb = B(v, ref[p], ref[q])
+            @test Sb isa TensISO{4, v === Val(3) ? 3 : 2}
+            @test all(isapprox.(get_data(Sb), get_data(S); rtol = 1.0e-10))
+            v === Val(3) && @test get_data(B(ref[p], ref[q])) == get_data(Sb)
+        end
+    end
+    # From (E, ν), the closed form (1 − 2ν)/E 𝕁 + (1 + ν)/E 𝕂.
+    @test get_data(iso_compliance_young_poisson(200.0, 0.3)) == ((1 - 0.6) / 200.0, 1.3 / 200.0)
+    @test get_data(iso_compliance(5.0, 2.0)) == (inv(15.0), inv(4.0))
+    @test_throws "unknown role `:stifness`" young_modulus(iso_stiffness(5.0, 2.0); role = :stifness)
+end
+
+@testset "isotropic moduli: compliance formulas, exactly" begin
+    a, b = symbols("a b", positive = true)
+    for (d, v) in ((3, Val(3)), (2, Val(2)))
+        S = TensISO{d}(a, b)
+        C = TensISO{d}(inv(a), inv(b))       # its inverse, exactly
+        for r in _IM_READERS
+            @test simplify(r(S; role = :compliance) - r(C)) == 0
+        end
+    end
+    # The compliance builders are the inverses of the stiffness builders, exactly.
+    e, n = symbols("E ν", positive = true)
+    for v in (Val(3), Val(2))
+        Ss, Cs = iso_compliance_young_poisson(v, e, n), iso_stiffness_young_poisson(v, e, n)
+        @test all(iszero ∘ simplify, get_data(Ss) .- inv.(get_data(Cs)))
+    end
+end
+
+@testset "isotropic moduli: compliance, derivatives and inference" begin
+    E, ν = 200.0, 0.3
+    @test ForwardDiff.derivative(e -> young_modulus(iso_compliance_young_poisson(e, ν); role = :compliance), E) ≈ 1
+    @test ForwardDiff.derivative(x -> poisson_ratio(iso_compliance_young_poisson(E, x); role = :compliance), ν) ≈ 1
+    @test ForwardDiff.derivative(x -> shear_modulus(iso_compliance_young_poisson(E, x); role = :compliance), ν) ≈ -E / (2 * (1 + ν)^2)
+    on_compliance(S) = young_poisson(S; role = :compliance)
+    @test (@inferred on_compliance(iso_compliance(5.0, 2.0))) isa NTuple{2, Float64}
+    one_modulus(S) = lame_lambda(S; role = :compliance)
+    @test (@inferred one_modulus(iso_compliance(Val(2), 5.0, 2.0))) isa Float64
+    @test iso_compliance_E_ν === iso_compliance_E_nu === iso_compliance_young_poisson
+    @test iso_compliance_k_μ === iso_compliance_k_mu === iso_compliance_bulk_shear === iso_compliance
+    @test iso_compliance_λ_μ === iso_compliance_lambda_mu === iso_compliance_lame_shear
+end

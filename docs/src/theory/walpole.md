@@ -1,5 +1,14 @@
 # [The Walpole basis](@id th-walpole)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [Isotropic tensors](@ref th-isotropic)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations)
+
+    **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [Elastic Green's functions](@ref tut-green-function) · [A two-point Green tensor between offset frames](@ref tut-cluster)
+<!-- /crosslinks -->
+
 Transverse isotropy about an axis ``\underline{n}`` is the symmetry class where a
 well-chosen basis pays off most: in the Walpole basis [walpole1984](@cite) the
 double contraction becomes a ``2\times2`` matrix product plus two scalar

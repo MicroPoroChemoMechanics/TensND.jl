@@ -1,5 +1,47 @@
 # Changelog
 
+## v0.11.1 — elastic moduli on a stiffness or a compliance, each read on its own
+
+A patch release: nothing that worked changes, nothing is renamed. A compliance is
+now read and built as directly as a stiffness, and each modulus is computed on
+its own instead of as half of a pair.
+
+### Added
+
+- `role = :stiffness` (the default) or `role = :compliance` on every reader of
+  the isotropic moduli (`young_modulus`, `poisson_ratio`, …, `young_poisson`,
+  `k_μ`, …): on a compliance ``a\,\mathbb{J} + b\,\mathbb{K}`` each modulus has its
+  own formula on `(a, b)` (``E = 3/(a + 2b)``, ``\nu = (b - a)/(a + 2b)``, …, and
+  their plane-strain forms), never through the inverse tensor.
+- `iso_compliance` and `iso_compliance_<pair>` for the fifteen pairs, with the
+  aliases of the stiffness builders (`iso_compliance_E_ν`, `iso_compliance_λ_μ`,
+  …) and `Val(2)` for plane strain: the compliance written directly, as
+  ``(1 - 2\nu)/E\;\mathbb{J} + (1 + \nu)/E\;\mathbb{K}`` from ``(E, \nu)``.
+- `role` on `ti_constants` and `ti_from_constants` for the engineering and
+  Hoenig forms, defined on the compliance (still the default): with
+  `role = :stiffness`, the constants of a stiffness, and the stiffness of the
+  constants, in closed form (``E_3 = C_{3333} - 2C_{1133}^2/(C_{1111} + C_{1122})``,
+  …), without inverting.
+
+### Changed
+
+- Each single reader computes its own modulus: `young_modulus` no longer
+  computes Poisson's ratio, nor `poisson_ratio` Young's modulus. The pair
+  readers are made of the single ones. On a stiffness, every result keeps the
+  bits of 0.11.0.
+
+### Documentation
+
+- The Theory, the Manual and the Tutorials link to one another: every page
+  opens with a "See also" block naming the pages of the other parts that treat
+  its subjects. The subjects are listed once, in `docs/crosslinks.toml`, and
+  `.github/scripts/crosslinks.py` writes the blocks (into the tutorial scripts
+  too); its `--check` runs in the pre-push hook and before the documentation
+  build, so that a page moved or added cannot leave its links behind. Every
+  tutorial has an `@id`.
+- *Elastic moduli* and *Parametrizations and conversions* document the roles,
+  the compliance builders and every direct formula.
+
 ## v0.11.0 — one name per operation, symmetries kept through a change of basis, Kelvin–Mandel vectors
 
 A minor release. Its fixes: a tensor stored with its symmetries, written in

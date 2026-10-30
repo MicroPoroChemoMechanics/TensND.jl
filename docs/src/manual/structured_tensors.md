@@ -1,5 +1,14 @@
 # [Structured tensors](@id man-structured)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Isotropic tensors](@ref th-isotropic) · [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [Orthotropy](@ref th-orthotropy) · [Cubic symmetry](@ref th-cubic)
+
+    **Manual**: [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations) · [Projection and symmetry detection](@ref man-projection)
+
+    **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [Projection and symmetry detection](@ref tut-projection) · [A two-point Green tensor between offset frames](@ref tut-cluster)
+<!-- /crosslinks -->
+
 The compact symmetry-class types. Each stores a handful of scalars instead of
 ``d^4`` components and computes products and inverses in closed form. The
 algebra behind each is on [Isotropic tensors](@ref th-isotropic),

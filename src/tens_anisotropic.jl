@@ -449,13 +449,21 @@ constants, read according to `form`:
   (Hoenig, 1978): `S₁₁₁₁ = 1/E`, `S₁₁₂₂ = −ν₁/E`, `S₁₁₃₃ = −ν₂/E`,
   `S₃₃₃₃ = 1/(E H)`, `S₂₃₂₃ = (1 + ν₁)/(2 E Γ)`.
 
-The stiffness of the last two is `inv` of the result. [`ti_constants`](@ref)
-reads the constants back.
+With `role = :stiffness`, the last two build the **stiffness** of the same
+material instead, directly (never through an inverse): with
+``\\Delta = E_3(1 - \\nu_{12}) - 2E_1\\nu_{31}^2``,
+`C₁₁₁₁ = E₁(E₃ − E₁ν₃₁²)/((1 + ν₁₂)Δ)`, `C₁₁₂₂ = E₁(E₁ν₃₁² + E₃ν₁₂)/((1 + ν₁₂)Δ)`,
+`C₁₁₃₃ = E₁E₃ν₃₁/Δ`, `C₃₃₃₃ = E₃²(1 − ν₁₂)/Δ`, `C₂₃₂₃ = G₃₁`, Hoenig's parameters
+being those of ``E_1 = E``, ``E_3 = EH``, ``\\nu_{12} = \\nu_1``, ``\\nu_{31} = H\\nu_2``,
+``G_{31} = E\\Gamma/(2(1 + \\nu_1))``. `role` is `:compliance` by default, and has
+no effect on `form = :components`. [`ti_constants`](@ref) reads the constants back.
 """
-function ti_from_constants(c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components)
+Base.@constprop :aggressive function ti_from_constants(
+        c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components, role::Symbol = :compliance
+    )
     form === :components && return _ti_from_components(c₁, c₂, c₃, c₄, c₅, n)
-    form === :engineering && return _ti_from_components(_compliance_engineering(c₁, c₂, c₃, c₄, c₅)..., n)
-    form === :hoenig && return _ti_from_components(_compliance_hoenig(c₁, c₂, c₃, c₄, c₅)..., n)
+    form === :engineering && return _ti_from_components(_components(_role(role), Val(:engineering), c₁, c₂, c₃, c₄, c₅)..., n)
+    form === :hoenig && return _ti_from_components(_components(_role(role), Val(:hoenig), c₁, c₂, c₃, c₄, c₅)..., n)
     throw(_unknown_ti_form(form))
 end
 
@@ -468,7 +476,14 @@ The five constants of a transversely isotropic tensor, the reciprocal of
 Walpole coefficients (`C₃₃₃₃ = ℓ₁`, `C₁₁₁₁ = (ℓ₂ + ℓ₅)/2`,
 `C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`, `C₁₁₃₃ = ℓ₃/√2`, `C₂₃₂₃ = ℓ₆/2`); with
 `form = :engineering`, `(E₁, E₃, ν₁₂, ν₃₁, G₃₁)` of the **compliance** `t`; with
-`form = :hoenig`, `(E, ν₁, ν₂, H, Γ)` of the **compliance** `t`.
+`form = :hoenig`, `(E, ν₁, ν₂, H, Γ)` of the **compliance** `t`. With
+`role = :stiffness`, those two forms read the constants of the material whose
+**stiffness** is `t`, directly (never through an inverse): with
+``D = C_{1111}C_{3333} - C_{1133}^2``, `E₁ = (C₁₁₁₁ − C₁₁₂₂)(C₁₁₁₁C₃₃₃₃ + C₁₁₂₂C₃₃₃₃ − 2C₁₁₃₃²)/D`,
+`E₃ = C₃₃₃₃ − 2C₁₁₃₃²/(C₁₁₁₁ + C₁₁₂₂)`, `ν₁₂ = (C₁₁₂₂C₃₃₃₃ − C₁₁₃₃²)/D`,
+`ν₃₁ = C₁₁₃₃/(C₁₁₁₁ + C₁₁₂₂)`, `G₃₁ = C₂₃₂₃`, and Hoenig's ``\\nu_2 = E_1\\nu_{31}/E_3``,
+``H = E_3/E_1``, ``\\Gamma = 2(1 + \\nu_{12})G_{31}/E_1``. `role` is `:compliance` by
+default, and has no effect on `form = :components`.
 
 A six- or eight-parameter tensor (a product of TI tensors lands there) has
 these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
@@ -476,10 +491,10 @@ these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
 numbers. Otherwise it is refused, rather than read as if `ℓ₄`, `ℓ₇` and `ℓ₈` were
 not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant.
 """
-function ti_constants(t::TensTI{4}; form::Symbol = :components)
+Base.@constprop :aggressive function ti_constants(t::TensTI{4}; form::Symbol = :components, role::Symbol = :compliance)
     form === :components && return _ti_components(t)
-    form === :engineering && return _engineering_of_compliance(_ti_components(t)...)
-    form === :hoenig && return _hoenig_of_compliance(_ti_components(t)...)
+    form === :engineering && return _constants(_role(role), Val(:engineering), _ti_components(t)...)
+    form === :hoenig && return _constants(_role(role), Val(:hoenig), _ti_components(t)...)
     throw(_unknown_ti_form(form))
 end
 
@@ -544,6 +559,35 @@ _compliance_hoenig(E, ν₁, ν₂, H, Γ) = (inv(E), -ν₁ / E, -ν₂ / E, in
 _hoenig_of_compliance(S₁₁₁₁, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃) = _hoenig(inv(S₁₁₁₁), S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃)
 # `1 − E·S₁₁₂₂` is `1 + ν₁` to the last bit: adding a negated number is subtracting it.
 _hoenig(E, S₁₁₂₂, S₁₁₃₃, S₃₃₃₃, S₂₃₂₃) = (E, -E * S₁₁₂₂, -E * S₁₁₃₃, inv(S₃₃₃₃ * E), (1 - E * S₁₁₂₂) / (2 * E * S₂₃₂₃))
+
+# The constants of a form read from the components of a compliance (the formulas
+# above) or of a stiffness (in closed form), and the components built from them.
+_constants(::Val{:compliance}, ::Val{:engineering}, S...) = _engineering_of_compliance(S...)
+_constants(::Val{:compliance}, ::Val{:hoenig}, S...) = _hoenig_of_compliance(S...)
+_constants(::Val{:stiffness}, ::Val{:engineering}, C...) = _engineering_of_stiffness(C...)
+_constants(::Val{:stiffness}, ::Val{:hoenig}, C...) = _hoenig_of_engineering(_engineering_of_stiffness(C...)...)
+_components(::Val{:compliance}, ::Val{:engineering}, c...) = _compliance_engineering(c...)
+_components(::Val{:compliance}, ::Val{:hoenig}, c...) = _compliance_hoenig(c...)
+_components(::Val{:stiffness}, ::Val{:engineering}, c...) = _stiffness_engineering(c...)
+_components(::Val{:stiffness}, ::Val{:hoenig}, c...) = _stiffness_engineering(_engineering_of_hoenig(c...)...)
+
+function _engineering_of_stiffness(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
+    D = C₁₁₁₁ * C₃₃₃₃ - C₁₁₃₃^2
+    E₁ = (C₁₁₁₁ - C₁₁₂₂) * (C₁₁₁₁ * C₃₃₃₃ + C₁₁₂₂ * C₃₃₃₃ - 2 * C₁₁₃₃^2) / D
+    E₃ = C₃₃₃₃ - 2 * C₁₁₃₃^2 / (C₁₁₁₁ + C₁₁₂₂)
+    return (E₁, E₃, (C₁₁₂₂ * C₃₃₃₃ - C₁₁₃₃^2) / D, C₁₁₃₃ / (C₁₁₁₁ + C₁₁₂₂), C₂₃₂₃)
+end
+
+function _stiffness_engineering(E₁, E₃, ν₁₂, ν₃₁, G₃₁)
+    Δ = E₃ * (1 - ν₁₂) - 2 * E₁ * ν₃₁^2
+    C₁₁₁₁ = E₁ * (E₃ - E₁ * ν₃₁^2) / ((1 + ν₁₂) * Δ)
+    C₁₁₂₂ = E₁ * (E₁ * ν₃₁^2 + E₃ * ν₁₂) / ((1 + ν₁₂) * Δ)
+    return (C₁₁₁₁, C₁₁₂₂, E₁ * E₃ * ν₃₁ / Δ, E₃^2 * (1 - ν₁₂) / Δ, G₃₁)
+end
+
+# Hoenig's parameters and the engineering constants of the same material.
+_hoenig_of_engineering(E₁, E₃, ν₁₂, ν₃₁, G₃₁) = (E₁, ν₁₂, E₁ * ν₃₁ / E₃, E₃ / E₁, 2 * (1 + ν₁₂) * G₃₁ / E₁)
+_engineering_of_hoenig(E, ν₁, ν₂, H, Γ) = (E, E * H, ν₁, H * ν₂, E * Γ / (2 * (1 + ν₁)))
 
 # ── isisotropic / istransverselyisotropic ─────────────────────────────────────────────────────────────
 

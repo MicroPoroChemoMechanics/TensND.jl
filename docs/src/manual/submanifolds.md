@@ -1,5 +1,12 @@
 # [Submanifolds](@id man-submanifolds)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Submanifolds](@ref th-submanifolds)
+
+    **Tutorials**: [Surfaces: fundamental forms and curvature](@ref tut-submanifolds)
+<!-- /crosslinks -->
+
 Hypersurfaces embedded in ``\mathbb{R}^d``: their induced metric, their
 curvature, and differential operators on them. The geometry is on
 [Submanifolds](@ref th-submanifolds).

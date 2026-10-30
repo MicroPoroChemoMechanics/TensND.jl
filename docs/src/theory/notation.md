@@ -1,5 +1,14 @@
 # [Notation and conventions](@id th-notation)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Bases and variance](@ref th-bases-variance) · [Tensor algebra](@ref th-tensor-algebra)
+
+    **Manual**: [Bases](@ref man-bases) · [Tensors](@ref man-tensors)
+
+    **Tutorials**: [Bases, variance and the metric](@ref tut-bases-variance) · [Tensor products, contractions and their identities](@ref tut-tensor-algebra)
+<!-- /crosslinks -->
+
 This page fixes the notation used throughout the documentation. Every symbol
 that is *not* listed here is redefined on the page where it appears.
 

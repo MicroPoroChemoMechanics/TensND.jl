@@ -1,5 +1,14 @@
 # [Projection and symmetry detection](@id man-projection)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Orthotropy](@ref th-orthotropy) · [Cubic symmetry](@ref th-cubic) · [Projection onto a symmetry class](@ref th-projection)
+
+    **Manual**: [Structured tensors](@ref man-structured)
+
+    **Tutorials**: [Projection and symmetry detection](@ref tut-projection)
+<!-- /crosslinks -->
+
 Finding the closest tensor of a given material symmetry, and identifying which
 symmetry a tensor has. The algorithms are on
 [Projection onto a symmetry class](@ref th-projection).

@@ -1,4 +1,11 @@
-# # Differentiation and interoperability
+# # [Differentiation and interoperability](@id tut-ad-interop)
+#
+# <!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+# !!! tip "See also"
+#     **Manual**: [Symbolic and numeric](@ref man-symbolic-numeric) · [Elastic moduli](@ref man-elastic-moduli)
+#
+#     **Tutorials**: [Performance of the structured types](@ref tut-performance) · [Differential operators, symbolically](@ref tut-symbolic-operators) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems)
+# <!-- /crosslinks -->
 #
 # `TensND` is generic in its element type. The same code paths run on
 # `Float64`, on `ForwardDiff.Dual`, on SymPy's `Sym` and on Symbolics' `Num`,

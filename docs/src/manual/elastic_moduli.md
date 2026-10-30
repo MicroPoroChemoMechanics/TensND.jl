@@ -1,11 +1,30 @@
 # [Elastic moduli](@id man-elastic-moduli)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Isotropic tensors](@ref th-isotropic)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Symbolic and numeric](@ref man-symbolic-numeric) · [Parametrizations and conversions](@ref man-parametrizations)
+
+    **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [Differentiation and interoperability](@ref tut-ad-interop) · [Performance of the structured types](@ref tut-performance) · [Differential operators, symbolically](@ref tut-symbolic-operators)
+<!-- /crosslinks -->
+
 An isotropic linear elastic material has two independent constants, and six of
 them are in common use: the bulk modulus ``k``, Young's modulus ``E``, Lamé's
 first parameter ``\lambda``, the shear modulus ``\mu``, Poisson's ratio ``\nu`` and
 the P-wave (oedometric) modulus ``M``. Any two of them fix the others. TensND
-makes the stiffness tensor the meeting point: it is built from any pair and any
-modulus is read from it, so that a conversion is one function inside another.
+makes the tensor the meeting point: the stiffness, or the compliance, is built
+from any pair, and any modulus is read from either, so that a conversion is one
+function inside another.
+
+| to … | write |
+| :--- | :--- |
+| build a stiffness from two moduli | `iso_stiffness_<pair>(a, b)`, e.g. `iso_stiffness_young_poisson(E, ν)` or `iso_stiffness_E_ν(E, ν)` |
+| build a compliance from two moduli | `iso_compliance_<pair>(a, b)`, e.g. `iso_compliance_young_poisson(E, ν)` |
+| read one modulus | `young_modulus(ℂ)`, `poisson_ratio(ℂ)`, …, or `young_modulus(𝕊; role = :compliance)` |
+| read two moduli | `young_poisson(ℂ)` (`E_ν(ℂ)`), `lame_shear(ℂ)` (`λ_μ(ℂ)`), …, with the same `role` |
+| work in 2-D (plane strain) | the same builders with `Val(2)` first |
+| switch between plane strain and plane stress | `plane_strain_stiffness`, `plane_stress_stiffness`, `plane_stress_to_plane_strain`, `plane_strain_to_plane_stress` |
 
 ## The stiffness and its moduli
 
@@ -34,12 +53,38 @@ using TensND
  μ = shear_modulus(ℂ), ν = poisson_ratio(ℂ), M = pwave_modulus(ℂ))
 ```
 
-A compliance is the inverse of a stiffness, exactly in the class, so its moduli
-are those of `inv(𝕊)`.
+## Stiffness or compliance
+
+The compliance is ``\mathbb{S} = \mathbb{C}^{-1} = a\,\mathbb{J} + b\,\mathbb{K}`` with
+``a = 1/(3k)`` and ``b = 1/(2\mu)``. Every reader takes the keyword `role`, which
+says which of the two it is given: `:stiffness`, the default, or `:compliance`.
+Each modulus then has a formula of its own on each, written directly on the two
+coefficients, never through an inverse:
+
+| modulus | on ``\mathbb{C} = \alpha\,\mathbb{J} + \beta\,\mathbb{K}`` | on ``\mathbb{S} = a\,\mathbb{J} + b\,\mathbb{K}`` |
+| :--- | :--- | :--- |
+| ``k`` | ``\alpha/3`` | ``1/(3a)`` |
+| ``\mu`` | ``\beta/2`` | ``1/(2b)`` |
+| ``\lambda`` | ``(\alpha - \beta)/3`` | ``(b - a)/(3ab)`` |
+| ``E`` | ``9k\mu/(3k + \mu)`` | ``3/(a + 2b)`` |
+| ``\nu`` | ``(3k - 2\mu)/(2(3k + \mu))`` | ``(b - a)/(a + 2b)`` |
+| ``M`` | ``\lambda + 2\mu`` | ``(b + 2a)/(3ab)`` |
+
+```@example moduli
+𝕊 = iso_compliance_young_poisson(70.0, 0.33)   # the same aluminum
+young_poisson(𝕊; role = :compliance)
+```
+
+The compliance builders write ``\mathbb{S}`` directly as well: from ``(E, \nu)``,
+``\mathbb{S} = (1 - 2\nu)/E\;\mathbb{J} + (1 + \nu)/E\;\mathbb{K}``. Nothing in a
+`TensISO` tells a stiffness from a compliance: the role is the caller's to give,
+and a compliance read as a stiffness gives the moduli of another material.
 
 ## Building from any pair
 
-The stiffness of a pair is `iso_stiffness_<pair>`, with the same names. The
+The stiffness of a pair is `iso_stiffness_<pair>`, and its compliance
+`iso_compliance_<pair>` ([`iso_compliance`](@ref) for ``(k, \mu)``), with the same
+names. The
 fifteen pairs, and how each gives ``(\lambda, \mu)`` (the formulas are those of
 the classical [conversion table](https://en.wikipedia.org/wiki/Elastic_modulus),
 in this notation):
@@ -86,7 +131,8 @@ The pairs without the P-wave modulus also have the names of their symbols, in
 ASCII and with Greek letters, as exact aliases: `k_mu` and `k_μ` are
 [`bulk_shear`](@ref), `E_nu` and `E_ν` are [`young_poisson`](@ref), `λ_μ` and
 `lambda_mu` are [`lame_shear`](@ref), and the builders likewise,
-`iso_stiffness_E_nu`, `iso_stiffness_E_ν`, `iso_stiffness_λ_μ`, …. The pairs
+`iso_stiffness_E_nu`, `iso_stiffness_E_ν`, `iso_stiffness_λ_μ`, … and
+`iso_compliance_E_nu`, `iso_compliance_E_ν`, `iso_compliance_λ_μ`, …. The pairs
 with ``M`` have none: `k_M` or `μ_M` name the moduli of a matrix in
 MeanFieldHomogenization, and the two meanings would be read one for the other.
 
@@ -126,6 +172,21 @@ dimension as a first argument `Val(2)` (`Val(3)` is the default):
 ```@example moduli
 ℂ₂ = iso_stiffness_young_poisson(Val(2), 70.0, 0.33)
 bulk_shear(ℂ₂), young_poisson(ℂ₂)
+```
+
+On a 2-D compliance ``\mathbb{S} = a\,\mathbb{J} + b\,\mathbb{K}``, with
+``a = 1/(2(\lambda + \mu))`` and ``b = 1/(2\mu)``, the readers use
+
+```math
+k = \frac{1}{2a}, \quad \mu = \frac{1}{2b}, \quad \lambda = \frac{b - a}{2ab}, \quad
+E = \frac{3b - a}{2b^2}, \quad \nu = \frac{b - a}{2b}, \quad M = \frac{a + b}{2ab},
+```
+
+and the compliance builders take `Val(2)` as the stiffness builders do:
+
+```@example moduli
+𝕊₂ = iso_compliance_young_poisson(Val(2), 70.0, 0.33)
+young_poisson(𝕊₂; role = :compliance)
 ```
 
 The pairs with ``k`` then use the in-plane bulk modulus: ``\mu = k - \lambda``,

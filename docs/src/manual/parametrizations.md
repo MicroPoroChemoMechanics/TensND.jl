@@ -1,5 +1,14 @@
 # [Parametrizations and conversions](@id man-parametrizations)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [The extended Walpole algebra](@ref th-walpole-extended) · [Isotropic tensors](@ref th-isotropic)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli)
+
+    **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [The eight-dimensional axially invariant space](@ref tut-walpole-extended)
+<!-- /crosslinks -->
+
 Which five numbers describe a transversely isotropic material, how to move
 between the conventions, and how to go in and out of the Kelvin–Mandel matrix.
 The matrices themselves are on
@@ -58,17 +67,58 @@ ti_constants(𝕊; form = :hoenig)   # and in dimensionless Hoenig ratios
 ``H`` is the axial-to-transverse modulus ratio and ``\Gamma`` the shear
 anisotropy; an isotropic material sits at ``H=\Gamma=1`` with ``\nu_1=\nu_2``.
 
-!!! warning "The engineering and Hoenig forms build a compliance"
-    `ti_from_constants(…; form = :engineering)` and `form = :hoenig` return ``\mathbb{S}``, not
-    ``\mathbb{C}``. To get the stiffness, invert — which is exact and stays in
-    the class:
+## Stiffness or compliance: `role`
 
-    ```julia
-    ℂ = inv(ti_from_constants(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n; form = :engineering))
-    ```
+The engineering and Hoenig constants are defined on the **compliance**:
+`ti_from_constants(…; form = :engineering)` and `form = :hoenig` build
+``\mathbb{S}``, and `ti_constants(t; form)` reads `t` as one. The keyword
+`role = :stiffness` makes them build, or read, the **stiffness** of the same
+material instead. It is never computed through an inverse: each constant has
+its closed form on the stiffness components, with
+``D = C_{1111}C_{3333} - C_{1133}^2``,
 
-    Applying `ti_constants` to a *stiffness* returns numbers that are not the
-    engineering constants of that material.
+```math
+E_1 = \frac{(C_{1111} - C_{1122})(C_{1111}C_{3333} + C_{1122}C_{3333} - 2C_{1133}^2)}{D},
+\quad
+E_3 = C_{3333} - \frac{2C_{1133}^2}{C_{1111} + C_{1122}},
+\quad
+\nu_{12} = \frac{C_{1122}C_{3333} - C_{1133}^2}{D},
+\quad
+\nu_{31} = \frac{C_{1133}}{C_{1111} + C_{1122}},
+\quad
+G_{31} = C_{2323},
+```
+
+and the stiffness has its closed form in the constants, with
+``\Delta = E_3(1 - \nu_{12}) - 2E_1\nu_{31}^2``:
+
+```math
+C_{1111} = \frac{E_1(E_3 - E_1\nu_{31}^2)}{(1 + \nu_{12})\Delta},
+\quad
+C_{1122} = \frac{E_1(E_1\nu_{31}^2 + E_3\nu_{12})}{(1 + \nu_{12})\Delta},
+\quad
+C_{1133} = \frac{E_1E_3\nu_{31}}{\Delta},
+\quad
+C_{3333} = \frac{E_3^2(1 - \nu_{12})}{\Delta},
+\quad
+C_{2323} = G_{31}.
+```
+
+Hoenig's parameters are those of ``E_1 = E``, ``E_3 = EH``, ``\nu_{12} = \nu_1``,
+``\nu_{31} = H\nu_2`` and ``G_{31} = E\Gamma/(2(1 + \nu_1))``.
+
+```@example par
+ℂ = ti_from_constants(9.0, 140.0, 0.40, 0.30, 4.6, n; form = :engineering, role = :stiffness)
+ℂ ≈ inv(𝕊), ti_constants(ℂ; form = :engineering, role = :stiffness)
+```
+
+`role` is `:compliance` by default, as these forms have always been read, and
+has no effect on `form = :components`, whose five numbers are those of the tensor
+given, whatever it is.
+
+!!! warning "A role is the caller's to give"
+    Nothing in a `TensTI` tells a stiffness from a compliance. Read with the
+    wrong `role`, a tensor gives the constants of another material.
 
 ## Walpole coefficients
 

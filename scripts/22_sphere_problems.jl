@@ -1,4 +1,13 @@
-# # The elastic sphere, solved symbolically
+# # [The elastic sphere, solved symbolically](@id tut-sphere-problems)
+#
+# <!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+# !!! tip "See also"
+#     **Theory**: [Isotropic tensors](@ref th-isotropic)
+#
+#     **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli) · [Symbolic and numeric](@ref man-symbolic-numeric)
+#
+#     **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [Differentiation and interoperability](@ref tut-ad-interop) · [Performance of the structured types](@ref tut-performance) · [Differential operators, symbolically](@ref tut-symbolic-operators)
+# <!-- /crosslinks -->
 #
 # The classical building block of micromechanics: an isotropic sphere — or a
 # stack of concentric isotropic layers — under a uniform remote strain. Because

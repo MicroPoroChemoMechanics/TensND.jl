@@ -1110,3 +1110,39 @@ end
     @test isequal(ti_constants(TensTI{4, TensND.Symbolics.Num, 6}((a, b, a, a, b, a), n))[4], a)
     @test_throws ArgumentError ti_constants(TensTI{4, TensND.Symbolics.Num, 6}((a, b, a, b, b, a), n))
 end
+
+@testsection "TI constants of a stiffness, directly, against the inverse" begin
+    rng = Xoshiro(20261030)
+    n = (0.0, 0.6, 0.8)
+    for _ in 1:200
+        # A positive definite TI stiffness, drawn on its Walpole blocks.
+        A = randn(rng, 2, 2)
+        ℓ = A * transpose(A) + 0.1I
+        C = TensTI{4}(ℓ[2, 2], ℓ[1, 1], ℓ[1, 2], 0.1 + rand(rng), 0.1 + rand(rng), n)
+        S = inv(C)
+        for form in (:engineering, :hoenig)
+            @test all(isapprox.(ti_constants(C; form, role = :stiffness), ti_constants(S; form); rtol = 1.0e-9))
+            c = ti_constants(S; form)
+            @test all(isapprox.(get_data(ti_from_constants(c..., n; form, role = :stiffness)), get_data(C); rtol = 1.0e-9))
+            @test ti_constants(S; form, role = :compliance) === c
+        end
+        # `role` has no effect on the components.
+        @test ti_constants(C; role = :stiffness) === ti_constants(C)
+        @test ti_from_constants(ti_constants(C)..., n; role = :stiffness) == ti_from_constants(ti_constants(C)..., n)
+    end
+    @test_throws "unknown role" ti_constants(TensTI{4}(2.0, 3.0, 0.5, 1.0, 1.0, n); form = :hoenig, role = :rigidity)
+    # Exactly, on symbolic components.
+    c11, c12, c13, c33, c44 = symbols("C11 C12 C13 C33 C44", positive = true)
+    Cs = ti_from_constants(c11, c12, c13, c33, c44, [0, 0, 1])
+    e1, e3, n12, n31, g = ti_constants(Cs; form = :engineering, role = :stiffness)
+    D = c11 * c33 - c13^2
+    @test simplify(e3 - (c33 - 2 * c13^2 / (c11 + c12))) == 0
+    @test simplify(e1 - (c11 - c12) * (c11 * c33 + c12 * c33 - 2 * c13^2) / D) == 0
+    @test simplify(n31 - c13 / (c11 + c12)) == 0 && g == c44
+    # Derivatives through the direct formulas.
+    C0 = TensTI{4}(30.0, 20.0, 5.0, 8.0, 6.0, n)
+    dE3 = ForwardDiff.derivative(x -> ti_constants(TensTI{4}(x, 20.0, 5.0, 8.0, 6.0, n); form = :engineering, role = :stiffness)[2], 30.0)
+    @test dE3 ≈ 1    # E₃ = C₃₃₃₃ − …, and ℓ₁ = C₃₃₃₃
+    stiff_eng(t) = ti_constants(t; form = :engineering, role = :stiffness)
+    @test (@inferred stiff_eng(C0)) isa NTuple{5, Float64}
+end

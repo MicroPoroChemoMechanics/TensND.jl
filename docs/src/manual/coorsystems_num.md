@@ -1,5 +1,14 @@
 # [Coordinate systems (numerical)](@id man-coorsystems-num)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear)
+
+    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems)
+
+    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities)
+<!-- /crosslinks -->
+
 The same five operators as in [Coordinate systems](@ref man-coorsystems), with
 derivatives taken by automatic differentiation instead of SymPy. No symbolic
 setup, constant cost per point, and results are numbers rather than formulas.

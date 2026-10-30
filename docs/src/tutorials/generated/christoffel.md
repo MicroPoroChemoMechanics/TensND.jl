@@ -4,6 +4,15 @@ EditURL = "../../../../scripts/11_christoffel.jl"
 
 # [Christoffel symbols](@id tut-christoffel)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear)
+
+    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num)
+
+    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities)
+<!-- /crosslinks -->
+
 The connection coefficients are what distinguish a derivative in a curvilinear
 chart from a plain partial derivative. This tutorial computes them from their
 definition, checks that definition term by term, tabulates them for every

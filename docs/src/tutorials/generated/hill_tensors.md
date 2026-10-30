@@ -2,7 +2,16 @@
 EditURL = "../../../../scripts/24_hill_tensors.jl"
 ```
 
-# Acoustic and Hill tensors
+# [Acoustic and Hill tensors](@id tut-hill-tensors)
+
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [Isotropic tensors](@ref th-isotropic)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations)
+
+    **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Elastic Green's functions](@ref tut-green-function) · [A two-point Green tensor between offset frames](@ref tut-cluster)
+<!-- /crosslinks -->
 
 From the stiffness ``\mathbb{C}`` and a direction ``\underline{\xi}``, the
 **acoustic tensor** ``\boldsymbol{K}=\underline{\xi}\cdot\mathbb{C}\cdot

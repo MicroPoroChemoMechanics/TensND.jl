@@ -1,5 +1,12 @@
 # [Projection onto a symmetry class](@id th-projection)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Manual**: [Projection and symmetry detection](@ref man-projection)
+
+    **Tutorials**: [Projection and symmetry detection](@ref tut-projection)
+<!-- /crosslinks -->
+
 Given an arbitrary tensor, find the closest one having a prescribed material
 symmetry — and, if the orientation is unknown, find that too. This page states
 the problem, derives the closed forms `TensND` uses at fixed orientation, and

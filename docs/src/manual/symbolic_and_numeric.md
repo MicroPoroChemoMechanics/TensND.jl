@@ -1,5 +1,12 @@
 # [Symbolic and numeric](@id man-symbolic-numeric)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Manual**: [Elastic moduli](@ref man-elastic-moduli)
+
+    **Tutorials**: [Differentiation and interoperability](@ref tut-ad-interop) · [Performance of the structured types](@ref tut-performance) · [Differential operators, symbolically](@ref tut-symbolic-operators) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems)
+<!-- /crosslinks -->
+
 `TensND` is generic in its element type. The same code paths run on `Float64`,
 on `ForwardDiff.Dual`, on SymPy's `Sym` and on Symbolics' `Num`, which is what
 lets a derivation be done symbolically and the result evaluated — or

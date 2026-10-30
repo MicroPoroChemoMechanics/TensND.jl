@@ -1,5 +1,12 @@
 # [Rotations and Euler angles](@id th-rotations)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Manual**: [Random tensors](@ref man-random-tensors) · [Tensors](@ref man-tensors)
+
+    **Tutorials**: [A two-point Green tensor between offset frames](@ref tut-cluster)
+<!-- /crosslinks -->
+
 Every symmetry class in this library is defined up to an orientation — an axis
 for transverse isotropy, a full frame for orthotropy — so the angular convention
 is part of the specification, not a detail. This page states the one `TensND`

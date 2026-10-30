@@ -1,5 +1,14 @@
 # [Tensors](@id man-tensors)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Bases and variance](@ref th-bases-variance) · [Notation and conventions](@ref th-notation) · [Tensor algebra](@ref th-tensor-algebra) · [Kelvin–Mandel representation](@ref th-kelvin-mandel) · [Rotations and Euler angles](@ref th-rotations)
+
+    **Manual**: [Bases](@ref man-bases) · [Random tensors](@ref man-random-tensors)
+
+    **Tutorials**: [Bases, variance and the metric](@ref tut-bases-variance) · [Tensor products, contractions and their identities](@ref tut-tensor-algebra) · [Performance of the structured types](@ref tut-performance) · [A two-point Green tensor between offset frames](@ref tut-cluster)
+<!-- /crosslinks -->
+
 Building tensors, moving their components between bases and variances, and
 reading them back. The underlying notions are on
 [Bases and variance](@ref th-bases-variance) and

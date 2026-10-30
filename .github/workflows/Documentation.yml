@@ -60,6 +60,10 @@ jobs:
           Pkg.develop(PackageSpec(path=pwd()))
           # No Python setup: SymPyPythonCall's CondaPkg installs `sympy` itself.
           Pkg.instantiate()
+      # The "See also" blocks must match docs/crosslinks.toml; the @ref they
+      # hold are then resolved by the build itself.
+      - name: Check the cross-links
+        run: python3 .github/scripts/crosslinks.py --check
       - name: Run doctests
         shell: julia --project=docs/ --color=yes {0}
         run: |
