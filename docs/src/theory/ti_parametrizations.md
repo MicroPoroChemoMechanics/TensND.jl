@@ -1,5 +1,14 @@
 # [Transversely isotropic parametrizations](@id th-ti-parametrizations)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [The Walpole basis](@ref th-walpole)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations)
+
+    **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors)
+<!-- /crosslinks -->
+
 A transversely isotropic tensor with major symmetry has five degrees of freedom.
 Which five numbers one uses is a matter of discipline, not of mathematics, and
 `TensND` supports three conventions. All of them build a `TensTI{4,T,5}` and all

@@ -1,4 +1,11 @@
-# # Surfaces: fundamental forms and curvature
+# # [Surfaces: fundamental forms and curvature](@id tut-submanifolds)
+#
+# <!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+# !!! tip "See also"
+#     **Theory**: [Submanifolds](@ref th-submanifolds)
+#
+#     **Manual**: [Submanifolds](@ref man-submanifolds)
+# <!-- /crosslinks -->
 #
 # A [`Submanifold`](@ref) is a hypersurface embedded in ``\mathbb{R}^d``: one
 # coordinate fewer than the ambient space, with the unit normal completing the

@@ -2,7 +2,16 @@
 EditURL = "../../../../scripts/20_green_function.jl"
 ```
 
-# Elastic Green's functions
+# [Elastic Green's functions](@id tut-green-function)
+
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Isotropic tensors](@ref th-isotropic) · [The Walpole basis](@ref th-walpole)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli)
+
+    **Tutorials**: [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [A two-point Green tensor between offset frames](@ref tut-cluster) · [Acoustic and Hill tensors](@ref tut-hill-tensors)
+<!-- /crosslinks -->
 
 The Kelvin fundamental solution — the displacement produced by a point force
 in an infinite isotropic medium — in plane strain and in three dimensions,

@@ -1,5 +1,14 @@
 # [Bases](@id man-bases)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Bases and variance](@ref th-bases-variance) · [Notation and conventions](@ref th-notation)
+
+    **Manual**: [Tensors](@ref man-tensors)
+
+    **Tutorials**: [Bases, variance and the metric](@ref tut-bases-variance)
+<!-- /crosslinks -->
+
 How to build a basis and read what it stores. The mathematics — dual basis,
 metric, variance, and why the type hierarchy exists — is on
 [Bases and variance](@ref th-bases-variance).

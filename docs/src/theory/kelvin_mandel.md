@@ -1,5 +1,12 @@
 # [Kelvin–Mandel representation](@id th-kelvin-mandel)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Manual**: [Tensors](@ref man-tensors)
+
+    **Tutorials**: [Tensor products, contractions and their identities](@ref tut-tensor-algebra) · [Performance of the structured types](@ref tut-performance)
+<!-- /crosslinks -->
+
 Minor-symmetric order-4 tensors and symmetric order-2 tensors form spaces of
 dimension 21 and 6 in 3-D. The Kelvin–Mandel representation makes that explicit
 by mapping them onto ``6\times6`` matrices and ``6``-vectors **isometrically**,

@@ -2,7 +2,16 @@
 EditURL = "../../../../scripts/14_operator_identities.jl"
 ```
 
-# Classical identities of the differential operators
+# [Classical identities of the differential operators](@id tut-operator-identities)
+
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear)
+
+    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num)
+
+    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators)
+<!-- /crosslinks -->
 
 Every identity below is **checked**, not quoted: each cell computes a residual
 that must be identically zero. Run on five charts of increasing awkwardness —

@@ -49,6 +49,14 @@ get_dim(::AbstractTens{order, dim, T}) where {order, dim, T} = dim
 Base.eltype(::Type{AbstractTens{order, dim, T}}) where {order, dim, T} = T
 
 
+# The storage of a tensor is decided on its values (`tensor_or_array`: symmetric
+# or full), so that the array it returns is of one of two types, known at run
+# time only. Each constructor hands it to a second method, marked by this
+# sentinel, whose type parameters are then those of a value of concrete type:
+# Julia splits the union at that call, where building the type of the tensor
+# from the union itself cost about 100 ns on every construction.
+struct _Stored end
+
 """
     Tens{order,dim,T,A<:AbstractArray,B<:Basis}
 
@@ -97,9 +105,11 @@ struct Tens{order, dim, T, A <: AbstractArray, B <: Basis} <: AbstractTens{order
             basis::Basis{dim},
             var::NTuple{order, Symbol} = ntuple(_ -> :cont, Val(order)),
         ) where {order, dim, T}
-        newdata = tensor_or_array(data)
-        return new{order, dim, T, typeof(newdata), typeof(basis)}(newdata, basis, var)
+        return Tens(_Stored(), tensor_or_array(data), basis, var, T)
     end
+    # The storage decided, a value of concrete type: see `_Stored`.
+    Tens(::_Stored, data::A, basis::B, var::NTuple{order, Symbol}, ::Type{T}) where {order, T, A <: AbstractArray, dim, B <: Basis{dim}} =
+        new{order, dim, T, A, B}(data, basis, var)
     Tens(data::AbstractArray, basis::RotatedBasis, args...) = TensRotated(data, basis)
     Tens(data::AbstractArray, basis::OrthogonalBasis, args...) =
         TensOrthogonal(data, basis, args...)
@@ -136,9 +146,10 @@ struct TensRotated{order, dim, T, A <: AbstractArray, B <: RotatedBasis} <: Abst
             data::AbstractArray{T, order},
             basis::RotatedBasis{dim},
         ) where {order, dim, T}
-        newdata = tensor_or_array(data)
-        return new{order, dim, T, typeof(newdata), typeof(basis)}(newdata, basis)
+        return TensRotated(_Stored(), tensor_or_array(data), basis, T, Val(order))
     end
+    TensRotated(::_Stored, data::A, basis::B, ::Type{T}, ::Val{order}) where {T, order, A <: AbstractArray, dim, B <: RotatedBasis{dim}} =
+        new{order, dim, T, A, B}(data, basis)
 end
 
 # The dimension, from the type of the array when it carries one (every
@@ -149,10 +160,10 @@ _dim_of(a::AbstractArray) = size(a, 1)
 
 struct TensCanonical{order, dim, T, A <: AbstractArray} <: AbstractTens{order, dim, T}
     data::A
-    function TensCanonical(data::AbstractArray{T, order}) where {order, T}
-        newdata = tensor_or_array(data)
-        return new{order, _dim_of(newdata), T, typeof(newdata)}(newdata)
-    end
+    TensCanonical(data::AbstractArray{T, order}) where {order, T} =
+        TensCanonical(_Stored(), tensor_or_array(data), T, Val(order))
+    TensCanonical(::_Stored, data::A, ::Type{T}, ::Val{order}) where {T, order, A <: AbstractArray} =
+        new{order, _dim_of(data), T, A}(data)
 end
 
 struct TensOrthogonal{order, dim, T, A <: AbstractArray, B <: OrthogonalBasis} <: AbstractTens{order, dim, T}
@@ -164,9 +175,10 @@ struct TensOrthogonal{order, dim, T, A <: AbstractArray, B <: OrthogonalBasis} <
             basis::OrthogonalBasis{dim},
             var::NTuple{order, Symbol} = ntuple(_ -> :cont, Val(order)),
         ) where {order, dim, T}
-        newdata = tensor_or_array(data)
-        return new{order, dim, T, typeof(newdata), typeof(basis)}(newdata, basis, var)
+        return TensOrthogonal(_Stored(), tensor_or_array(data), basis, var, T)
     end
+    TensOrthogonal(::_Stored, data::A, basis::B, var::NTuple{order, Symbol}, ::Type{T}) where {order, T, A <: AbstractArray, dim, B <: OrthogonalBasis{dim}} =
+        new{order, dim, T, A, B}(data, basis, var)
 end
 
 const TensOrthonormal{order, dim, T, A} =

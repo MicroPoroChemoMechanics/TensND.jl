@@ -1,5 +1,12 @@
 # [Curvilinear differential calculus](@id th-curvilinear)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num)
+
+    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities)
+<!-- /crosslinks -->
+
 The second pillar of the library, and the second chapter with no counterpart in
 the [Echoes manual](https://jfbarthelemy.github.io/echoes/), which works only in
 Cartesian coordinates. Everything below is derived from the definitions and

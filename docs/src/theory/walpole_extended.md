@@ -1,5 +1,12 @@
 # [The extended Walpole algebra](@id th-walpole-extended)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Manual**: [Parametrizations and conversions](@ref man-parametrizations)
+
+    **Tutorials**: [The eight-dimensional axially invariant space](@ref tut-walpole-extended)
+<!-- /crosslinks -->
+
 The classical Walpole basis of [The Walpole basis](@ref th-walpole) spans the
 tensors that are transversely isotropic in the usual sense. That space is *not*
 the full space of tensors invariant under rotations about the axis: two

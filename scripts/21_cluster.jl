@@ -1,4 +1,13 @@
-# # A two-point Green tensor between offset frames
+# # [A two-point Green tensor between offset frames](@id tut-cluster)
+#
+# <!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+# !!! tip "See also"
+#     **Theory**: [Rotations and Euler angles](@ref th-rotations) · [Isotropic tensors](@ref th-isotropic) · [The Walpole basis](@ref th-walpole)
+#
+#     **Manual**: [Random tensors](@ref man-random-tensors) · [Tensors](@ref man-tensors) · [Structured tensors](@ref man-structured)
+#
+#     **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [Acoustic and Hill tensors](@ref tut-hill-tensors)
+# <!-- /crosslinks -->
 #
 # The Green operator ``\mathbb{\Gamma}(\underline{x},\underline{x}')`` linking two
 # points that belong to **different** spherical frames, offset along
@@ -70,7 +79,7 @@ R = symbols("R", positive = true)
 
 # ## The Green operator
 #
-# The same closed form as in [Elastic Green's functions](@ref), with the
+# The same closed form as in [Elastic Green's functions](@ref tut-green-function), with the
 # separation direction ``\underline{n}`` in place of the radial vector and
 # ``\rho`` in place of ``r``:
 #

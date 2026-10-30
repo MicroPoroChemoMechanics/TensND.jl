@@ -1,5 +1,14 @@
 # [Tensor algebra](@id th-tensor-algebra)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Notation and conventions](@ref th-notation)
+
+    **Manual**: [Tensors](@ref man-tensors)
+
+    **Tutorials**: [Tensor products, contractions and their identities](@ref tut-tensor-algebra)
+<!-- /crosslinks -->
+
 Definitions and identities of the products `TensND` implements. Index formulas
 are those of the contractions in `src/contraction_kernels.jl` and
 `src/array_utils.jl`; the

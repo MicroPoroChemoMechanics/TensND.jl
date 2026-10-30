@@ -15,8 +15,9 @@ iso_projectors
 
 ## [Isotropic elastic moduli](@id api-iso-moduli)
 
-The conversions between the six moduli, and plane strain and plane stress, are
-explained on [Elastic moduli](@ref man-elastic-moduli).
+The stiffness and the compliance from any pair of the six moduli, every modulus
+read from either (`role = :stiffness` or `:compliance`), and plane strain and
+plane stress are explained on [Elastic moduli](@ref man-elastic-moduli).
 
 ```@docs
 iso_stiffness
@@ -34,6 +35,21 @@ iso_stiffness_lame_pwave
 iso_stiffness_shear_poisson
 iso_stiffness_shear_pwave
 iso_stiffness_poisson_pwave
+iso_compliance
+iso_compliance_bulk_young
+iso_compliance_bulk_lame
+iso_compliance_bulk_poisson
+iso_compliance_bulk_pwave
+iso_compliance_young_lame
+iso_compliance_young_shear
+iso_compliance_young_poisson
+iso_compliance_young_pwave
+iso_compliance_lame_shear
+iso_compliance_lame_poisson
+iso_compliance_lame_pwave
+iso_compliance_shear_poisson
+iso_compliance_shear_pwave
+iso_compliance_poisson_pwave
 lame_lambda
 bulk_modulus
 young_modulus

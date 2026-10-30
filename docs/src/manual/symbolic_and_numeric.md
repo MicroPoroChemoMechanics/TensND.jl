@@ -1,5 +1,12 @@
 # [Symbolic and numeric](@id man-symbolic-numeric)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Manual**: [Elastic moduli](@ref man-elastic-moduli)
+
+    **Tutorials**: [Differentiation and interoperability](@ref tut-ad-interop) · [Performance of the structured types](@ref tut-performance) · [Differential operators, symbolically](@ref tut-symbolic-operators) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems)
+<!-- /crosslinks -->
+
 `TensND` is generic in its element type. The same code paths run on `Float64`,
 on `ForwardDiff.Dual`, on SymPy's `Sym` and on Symbolics' `Num`, which is what
 lets a derivation be done symbolically and the result evaluated — or
@@ -142,7 +149,7 @@ expression size — not operation count — dominates. Three practical consequen
   then substitute with [`tsubs`](@ref) or generate a numeric function from it.
 - **prefer a structured type over a dense array** whenever the physics allows —
   the measured gains are one to three orders of magnitude, see
-  [Performance of the structured types](@ref).
+  [Performance of the structured types](@ref tut-performance).
 
 For pointwise numerical work, the pointwise [`CoordinateSystem`](@ref) avoids the symbolic layer
 entirely and costs a constant amount per point.

@@ -375,19 +375,30 @@ storage, never correctness) must not cost an algebraic simplification.
 @inline _sym_eq(a::Num, b::Num) = _num_equal(a, b)
 
 _issym(::Tensors.SymmetricTensor) = true
-_issym(t::Tensors.Tensor{2, dim}) where {dim} =
-    all(_sym_eq(t[i, j], t[j, i]) for j in 1:dim for i in (j + 1):dim)
 _issym(t::Tensors.Tensor{4}) = _isminorsym(t)
-
 _isminorsym(::Tensors.SymmetricTensor{4}) = true
-function _isminorsym(t::Tensors.Tensor{4, dim}) where {dim}
-    return all(
-        _sym_eq(t[i, j, k, l], t[j, i, k, l]) && _sym_eq(t[i, j, k, l], t[i, j, l, k])
-            for l in 1:dim for k in l:dim for j in 1:dim for i in j:dim
-    )
+
+# Searches that stop at the first pair that differs, written as loops: the
+# nested generators they replace allocated 155 kB and took 8 µs on every
+# fourth-order `Tensor` handed to `Tens`, for the same answers.
+function _issym(t::Tensors.Tensor{2, dim}) where {dim}
+    @inbounds for j in 1:dim, i in (j + 1):dim
+        _sym_eq(t[i, j], t[j, i]) || return false
+    end
+    return true
 end
-_ismajorsym(t::Tensors.FourthOrderTensor{dim}) where {dim} =
-    all(_sym_eq(t[i, j, k, l], t[k, l, i, j]) for l in 1:dim for k in l:dim for j in 1:dim for i in j:dim)
+function _isminorsym(t::Tensors.Tensor{4, dim}) where {dim}
+    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
+        (_sym_eq(t[i, j, k, l], t[j, i, k, l]) && _sym_eq(t[i, j, k, l], t[i, j, l, k])) || return false
+    end
+    return true
+end
+function _ismajorsym(t::Tensors.FourthOrderTensor{dim}) where {dim}
+    @inbounds for l in 1:dim, k in l:dim, j in 1:dim, i in j:dim
+        _sym_eq(t[i, j, k, l], t[k, l, i, j]) || return false
+    end
+    return true
+end
 
 # The major transpose of a `SymmetricTensor{4}` (Tensors.jl defines it on
 # `Tensor{4}` only).
@@ -633,6 +644,46 @@ end
             return @inbounds (S1[i] * S2[j] + S1[j] * S2[i]) / 2
         end
     )
+end
+
+# A vector and a second-order tensor, and the third-order result with a vector:
+# the two steps of `a ⊗ˢ N ⊗ˢ b`, on static arrays. `a ⊗ˢ N` is symmetric in its
+# first two indices by construction, and its type says so, so that the second
+# step returns a `SymmetricTensor{4}` (the minor symmetries hold whatever `N`
+# is) with no storage to decide at run time: `a ⊗ˢ N ⊗ˢ a`, the integrand of a
+# Hill tensor as it is written, costs about what the half sum of two
+# symmetrized box products does. The general method above built heap arrays
+# whose symmetries were then searched for, sixty times slower. Same products,
+# same order, same division as above, hence the same bits.
+
+"""
+    SymmetricFirstPair{dim, T} <: AbstractArray{T, 3}
+
+A static third-order array symmetric in its first two indices, the result of a
+vector `⊗ˢ` a second-order tensor. It carries the symmetry in its type, so that
+`⊗ˢ` with a vector next gives a `SymmetricTensor{4}` directly.
+"""
+struct SymmetricFirstPair{dim, T, N} <: AbstractArray{T, 3}
+    data::SArray{Tuple{dim, dim, dim}, T, 3, N}
+end
+Base.size(::SymmetricFirstPair{dim}) where {dim} = (dim, dim, dim)
+Base.@propagate_inbounds Base.getindex(t::SymmetricFirstPair, i::Int, j::Int, k::Int) = t.data[i, j, k]
+Base.IndexStyle(::Type{<:SymmetricFirstPair}) = IndexCartesian()
+
+function sotimes(a::Vec{dim, T1}, N::SecondOrderTensor{dim, T2}) where {dim, T1, T2}
+    two = promote_type(T1, T2)(2)
+    return SymmetricFirstPair(
+        SArray{Tuple{dim, dim, dim}}(
+            ntuple(Val(dim^3)) do n
+                i, j, k = Tuple(CartesianIndices((dim, dim, dim))[n])
+                @inbounds (a[i] * N[j, k] + a[j] * N[i, k]) / two
+            end
+        )
+    )
+end
+function sotimes(t::SymmetricFirstPair{dim, T1}, b::Vec{dim, T2}) where {dim, T1, T2}
+    two = promote_type(T1, T2)(2)
+    return Tensors.SymmetricTensor{4, dim}(@inline (i, j, k, l) -> @inbounds (t[i, j, k] * b[l] + t[i, j, l] * b[k]) / two)
 end
 
 # A full `Tensor` even for two symmetric operands: symmetrizing the middle pair

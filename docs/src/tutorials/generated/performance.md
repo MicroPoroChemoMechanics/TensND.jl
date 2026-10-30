@@ -2,7 +2,16 @@
 EditURL = "../../../../scripts/31_performance.jl"
 ```
 
-# Performance of the structured types
+# [Performance of the structured types](@id tut-performance)
+
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Kelvin–Mandel representation](@ref th-kelvin-mandel)
+
+    **Manual**: [Tensors](@ref man-tensors) · [Symbolic and numeric](@ref man-symbolic-numeric) · [Elastic moduli](@ref man-elastic-moduli)
+
+    **Tutorials**: [Tensor products, contractions and their identities](@ref tut-tensor-algebra) · [Differentiation and interoperability](@ref tut-ad-interop) · [Differential operators, symbolically](@ref tut-symbolic-operators) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems)
+<!-- /crosslinks -->
 
 `TensND` is symbolic *and* numerical. The structured types
 ([`TensISO`](@ref), [`TensTI`](@ref), [`TensOrtho`](@ref)) exist so that

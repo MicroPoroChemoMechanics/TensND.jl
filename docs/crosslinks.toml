@@ -1,0 +1,90 @@
+# The pages that treat the same subject, in the Theory, the Manual and the
+# Tutorials. `.github/scripts/crosslinks.py` writes, at the top of every page
+# named here, a "See also" block linking it to the other pages of its subjects;
+# `crosslinks.py --check` (pre-push hook and CI) fails when a block no longer
+# matches this table. Pages are named by their `@id`; Documenter fails the build
+# if one disappears. A tutorial is named by the `@id` of its script's title.
+
+[[subject]]
+name = "Bases and variance"
+theory = ["th-bases-variance", "th-notation"]
+manual = ["man-bases", "man-tensors"]
+tutorials = ["tut-bases-variance"]
+
+[[subject]]
+name = "Tensor algebra"
+theory = ["th-tensor-algebra", "th-notation"]
+manual = ["man-tensors"]
+tutorials = ["tut-tensor-algebra"]
+
+[[subject]]
+name = "Kelvin-Mandel notation"
+theory = ["th-kelvin-mandel"]
+manual = ["man-tensors"]
+tutorials = ["tut-tensor-algebra", "tut-performance"]
+
+[[subject]]
+name = "Rotations"
+theory = ["th-rotations"]
+manual = ["man-random-tensors", "man-tensors"]
+tutorials = ["tut-cluster"]
+
+[[subject]]
+name = "Isotropic tensors"
+theory = ["th-isotropic"]
+manual = ["man-structured", "man-elastic-moduli"]
+tutorials = ["tut-green-function", "tut-sphere-problems"]
+
+[[subject]]
+name = "Walpole basis and transverse isotropy"
+theory = ["th-walpole", "th-ti-parametrizations"]
+manual = ["man-structured", "man-parametrizations"]
+tutorials = ["tut-walpole", "tut-hill-tensors"]
+
+[[subject]]
+name = "The eight-dimensional axially invariant space"
+theory = ["th-walpole-extended"]
+manual = ["man-parametrizations"]
+tutorials = ["tut-walpole-extended"]
+
+[[subject]]
+name = "Orthotropy and cubic symmetry"
+theory = ["th-orthotropy", "th-cubic"]
+manual = ["man-structured", "man-projection"]
+tutorials = ["tut-projection"]
+
+[[subject]]
+name = "Projection and symmetry detection"
+theory = ["th-projection"]
+manual = ["man-projection"]
+tutorials = ["tut-projection"]
+
+[[subject]]
+name = "Curvilinear coordinates"
+theory = ["th-curvilinear"]
+manual = ["man-coorsystems", "man-coorsystems-num"]
+tutorials = ["tut-symbolic-operators", "tut-christoffel", "tut-numerical-operators", "tut-operator-identities"]
+
+[[subject]]
+name = "Submanifolds"
+theory = ["th-submanifolds"]
+manual = ["man-submanifolds"]
+tutorials = ["tut-submanifolds"]
+
+[[subject]]
+name = "Symbolic and numeric computation"
+theory = []
+manual = ["man-symbolic-numeric", "man-elastic-moduli"]
+tutorials = ["tut-ad-interop", "tut-performance", "tut-symbolic-operators", "tut-sphere-problems"]
+
+[[subject]]
+name = "Elastic moduli"
+theory = ["th-isotropic"]
+manual = ["man-elastic-moduli", "man-parametrizations"]
+tutorials = []
+
+[[subject]]
+name = "Green and Hill tensors"
+theory = ["th-isotropic", "th-walpole"]
+manual = ["man-structured"]
+tutorials = ["tut-green-function", "tut-cluster", "tut-hill-tensors"]

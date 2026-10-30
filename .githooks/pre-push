@@ -173,6 +173,16 @@ except Exception:
         fi
     fi
 
+    # ── "See also" blocks between Theory, Manual and Tutorials ─────────────
+    local links="$dir/.github/scripts/crosslinks.py"
+    if [ -f "$links" ] && [ -n "$py" ]; then
+        if ! (cd "$dir" && $py "$links" --check); then
+            echo "▸ cross-links: the push is refused. Run:" >&2
+            echo "▸   $py .github/scripts/crosslinks.py" >&2
+            failed=1
+        fi
+    fi
+
     return $failed
 }
 

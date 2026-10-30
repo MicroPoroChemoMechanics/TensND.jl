@@ -1,5 +1,14 @@
 # [Structured tensors](@id man-structured)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Isotropic tensors](@ref th-isotropic) · [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [Orthotropy](@ref th-orthotropy) · [Cubic symmetry](@ref th-cubic)
+
+    **Manual**: [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations) · [Projection and symmetry detection](@ref man-projection)
+
+    **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [Projection and symmetry detection](@ref tut-projection) · [A two-point Green tensor between offset frames](@ref tut-cluster)
+<!-- /crosslinks -->
+
 The compact symmetry-class types. Each stores a handful of scalars instead of
 ``d^4`` components and computes products and inverses in closed form. The
 algebra behind each is on [Isotropic tensors](@ref th-isotropic),
@@ -204,6 +213,6 @@ cubic one changes nothing.
 | an order-2 tensor diagonal in a material frame | `TensOrtho{2,T,3}` |
 | anything else | a plain `Tens` |
 
-The measured cost of each is in [Performance of the structured types](@ref).
+The measured cost of each is in [Performance of the structured types](@ref tut-performance).
 A tensor of any of these classes, with random coefficients and orientation,
 is drawn by [`rand`](@ref Base.rand(::Type{<:TensND._RandomClass})) ([Random tensors](@ref man-random-tensors)).

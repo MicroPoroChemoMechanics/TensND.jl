@@ -1,5 +1,14 @@
 # [Coordinate systems (symbolic)](@id man-coorsystems)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear)
+
+    **Manual**: [Coordinate systems (numerical)](@ref man-coorsystems-num)
+
+    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities)
+<!-- /crosslinks -->
+
 Differential operators on tensor fields, with exact symbolic derivatives. The
 mathematics — natural basis, Lamé coefficients, Christoffel symbols, the index
 placement of each operator — is on
@@ -148,7 +157,7 @@ simplify(laplacian(position_vector(Spheroidal)[1]^2, Spheroidal))
 
 `rules` is also what resolves sign ambiguities such as ``|\sin\theta|``, which
 SymPy cannot reduce without knowing that ``\theta\in(0,\pi)`` — see
-[Surfaces: fundamental forms and curvature](@ref).
+[Surfaces: fundamental forms and curvature](@ref tut-submanifolds).
 
 ## Symbolic or numerical?
 

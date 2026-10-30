@@ -2,7 +2,16 @@
 EditURL = "../../../../scripts/03_walpole.jl"
 ```
 
-# The Walpole basis end to end
+# [The Walpole basis end to end](@id tut-walpole)
+
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations)
+
+    **Tutorials**: [Acoustic and Hill tensors](@ref tut-hill-tensors)
+<!-- /crosslinks -->
 
 Everything the transversely isotropic machinery rests on, computed rather than
 quoted: the six ``\mathbb{W}_i`` as ``6\times6`` matrices, the multiplication

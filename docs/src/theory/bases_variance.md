@@ -1,5 +1,14 @@
 # [Bases and variance](@id th-bases-variance)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Notation and conventions](@ref th-notation)
+
+    **Manual**: [Bases](@ref man-bases) · [Tensors](@ref man-tensors)
+
+    **Tutorials**: [Bases, variance and the metric](@ref tut-bases-variance)
+<!-- /crosslinks -->
+
 This is the one chapter with no counterpart in the
 [Echoes manual](https://jfbarthelemy.github.io/echoes/), which works exclusively
 in an orthonormal frame and states outright that "introducing the notion of

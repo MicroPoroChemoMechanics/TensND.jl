@@ -44,6 +44,38 @@ function Tensors.majorsymmetric(t::AbstractTens{4})
     return Tens((A + permutedims(A, (3, 4, 1, 2))) / 2, get_basis(t), w)
 end
 
+# Every structured fourth-order tensor has the minor symmetries.
+Tensors.minorsymmetric(t::Union{TensISO{4}, TensTI{4}, TensOrtho{4}, TensCubic}) = t
+
+"""
+    Tensors.minorsymmetric(t::AbstractTens{4}) -> AbstractTens{4}
+
+Minor-symmetric part ``\\tfrac14(t_{ijkl} + t_{jikl} + t_{ijlk} + t_{jilk})`` of a
+fourth-order tensor, a method of the `Tensors.jl` function. A structured tensor
+(isotropic, transversely isotropic, orthotropic, cubic) is its own minor-symmetric
+part; a general tensor stays in its basis, stored symmetric. In a basis that is
+not orthonormal, the transposed indices are first given the same variance, that
+of the first index of each pair.
+
+For instance, the half sum ``\\tfrac12\\bigl((\\underline{a}\\otimes\\underline{a})
+\\stackrel{s}{\\boxtimes}\\boldsymbol{N} + \\boldsymbol{N}\\stackrel{s}{\\boxtimes}
+(\\underline{a}\\otimes\\underline{a})\\bigr)``, that is
+``\\underline{a}\\stackrel{s}{\\otimes}\\boldsymbol{N}\\stackrel{s}{\\otimes}\\underline{a}``
+for a symmetric ``\\boldsymbol{N}``, is `minorsymmetric((a ⊗ a) ⊠ˢ N)`: one product
+instead of two.
+
+See also `Tensors.majorsymmetric`.
+"""
+function Tensors.minorsymmetric(t::AbstractTens{4})
+    v = get_var(t)
+    w = (v[1], v[1], v[3], v[3])
+    return Tens(_minorsymmetric(components(t, w)), get_basis(t), w)
+end
+_minorsymmetric(A::Tensors.SymmetricTensor{4}) = A
+_minorsymmetric(A::Tensors.Tensor{4}) = Tensors.minorsymmetric(A)
+_minorsymmetric(A::AbstractArray{T, 4}) where {T} =
+    ((A + permutedims(A, (2, 1, 3, 4))) + (permutedims(A, (1, 2, 4, 3)) + permutedims(A, (2, 1, 4, 3)))) / 4
+
 Tensors.symmetric(t::TensISO{2}) = t
 Tensors.symmetric(t::TensOrtho{2}) = t
 Tensors.symmetric(t::TensTI{2, T, 2}) where {T} = t

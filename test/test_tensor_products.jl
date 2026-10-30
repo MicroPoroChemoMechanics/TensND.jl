@@ -467,3 +467,134 @@ end
     @syms x::real
     @test norm(Tens(Sym[x 0 0; 0 x 0; 0 0 x])) == sqrt(3x^2)
 end
+
+@testsection "a ⊗ˢ N ⊗ˢ a on static arrays, as the array method" begin
+    rng = Xoshiro(20261030)
+    for _ in 1:50
+        a = Tens(randn(rng, 3))
+        A = randn(rng, 3, 3)
+        N = Tens(A + transpose(A))
+        t = a ⊗ˢ N ⊗ˢ a
+        # The same bits as the general method on plain arrays, and the same
+        # tensor as the half sum of the two symmetrized box products.
+        ref = TensND.sotimes(TensND.sotimes(Array(get_array(a)), Array(get_array(N))), Array(get_array(a)))
+        @test Array(get_array(t)) == ref
+        @test get_array(t) ≈ get_array(((a ⊗ a) ⊠ˢ N + N ⊠ˢ (a ⊗ a)) / 2)
+        @test get_array(a ⊗ˢ N) isa TensND.SymmetricFirstPair
+        @test get_array(t) isa Tensors.SymmetricTensor{4, 3}
+    end
+    # 2-D, and a non-symmetric second-order tensor: the two symmetrizations,
+    # of (i, j) and of (k, l), give the minor symmetries whatever `B` is.
+    a2, B = Tens(randn(rng, 2)), Tens(randn(rng, 2, 2))
+    @test Array(get_array(a2 ⊗ˢ B ⊗ˢ a2)) ==
+        TensND.sotimes(TensND.sotimes(Array(get_array(a2)), Array(get_array(B))), Array(get_array(a2)))
+    @test get_array(a2 ⊗ˢ B ⊗ˢ a2) isa Tensors.SymmetricTensor{4, 2}
+    # Symbolic, exactly.
+    y = Tens([symbols("y$i", real = true) for i in 1:3])
+    m = [symbols("n$(min(i, j))$(max(i, j))", real = true) for i in 1:3, j in 1:3]
+    Ns = Tens(m)
+    d = get_array(y ⊗ˢ Ns ⊗ˢ y) - get_array(((y ⊗ y) ⊠ˢ Ns + Ns ⊠ˢ (y ⊗ y)) / 2)
+    @test all(iszero ∘ simplify, d)
+    # Duals.
+    f(x) = get_array(Tens([x, 1.0, 0.5]) ⊗ˢ Tens([2.0 1.0 0.0; 1.0 3.0 0.0; 0.0 0.0 1.0]) ⊗ˢ Tens([x, 1.0, 0.5]))[1, 1, 1, 1]
+    @test ForwardDiff.derivative(f, 0.7) ≈ 2 * 2.0 * 0.7    # (2x²)′ = 4x, N₁₁ = 2
+end
+
+@testsection "Symmetry predicates of the storage decision" begin
+    S = Tensors.SymmetricTensor{4, 3}((i, j, k, l) -> i + j + k + l)
+    T = Tensor{4, 3}(S)
+    @test TensND._isminorsym(T) && TensND._ismajorsym(T) && TensND._issym(T)
+    @test !TensND._isminorsym(Tensor{4, 3}((i, j, k, l) -> i - j + k + l))
+    @test !TensND._ismajorsym(Tensor{4, 3}((i, j, k, l) -> i + j + 2k + l))
+    @test TensND._issym(Tensor{2, 3}((i, j) -> i + j)) && !TensND._issym(Tensor{2, 3}((i, j) -> i - j))
+    # Allocation-free, which the generators they replace were not.
+    TensND._isminorsym(T)
+    @test @allocated(TensND._isminorsym(T)) == 0
+end
+
+@testsection "y ⋅ ℂ ⋅ y on static arrays, against the general contraction" begin
+    rng = Xoshiro(20261031)
+    gen(a, C, b) = TensND._contract_trailing(TensND._contract_trailing(Array(a), Array(C), Val(1)), Array(b), Val(1))
+    for dim in (3, 2), sym in (true, false)
+        for _ in 1:20
+            M = randn(rng, ntuple(_ -> dim, 4)...)
+            C = Tens(sym ? Array(Tensors.minorsymmetric(Tensor{4, dim}(M))) : M)
+            y = Tens(randn(rng, dim))
+            K = y ⋅ C ⋅ y
+            ref = gen(get_array(y), get_array(C), get_array(y))
+            # The sums run in index order where the general method calls BLAS: to an ulp.
+            @test maximum(abs, Array(get_array(K)) - ref) <= 4 * eps(maximum(abs, ref))
+            @test get_array(y ⋅ C) isa TensND.SArray
+        end
+    end
+    # Symbolic, exactly, and through derivatives.
+    y = Tens([symbols("y$i", real = true) for i in 1:3])
+    Cs = iso_stiffness(symbols("k", positive = true), symbols("μ", positive = true))
+    Cg = Tens(Tensors.SymmetricTensor{4, 3}(get_array(Cs)))
+    @test all(iszero ∘ simplify, get_array(y ⋅ Cg ⋅ y) - gen(get_array(y), get_array(Cg), get_array(y)))
+    f(x) = get_array(Tens([x, 0.0, 0.0]) ⋅ Tens(Tensors.SymmetricTensor{4, 3}(get_array(iso_stiffness(5.0, 2.0)))) ⋅ Tens([x, 0.0, 0.0]))[1, 1]
+    @test ForwardDiff.derivative(f, 0.7) ≈ 2 * 0.7 * (5.0 + 4 * 2.0 / 3)    # (k + 4μ/3) x²
+end
+
+@testsection "a ⊗ˢ N carries its symmetry in its type" begin
+    a = Tens([1.0, 2.0, 3.0])
+    N = Tens([2.0 1.0 0.5; 1.0 3.0 0.0; 0.5 0.0 1.0])
+    t = get_array(a ⊗ˢ N)
+    @test t isa TensND.SymmetricFirstPair{3, Float64} && size(t) == (3, 3, 3)
+    @test all(t[i, j, k] == t[j, i, k] for i in 1:3, j in 1:3, k in 1:3)
+    @test Array(t) == TensND.sotimes(Array(get_array(a)), Array(get_array(N)))
+end
+
+@testsection "minorsymmetric on tensors" begin
+    rng = Xoshiro(20261101)
+    avg(A) = (A + permutedims(A, (2, 1, 3, 4)) + permutedims(A, (1, 2, 4, 3)) + permutedims(A, (2, 1, 4, 3))) / 4
+    # Structured tensors are their own minor-symmetric part.
+    for t in (
+            TensISO{3}(3.0, 2.0), TensTI{4}(1.0, 2.0, 0.5, 1.5, 0.7, (0.0, 0.0, 1.0)),
+            TensCubic(3.0, 2.0, 1.0, CanonicalBasis{3, Float64}()),
+        )
+        @test Tensors.minorsymmetric(t) === t
+    end
+    # A general tensor, in its basis; stored symmetric.
+    M = randn(rng, 3, 3, 3, 3)
+    t = Tens(M, RotatedBasis(0.3, 0.2, 0.1))
+    s = Tensors.minorsymmetric(t)
+    @test get_basis(s) == get_basis(t) && get_array(s) isa Tensors.SymmetricTensor{4, 3}
+    @test Array(get_array(s)) ≈ avg(M)
+    @test Tensors.minorsymmetric(s) == s
+    # The half sum of the two box products, for a symmetric N.
+    a = Tens(randn(rng, 3)); B = randn(rng, 3, 3); N = Tens(B + transpose(B))
+    @test get_array(Tensors.minorsymmetric((a ⊗ a) ⊠ˢ N)) ≈ get_array(((a ⊗ a) ⊠ˢ N + N ⊠ˢ (a ⊗ a)) / 2)
+    # In a basis that is not orthonormal, the transposed indices share a variance.
+    ℬ = Basis([1.0 0.2 0.0; 0.0 1.0 0.3; 0.1 0.0 1.0])
+    u = Tens(M, ℬ)
+    su = Tensors.minorsymmetric(u)
+    @test get_var(su) == (:cont, :cont, :cont, :cont)
+    @test Array(components(su, CanonicalBasis{3, Float64}())) ≈ avg(Array(components(u, CanonicalBasis{3, Float64}())))
+    # Beyond dimension 3, a plain array.
+    P = randn(rng, 4, 4, 4, 4)
+    @test Array(get_array(Tensors.minorsymmetric(Tens(P)))) ≈ avg(P)
+    # Symbolic, exactly.
+    S = [symbols("c$i$j$k$l", real = true) for i in 1:2, j in 1:2, k in 1:2, l in 1:2]
+    @test all(iszero ∘ simplify, Array(get_array(Tensors.minorsymmetric(Tens(S)))) - avg(S))
+end
+
+@testsection "Tensors built from a value whose storage is decided at run time" begin
+    # Each constructor hands the stored array to a method of concrete type: same
+    # tensors as before, symmetric or full storage as the values say.
+    S = Tensors.SymmetricTensor{2, 3}((i, j) -> i + j)
+    F = Tensor{2, 3}((i, j) -> i - j)
+    for data in (Tensor{2, 3}(S), F)
+        for t in (
+                Tens(data), Tens(data, RotatedBasis(0.1, 0.2, 0.3)), Tens(data, Basis([1.0 0.2 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0])),
+                Tens(data, Basis([2.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 3.0])),
+            )
+            @test get_array(t) isa (data == F ? Tensor{2, 3} : Tensors.SymmetricTensor{2, 3})
+            @test Array(get_array(t)) == Array(data)
+        end
+    end
+    # No allocation once compiled.
+    T4 = Tensor{4, 3}(Tensors.SymmetricTensor{4, 3}((i, j, k, l) -> float(i + j + k + l)))
+    Tens(T4)
+    @test @allocated(Tens(T4)) == 0
+end

@@ -1,5 +1,14 @@
 # [Orthotropy](@id th-orthotropy)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Cubic symmetry](@ref th-cubic)
+
+    **Manual**: [Structured tensors](@ref man-structured) · [Projection and symmetry detection](@ref man-projection)
+
+    **Tutorials**: [Projection and symmetry detection](@ref tut-projection)
+<!-- /crosslinks -->
+
 Orthotropy is invariance under the reflections through three mutually orthogonal
 planes. It is the least constrained class `TensND` gives a dedicated storage
 type ([`TensOrtho`](@ref), `src/tens_anisotropic.jl`): nine constants plus a material

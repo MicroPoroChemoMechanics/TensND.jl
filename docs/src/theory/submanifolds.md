@@ -1,5 +1,12 @@
 # [Submanifolds](@id th-submanifolds)
 
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Manual**: [Submanifolds](@ref man-submanifolds)
+
+    **Tutorials**: [Surfaces: fundamental forms and curvature](@ref tut-submanifolds)
+<!-- /crosslinks -->
+
 A hypersurface embedded in ``\mathbb{R}^d`` carries two geometries: the one it
 inherits as a metric space, and the one describing how it curves inside the
 ambient space. `TensND` represents both with [`Submanifold`](@ref)

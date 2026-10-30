@@ -2,7 +2,16 @@
 EditURL = "../../../../scripts/02_tensor_algebra.jl"
 ```
 
-# Tensor products, contractions and their identities
+# [Tensor products, contractions and their identities](@id tut-tensor-algebra)
+
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Tensor algebra](@ref th-tensor-algebra) · [Notation and conventions](@ref th-notation) · [Kelvin–Mandel representation](@ref th-kelvin-mandel)
+
+    **Manual**: [Tensors](@ref man-tensors)
+
+    **Tutorials**: [Performance of the structured types](@ref tut-performance)
+<!-- /crosslinks -->
 
 The products of [Tensor algebra](@ref th-tensor-algebra), checked rather than
 asserted: the index formulas, the eight algebraic identities, the two order-4

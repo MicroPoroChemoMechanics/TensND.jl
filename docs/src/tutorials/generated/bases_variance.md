@@ -2,7 +2,14 @@
 EditURL = "../../../../scripts/01_bases_variance.jl"
 ```
 
-# Bases, variance and the metric
+# [Bases, variance and the metric](@id tut-bases-variance)
+
+<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+!!! tip "See also"
+    **Theory**: [Bases and variance](@ref th-bases-variance) · [Notation and conventions](@ref th-notation)
+
+    **Manual**: [Bases](@ref man-bases) · [Tensors](@ref man-tensors)
+<!-- /crosslinks -->
 
 The one notion `TensND` has that a Cartesian-only tensor library does not: a
 tensor carries a **basis**, which need not be orthonormal, and a **variance**

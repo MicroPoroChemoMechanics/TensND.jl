@@ -1,4 +1,11 @@
-# # The eight-dimensional axially invariant space
+# # [The eight-dimensional axially invariant space](@id tut-walpole-extended)
+#
+# <!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
+# !!! tip "See also"
+#     **Theory**: [The extended Walpole algebra](@ref th-walpole-extended)
+#
+#     **Manual**: [Parametrizations and conversions](@ref man-parametrizations)
+# <!-- /crosslinks -->
 #
 # The classical Walpole basis spans six dimensions, but the space of
 # minor-symmetric order-4 tensors invariant under rotations about an axis is

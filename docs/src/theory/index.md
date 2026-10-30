@@ -138,5 +138,5 @@ on [The Walpole basis](walpole.md) and are pinned by tests.
 | [API](@ref api-index) | every exported name, grouped by theme |
 
 Newcomers should start with [Getting started](@ref man-getting-started), then
-the tutorial [Bases, variance and the metric](@ref) — variance is the one notion
+the tutorial [Bases, variance and the metric](@ref tut-bases-variance) — variance is the one notion
 a Cartesian-only tensor library does without, and everything else rests on it.

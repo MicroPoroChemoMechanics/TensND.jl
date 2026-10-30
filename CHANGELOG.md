@@ -1,5 +1,67 @@
 # Changelog
 
+## v0.11.1 — elastic moduli on a stiffness or a compliance, each read on its own
+
+A patch release: nothing that worked changes, nothing is renamed. A compliance is
+now read and built as directly as a stiffness, and each modulus is computed on
+its own instead of as half of a pair.
+
+### Added
+
+- `role = :stiffness` (the default) or `role = :compliance` on every reader of
+  the isotropic moduli (`young_modulus`, `poisson_ratio`, …, `young_poisson`,
+  `k_μ`, …): on a compliance ``a\,\mathbb{J} + b\,\mathbb{K}`` each modulus has its
+  own formula on `(a, b)` (``E = 3/(a + 2b)``, ``\nu = (b - a)/(a + 2b)``, …, and
+  their plane-strain forms), never through the inverse tensor.
+- `iso_compliance` and `iso_compliance_<pair>` for the fifteen pairs, with the
+  aliases of the stiffness builders (`iso_compliance_E_ν`, `iso_compliance_λ_μ`,
+  …) and `Val(2)` for plane strain: the compliance written directly, as
+  ``(1 - 2\nu)/E\;\mathbb{J} + (1 + \nu)/E\;\mathbb{K}`` from ``(E, \nu)``.
+- `role` on `ti_constants` and `ti_from_constants` for the engineering and
+  Hoenig forms, defined on the compliance (still the default): with
+  `role = :stiffness`, the constants of a stiffness, and the stiffness of the
+  constants, in closed form (``E_3 = C_{3333} - 2C_{1133}^2/(C_{1111} + C_{1122})``,
+  …), without inverting.
+
+- `Tensors.minorsymmetric` on TensND tensors, the companion of
+  `majorsymmetric`: a structured tensor is its own minor-symmetric part, a
+  general one stays in its basis, stored symmetric.
+
+### Changed
+
+- Each single reader computes its own modulus: `young_modulus` no longer
+  computes Poisson's ratio, nor `poisson_ratio` Young's modulus. The pair
+  readers are made of the single ones. On a stiffness, every result keeps the
+  bits of 0.11.0.
+- A fourth-order `Tensor` handed to `Tens` (a product, a contraction, a change
+  of basis) is checked for its minor symmetries in 18 ns instead of 8.4 µs: the
+  search stops at the first pair that differs, where nested generators
+  allocated 155 kB per tensor. `Tens(::Tensor{4})` goes from 8.9 µs to 42 ns (94 ns for a tensor without them),
+  with the same storage decisions.
+- The Hill integrand as it is written, `y ⊗ˢ inv(y ⋅ ℂ ⋅ y) ⊗ˢ y`, in 82 ns
+  without allocation instead of about 11 µs, faster than the half sum of two
+  symmetrized box products: `a ⊗ˢ N` is computed on static arrays and its
+  symmetry in the first two indices is in its type (`SymmetricFirstPair`), so
+  that `⊗ˢ` with a vector next gives a `SymmetricTensor{4}`, with the bits of the
+  general method; `y ⋅ ℂ` and its contraction with a vector are computed on
+  static arrays too (`y ⋅ ℂ ⋅ y` in 39 ns instead of 773), the sums in index
+  order where the general method called BLAS, so that the last bit may differ.
+- Every constructor of a tensor builds its type from the stored array, once its
+  storage (symmetric or full) is decided, through a second method: about 100 ns
+  less on every construction, the same tensors.
+
+### Documentation
+
+- The Theory, the Manual and the Tutorials link to one another: every page
+  opens with a "See also" block naming the pages of the other parts that treat
+  its subjects. The subjects are listed once, in `docs/crosslinks.toml`, and
+  `.github/scripts/crosslinks.py` writes the blocks (into the tutorial scripts
+  too); its `--check` runs in the pre-push hook and before the documentation
+  build, so that a page moved or added cannot leave its links behind. Every
+  tutorial has an `@id`.
+- *Elastic moduli* and *Parametrizations and conversions* document the roles,
+  the compliance builders and every direct formula.
+
 ## v0.11.0 — one name per operation, symmetries kept through a change of basis, Kelvin–Mandel vectors
 
 A minor release. Its fixes: a tensor stored with its symmetries, written in
