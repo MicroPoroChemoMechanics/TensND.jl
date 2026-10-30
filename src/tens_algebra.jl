@@ -63,10 +63,21 @@ end
 _inv_array(A) = inv(A)
 _inv_array(A::SymmetricTensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
     frommandel(SymmetricTensor{4, dim}, _inv_matrix(tomandel(SMatrix, A)))
+# Components that do not compare (`Symbolics.Num`, `SymPy.Sym`): Tensors.jl
+# factorizes with pivoting, which compares them. The inverse of the Mandel (or
+# Voigt) matrix is taken instead, by the elimination without pivot the symbolic
+# packages give a matrix of their numbers. Decided on the type: the numerical
+# path is that of `inv`.
+_inv_array(A::SymmetricTensor{4, dim, T}) where {dim, T} = _inv_symmetric(Val(is_hard_numeric(T)), A)
+_inv_symmetric(::Val{true}, A) = inv(A)
+_inv_symmetric(::Val{false}, A::SymmetricTensor{4, dim}) where {dim} =
+    frommandel(SymmetricTensor{4, dim}, inv(Matrix(tomandel(A))))
 _inv_array(A::Tensor{4, dim}) where {dim} =
     _store_symmetric(A) ? Tensor{4, dim}(_inv_array(Tensors.symmetric(A))) : _inv_full(A)
 
-_inv_full(A::Tensor{4}) = inv(A)
+_inv_full(A::Tensor{4, dim, T}) where {dim, T} = _inv_full(Val(is_hard_numeric(T)), A)
+_inv_full(::Val{true}, A) = inv(A)
+_inv_full(::Val{false}, A::Tensor{4, dim}) where {dim} = fromvoigt(Tensor{4, dim}, inv(Matrix(tovoigt(A))))
 _inv_full(A::Tensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
     fromvoigt(Tensor{4, dim}, _inv_matrix(tovoigt(SMatrix, A)))
 

@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.11.2 — the inverse of a symbolic fourth-order tensor
+
+A patch release. `inv` of a fourth-order tensor stored in full or symmetric form
+(a product, a sum, a change of basis lands there) threw on `Symbolics.Num`
+components and could take a wrong pivot on `SymPy.Sym` ones: Tensors.jl
+factorizes with pivoting, which compares them. Such a tensor is now inverted by
+the inverse of its Mandel (or Voigt) matrix, which the symbolic packages compute
+by elimination without pivot. The choice is made on the type: numbers, duals
+included, keep the inverse of Tensors.jl, bit for bit.
+
+### Fixed
+
+- `inv(t)` for a fourth-order `Tens` of symbolic components, in symmetric or full
+  storage, with Symbolics and with SymPy; tested against the inverse of the same
+  tensor at numbers.
+
 ## v0.11.1 — elastic moduli on a stiffness or a compliance, each read on its own
 
 A patch release: nothing that worked changes, nothing is renamed. A compliance is
