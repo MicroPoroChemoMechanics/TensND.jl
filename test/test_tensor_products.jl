@@ -467,3 +467,47 @@ end
     @syms x::real
     @test norm(Tens(Sym[x 0 0; 0 x 0; 0 0 x])) == sqrt(3x^2)
 end
+
+@testsection "a ⊗ˢ N ⊗ˢ a on static arrays, as the array method" begin
+    rng = Xoshiro(20261030)
+    for _ in 1:50
+        a = Tens(randn(rng, 3))
+        A = randn(rng, 3, 3)
+        N = Tens(A + transpose(A))
+        t = a ⊗ˢ N ⊗ˢ a
+        # The same bits as the general method on plain arrays, and the same
+        # tensor as the half sum of the two symmetrized box products.
+        ref = TensND.sotimes(TensND.sotimes(Array(get_array(a)), Array(get_array(N))), Array(get_array(a)))
+        @test Array(get_array(t)) == ref
+        @test get_array(t) ≈ get_array(((a ⊗ a) ⊠ˢ N + N ⊠ˢ (a ⊗ a)) / 2)
+        @test get_array(a ⊗ˢ N) isa TensND.SArray
+        @test get_array(t) isa Tensors.SymmetricTensor{4, 3}
+    end
+    # 2-D, and a non-symmetric second-order tensor: the two symmetrizations,
+    # of (i, j) and of (k, l), give the minor symmetries whatever `B` is.
+    a2, B = Tens(randn(rng, 2)), Tens(randn(rng, 2, 2))
+    @test Array(get_array(a2 ⊗ˢ B ⊗ˢ a2)) ==
+        TensND.sotimes(TensND.sotimes(Array(get_array(a2)), Array(get_array(B))), Array(get_array(a2)))
+    @test get_array(a2 ⊗ˢ B ⊗ˢ a2) isa Tensors.SymmetricTensor{4, 2}
+    # Symbolic, exactly.
+    y = Tens([symbols("y$i", real = true) for i in 1:3])
+    m = [symbols("n$(min(i, j))$(max(i, j))", real = true) for i in 1:3, j in 1:3]
+    Ns = Tens(m)
+    d = get_array(y ⊗ˢ Ns ⊗ˢ y) - get_array(((y ⊗ y) ⊠ˢ Ns + Ns ⊠ˢ (y ⊗ y)) / 2)
+    @test all(iszero ∘ simplify, d)
+    # Duals.
+    f(x) = get_array(Tens([x, 1.0, 0.5]) ⊗ˢ Tens([2.0 1.0 0.0; 1.0 3.0 0.0; 0.0 0.0 1.0]) ⊗ˢ Tens([x, 1.0, 0.5]))[1, 1, 1, 1]
+    @test ForwardDiff.derivative(f, 0.7) ≈ 2 * 2.0 * 0.7    # (2x²)′ = 4x, N₁₁ = 2
+end
+
+@testsection "Symmetry predicates of the storage decision" begin
+    S = Tensors.SymmetricTensor{4, 3}((i, j, k, l) -> i + j + k + l)
+    T = Tensor{4, 3}(S)
+    @test TensND._isminorsym(T) && TensND._ismajorsym(T) && TensND._issym(T)
+    @test !TensND._isminorsym(Tensor{4, 3}((i, j, k, l) -> i - j + k + l))
+    @test !TensND._ismajorsym(Tensor{4, 3}((i, j, k, l) -> i + j + 2k + l))
+    @test TensND._issym(Tensor{2, 3}((i, j) -> i + j)) && !TensND._issym(Tensor{2, 3}((i, j) -> i - j))
+    # Allocation-free, which the generators they replace were not.
+    TensND._isminorsym(T)
+    @test @allocated(TensND._isminorsym(T)) == 0
+end

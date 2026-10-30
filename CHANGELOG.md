@@ -29,6 +29,14 @@ its own instead of as half of a pair.
   computes Poisson's ratio, nor `poisson_ratio` Young's modulus. The pair
   readers are made of the single ones. On a stiffness, every result keeps the
   bits of 0.11.0.
+- A fourth-order `Tensor` handed to `Tens` (a product, a contraction, a change
+  of basis) is checked for its minor symmetries in 18 ns instead of 8.4 µs: the
+  search stops at the first pair that differs, where nested generators
+  allocated 155 kB per tensor. `Tens(::Tensor{4})` goes from 8.9 µs to 150 ns,
+  with the same storage decisions.
+- `a ⊗ˢ N ⊗ˢ a`, the symmetrized product of a vector, a second-order tensor and
+  the vector (the integrand of a Hill tensor as it is defined), stays on static
+  arrays: 173 ns instead of 10.5 µs, with the same bits.
 
 ### Documentation
 
