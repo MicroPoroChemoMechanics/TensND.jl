@@ -594,7 +594,7 @@ end
         end
     end
     # No allocation once compiled.
-    T4 = Tensor{4, 3}(Tensors.SymmetricTensor{4, 3}((i, j, k, l) -> i + j + k + l))
+    T4 = Tensor{4, 3}(Tensors.SymmetricTensor{4, 3}((i, j, k, l) -> float(i + j + k + l)))
     Tens(T4)
     @test @allocated(Tens(T4)) == 0
 end
