@@ -79,7 +79,7 @@ R = symbols("R", positive = true)
 
 # ## The Green operator
 #
-# The same closed form as in [Elastic Green's functions](@ref), with the
+# The same closed form as in [Elastic Green's functions](@ref tut-green-function), with the
 # separation direction ``\underline{n}`` in place of the radial vector and
 # ``\rho`` in place of ``r``:
 #

@@ -118,6 +118,16 @@ iso_stiffness_young_poisson(E, ν) = iso_stiffness(E / (3 * (1 - 2 * ν)), E / (
 iso_stiffness_young_poisson(::Val{3}, E, ν) = iso_stiffness_young_poisson(E, ν)
 iso_stiffness_young_poisson(v::Val{2}, E, ν) = _iso_lame_shear(v, _lame_shear(Val((:young, :poisson)), E, ν)...)
 
+"""
+    iso_compliance_young_poisson(E, ν) → TensISO{4,3}
+    iso_compliance_young_poisson(Val(dim), E, ν) → TensISO{4,dim}
+
+Isotropic compliance from Young's modulus and Poisson's ratio, written directly:
+``\\mathbb{S} = (1 - 2\\nu)/E\\;\\mathbb{J} + (1 + \\nu)/E\\;\\mathbb{K}`` in 3-D; with
+`Val(2)`, the compliance of the plane-strain stiffness of that material. The
+inverse of [`iso_stiffness_young_poisson`](@ref), whose docstring gives the table
+of every pair. `iso_compliance_E_nu` and `iso_compliance_E_ν` are the same function.
+"""
 iso_compliance_young_poisson(E, ν) = iso_compliance_young_poisson(Val(3), E, ν)
 iso_compliance_young_poisson(::Val{3}, E, ν) = TensISO{3}((1 - 2 * ν) / E, (1 + ν) / E)
 iso_compliance_young_poisson(v::Val{2}, E, ν) = _iso_compliance_lame_shear(v, _lame_shear(Val((:young, :poisson)), E, ν)...)

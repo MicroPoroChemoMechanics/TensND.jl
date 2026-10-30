@@ -133,4 +133,4 @@ relation read as a gradient,
 
 A worked version of all of the above, on the sphere, cylinder, plane and
 paraboloid, is in
-[Surfaces: fundamental forms and curvature](@ref).
+[Surfaces: fundamental forms and curvature](@ref tut-submanifolds).

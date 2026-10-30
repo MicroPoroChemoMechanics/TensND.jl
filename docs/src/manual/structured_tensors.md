@@ -213,6 +213,6 @@ cubic one changes nothing.
 | an order-2 tensor diagonal in a material frame | `TensOrtho{2,T,3}` |
 | anything else | a plain `Tens` |
 
-The measured cost of each is in [Performance of the structured types](@ref).
+The measured cost of each is in [Performance of the structured types](@ref tut-performance).
 A tensor of any of these classes, with random coefficients and orientation,
 is drawn by [`rand`](@ref Base.rand(::Type{<:TensND._RandomClass})) ([Random tensors](@ref man-random-tensors)).

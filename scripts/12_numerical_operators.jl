@@ -10,7 +10,7 @@
 # <!-- /crosslinks -->
 #
 # The same five operators as in
-# [Differential operators, symbolically](@ref), evaluated **pointwise** by
+# [Differential operators, symbolically](@ref tut-symbolic-operators), evaluated **pointwise** by
 # automatic differentiation instead of SymPy. No symbolic setup, constant cost
 # per point, and `ForwardDiff.Dual` numbers flow through — so a field computed
 # this way can itself be differentiated with respect to a parameter.

@@ -157,7 +157,7 @@ simplify(laplacian(position_vector(Spheroidal)[1]^2, Spheroidal))
 
 `rules` is also what resolves sign ambiguities such as ``|\sin\theta|``, which
 SymPy cannot reduce without knowing that ``\theta\in(0,\pi)`` — see
-[Surfaces: fundamental forms and curvature](@ref).
+[Surfaces: fundamental forms and curvature](@ref tut-submanifolds).
 
 ## Symbolic or numerical?
 

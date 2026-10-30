@@ -149,7 +149,7 @@ expression size — not operation count — dominates. Three practical consequen
   then substitute with [`tsubs`](@ref) or generate a numeric function from it.
 - **prefer a structured type over a dense array** whenever the physics allows —
   the measured gains are one to three orders of magnitude, see
-  [Performance of the structured types](@ref).
+  [Performance of the structured types](@ref tut-performance).
 
 For pointwise numerical work, the pointwise [`CoordinateSystem`](@ref) avoids the symbolic layer
 entirely and costs a constant amount per point.
