@@ -36,7 +36,7 @@ its own instead of as half of a pair.
 - A fourth-order `Tensor` handed to `Tens` (a product, a contraction, a change
   of basis) is checked for its minor symmetries in 18 ns instead of 8.4 µs: the
   search stops at the first pair that differs, where nested generators
-  allocated 155 kB per tensor. `Tens(::Tensor{4})` goes from 8.9 µs to 150 ns,
+  allocated 155 kB per tensor. `Tens(::Tensor{4})` goes from 8.9 µs to 42 ns (94 ns for a tensor without them),
   with the same storage decisions.
 - The Hill integrand as it is written, `y ⊗ˢ inv(y ⋅ ℂ ⋅ y) ⊗ˢ y`, in 82 ns
   without allocation instead of about 11 µs, faster than the half sum of two
