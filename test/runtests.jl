@@ -113,6 +113,8 @@ include("test_structured_binary_frames.jl")
 include("test_random_tens.jl")
 # Symmetries kept through a change of basis; inverses on the symmetric tensors.
 include("test_symmetry_kept.jl")
+# Symmetric tensors as Kelvin–Mandel vectors.
+include("test_mandel_vectors.jl")
 # `mandel` and `change_tens` of the structured classes in closed form.
 include("test_structured_closed_forms.jl")
 # Kelvin-Mandel block algebra about a normal (in-plane / out-of-plane).

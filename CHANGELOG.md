@@ -1,15 +1,37 @@
 # Changelog
 
-## v0.10.1 — symmetries kept through a change of basis
+## v0.11.0 — symmetries kept through a change of basis, Kelvin–Mandel vectors
 
-A fix. A tensor stored with its symmetries, written in another basis, could
-come back in full storage: from a non-orthonormal basis the round-off of its
-new components grows with the conditioning of the basis, beyond the tolerance
-with which the storage is decided. A minor-symmetric fourth-order tensor in full
-storage is singular as a 9×9 matrix, so that `inv` failed, or inverted
-round-off, on tensors that were perfectly invertible: in
+A minor release. Its fixes: a tensor stored with its symmetries, written in
+another basis, could come back in full storage: from a non-orthonormal basis
+the round-off of its new components grows with the conditioning of the basis,
+beyond the tolerance with which the storage is decided. A minor-symmetric
+fourth-order tensor in full storage is singular as a 9×9 matrix, so that `inv`
+failed, or inverted round-off, on tensors that were perfectly invertible: in
 MeanFieldHomogenization, the dilute localization `inv(𝕀 + ℙ : δℂ)` of a matrix
-written in a random non-orthonormal basis failed in 2 cases of 200.
+written in a random non-orthonormal basis failed in 2 cases of 200. Its
+additions: the tensor operations MeanFieldHomogenization kept for itself, so
+that a tensor computation has one home.
+
+### Breaking changes
+
+- None in the API. As for any minor release before 1.0, a `[compat]` entry
+  `TensND = "0.10"` does not accept 0.11: dependents widen it.
+
+### Added
+
+- Symmetric tensors as Kelvin–Mandel vectors, the representation constitutive
+  laws are written on: `Mandel{T}` (an `SVector{6, T}`), `identity_mandel`,
+  `trace_mandel`, `deviator`, `sqnorm_deviator` (the squared norm of the
+  deviator, exactly zero for a change of volume), `von_mises`,
+  `equivalent_strain`. Moved from MeanFieldHomogenization with the same
+  arithmetic, so that its results keep their bits.
+- `inv3`, the inverse of a 3×3 matrix by cofactors (the one `km_blocks` used
+  privately, which MeanFieldHomogenization had a copy of), `sym3_inv`, its
+  symmetric case from six entries, and `acoustic_components`, the six entries
+  of the acoustic tensor of a component array along a direction of any length:
+  the kernels of the integrals over directions of MeanFieldHomogenization's
+  anisotropic Hill tensors, moved here.
 
 ### Fixed
 

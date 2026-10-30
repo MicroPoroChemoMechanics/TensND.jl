@@ -66,6 +66,21 @@ to_vector
 from_vector
 ```
 
+## Symmetric tensors as Kelvin-Mandel vectors
+
+A symmetric second-order tensor of dimension 3 as the static vector of its six
+Kelvin-Mandel components, with the operations a constitutive law needs on it.
+
+```@docs
+Mandel
+identity_mandel
+trace_mandel
+deviator
+sqnorm_deviator
+von_mises
+equivalent_strain
+```
+
 ## Kelvin-Mandel blocks about a normal
 
 In a frame whose third axis is a normal `n`, the in-plane and out-of-plane
@@ -86,5 +101,17 @@ plane_pinv2
 deviatoric_pinv
 acoustic_tensor
 compliance_op_block
+```
+
+## Small matrices by cofactors
+
+Closed-form inverses of 3×3 matrices, and the acoustic tensor as the six numbers
+an integral over the directions needs: no pivot, no allocation, duals and
+symbols through.
+
+```@docs
+inv3
+sym3_inv
+acoustic_components
 ```
 

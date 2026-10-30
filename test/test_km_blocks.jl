@@ -121,3 +121,35 @@ using TensND.StaticArrays: SMatrix, SVector
         @test simplify(Ps[1, 1] - 2 / (3 * 2μs)) == 0 && simplify(Ps[4, 4] - 1 / (2μs)) == 0 && simplify(Ps[1, 2] + 1 / (3 * 2μs)) == 0
     end
 end
+
+# The 3×3 inverses by cofactors and the acoustic kernel, against the generic
+# inverse and the tensor contraction, with derivatives and symbols.
+@testset "inv3, sym3_inv, acoustic_components" begin
+    rng = Xoshiro(20261030)
+    for _ in 1:50
+        K = randn(rng, 3, 3) + 3I
+        @test inv3(K) ≈ inv(K)
+        @test inv3(K) isa SMatrix{3, 3, Float64}
+        S = K + transpose(K)
+        @test collect(sym3_inv(S[1, 1], S[2, 2], S[3, 3], S[1, 2], S[1, 3], S[2, 3])) ≈ vec(inv(S))
+        ℂ = rand(rng, Tens{4, 3}; definite = true)
+        ζ = randn(rng, 3)                          # a direction of any length
+        A = acoustic_components(Array(components_canon(ℂ)), ζ)
+        Kζ = components_canon(acoustic_tensor(ℂ, ζ))
+        @test collect(A) ≈ [Kζ[1, 1], Kζ[2, 2], Kζ[3, 3], Kζ[1, 2], Kζ[1, 3], Kζ[2, 3]]
+    end
+    # Derivatives: d(K⁻¹)/dx = -K⁻¹ (dK/dx) K⁻¹ for K(x) = K₀ + x E.
+    K0 = SMatrix{3, 3}(4.0, 1.0, 0.5, 1.0, 3.0, 0.2, 0.5, 0.2, 2.0)
+    E = SMatrix{3, 3}(1.0, 0.3, 0.0, 0.3, 0.0, 0.1, 0.0, 0.1, 0.5)
+    @test ForwardDiff.derivative(x -> inv3(K0 + x * E), 0.0) ≈ -inv(K0) * E * inv(K0)
+    dS = ForwardDiff.derivative(x -> collect(sym3_inv((K0 + x * E)[[1, 5, 9, 4, 7, 8]]...)), 0.0)
+    @test dS ≈ vec(-inv(K0) * E * inv(K0))
+    # Symbols: the cofactor inverse of a symbolic matrix times the matrix is the identity.
+    Symbolics.@variables a b c d e f
+    Ks = SMatrix{3, 3}(a, d, e, d, b, f, e, f, c)
+    vals = Dict(a => 4.0, b => 3.0, c => 2.0, d => 1.0, e => 0.5, f => 0.2)
+    num(x) = Symbolics.value(Symbolics.substitute(x, vals; fold = Val(true)))
+    @test num.(inv3(Ks)) ≈ inv(K0)
+    @test num.(collect(sym3_inv(a, b, c, d, e, f))) ≈ vec(inv(K0))
+    @test (@inferred sym3_inv(K0[1, 1], K0[2, 2], K0[3, 3], K0[1, 2], K0[1, 3], K0[2, 3])) isa NTuple{9, Float64}
+end
