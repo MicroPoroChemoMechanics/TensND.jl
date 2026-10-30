@@ -1,5 +1,28 @@
 # Changelog
 
+## v0.10.1 — symmetries kept through a change of basis
+
+A fix. A tensor stored with its symmetries, written in another basis, could
+come back in full storage: from a non-orthonormal basis the round-off of its
+new components grows with the conditioning of the basis, beyond the tolerance
+with which the storage is decided. A minor-symmetric fourth-order tensor in full
+storage is singular as a 9×9 matrix, so that `inv` failed, or inverted
+round-off, on tensors that were perfectly invertible: in
+MeanFieldHomogenization, the dilute localization `inv(𝕀 + ℙ : δℂ)` of a matrix
+written in a random non-orthonormal basis failed in 2 cases of 200.
+
+### Fixed
+
+- `change_tens` keeps the symmetries of a tensor stored symmetric when both
+  indices of each symmetric pair keep the same variance: the new components
+  are symmetrized as the constructor symmetrizes those that pass its test, but
+  unconditionally. Where the old components passed the test, the bits are
+  unchanged. Floating-point and dual numbers only; exact element types are
+  exact already.
+- `inv` of a fourth-order tensor in full storage whose components have the
+  minor symmetries inverts it on the symmetric tensors (its Kelvin–Mandel
+  matrix), as if it had been stored symmetric; derivatives included.
+
 ## v0.10.0 — random tensors through `rand`
 
 A minor release that gives random tensors the name Julia gives every random

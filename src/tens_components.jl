@@ -298,7 +298,7 @@ function change_tens(t::AbstractTens, ℬ::AbstractBasis, newvar::NTuple)
     if isequal(ℬ, get_basis(t)) && isequal(newvar, get_var(t))
         return t
     else
-        return Tens(components(t, ℬ, newvar), ℬ, newvar)
+        return Tens(_kept_symmetric(get_array(t), components(t, ℬ, newvar), newvar), ℬ, newvar)
     end
 end
 
@@ -306,7 +306,7 @@ function change_tens(t::AbstractTens, newbasis::AbstractBasis)
     if isequal(newbasis, get_basis(t))
         return t
     else
-        return Tens(components(t, newbasis, get_var(t)), newbasis, get_var(t))
+        return Tens(_kept_symmetric(get_array(t), components(t, newbasis, get_var(t)), get_var(t)), newbasis, get_var(t))
     end
 end
 
@@ -314,9 +314,22 @@ function change_tens(t::AbstractTens, newvar::NTuple)
     if isequal(newvar, get_var(t))
         return t
     else
-        return Tens(components(t, get_basis(t), newvar), get_basis(t), newvar)
+        return Tens(_kept_symmetric(get_array(t), components(t, get_basis(t), newvar), newvar), get_basis(t), newvar)
     end
 end
+
+# A change of basis keeps the symmetry of a tensor stored symmetric, when both
+# indices of each symmetric pair keep the same variance: the new components are
+# symmetrized as the constructor symmetrizes them when they pass its test, but unconditionally. From a non-orthonormal basis the round-off of the new
+# components grows with the conditioning of the basis, beyond the tolerance of
+# `_store_symmetric`, and a minor-symmetric tensor came back in full storage,
+# whose 9×9 inverse is singular (a dilute localization `inv(𝕀 + ℙ : δℂ)` failed
+# in some bases). Exact element types are exact already and left as they are.
+_kept_symmetric(source, c, var) = c
+_kept_symmetric(::SymmetricTensor{2, dim}, c::AbstractArray{T, 2}, var) where {dim, T <: ApproxType} =
+    var[1] == var[2] ? Tensors.symmetric(Tensor{2, dim}(c)) : c
+_kept_symmetric(::SymmetricTensor{4, dim}, c::AbstractArray{T, 4}, var) where {dim, T <: ApproxType} =
+    var[1] == var[2] && var[3] == var[4] ? Tensors.symmetric(Tensor{4, dim}(c)) : c
 
 """
     change_tens_canon(t::AbstractTens{order,dim,T},var::NTuple{order,Symbol})

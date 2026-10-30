@@ -52,10 +52,22 @@ end
 
 # The components of the inverse of a 4th-order tensor: the matrix inverse of its
 # Mandel (minor symmetries) or Voigt (none) form, as Tensors.jl takes it.
+#
+# A tensor left in full storage by an operation although its components have
+# the minor symmetries (to the tolerance of `_store_symmetric`, which decides
+# the storage when a tensor is built) is singular as a 9×9 matrix: its three
+# minor-antisymmetric directions are null. `inv(𝕀 + ℙ : δℂ)` then failed, or
+# returned the inverse of round-off, depending on the basis the operands were
+# written in. Such a tensor is inverted on the symmetric tensors, as it would
+# be had it been stored symmetric.
 _inv_array(A) = inv(A)
 _inv_array(A::SymmetricTensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
     frommandel(SymmetricTensor{4, dim}, _inv_matrix(tomandel(SMatrix, A)))
-_inv_array(A::Tensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
+_inv_array(A::Tensor{4, dim}) where {dim} =
+    _store_symmetric(A) ? Tensor{4, dim}(_inv_array(Tensors.symmetric(A))) : _inv_full(A)
+
+_inv_full(A::Tensor{4}) = inv(A)
+_inv_full(A::Tensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
     fromvoigt(Tensor{4, dim}, _inv_matrix(tovoigt(SMatrix, A)))
 
 # The inverse of a matrix of duals by the implicit-function theorem,
