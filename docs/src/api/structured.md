@@ -13,6 +13,19 @@ tens_K4
 iso_projectors
 ```
 
+## [Blocks of a symmetry class](@id api-symmetry-blocks)
+
+The small matrices whose products and inverses are those of the tensors of a
+class; usage on [Blocks: a class as a sum of small matrices](@ref man-symmetry-blocks).
+
+```@docs
+symmetry_blocks
+from_symmetry_blocks
+symmetry_basis
+symmetry_layout
+symmetry_matrix
+```
+
 ## [Isotropic elastic moduli](@id api-iso-moduli)
 
 The stiffness and the compliance from any pair of the six moduli, every modulus
