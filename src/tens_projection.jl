@@ -1043,8 +1043,10 @@ end
 _rotation_to_canon(::CanonicalBasis) = nothing
 _rotation_to_canon(ℬ::OrthonormalBasis) = Matrix(vecbasis(ℬ))
 
-_frame_matrix(::CanonicalBasis{3, T}) where {T} = Matrix{T}(I, 3, 3)
-_frame_matrix(ℬ::OrthonormalBasis{3}) = Matrix(vecbasis(ℬ))
+# The frame vectors as the columns of a static matrix: read in hot loops
+# (`symmetry_basis`), so never a heap copy.
+_frame_matrix(::CanonicalBasis{3, T}) where {T} = SMatrix{3, 3, T}(I)
+_frame_matrix(ℬ::OrthonormalBasis{3}) = SMatrix{3, 3}(vecbasis(ℬ, Val(:cov)))
 
 # A canonical axis or frame, in the frame of `Q`.
 _to_frame(::Nothing, x) = x

@@ -161,6 +161,58 @@ Inversion, by contrast, **always stays in the class**:
 typeof(inv(iso)), typeof(inv(ti)), typeof(inv(ort)), typeof(inv(cub))
 ```
 
+## [Blocks: a class as a sum of small matrices](@id man-symmetry-blocks)
+
+Inside one class, in one frame, the double contraction of two tensors and the
+inverse of a tensor are computed on a few small matrices, the **blocks** of the
+class, each one independently of the others:
+
+| Class | order 4 | order 2 |
+| :--- | :--- | :--- |
+| ISO | ``(\alpha)``, ``(\beta)`` | ``(\lambda)`` |
+| CUBIC | ``(\alpha)``, ``(\beta)``, ``(\gamma)`` | — |
+| TI | ``\begin{pmatrix}\ell_1&\ell_3\\\ell_4&\ell_2\end{pmatrix}``, ``(\ell_5)``, ``(\ell_6)`` | ``(a)``, ``(b)`` |
+| ORTHO | the normal ``3\times3`` block, ``(2C_{44})``, ``(2C_{55})``, ``(2C_{66})`` | ``(a_1)``, ``(a_2)``, ``(a_3)`` |
+
+The product of two tensors has, for blocks, the products of their blocks; the
+inverse has the inverses. [`symmetry_blocks`](@ref) reads the blocks of a
+tensor, [`from_symmetry_blocks`](@ref) builds the tensor back, taking the axis
+or the frame from a tensor of the class:
+
+```@example struct
+bt = symmetry_blocks(ti)
+```
+
+```@example struct
+from_symmetry_blocks(ti, map(inv, bt)) ≈ inv(ti)
+```
+
+This is what a computation that works on a whole family of tensors of one class
+needs. A relaxation operator of aging viscoelasticity, for instance, has a
+tensor coefficient for each pair of instants: on a grid of ``n`` instants it is
+an ``(m\,n)\times(m\,n)`` matrix for each block of size ``m``, instead of one
+``6n\times6n`` matrix, and its products and inverses are those of these smaller
+matrices. The order-2 classes play the same role for conduction or permittivity.
+
+The orthotropic shear blocks are ``2C_{44}``, not ``C_{44}``: the factor 2 is
+the one of the Kelvin-Mandel matrix, in which the product of tensors is the
+product of matrices.
+
+The same blocks can be read on a matrix rather than on a tensor: a ``6\times6``
+Kelvin-Mandel matrix at order 4, a ``3\times3`` matrix of components at order 2.
+[`symmetry_basis`](@ref) is the orthonormal basis, adapted to the class and to
+its axis or frame, in which such a matrix is block diagonal, and
+[`symmetry_layout`](@ref) says where each block sits (the isotropic shear
+modulus five times, the transverse shear ``\ell_5`` twice, …).
+`symmetry_blocks(A, M)` reads the blocks of `M` in the class and frame of `A`,
+and [`symmetry_matrix`](@ref) builds the matrix back; a matrix that belongs to
+the class is rebuilt exactly, which is how one checks that it does:
+
+```@example struct
+M = mandel(generic_tens(ti))
+symmetry_blocks(ti, M)[1], symmetry_matrix(ti, symmetry_blocks(ti, M)) ≈ M
+```
+
 ## Exact promotions
 
 Moving *up* the lattice is exact — an isotropic tensor really is transversely

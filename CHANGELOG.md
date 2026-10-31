@@ -1,5 +1,44 @@
 # Changelog
 
+## v0.12.0 — each symmetry class as a sum of small matrices
+
+A minor release for one new exported pair of functions. Inside a symmetry class,
+in one frame, the double contraction and the inverse reduce to products and
+inverses of a few small matrices: a 2×2 block and two scalars for transverse
+isotropy, a 3×3 block and three scalars for orthotropy, two or three scalars for
+isotropy and cubic symmetry, scalars at order 2. `symmetry_blocks(A)` reads them
+and `from_symmetry_blocks(A, blocks)` builds the tensor back, in the class and
+frame of `A`. They exist for the computations that carry a whole family of
+tensors of one class, such as the relaxation operators of aging
+viscoelasticity in MeanFieldHomogenization, where one tensor per pair of
+instants turns into one matrix per block instead of a 6n×6n matrix.
+
+### Added
+
+- `symmetry_blocks` and `from_symmetry_blocks` for `TensISO` (orders 2 and 4),
+  `TensCubic`, `TensTI` (orders 2 and 4, symmetric or not) and `TensOrtho`
+  (orders 2 and 4, nine or twelve constants). The orthotropic shear blocks are
+  ``2C_{44}``, ``2C_{55}``, ``2C_{66}``, as in the Kelvin-Mandel matrix. Duals
+  and symbols go through; tested against the products and inverses of the same
+  tensors in generic form, in a random frame. A manual section explains them.
+- The same blocks on a matrix: `symmetry_blocks(A, M)` reads them on a 6×6
+  Kelvin-Mandel matrix (order 4) or a 3×3 matrix of components (order 2) in the
+  class and frame of `A`, and `symmetry_matrix(A, blocks)` builds the matrix
+  back; `symmetry_basis(A)` and `symmetry_layout(A)` are the adapted orthonormal
+  basis and the place of each block in it. Any axis or frame, no allocation,
+  about 0.1 µs per conversion.
+
+### Changed
+
+- The frame matrix of a transversely isotropic axis, and of an orthotropic or
+  cubic frame, read internally by the projections and averages, is a static
+  matrix rather than a heap copy.
+
+### Breaking changes
+
+- None in the API. Below 1.0 a minor release is breaking for the resolver: a
+  compat entry `TensND = "0.11"` does not accept 0.12.0.
+
 ## v0.11.2 — the inverse of a symbolic fourth-order tensor
 
 A patch release. `inv` of a fourth-order tensor stored in full or symmetric form

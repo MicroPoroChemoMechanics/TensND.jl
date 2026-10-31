@@ -101,10 +101,8 @@ function _axis_frame(n)
     v1 = n̂[2] * u3 - n̂[3] * u2
     v2 = n̂[3] * u1 - n̂[1] * u3
     v3 = n̂[1] * u2 - n̂[2] * u1
-    R = Matrix{T}(undef, 3, 3)
-    R[1, 1], R[2, 1], R[3, 1] = u1, u2, u3
-    R[1, 2], R[2, 2], R[3, 2] = v1, v2, v3
-    R[1, 3], R[2, 3], R[3, 3] = n̂[1], n̂[2], n̂[3]
+    # Static, column by column: the frame of every TI tensor, read in hot loops.
+    R = SMatrix{3, 3, T}(u1, u2, u3, v1, v2, v3, n̂[1], n̂[2], n̂[3])
     return R, n̂
 end
 
