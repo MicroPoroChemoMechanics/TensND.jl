@@ -34,6 +34,26 @@ bib = CitationBibliography(
     style = :authoryear,
 )
 
+# Every entry is formatted NOW, by the very call `ExpandBibliography` makes.
+# That stage runs after every `@example` block of the site, so a malformed entry
+# (typically a LaTeX escape the TeX parser does not implement, such as `\_`)
+# would otherwise fail the build only once all the computation has been spent.
+let failures = String[]
+    for (key, entry) in bib.entries
+        try
+            DocumenterCitations.format_bibliography_reference(:authoryear, entry)
+        catch err
+            push!(failures, "  $key : " * sprint(showerror, err))
+        end
+    end
+    isempty(failures) || error(
+        "docs/src/references.bib has $(length(failures)) entry/entries " *
+            "DocumenterCitations cannot format. This would otherwise kill the " *
+            "build at its LAST stage, after every example has run:\n" *
+            join(failures, "\n")
+    )
+end
+
 # The nomenclature, as the JSON that the plugin typesetting the formulas and the
 # hints of the theme read: the entries of `nomenclature.toml`. Written before any
 # page is built, and not versioned (see `.gitignore`).

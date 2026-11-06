@@ -393,7 +393,7 @@ end
 #
 # For a 4th-order elasticity tensor `C`, the 2nd-order trace
 #   dᵢⱼ = Cᵢₖⱼₖ = ∑ₖ C[i,k,j,k]
-# captures the principal-direction structure (Cowin-Mehrabadi 1990).  Its
+# captures the principal-direction structure (Mehrabadi & Cowin 1990).  Its
 # eigenvectors are candidate principal axes for TI / ORTHO detection without
 # running any optimization.
 

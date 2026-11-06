@@ -446,7 +446,7 @@ constants, read according to `form`:
   axial shear modulus, so that `S₁₁₁₁ = 1/E₁`, `S₃₃₃₃ = 1/E₃`,
   `S₁₁₂₂ = −ν₁₂/E₁`, `S₁₁₃₃ = −ν₃₁/E₃`, `S₂₃₂₃ = 1/(4G₃₁)`.
 - `:hoenig`: the **compliance** of Hoenig's parameters `(E, ν₁, ν₂, H, Γ)`
-  (Hoenig, 1978): `S₁₁₁₁ = 1/E`, `S₁₁₂₂ = −ν₁/E`, `S₁₁₃₃ = −ν₂/E`,
+  [hoenig1978](@cite): `S₁₁₁₁ = 1/E`, `S₁₁₂₂ = −ν₁/E`, `S₁₁₃₃ = −ν₂/E`,
   `S₃₃₃₃ = 1/(E H)`, `S₂₃₂₃ = (1 + ν₁)/(2 E Γ)`.
 
 With `role = :stiffness`, the last two build the **stiffness** of the same
