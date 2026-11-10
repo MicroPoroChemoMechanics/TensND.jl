@@ -27,7 +27,7 @@ flowchart TB
 - **Structured types** — [`TensISO`](@ref), [`TensTI`](@ref),
   [`TensCubic`](@ref) and [`TensOrtho`](@ref) store 2, 5, 3 and 9 scalars and
   compute products and inverses
-  in closed form, one to three orders of magnitude faster than the dense route.
+  in closed form, one to three orders of magnitude faster than the dense method.
 - **Symmetry projection** — the closest isotropic, transversely isotropic or
   orthotropic tensor, with the orientation given or optimized.
 - **Differential operators** in curvilinear coordinates, symbolically or by
@@ -80,7 +80,7 @@ describes an embedded surface rather than the whole space.
 | [Notation and conventions](notation.md) | typefaces, index conventions, the dictionary from symbol to Julia operator, and the pair-wise double-contraction convention |
 | [Tensor algebra](tensor_algebra.md) | ``\otimes``, ``\stackrel{s}{\otimes}``, ``\boxtimes``, ``\stackrel{s}{\boxtimes}``, the contractions, and the identities that make closed-form products possible |
 | [Bases and variance](bases_variance.md) | dual basis, metric, covariant/contravariant components, and the basis-type hierarchy that fixes the cost of everything else |
-| [Kelvin–Mandel representation](kelvin_mandel.md) | the isometry onto ``6\times6`` matrices, and why its rotation matrix being orthogonal is the whole point |
+| [Kelvin–Mandel representation](kelvin_mandel.md) | the isometry onto ``6\times6`` matrices, and why its rotation matrix being orthogonal is what matters |
 | [Rotations and Euler angles](rotations.md) | the Z–Y–Z convention as implemented, ``R\stackrel{s}{\boxtimes}R``, and the degeneracies of any three-angle parametrization |
 | [Isotropic tensors](isotropic.md) | ``\mathbb{J}``, ``\mathbb{K}``, the ``(\alpha,\beta)`` algebra, isotropization, and why it does not commute with inversion |
 | [The Walpole basis](walpole.md) | the six ``\mathbb{W}_i``, the multiplication table, the synthetic ``2\times2`` triplet, and the ``\ell_i`` of ``\mathbb{I},\mathbb{J},\mathbb{K}`` |

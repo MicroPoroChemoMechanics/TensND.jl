@@ -268,7 +268,7 @@ init_spherical(coords; canonical = false) = Tuple(coords),
     init_rotated(coords = symbols("θ ϕ ψ", real = true); canonical = false)
 
 Return the angles, base vectors and basis of the rotated basis.
-Note that here the coordinates are angles and do not represent a valid parametrization of `ℝ³`
+Here the coordinates are angles and do not represent a valid parametrization of `ℝ³`
 
 # Examples
 ```julia

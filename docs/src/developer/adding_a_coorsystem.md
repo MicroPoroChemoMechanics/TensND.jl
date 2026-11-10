@@ -1,6 +1,6 @@
 # [Adding a coordinate system](@id dev-adding-coorsystem)
 
-The most common extension. There are three routes, in increasing order of
+The most common extension. There are three approaches, in increasing order of
 effort and of control.
 
 ## 1. Numerical, from a position map
@@ -76,7 +76,7 @@ differentiating the position vector.
 
 ## Checklist for a new system
 
-1. Does [`lame_coefficients`](@ref) return something readable? If not, go to route 3.
+1. Does [`lame_coefficients`](@ref) return something readable? If not, go to approach 3.
 2. Do the [`christoffel`](@ref) symbols match
    ``\partial_i\underline{a}_j\cdot\underline{a}^k``? The check is one
    comprehension — see [Christoffel symbols](@ref tut-christoffel).

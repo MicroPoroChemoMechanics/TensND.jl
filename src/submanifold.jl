@@ -221,10 +221,7 @@ and they can be made to vanish at any single point. The intrinsic curvature
 follows from them by the Gauss equation, or directly from [`curvature`](@ref)
 and [`submetric`](@ref).
 
-!!! note "Renamed from `Riemann`"
-    This function was called `Riemann`, which named the wrong object entirely —
-    it never returned a Riemann curvature tensor. The former name was removed in
-    0.11.
+It returns connection coefficients, never a Riemann curvature tensor.
 
 See also [`Submanifold`](@ref), [`christoffel`](@ref), [`curvature`](@ref).
 """

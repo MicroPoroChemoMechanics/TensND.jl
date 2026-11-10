@@ -27,7 +27,7 @@ term is right. Background on the elastic Green operator: [mura1987](@citet).
 ````@example green_function
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 using Tensors
 ````
 
@@ -96,7 +96,7 @@ The closed form it must reproduce:
 tsimplify(ℾ - ℾ₂)
 ````
 
-Identically zero: the operator route and the closed form agree.
+Identically zero: the operator method and the closed form agree.
 
 ## Contraction with the stiffness
 

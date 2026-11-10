@@ -21,9 +21,8 @@ pkg> add TensND
     | Symbolics variables (`Num`: `@variables`) | `pkg> add Symbolics` | `using TensND, Symbolics` |
     | numbers and derivatives only | nothing | `using TensND` |
 
-`Symbolics` is a dependency of TensND; `SymPyPythonCall` is not, since
-version 0.9.0: what calls Python lives in an extension that loading
-SymPyPythonCall activates, so that `using TensND` alone no longer loads Python.
+`Symbolics` is a dependency of TensND; `SymPyPythonCall` is not: what calls Python lives in an extension that loading
+SymPyPythonCall activates, so that `using TensND` alone does not load Python.
 Called without coordinates while SymPyPythonCall is not loaded, a coordinate
 system says so in its error message.
 

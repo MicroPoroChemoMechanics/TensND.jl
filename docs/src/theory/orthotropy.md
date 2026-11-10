@@ -40,7 +40,7 @@ the associated projectors. Then
 
 ## Block-diagonal in the material frame
 
-The whole point of the class is that in its own frame the Kelvin–Mandel matrix
+The class is defined by the fact that in its own frame the Kelvin–Mandel matrix
 splits:
 
 ```math
@@ -133,7 +133,7 @@ representations, not three one-dimensional ones.
 
 When the two operands are expressed in *different* material frames the product is
 generally fully anisotropic, and the implementation falls back to the generic
-route bit for bit. A transversely isotropic operand whose axis is one of the
+path, with identical results. A transversely isotropic operand whose axis is one of the
 frame axes is orthotropic on that frame, and its product with an orthotropic
 tensor stays in the twelve-constant form.
 

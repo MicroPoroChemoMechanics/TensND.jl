@@ -105,7 +105,7 @@ mandel_material(ort)
 
 This is the table to know. `⊡` between structured types stays structured
 **only while the result stays in the class**; otherwise it falls back to the
-generic route, exactly and without warning.
+generic method, exactly and without warning.
 
 | `A ⊡ B` | ISO | CUBIC | TI{4,5} | TI{4,6} | TI{4,8} | ORTHO |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -118,7 +118,7 @@ generic route, exactly and without warning.
 
 The `CUBIC` row and column need the two frames to describe the same cube, the
 `iso_projectors`/`TI`/`ORTHO` ones the same axis or frame, and a `TI ⊡ ORTHO` product a
-TI axis along one of the frame axes; otherwise the generic route is taken.
+TI axis along one of the frame axes; otherwise the generic method is taken.
 `ORTHO{12}` stands for `TensOrtho{4, T, 12}`, whichever form the operands have.
 
 Two widenings deserve an explanation, and both have the same cause: **the

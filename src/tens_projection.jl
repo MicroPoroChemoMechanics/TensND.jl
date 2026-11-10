@@ -1015,9 +1015,9 @@ end
 # for this, and the structured types keep their cheaper type-level predicates
 # (`isisotropic(::TensISO)`, …), which are more specific than these wrappers.
 #
-# `get_array(t)` alone, read as canonical, was wrong for every tensor written in
-# a rotated basis: the projection about a canonical axis was computed about that
-# axis expressed in the wrong frame.
+# `get_array(t)` alone, read as canonical, would be wrong for a tensor written in
+# a rotated basis: the projection about a canonical axis would be computed about
+# that axis expressed in the wrong frame.
 
 """
     _orthonormal_components(t) -> (A, Q)

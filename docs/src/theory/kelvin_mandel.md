@@ -41,7 +41,7 @@ T_{ijkl} & K,L\le3\\
 These are [`mandel`](@ref) and its inverse [`from_mandel`](@ref); the index ordering is
 `_KM_COUPLES` in `src/tens_projection.jl`.
 
-## What the ``\sqrt2`` buys
+## Role of the ``\sqrt2`` factors
 
 The factors are chosen so that the map is an **isometry** for the Frobenius
 scalar product of [Tensor algebra](@ref th-tensor-algebra). Every line below is
@@ -105,7 +105,7 @@ is what relates the two views of an orthotropic tensor,
 with ``\mathrm{Mat}_{\text{mat}}`` the block-diagonal matrix in the material
 frame ([Orthotropy](@ref th-orthotropy)).
 
-!!! note "Why orthogonality is the whole point"
+!!! note "Consequence of the orthogonality of ``Q``"
     Because ``Q`` is orthogonal, the congruence is a *rotation of the
     21-dimensional Euclidean space of elasticity tensors*: it preserves
     ``\|\cdot\|_F``, hence preserves distances to a symmetry class. Every

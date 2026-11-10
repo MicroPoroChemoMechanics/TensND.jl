@@ -31,7 +31,7 @@ Random.seed!(20260804)
 arr(x) = get_array(x)
 𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Float64))
 
-# ## The return contract
+# ## The returned values
 #
 # [`project`](@ref) returns `(B, d, drel)`: the projected tensor, the absolute
 # Frobenius distance and the relative one. The relative distance is what makes a

@@ -79,14 +79,14 @@ intrinsic Christoffel symbols in its tangential block, ``\boldsymbol{b}`` in the
 slice ``\Gamma[:,:,d]`` (Gauss), and ``-b_\alpha{}^{\beta}`` in ``\Gamma[:,d,:]``
 (Weingarten).
 
-!!! note "`connection`, formerly `Riemann`"
+!!! note "`connection`"
     [`connection`](@ref) returns the purely tangential block
     ``\Gamma[1{:}d{-}1,1{:}d{-}1,1{:}d{-}1]`` — the **Christoffel symbols of the
     induced metric**. These are connection coefficients: they are not tensor
     components, they change under a change of chart by an inhomogeneous rule, and
     they can be made to vanish at any single point. A Riemann curvature tensor
-    can do none of those things — which is why the accessor, once misleadingly
-    called `Riemann`, is now [`connection`](@ref).
+    can do none of those things, which is why the accessor is named
+    [`connection`](@ref).
 
     For a sphere of radius ``R`` parametrized by ``(\theta,\varphi)`` the
     function returns

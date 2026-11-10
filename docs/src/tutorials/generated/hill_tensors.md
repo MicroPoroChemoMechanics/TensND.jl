@@ -36,7 +36,7 @@ Background: [mura1987](@citet), [hoenig1978](@citet).
 ````@example hill_tensors
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 ````
 
 ## Setting up
@@ -114,11 +114,8 @@ The same three lines, with a stiffness built by [`ti_from_constants`](@ref) inst
 Nothing in the construction changes: `⋅`, `inv` and `⊡` dispatch on the
 structured type.
 
-!!! note "This replaces a legacy hand-rolled Walpole basis"
-    An earlier research script re-defined the Walpole tensors and the TI
-    constructors locally. Everything it needed is now in the library —
-    [`walpole_basis`](@ref) and [`ti_from_constants`](@ref) in its three forms — so the
-    local definitions are gone.
+The Walpole tensors and the TI constructors are those of the library:
+[`walpole_basis`](@ref) and [`ti_from_constants`](@ref) in its three forms.
 
 ````@example hill_tensors
 C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃ = symbols("C₁₁₁₁ C₁₁₂₂ C₁₁₃₃ C₃₃₃₃ C₂₃₂₃", positive = true)

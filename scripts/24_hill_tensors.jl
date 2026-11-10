@@ -105,11 +105,8 @@ pprint(tsimplify(𝚲 - 𝚲₂), Spherical)
 # Nothing in the construction changes: `⋅`, `inv` and `⊡` dispatch on the
 # structured type.
 #
-# !!! note "This replaces a legacy hand-rolled Walpole basis"
-#     An earlier research script re-defined the Walpole tensors and the TI
-#     constructors locally. Everything it needed is now in the library —
-#     [`walpole_basis`](@ref) and [`ti_from_constants`](@ref) in its three forms — so the
-#     local definitions are gone.
+# The Walpole tensors and the TI constructors are those of the library:
+# [`walpole_basis`](@ref) and [`ti_from_constants`](@ref) in its three forms.
 
 C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃ = symbols("C₁₁₁₁ C₁₁₂₂ C₁₁₃₃ C₃₃₃₃ C₂₃₂₃", positive = true)
 n = 𝐞₃

@@ -40,7 +40,7 @@ features:
     link: /tutorials/
   - icon: ⚡
     title: Structured types
-    details: TensISO, TensTI, TensCubic and TensOrtho store 2, 5, 3 and 9 scalars and compute products and inverses in closed form, orders of magnitude faster than the dense route.
+    details: TensISO, TensTI, TensCubic and TensOrtho store 2, 5, 3 and 9 scalars and compute products and inverses in closed form, orders of magnitude faster than the dense method.
     link: /manual/structured_tensors
   - icon: 🎲
     title: Random tensors

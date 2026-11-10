@@ -81,7 +81,7 @@ conversion is [`components`](@ref)`(t, var)`, or
     Storing the covariant metric ``g_{ij}`` as a twice-covariant tensor and
     asking for its mixed components necessarily returns the identity, because
     ``g^{ik}g_{kj}=\delta^i_j``. That round trip is the example in the
-    [`Tens`](@ref) docstring and the cheapest sanity check on a basis.
+    [`Tens`](@ref) docstring and the cheapest check on a basis.
 
 ## Change of basis
 

@@ -12,7 +12,7 @@
 # `TensND` is symbolic *and* numerical. The structured types
 # ([`TensISO`](@ref), [`TensTI`](@ref), [`TensOrtho`](@ref)) exist so that
 # products and inverses are computed on a handful of stored coefficients rather
-# than on ``3^4=81`` components. This tutorial measures what that buys, and
+# than on ``3^4=81`` components. This tutorial measures the gain, and
 # where it stops applying.
 #
 # Theory: [Isotropic tensors](@ref th-isotropic),
@@ -34,7 +34,7 @@ arr(x) = get_array(x)
 
 # ## What each type stores
 #
-# The whole point in one table: the number of scalars held, against the 81
+# In one table: the number of scalars held, against the 81
 # components of a dense order-4 tensor in 3-D.
 
 ℬ = CanonicalBasis{3, Float64}()
@@ -52,7 +52,7 @@ end
 # ## Double contraction
 #
 # Each structured type has a closed-form `⊡` that stays in the stored
-# representation; the dense route contracts all 81 components.
+# representation; the dense method contracts all 81 components.
 
 function bench_dcontract()
     rows = Any[]
@@ -102,7 +102,7 @@ end
 # ## Allocations
 #
 # A structured operation allocates a single small object — the tuple of stored
-# coefficients — where the dense route allocates intermediate arrays of 81
+# coefficients — where the dense method allocates intermediate arrays of 81
 # components. The figure below is the *whole* cost of the result, and it scales
 # with the number of stored scalars, not with ``3^4``.
 
@@ -131,7 +131,7 @@ end
 # ## Where the structure stops paying
 #
 # The closed forms apply only while the result **stays in the class**. Two cases
-# leave it, and both fall back to the generic route:
+# leave it, and both fall back to the generic method:
 #
 # - a product of two `TensOrtho` expressed in *different* material frames is
 #   generally fully anisotropic;

@@ -32,7 +32,7 @@ g^{ik}g_{kj}=\delta^i_j .
 ````@example bases_variance
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 using Tensors
 ````
 
@@ -129,7 +129,7 @@ components(T, ℬ, (:cov, :cov))
 tfactor(tsimplify(components(T, ℬ, (:cont, :cov))))
 ````
 
-## The cheapest sanity check on a basis
+## The cheapest check on a basis
 
 Store the covariant metric as a twice-covariant tensor and raise one index.
 Since ``g^{ik}g_{kj}=\delta^i_j``, the answer *must* be the identity — whatever

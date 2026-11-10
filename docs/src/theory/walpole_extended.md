@@ -145,7 +145,7 @@ that are themselves axially invariant:
     that involve only ``\boldsymbol{1}_T`` and ``\boldsymbol{1}_n`` — which is
     why the ``\ell_1..\ell_4`` machinery carries over unchanged to ``N=8``. The
     ``N=8`` contraction methods do account for ``\ell_7,\ell_8``, and are checked
-    against the generic dense route.
+    against the generic dense method.
 
 ## Order 2: three generators, not two
 

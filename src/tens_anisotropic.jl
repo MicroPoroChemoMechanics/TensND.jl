@@ -339,7 +339,7 @@ Product rule via 2×2 matrix product + scalar products for ℓ₅, ℓ₆.
 Always returns N=6 since the product of two symmetric tensors need not be symmetric.
 
 If the axes differ, the operation falls back to the generic (unstructured)
-`Tens` route via `get_array` — the product of two TI tensors with different
+`Tens` method via `get_array` — the product of two TI tensors with different
 axes is generally fully anisotropic.
 """
 function Tensors.dcontract(A::TensTI{4}, B::TensTI{4})
@@ -1504,7 +1504,7 @@ so `A ⊡ B` has no major symmetry in general, the same widening that makes
 `Tensors.majorsymmetric` of the result for its nine-constant symmetric part.
 
 If the two material frames differ the product is generally fully anisotropic
-and the generic route is taken instead.
+and the generic method is taken instead.
 """
 # Inlined, so that a caller splits the union on the spot instead of receiving
 # a boxed result; the generic route is kept out of line.

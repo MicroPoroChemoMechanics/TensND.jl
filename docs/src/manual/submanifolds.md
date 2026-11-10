@@ -76,10 +76,9 @@ tsimplify.(get_array(curvature(Sphere)) + get_array(submetric(Sphere)) / R)
     whenever a curvature is reported. The Gaussian curvature, being a
     determinant, is unaffected.
 
-!!! note "`connection` — renamed from `Riemann`"
-    [`connection`](@ref) returns the **connection coefficients** (Christoffel
-    symbols) of the induced metric, never a Riemann curvature tensor. The old
-    name `Riemann` named the wrong object, and was removed in 0.11. For the
+!!! note "`connection`"
+    [`connection`](@ref) returns the connection coefficients (Christoffel
+    symbols) of the induced metric, never a Riemann curvature tensor. For the
     sphere it
     gives ``\Gamma^\theta_{\varphi\varphi}=-\sin\theta\cos\theta`` and
     ``\Gamma^\varphi_{\theta\varphi}=\cot\theta``. These are connection

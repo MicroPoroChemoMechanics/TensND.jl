@@ -31,7 +31,7 @@ Theory: [Curvilinear differential calculus](@ref th-curvilinear),
 ````@example operator_identities
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 using Printf
 ````
 

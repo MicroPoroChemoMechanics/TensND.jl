@@ -27,7 +27,7 @@ textbook. Background: [mura1987](@citet).
 ````@example sphere_problems
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 
 Spherical = coorsys_spherical()
 θ, ϕ, r = get_coords(Spherical)

@@ -32,7 +32,7 @@ The operators, once:
 ````@example tensor_algebra
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 using Tensors
 using Random
 

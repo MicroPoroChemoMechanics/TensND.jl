@@ -33,7 +33,7 @@ chart. The same code runs **symbolically** (via
 
 - **Basis types**: canonical, rotated, orthogonal, and fully general non-orthogonal bases, with covariant/contravariant components and the metric that relates them
 - **Tensor algebra**: products (`⊗`, `⊗ˢ`, `⊠`, `⊠ˢ`, `⋅`, `⊡`, `⊙`), change of basis, variance management
-- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI`), cubic (`TensCubic`), orthotropic (`TensOrtho`) — 2, 5, 3 and 9 stored scalars instead of 81 components, with closed-form products and inverses one to three orders of magnitude faster than the dense route
+- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI`), cubic (`TensCubic`), orthotropic (`TensOrtho`) — 2, 5, 3 and 9 stored scalars instead of 81 components, with closed-form products and inverses one to three orders of magnitude faster than the dense method
 - **Symmetry projection**: closest ISO, TI, CUBIC or ORTHO tensor, with the orientation given or searched — deterministically, with no external optimizer, and in closed form at order 2
 - **Differential operators**: `grad`, `symgrad`, `divergence`, `laplacian`, `hess` in curvilinear coordinates — symbolically or pointwise by automatic differentiation (`CoordinateSystem` with an `ExactGeometry` or a `PointwiseGeometry`), on orthogonal **and genuinely non-orthogonal** charts
 - **Submanifolds**: embedded hypersurfaces (`Submanifold`) with their first and second fundamental forms, connection coefficients and curvatures
@@ -155,9 +155,9 @@ The documentation is organized as a reading path:
 
 ## Release notes
 
-See [CHANGELOG.md](CHANGELOG.md). TensND 0.11 keeps one name per operation, named after what it does, and removes the former ones; the [API overview](https://MicroPoroChemoMechanics.github.io/TensND.jl/dev/api/) gives the correspondence.
+See [CHANGELOG.md](CHANGELOG.md). The [API overview](https://MicroPoroChemoMechanics.github.io/TensND.jl/dev/api/) lists every exported name.
 
-`@set_coorsys` no longer defines methods — it stores the default chart, alongside the new `set_coorsys!`, `default_coorsys` and `unset_coorsys!`. As a consequence `∂(t, x)` always means the plain derivative with respect to the symbol `x`; the covariant derivative is `∂(t, x, CS)`.
+`@set_coorsys` stores the default chart, as do `set_coorsys!`, `default_coorsys` and `unset_coorsys!`. `∂(t, x)` always means the plain derivative with respect to the symbol `x`; the covariant derivative is `∂(t, x, CS)`.
 
 ## Citation
 

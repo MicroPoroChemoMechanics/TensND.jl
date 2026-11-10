@@ -281,7 +281,7 @@ That is genuinely specific to cubic symmetry — permuting the axes of an
 orthotropic tensor permutes `C₁₁, C₂₂, C₃₃`, so a `TensOrtho` on a permuted
 frame has its coefficients permuted (`_ortho_on_frame`).
 
-On an element type where a comparison does not return an honest `Bool` — a
+On an element type where a comparison does not return a genuine `Bool` — a
 symbolic frame — the test is not attempted and plain equality is required
 instead.
 """
@@ -294,7 +294,7 @@ instead.
 The permutation `π` such that the axis `j` of `FB` is the axis `π[j]` of `FA`
 up to its sign, when `Fᴬᵀ Fᴮ` is a signed permutation matrix (within `1e-10`);
 `nothing` otherwise. Two such frames carry the same orthotropic or cubic
-symmetry. On an element type whose comparisons are not honest `Bool`s, a
+symmetry. On an element type whose comparisons do not return a genuine `Bool`, a
 symbolic frame, only equal frames are recognized, with the identity.
 """
 function _frame_permutation(FA::OrthonormalBasis{3}, FB::OrthonormalBasis{3})
@@ -389,7 +389,7 @@ every cubic tensor commutes with every other on the same cube, and the product
 is cubic and still major-symmetric.
 
 If the two frames do not describe the same cube the product is generally fully
-anisotropic and the generic route is taken.
+anisotropic and the generic method is taken.
 """
 function Tensors.dcontract(A::TensCubic, B::TensCubic)
     _same_cube_frame(A, B) ||

@@ -129,7 +129,7 @@ round.(a; digits = 1), maximum(abs, a - b) < 0.2
 A random tensor makes a test independent of the axes it was written in, and
 the same seed makes it reproducible. The algebra of the structured types is
 checked this way, each pair of classes on independent random frames against
-the generic route:
+the generic method:
 
 ```@example rnd
 A = rand(rng, TensCubic)
