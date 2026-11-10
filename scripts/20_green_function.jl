@@ -91,7 +91,7 @@ aHG = get_array(HG)
 
 tsimplify(ℾ - ℾ₂)
 
-# Identically zero: the operator route and the closed form agree.
+# Identically zero: the operator method and the closed form agree.
 
 # ## Contraction with the stiffness
 #

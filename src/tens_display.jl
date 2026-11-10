@@ -61,14 +61,6 @@ Passing a coordinate system names the basis vectors after its coordinates;
 [`@set_coorsys`](@ref) makes that the default, so `pprint(t)` alone then
 prints `𝐞ʳ`, `𝐞ᶿ`, … rather than `𝐞₁`, `𝐞₂`, ….
 
-!!! note "Formerly `intrinsic`, then `print_tensor`"
-    `intrinsic` was misleading: what is printed is explicitly *basis dependent*
-    — it changes with the chart — whereas "intrinsic" denotes the basis-free
-    form. `print_tensor` was misleading in turn, because the fallback below
-    accepts a **scalar**, and `pprint` is the name MPCM already uses for a
-    generic pretty-printer (`ChemistryLab.pprint`). Both former names were
-    removed in 0.11.
-
 # Examples
 ```julia
 julia> Spherical = coorsys_spherical() ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
@@ -80,7 +72,7 @@ julia> pprint(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ)   # spherical coordin
 ```
 
 Applied to anything that is **not** a tensor — a scalar field, typically, so
-that `laplacian(f(r)) |> pprint` works in a pipeline — it falls back to the
+that `laplacian(f(r)) |> pprint` works in a chain of calls — it falls back to the
 rich `text/plain` display, which for a symbolic expression is SymPy's
 two-dimensional form:
 

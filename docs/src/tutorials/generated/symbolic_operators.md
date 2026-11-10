@@ -31,7 +31,7 @@ The definitions, once:
 ````@example symbolic_operators
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 ````
 
 ## Setting a default coordinate system

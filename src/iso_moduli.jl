@@ -199,7 +199,7 @@ const iso_compliance_bulk_shear = iso_compliance
 # One kernel per modulus, role and dimension, on the coefficients `(α, β)` of
 # 𝕁 and 𝕂: on a stiffness, `α = d k`, `β = 2μ`; on a compliance, `α = 1/(d k)`,
 # `β = 1/(2μ)`. The formulas on a compliance are written directly, never through
-# its inverse; those on a stiffness are those of 0.11.0, bit for bit.
+# its inverse; those on a stiffness are the direct ones, `α / d` and `β / 2`.
 
 _bulk(::Val{:stiffness}, ::Val{d}, α, β) where {d} = α / d
 _bulk(::Val{:compliance}, ::Val{d}, α, β) where {d} = inv(d * α)

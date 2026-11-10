@@ -325,12 +325,11 @@ M = \\beta\\, I_m + \\frac{\\alpha - \\beta}{dim}\\, E ,
 `E` being the matrix with ones on the leading `dim × dim` block. Nothing is
 materialized at order `dim^4`.
 
-That is not only cheaper. The previous implementation went through
-`tomandel(SymmetricTensor{order,dim}(A))`, and building a `SymmetricTensor`
-from a full component array makes `Tensors` validate the symmetry — a check
-that cannot be answered on a `Symbolics.Num` and therefore concluded "not
-symmetric", so `mandel` of a symbolic isotropic tensor threw an `InexactError`.
-Displaying one did too, `show` going through `mandel`.
+This is also what makes `mandel` of a symbolic isotropic tensor possible: going
+through `tomandel(SymmetricTensor{order,dim}(A))` would have `Tensors` validate
+the symmetry of the full component array, a check that cannot be answered on a
+`Symbolics.Num` and concludes "not symmetric", so that `mandel`, and `show`
+through it, would throw an `InexactError`.
 """
 function _mandel(A::TensISO{4, dim}) where {dim}
     α, β = get_data(A)

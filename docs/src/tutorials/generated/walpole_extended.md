@@ -69,7 +69,7 @@ was the elastic stiffness — a major-symmetric object that cannot see them.
 ## What they do to order-2 contraction
 
 They annihilate exactly the order-2 tensors that are themselves axially
-invariant, ``a\boldsymbol{1}_T+b\boldsymbol{1}_n``, and **nothing more**.
+invariant, ``a\boldsymbol{1}_T+b\boldsymbol{1}_n``, and no others.
 
 ````@example walpole_extended
 𝟏ₙ = [0.0 0 0; 0 0 0; 0 0 1]

@@ -13,7 +13,7 @@
 # chart from a plain partial derivative. This tutorial computes them from their
 # definition, checks that definition term by term, tabulates them for every
 # predefined system, confirms that the symbolic and the automatic-differentiation
-# routes agree, and builds a non-trivial custom chart.
+# computations agree, and builds a non-trivial custom chart.
 #
 # ```math
 # \frac{\partial\underline{a}_j}{\partial q^i}=\Gamma^k_{ij}\,\underline{a}_k
@@ -89,8 +89,8 @@ christoffel_table("polar", coorsys_polar())
 christoffel_table("cylindrical", coorsys_cylindrical())
 christoffel_table("spherical", coorsys_spherical())
 
-# The Cartesian chart is precisely the one whose connection vanishes; everything
-# else pays a ``\Gamma`` term.
+# The Cartesian chart is precisely the one whose connection vanishes; every other
+# chart has a ``\Gamma`` term.
 
 # ## Why they matter
 #
@@ -104,7 +104,7 @@ christoffel_table("spherical", coorsys_spherical())
 
 get_array(𝐞ʳ), tsimplify(divergence(𝐞ʳ))
 
-# ## Symbolic and numerical routes agree
+# ## Symbolic and numerical computations agree
 #
 # the pointwise [`CoordinateSystem`](@ref) evaluates the same geometry pointwise with
 # `ForwardDiff` instead of SymPy. The Christoffel closure uses the same
@@ -175,7 +175,7 @@ end
 
 # ## Building a chart from an `OM` function alone
 #
-# The numerical route needs no symbolic setup at all: hand
+# The numerical computation needs no symbolic setup at all: hand
 # the pointwise [`CoordinateSystem`](@ref) a differentiable position map and it derives the Lamé
 # coefficients, the rotation to the normalized frame and the Christoffel symbols
 # by automatic differentiation.

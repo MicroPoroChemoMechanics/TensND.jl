@@ -65,13 +65,12 @@ argument; without it, pass the system explicitly, `laplacian(f, Polar)`.
     symbol `x`; for the covariant derivative pass the chart explicitly,
     `∂(t, x, CS)`.
 
-    Earlier versions had `@set_coorsys` **define methods** in the `TensND`
-    module, including one for `∂(t, x)`. That method was more specific than the
-    plain-derivative fallback, so the same call silently changed meaning — and
-    since both `CoordinateSystem` and `Submanifold` differentiate a position
-    vector while being built, constructing *any* new chart after a
-    `@set_coorsys` failed. The default is now simply stored, and the
-    single-argument operator methods are defined once.
+    Defining a method for `∂(t, x)` in the `TensND` module would be more specific
+    than the plain-derivative fallback, so that the same call would silently
+    change meaning, and since both `CoordinateSystem` and `Submanifold`
+    differentiate a position vector while being built, constructing any new
+    chart after a `@set_coorsys` would fail. The default is therefore simply
+    stored, and the single-argument operator methods are defined once.
 
 | Operator | Order | Meaning |
 | :--- | :--- | :--- |

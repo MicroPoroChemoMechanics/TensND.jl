@@ -39,7 +39,7 @@ against a transcribed number.
   is correct. `laplacian(rⁿcos nθ) == 0` in polar coordinates, and the spheroidal
   harmonics ``P_n^m(p)P_n^m(q)\cos m\varphi``, are the strongest single checks
   on a coordinate system.
-- A closed form matched against the operator route — the Green's function pages
+- A closed form matched against the operator method — the Green's function pages
   do this — exercises `hess`, the symmetrization and the basis handling at once.
 - A round trip (`ti_constants(ti_from_constants(x...)) == x`) catches parametrization errors
   that a one-way check cannot.

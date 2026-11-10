@@ -82,7 +82,7 @@ stored as closures rather than expressions:
 | `unitvec(CS, i)` | [`unitvec`](@ref)`(CS, x₀, i)` |
 | `natvec(CS, i, var)` | [`natvec`](@ref)`(CS, x₀, i, var)` |
 
-The Christoffel array uses the same convention as the symbolic route,
+The Christoffel array uses the same convention as the symbolic approach,
 ``\Gamma[i,j,k]=\Gamma^k_{ij}``.
 
 ```@example csn
@@ -111,7 +111,7 @@ ForwardDiff.derivative(α -> laplacian(x -> α * x[3]^2, CS)(x₀), 3.0)   # ∇
 This makes a sensitivity analysis of a field problem a one-liner: wrap the
 computation in a function of the parameter and differentiate.
 
-## Choosing between the two routes
+## Choosing between the two approaches
 
 | | [`CoordinateSystem`](@ref) | the pointwise [`CoordinateSystem`](@ref) |
 | :--- | :--- | :--- |

@@ -34,7 +34,7 @@ Theory: [Submanifolds](@ref th-submanifolds).
 ````@example submanifolds
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 ````
 
 ## Resolving ``|\sin\theta|``
@@ -225,7 +225,6 @@ be compared.
 
 [`connection`](@ref) returns the **connection coefficients** ``\Gamma^\gamma_{\alpha\beta}``
 of the induced metric — Christoffel symbols, never a Riemann curvature tensor.
-(The accessor used to be called `Riemann`, which named the wrong object.)
 For the sphere:
 
 ````@example submanifolds

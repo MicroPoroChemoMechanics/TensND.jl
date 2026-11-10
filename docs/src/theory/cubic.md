@@ -210,7 +210,7 @@ Every arrow is an **exact** re-expression. Note what is *not* drawn: there is no
 arrow between `TensCubic` and `TensTI{4}`. The two classes are **incomparable**
 — their intersection is the isotropic class and neither contains the other — so
 a sum of the two is generally fully anisotropic, and `TensND` falls through to
-the unstructured route rather than pretending otherwise.
+the unstructured method rather than pretending otherwise.
 
 Pushing an arbitrary tensor *down* the chain is approximation, and is the
 subject of [Projection onto a symmetry class](@ref th-projection);

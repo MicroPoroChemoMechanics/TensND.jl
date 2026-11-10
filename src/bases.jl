@@ -342,7 +342,7 @@ Orthogonal but **not** normalized basis: an orthonormal basis scaled by one
 factor `χᵢ` per direction.
 
 Its metric is diagonal, `gᵢⱼ = diag(χᵢ²)`, and its dual vectors are
-`𝐞ⁱ = 𝐞ᵢ/χᵢ²`, so variance still matters but only diagonally. This is exactly
+`𝐞ⁱ = 𝐞ᵢ/χᵢ²`, so variance still matters but only diagonally. This is
 the situation of the **natural basis** of a curvilinear coordinate system, where
 the `χᵢ` are the Lamé coefficients — see
 [Curvilinear differential calculus](@ref th-curvilinear).

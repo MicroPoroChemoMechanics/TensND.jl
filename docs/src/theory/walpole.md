@@ -10,7 +10,7 @@
 <!-- /crosslinks -->
 
 Transverse isotropy about an axis ``\underline{n}`` is the symmetry class where a
-well-chosen basis pays off most: in the Walpole basis [walpole1984](@cite) the
+well-chosen basis is most advantageous: in the Walpole basis [walpole1984](@cite) the
 double contraction becomes a ``2\times2`` matrix product plus two scalar
 products, and inversion becomes a ``2\times2`` matrix inverse plus two
 reciprocals. `TensND` stores such tensors as their coefficients on this basis
@@ -120,8 +120,8 @@ In the frame where ``\underline{n}=\underline{e}_3``, with the ordering of
 \end{array}
 ```
 
-Note that ``\mathbb{W}_3`` and ``\mathbb{W}_4`` are transposes of each other and
-are **not** major-symmetric individually; every other ``\mathbb{W}_i`` is.
+``\mathbb{W}_3`` and ``\mathbb{W}_4`` are transposes of each other and
+are not major-symmetric individually; every other ``\mathbb{W}_i`` is.
 
 ## The synthetic triplet
 

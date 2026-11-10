@@ -122,12 +122,11 @@ without which a non-trivial chart produces correct but unusable nested radicals:
 | `to_coords` | how to eliminate them again before differentiating |
 | `rules` | rewrite rules applied after each simplification |
 
-See [Adding a coordinate system](@ref dev-adding-coorsystem) for the recipe and
+See [Adding a coordinate system](@ref dev-adding-coorsystem) for the procedure and
 [`coorsys_spheroidal`](@ref) for a worked example.
 
-!!! note "One type since 0.8"
-    The former `CoorSystemSym` and `CoorSystemNum` are the two geometries of this
-    one type; their names were removed in 0.11.
+The symbolic and the pointwise numerical systems are the two geometries of this
+one type.
 """
 struct CoordinateSystem{dim, T <: Number, G <: AbstractGeometry} <: AbstractCoorSystem{dim, T}
     geometry::G
@@ -850,8 +849,8 @@ Make `CS` the default coordinate system for the differential operators, so they
 can be called with one argument.
 
 Equivalent to [`set_coorsys!`](@ref)`(CS; vec, coords)`; kept as a macro for
-familiarity. Unlike earlier versions it **does not define any method** — it only
-stores the system — and it leaves the meaning of `∂(t, x)` untouched.
+familiarity. It does not define any method, it only
+stores the system, and it leaves the meaning of `∂(t, x)` untouched.
 
 # Examples
 ```julia

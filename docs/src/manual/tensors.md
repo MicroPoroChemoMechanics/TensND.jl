@@ -159,7 +159,7 @@ Structured types print in their compact algebraic form instead — see
 
 [`mandel`](@ref) maps a symmetric order-2 tensor to a 6-vector and a minor-symmetric
 order-4 tensor to a ``6\times6`` matrix; [`from_mandel`](@ref) inverts it. The
-convention and what it buys are on
+convention and its consequences are on
 [Kelvin–Mandel representation](@ref th-kelvin-mandel).
 
 ```@example tens2

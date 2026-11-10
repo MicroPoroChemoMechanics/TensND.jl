@@ -228,7 +228,7 @@ Exact and frame-independent: `𝕂 = 𝔼 + 𝕋`, so the cubic coefficients are
 formal statement that an isotropic tensor is cubic about *every* cube.
 
 Used by the mixed arithmetic below so that `TensISO + TensCubic` stays a
-`TensCubic` instead of collapsing to the unstructured route.
+`TensCubic` instead of collapsing to the unstructured method.
 
 # Examples
 ```julia

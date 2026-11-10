@@ -28,7 +28,7 @@ Theory: [Bases and variance](@ref th-bases-variance),
 ````@example cluster
 using TensND
 using LinearAlgebra
-using SymPy
+using SymPyPythonCall
 
 𝕀, 𝕁, 𝕂 = iso_projectors(Val(3), Val(Sym))
 𝟏 = tens_Id2(Val(3), Val(Sym))

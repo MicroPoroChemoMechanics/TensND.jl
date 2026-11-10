@@ -66,9 +66,8 @@ tries the classes in turn.
 five operators are defined in `coorsystems.jl` over `AbstractCoorSystem`, and
 the only thing a submanifold changes is how many directions it differentiates
 along — the [`nderiv`](@ref) trait, `dim` for a chart and `dim-1` for a surface.
-`submanifold.jl` therefore contains geometry and nothing else; it used to carry
-a verbatim copy of all six definitions, which is how one bug fix had to be
-applied twice and one variance bug survived in the copy.
+`submanifold.jl` therefore contains geometry only, and no copy of the six
+definitions that would have to be corrected twice.
 
 Both types hold the same internal `ExactGeometry` — position vector, coordinates, the
 two bases, the natural and dual frames, Lamé coefficients, connection array and
@@ -91,6 +90,6 @@ comment in `project(…, ::Val{:ORTHO}, …)`.
 **Closed forms only while the result stays in the class.** The structured
 methods return the generic tensor whenever the exact result leaves the class —
 a product of two orthotropic tensors needs twelve constants, not nine. The
-fallback is bit-for-bit the generic computation, never an approximation. The
+fallback reproduces the generic computation to the last digit, never an approximation. The
 full table is on [Structured tensors](@ref man-structured).
 

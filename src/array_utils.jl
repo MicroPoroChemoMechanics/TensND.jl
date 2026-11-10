@@ -208,7 +208,7 @@ const ApproxType = Union{AbstractFloat, Complex{<:AbstractFloat}, ForwardDiff.Du
     is_hard_numeric(::Type) -> Bool
     is_hard_numeric(x)      -> Bool
 
-Whether comparisons on that scalar type yield an honest `Bool`, so a value of it
+Whether comparisons on that scalar type yield a genuine `Bool`, so a value of it
 may drive `if`, `&&` or a tolerance test.
 
 **`T <: Real` is not this predicate.** `Symbolics.Num <: Real`, yet `<`, `≈` and
@@ -216,7 +216,7 @@ may drive `if`, `&&` or a tolerance test.
 context throws `TypeError: non-boolean (Num) used in boolean context`.
 `ForwardDiff.Dual` is also `<: Real` and *does* compare to a `Bool`, so the two
 cannot be separated by `<: Real` either way. `SymPyPythonCall.Sym` is not `<: Real` at
-all, which is why the bug it guards against only ever showed up on the
+all, which is why the guard concerns only the
 Symbolics side.
 
 The list is explicit and closed, and the default is the safe answer: an unknown
