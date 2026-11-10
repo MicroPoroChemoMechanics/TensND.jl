@@ -1,11 +1,9 @@
 # [Kelvin–Mandel representation](@id th-kelvin-mandel)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
     **Manual**: [Tensors](@ref man-tensors)
 
     **Tutorials**: [Tensor products, contractions and their identities](@ref tut-tensor-algebra) · [Performance of the structured types](@ref tut-performance)
-<!-- /crosslinks -->
 
 Minor-symmetric order-4 tensors and symmetric order-2 tensors form spaces of
 dimension 21 and 6 in 3-D. The Kelvin–Mandel representation makes that explicit
@@ -105,7 +103,7 @@ is what relates the two views of an orthotropic tensor,
 with ``\mathrm{Mat}_{\text{mat}}`` the block-diagonal matrix in the material
 frame ([Orthotropy](@ref th-orthotropy)).
 
-!!! note "Consequence of the orthogonality of ``Q``"
+!!! note "Consequence of the orthogonality"
     Because ``Q`` is orthogonal, the congruence is a *rotation of the
     21-dimensional Euclidean space of elasticity tensors*: it preserves
     ``\|\cdot\|_F``, hence preserves distances to a symmetry class. Every

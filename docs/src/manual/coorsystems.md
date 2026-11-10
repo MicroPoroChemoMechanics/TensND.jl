@@ -1,13 +1,11 @@
 # [Coordinate systems (symbolic)](@id man-coorsystems)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
     **Theory**: [Curvilinear differential calculus](@ref th-curvilinear)
 
     **Manual**: [Coordinate systems (numerical)](@ref man-coorsystems-num)
 
     **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities)
-<!-- /crosslinks -->
 
 Differential operators on tensor fields, with exact symbolic derivatives. The
 mathematics — natural basis, Lamé coefficients, Christoffel symbols, the index
@@ -34,8 +32,9 @@ constant coordinate, in an interactive figure of
     With Symbolics, pass the variables, `coorsys_spherical(Tuple(@variables θ ϕ r))`,
     or the type, `coorsys_spherical(Val(Num))`.
 
-!!! note "Spherical coordinates are ordered ``(\theta,\varphi,r)``"
-    Not ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the
+!!! note "Ordering of the spherical coordinates"
+    The spherical coordinates are ordered ``(\theta,\varphi,r)``, not
+    ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the
     canonical basis in the canonical order.
 
 ## The operators

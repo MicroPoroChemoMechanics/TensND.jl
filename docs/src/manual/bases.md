@@ -1,13 +1,11 @@
 # [Bases](@id man-bases)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
     **Theory**: [Bases and variance](@ref th-bases-variance) · [Notation and conventions](@ref th-notation)
 
     **Manual**: [Tensors](@ref man-tensors)
 
     **Tutorials**: [Bases, variance and the metric](@ref tut-bases-variance)
-<!-- /crosslinks -->
 
 How to build a basis and read what it stores. The mathematics — dual basis,
 metric, variance, and why the type hierarchy exists — is on
@@ -99,8 +97,9 @@ using TensND, SymPyPythonCall
 ℬᶜ
 ```
 
-!!! note "The spherical ordering is ``(\theta,\varphi,r)``"
-    Not ``(r,\theta,\varphi)``. The ordering is chosen so that
+!!! note "Ordering of the spherical coordinates"
+    The spherical coordinates are ordered ``(\theta,\varphi,r)``, not
+    ``(r,\theta,\varphi)``. The ordering is chosen so that
     ``\theta=\varphi=0`` reproduces the canonical basis **in the canonical
     order**, which makes the spherical frame a genuine
     [`RotatedBasis`](@ref). The same applies to

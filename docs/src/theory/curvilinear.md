@@ -1,11 +1,9 @@
 # [Curvilinear differential calculus](@id th-curvilinear)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
     **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num)
 
     **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities)
-<!-- /crosslinks -->
 
 The second pillar of the library, and the second chapter with no counterpart in
 the [Echoes manual](https://jfbarthelemy.github.io/echoes/), which works only in
@@ -70,8 +68,9 @@ are named after their coordinate, ``\underline{e}^r``, ``\underline{e}^\theta``,
 … — for an orthonormal basis the dual basis is the basis itself, and the
 position of the label carries no meaning.
 
-!!! warning "The spherical coordinates are ordered ``(\theta,\varphi,r)``"
-    Not ``(r,\theta,\varphi)``. The ordering is chosen so that
+!!! warning "Ordering of the spherical coordinates"
+    The spherical coordinates are ordered ``(\theta,\varphi,r)``, not
+    ``(r,\theta,\varphi)``. The ordering is chosen so that
     ``\theta=\varphi=0`` reproduces the canonical basis **in the canonical
     order**, which makes the spherical frame a genuine
     [`RotatedBasis`](@ref) — see [Rotations](@ref th-rotations) — and lets
