@@ -17,6 +17,7 @@ using SymPyPythonCall
 using SymPyPythonCall: Sym, sympy, symbols
 import TensND: tsimplify, tfactor, tsubs, tdiff, ttrigsimp, texpand_trig, tlimit
 import TensND: coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal
+import TensND: coorsys_spheroidal_oblate, coorsys_ellipsoidal
 import TensND: init_cartesian, init_polar, init_cylindrical, init_spherical, init_rotated
 
 # ── Elementwise symbolic operations on a `Sym` ──────────────────────────────
@@ -44,6 +45,11 @@ _spherical_symbols() = (symbols("θ", real = true), symbols("ϕ", real = true), 
 _spheroidal_symbols() = (symbols("ϕ", real = true), symbols("p", real = true), symbols("q", positive = true))
 _spheroidal_focal() = symbols("c", positive = true)
 _spheroidal_auxiliary() = symbols("p̄ q̄", positive = true)
+_oblate_symbols() = (symbols("ϕ", real = true), symbols("p", real = true), symbols("τ", positive = true))
+_oblate_auxiliary() = symbols("p̄ τ̄", positive = true)
+_ellipsoidal_symbols() = (symbols("ρ μ", positive = true)..., symbols("ν", real = true))
+_ellipsoidal_focal() = symbols("h₂ h₃", positive = true)
+_ellipsoidal_auxiliary() = symbols("ρ̄₂ ρ̄₃ μ̄₂ μ̄₃ ν̄₂ ν̄₃", positive = true)
 
 coorsys_cartesian() = coorsys_cartesian(_cartesian_symbols(Val(3)))
 coorsys_cartesian(v::Val{<:Sym}) = coorsys_cartesian(v, _cartesian_symbols(Val(3)))
@@ -57,6 +63,14 @@ coorsys_spheroidal(coords::NTuple{3} = _spheroidal_symbols(), c = _spheroidal_fo
     coorsys_spheroidal(coords, c, _spheroidal_auxiliary())
 coorsys_spheroidal(v::Val{<:Sym}, coords = _spheroidal_symbols(), c = _spheroidal_focal()) =
     coorsys_spheroidal(v, coords, c, _spheroidal_auxiliary())
+coorsys_spheroidal_oblate(coords::NTuple{3} = _oblate_symbols(), c = _spheroidal_focal()) =
+    coorsys_spheroidal_oblate(coords, c, _oblate_auxiliary())
+coorsys_spheroidal_oblate(v::Val{<:Sym}, coords = _oblate_symbols(), c = _spheroidal_focal()) =
+    coorsys_spheroidal_oblate(v, coords, c, _oblate_auxiliary())
+coorsys_ellipsoidal(coords::NTuple{3} = _ellipsoidal_symbols(), h::NTuple{2} = _ellipsoidal_focal()) =
+    coorsys_ellipsoidal(coords, h, _ellipsoidal_auxiliary())
+coorsys_ellipsoidal(v::Val{<:Sym}, coords = _ellipsoidal_symbols(), h = _ellipsoidal_focal()) =
+    coorsys_ellipsoidal(v, coords, h, _ellipsoidal_auxiliary())
 
 init_cartesian() = init_cartesian(_cartesian_symbols(Val(3)))
 init_cartesian(v::Union{Val{2}, Val{3}}) = init_cartesian(_cartesian_symbols(v))

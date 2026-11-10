@@ -38,3 +38,22 @@ end
     @test P isa CoordinateSystem{3, Float64, <:PointwiseGeometry}
     @test coorsys_polar(PointwiseGeometry, Float32) isa CoordinateSystem{2, Float32, <:PointwiseGeometry}
 end
+
+@testsection "Charts, confocal systems and spheroidal harmonics: the names exist" begin
+    for n in (
+            :AbstractChart, :PolarChart, :CylindricalChart, :SphericalChart,
+            :ProlateSpheroidalChart, :OblateSpheroidalChart, :EllipsoidalChart,
+            :coords_to_cartesian, :cartesian_to_coords, :change_coords,
+            :coorsys_spheroidal_oblate, :coorsys_ellipsoidal,
+            :legendre_P, :radial_P, :radial_Q, :interior_harmonics, :exterior_harmonics,
+            :reexpansion_polynomials, :interior_reexpansion, :exterior_reexpansion, :reexpansion_bound,
+        )
+        @test isdefined(TensND, n)
+        @test n in names(TensND)
+    end
+    @test ProlateSpheroidalChart(1.0) isa AbstractChart{3}
+    @test PolarChart() isa AbstractChart{2}
+    # `coorsys_spheroidal` takes the chart, the pointwise systems the semi-focal distances
+    @test coorsys_spheroidal_oblate(PointwiseGeometry, 1.0) isa CoordinateSystem{3, Float64, <:PointwiseGeometry}
+    @test coorsys_ellipsoidal(PointwiseGeometry, 2.0, 1.0) isa CoordinateSystem{3, Float64, <:PointwiseGeometry}
+end

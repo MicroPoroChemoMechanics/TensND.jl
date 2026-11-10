@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [Submanifolds](@ref th-submanifolds)
 
-    **Tutorials**: [Surfaces: fundamental forms and curvature](@ref tut-submanifolds)
+    **Tutorials**: [Surfaces: fundamental forms and curvature](@ref tut-submanifolds) · [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix)
 
 Hypersurfaces embedded in ``\mathbb{R}^d``: their induced metric, their
 curvature, and differential operators on them. The geometry is on

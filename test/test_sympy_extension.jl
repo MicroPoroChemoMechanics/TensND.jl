@@ -24,6 +24,19 @@
     @test get_coords(coorsys_spheroidal()) == spheroidal
     @test get_coords(coorsys_spheroidal(spheroidal)) == spheroidal
     @test get_coords(coorsys_spheroidal(Val(Sym))) == spheroidal
+    # The oblate and ellipsoidal systems: coordinates and focal distances.
+    oblate = (symbols("ϕ", real = true), symbols("p", real = true), symbols("τ", positive = true))
+    @test get_coords(coorsys_spheroidal_oblate()) == oblate
+    @test get_coords(coorsys_spheroidal_oblate(oblate)) == oblate
+    @test get_coords(coorsys_spheroidal_oblate(Val(Sym))) == oblate
+    @test TensND.core(coorsys_spheroidal_oblate()).params == (symbols("c", positive = true),)
+    @test TensND.core(coorsys_spheroidal_oblate()).tmp_coords == symbols("p̄ τ̄", positive = true)
+    ellipsoidal = (symbols("ρ", positive = true), symbols("μ", positive = true), symbols("ν", real = true))
+    @test get_coords(coorsys_ellipsoidal()) == ellipsoidal
+    @test get_coords(coorsys_ellipsoidal(ellipsoidal)) == ellipsoidal
+    @test get_coords(coorsys_ellipsoidal(Val(Sym))) == ellipsoidal
+    @test TensND.core(coorsys_ellipsoidal()).params == symbols("h₂ h₃", positive = true)
+    @test TensND.core(coorsys_ellipsoidal(Val(Sym))).params == symbols("h₂ h₃", positive = true)
     @test first(init_cartesian()) == (x, y, z)
     @test first(init_cartesian(2)) == symbols("x y", real = true)
     @test first(init_polar()) == symbols("r θ", real = true)

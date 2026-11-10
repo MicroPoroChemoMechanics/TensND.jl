@@ -1,6 +1,6 @@
 # [Adding a coordinate system](@id dev-adding-coorsystem)
 
-The most common extension. There are three approaches, in increasing order of
+The most common extension. There are five approaches, in increasing order of
 effort and of control.
 
 ## 1. Numerical, from a position map
@@ -71,8 +71,30 @@ give them instead of letting them be derived:
 CoordinateSystem(OM, coords, bnorm, χᵢ)
 ```
 
-This is what the predefined systems do, and it is much faster than
-differentiating the position vector.
+This is what the predefined systems do: only the Christoffel symbols remain to
+be computed, and the basis keeps the form it was written in.
+
+## 5. A predefined system, exact and pointwise at once
+
+The spheroidal and ellipsoidal systems are written once, as a **chart**
+(`src/charts.jl`): a small type that holds the parameters and three functions
+of the coordinates, generic in the number type.
+
+| Function | Returns |
+| :--- | :--- |
+| [`coords_to_cartesian`](@ref)`(chart, ξ)` | the Cartesian components of the point |
+| `TensND._lame(chart, ξ)` | the Lamé coefficients, as a tuple |
+| `TensND._frame(chart, ξ)` | the unit vectors, as the columns of a static matrix |
+
+Called with symbols, they give the exact system (`coorsys_ellipsoidal` passes
+them to the constructor of approach 4, with the position vector written in
+auxiliary symbols as in approach 3); called with numbers, the pointwise one
+(`TensND._pointwise_system(chart, T)`). A fourth method,
+[`cartesian_to_coords`](@ref), inverts the chart. The ellipsoidal system
+([Ellipsoidal coordinates](@ref th-ellipsoidal)) is the reference example: its
+six square roots are six auxiliary symbols, and its matrix of unit vectors is
+written entry by entry, since Symbolics takes an `hcat` of its own numbers as a
+symbolic array.
 
 ## Checklist for a new system
 
@@ -84,5 +106,10 @@ differentiating the position vector.
    strongest single test: it fails unless every connection term is right.
 4. If a numerical counterpart exists, do the two agree at a point?
 
-Steps 2–4 are exactly what `test/test_coorsystems.jl` and
-`test/test_coorsystems_num.jl` do for the predefined systems.
+5. If the system has a chart, do `_lame` and `_frame` match the Jacobian of
+   `coords_to_cartesian`, and does `cartesian_to_coords` invert it, degenerate
+   points included?
+
+Steps 2–4 are exactly what `test/test_coorsystems.jl`,
+`test/test_coorsystems_num.jl` and `test/test_coorsystems_confocal.jl` do for
+the predefined systems, and step 5 what `test/test_charts.jl` does.

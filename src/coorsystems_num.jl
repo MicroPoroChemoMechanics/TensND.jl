@@ -18,7 +18,10 @@ bases and the Lamé coefficients depend on the point too, and are read with it:
 
 Predefined: `coorsys_cartesian(PointwiseGeometry)`, `coorsys_polar(PointwiseGeometry)`,
 `coorsys_cylindrical(PointwiseGeometry)`, `coorsys_spherical(PointwiseGeometry)`,
-each with an optional element type (`Float64` by default); any chart from its
+each with an optional element type (`Float64` by default);
+`coorsys_spheroidal(PointwiseGeometry, c)`,
+`coorsys_spheroidal_oblate(PointwiseGeometry, c)` and
+`coorsys_ellipsoidal(PointwiseGeometry, h₂, h₃)`; any chart from its
 position vector with `CoordinateSystem(OM_func, dim, T)`.
 """
 struct PointwiseGeometry{X, R, G} <: AbstractGeometry
@@ -490,6 +493,51 @@ function coorsys_spherical(::Type{PointwiseGeometry}, ::Type{T} = Float64) where
         _christoffel_orthogonal(χ, ∂χ)
     end
     return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
+end
+
+# A pointwise system from a chart: its closed-form Lamé coefficients and unit
+# vectors, the Christoffel symbols from the derivatives of the former.
+function _pointwise_system(chart::AbstractChart{dim}, ::Type{T}) where {dim, T <: Real}
+    χ_func = (x::AbstractVector{<:Number}) -> collect(_lame(chart, x))
+    R_func = (x::AbstractVector{<:Number}) -> Matrix(_frame(chart, x))
+    Γ_func = (x::AbstractVector{<:Number}) -> begin
+        χ = χ_func(x)
+        ∂χ = ForwardDiff.jacobian(χ_func, collect(x))
+        _christoffel_orthogonal(χ, ∂χ)
+    end
+    return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
+end
+
+"""
+    coorsys_spheroidal(PointwiseGeometry, c)
+
+Numerical prolate spheroidal coordinate system of semi-focal distance `c`.
+Coordinates: (ϕ, p, q) — same convention as `coorsys_spheroidal()`, see
+[`ProlateSpheroidalChart`](@ref).
+"""
+coorsys_spheroidal(::Type{PointwiseGeometry}, c::T) where {T <: Real} =
+    _pointwise_system(ProlateSpheroidalChart(c), float(T))
+
+"""
+    coorsys_spheroidal_oblate(PointwiseGeometry, c)
+
+Numerical oblate spheroidal coordinate system of semi-focal distance `c`.
+Coordinates: (ϕ, p, τ) — same convention as `coorsys_spheroidal_oblate()`, see
+[`OblateSpheroidalChart`](@ref).
+"""
+coorsys_spheroidal_oblate(::Type{PointwiseGeometry}, c::T) where {T <: Real} =
+    _pointwise_system(OblateSpheroidalChart(c), float(T))
+
+"""
+    coorsys_ellipsoidal(PointwiseGeometry, h₂, h₃)
+
+Numerical ellipsoidal coordinate system of semi-focal distances `h₂ > h₃ > 0`.
+Coordinates: (ρ, μ, ν) — same convention as `coorsys_ellipsoidal()`, see
+[`EllipsoidalChart`](@ref).
+"""
+function coorsys_ellipsoidal(::Type{PointwiseGeometry}, h₂::Real, h₃::Real)
+    chart = EllipsoidalChart(h₂, h₃)
+    return _pointwise_system(chart, float(typeof(chart.h₂)))
 end
 
 """

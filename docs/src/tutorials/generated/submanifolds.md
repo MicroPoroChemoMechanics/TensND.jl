@@ -9,6 +9,8 @@ EditURL = "../../../../scripts/13_submanifolds.jl"
 
     **Manual**: [Submanifolds](@ref man-submanifolds)
 
+    **Tutorials**: [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix)
+
 A [`Submanifold`](@ref) is a hypersurface embedded in ``\mathbb{R}^d``: one
 coordinate fewer than the ambient space, with the unit normal completing the
 frame. It carries both geometries — the metric it inherits, and the way it

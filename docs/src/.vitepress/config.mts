@@ -86,6 +86,12 @@ export default withMermaid(defineConfig({
   lastUpdated: true,
   cleanUrls: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
+  // A partial build (TENSND_DOCS_ONLY, see docs/partial.jl) leaves out pages, so
+  // Documenter cannot resolve the `@ref`s that pointed into them and emits them
+  // literally, which VitePress then sees as dead links. Refusing those is right
+  // for the full build and wrong for a partial one, which checks no links.
+  // Driven by the same variable, so that the two halves cannot disagree.
+  ignoreDeadLinks: Boolean(process.env.TENSND_DOCS_ONLY?.trim()),
   head: [
     ['link', { rel: 'icon', href: 'REPLACE_ME_DOCUMENTER_VITEPRESS_FAVICON' }],
     ['script', {src: `${getBaseRepository(baseTemp.base)}versions.js`}],

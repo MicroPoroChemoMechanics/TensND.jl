@@ -21,10 +21,21 @@ using DocumenterVitepress
 using TensND
 using SymPyPythonCall
 
+# GR needs a headless display driver on a machine without a screen (CI runners
+# included); without it the figures of the tutorials fail to render.
+ENV["GKSwstype"] = "100"
+
 # Generates the tutorial pages (+ companion notebooks and clean scripts) from
 # the curated `scripts/` demos. Must run before `makedocs`, so the generated
 # markdown exists when the `pages` list below references it.
 include("literate.jl")
+
+# `show_source`, which the pages call to show, folded, the scripts they include,
+# and the commit their GitHub links point to.
+include("source_links.jl")
+
+# The page tree.
+include("pages.jl")
 
 # Author-year citations, as in MeanFieldHomogenization and ChemistryLab: a
 # `[3]` tells the reader nothing without a trip to the References page, and
@@ -59,6 +70,11 @@ end
 # page is built, and not versioned (see `.gitignore`).
 include("nomenclature.jl")
 write_nomenclature_json(joinpath(@__DIR__, "src", ".vitepress", "nomenclature.json"))
+
+# Reads `pages` and may replace it: a partial build needs a pruned source
+# directory, not only a pruned page tree (see the header of `partial.jl`). After
+# `literate.jl`, so that the generated pages exist when the tree is pruned.
+include("partial.jl")
 
 DocMeta.setdocmeta!(
     TensND,
@@ -226,103 +242,10 @@ makedocs(
         description = "Tensor algebra and differential geometry on any coordinate system, in Julia",
     ),
     plugins = [bib],
-    pages = [
-        "Home" => "index.md",
-        # Ordered as a reading path with two pillars. First the *algebra*:
-        # conventions, the products, then what a basis is (variance is the one
-        # notion the Echoes manual deliberately does without), then the storage
-        # convention everything else is expressed in, then the symmetry classes
-        # from the most constrained to the least, and finally the projection
-        # that maps an arbitrary tensor onto one of them. Then the *analysis*:
-        # differential calculus on a curvilinear chart, and its restriction to
-        # an embedded surface.
-        "Theory" => [
-            "theory/index.md",
-            "theory/notation.md",
-            "theory/tensor_algebra.md",
-            "theory/bases_variance.md",
-            "theory/kelvin_mandel.md",
-            "theory/rotations.md",
-            "theory/isotropic.md",
-            "theory/walpole.md",
-            "theory/walpole_extended.md",
-            "theory/ti_parametrizations.md",
-            "theory/orthotropy.md",
-            "theory/cubic.md",
-            "theory/projection.md",
-            "theory/curvilinear.md",
-            "theory/submanifolds.md",
-        ],
-        # Task-oriented. Every mathematical claim links back to Theory rather
-        # than restating it.
-        "Manual" => [
-            "manual/installation.md",
-            "manual/getting_started.md",
-            "manual/bases.md",
-            "manual/tensors.md",
-            "manual/structured_tensors.md",
-            "manual/parametrizations.md",
-            "manual/elastic_moduli.md",
-            "manual/random_tensors.md",
-            "manual/projection.md",
-            "manual/coorsystems.md",
-            "manual/coorsystems_num.md",
-            "manual/submanifolds.md",
-            "manual/symbolic_and_numeric.md",
-        ],
-        # Every page under `generated/` is produced from `scripts/` by Literate
-        # (see `docs/literate.jl`). That is an implementation detail the reader
-        # has no reason to care about, so the grouping is thematic.
-        "Tutorials" => [
-            "tutorials/index.md",
-            "Tensor algebra" => [
-                "tutorials/generated/bases_variance.md",
-                "tutorials/generated/tensor_algebra.md",
-                "tutorials/generated/walpole.md",
-                "tutorials/generated/walpole_extended.md",
-                "tutorials/generated/projection.md",
-            ],
-            "Differential calculus" => [
-                "tutorials/generated/symbolic_operators.md",
-                "tutorials/generated/christoffel.md",
-                "tutorials/generated/numerical_operators.md",
-                "tutorials/generated/submanifolds.md",
-                "tutorials/generated/operator_identities.md",
-            ],
-            "Applications in mechanics" => [
-                "tutorials/generated/green_function.md",
-                "tutorials/generated/cluster.md",
-                "tutorials/generated/sphere_problems.md",
-                "tutorials/generated/hill_tensors.md",
-            ],
-            "Types, differentiation and performance" => [
-                "tutorials/generated/ad_interop.md",
-                "tutorials/generated/performance.md",
-            ],
-        ],
-        "Developer" => [
-            "developer/architecture.md",
-            "developer/adding_a_coorsystem.md",
-            "developer/testing_conventions.md",
-        ],
-        "API" => [
-            "api/index.md",
-            "api/bases.md",
-            "api/tensors.md",
-            "api/structured.md",
-            "api/walpole.md",
-            "api/cubic.md",
-            "api/projection.md",
-            "api/special.md",
-            "api/coorsystems.md",
-            "api/coorsystems_num.md",
-            "api/submanifold.md",
-            "api/symbolic.md",
-            "api/full_index.md",
-        ],
-        "Nomenclature" => "nomenclature.md",
-        "References" => "references.md",
-    ],
+    # `src`, or the pruned tree a partial build stands up. Filtering `pages`
+    # alone would leave every other page still executing.
+    source = DOCS_SOURCE,
+    pages = pages,
     # Reports any *exported* symbol whose docstring is not included anywhere in
     # the documentation. This is what keeps the curated API pages honest: add an
     # export without placing it on a themed page and the build says so, instead
@@ -333,14 +256,27 @@ makedocs(
     # No blanket `warnonly = true`: it canceled the very check the comment
     # above asks for, so an unplaced export warned and passed. Measured before
     # removing it — every exported, documented name is on a page.
+    #
+    # A partial build can resolve neither a reference into a page it did not
+    # build nor a docstring whose API page it pruned, so those are demoted there
+    # and only there.
+    warnonly = PARTIAL_BUILD ? [:cross_references, :missing_docs, :linkcheck] : Symbol[],
 )
 
 # DocumenterVitepress writes a real directory per version rather than the
 # symlinks Documenter used, so it needs its own `deploydocs`.
-DocumenterVitepress.deploydocs(;
-    repo = "github.com/MicroPoroChemoMechanics/TensND.jl.git",
-    target = joinpath(@__DIR__, "build"),
-    branch = "gh-pages",
-    devbranch = "main",
-    push_preview = false,
-)
+#
+# A partial build must never reach it: `deploydocs` replaces the deployed tree
+# with the content of `build/`, so deploying a few pages would take every other
+# one offline.
+if PARTIAL_BUILD
+    @info "partial build: deployment skipped"
+else
+    DocumenterVitepress.deploydocs(;
+        repo = "github.com/MicroPoroChemoMechanics/TensND.jl.git",
+        target = joinpath(@__DIR__, "build"),
+        branch = "gh-pages",
+        devbranch = "main",
+        push_preview = false,
+    )
+end

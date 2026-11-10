@@ -15,6 +15,8 @@ curated, so a newly exported symbol can never go undocumented.
 | [Special tensors](special.md) | Levi-Civita, rotations, unit vectors, random tensors |
 | [Coordinate systems](coorsystems.md) | `CoordinateSystem`, its exact geometry and the operators |
 | [Numerical coordinate systems](coorsystems_num.md) | `PointwiseGeometry` |
+| [Charts and coordinate conversions](charts.md) | the charts, `coords_to_cartesian`, `cartesian_to_coords`, `change_coords` |
+| [Spheroidal harmonics](spheroidal_harmonics.md) | Legendre functions, harmonics, re-expansion coefficients |
 | [Submanifolds](submanifold.md) | `Submanifold` and its accessors |
 | [Symbolic helpers](symbolic.md) | `tsimplify`, `tsubs`, and the array algebra |
 | [Full index](full_index.md) | everything, alphabetically |

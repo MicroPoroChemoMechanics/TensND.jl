@@ -22,3 +22,4 @@ CLAUDE.md
 # preferences (a Python of one's own, offline mode): per machine, never shipped.
 .CondaPkg/
 LocalPreferences.toml
+docs/assets_src/Manifest.toml

@@ -140,7 +140,7 @@ tex = '\underline{e}_i'
 label = "<u>e</u><sub>i</sub>"
 name = "unit vector of the normalized basis of a chart"
 unit = "1"
-pages = ["theory/curvilinear.md"]
+pages = ["theory/curvilinear.md", "theory/coordinate_changes.md", "theory/ellipsoidal.md"]
 
 [[symbol]]
 group = "Bases and coordinates"
@@ -290,7 +290,7 @@ tex = 'p'
 label = "p"
 name = "spheroidal coordinate, constant on a hyperboloid sheet (−1 ≤ p ≤ 1)"
 unit = "1"
-pages = ["theory/curvilinear.md"]
+pages = ["theory/curvilinear.md", "theory/spheroidal.md", "theory/coordinate_changes.md", "theory/spheroidal_harmonics.md", "manual/charts.md", "manual/spheroidal_harmonics.md"]
 
 [[symbol]]
 group = "Bases and coordinates"
@@ -298,7 +298,7 @@ tex = 'q'
 label = "q"
 name = "spheroidal coordinate, constant on a spheroid (q ≥ 1 prolate, q ≥ 0 oblate)"
 unit = "1"
-pages = ["theory/curvilinear.md"]
+pages = ["theory/curvilinear.md", "theory/spheroidal.md", "theory/coordinate_changes.md", "theory/spheroidal_harmonics.md", "manual/charts.md", "manual/spheroidal_harmonics.md", "theory/ellipsoidal.md"]
 
 [[symbol]]
 group = "Bases and coordinates"
@@ -306,7 +306,7 @@ tex = '\bar{p}'
 label = "p̄"
 name = "shorthand √(1 − p<sup>2</sup>) of the spheroidal coordinates"
 unit = "1"
-pages = ["theory/curvilinear.md"]
+pages = ["theory/curvilinear.md", "theory/spheroidal.md"]
 
 [[symbol]]
 group = "Bases and coordinates"
@@ -314,7 +314,7 @@ tex = '\bar{q}'
 label = "q̄"
 name = "shorthand √(q<sup>2</sup> − 1) of the prolate spheroidal coordinates"
 unit = "1"
-pages = ["theory/curvilinear.md"]
+pages = ["theory/curvilinear.md", "theory/spheroidal.md"]
 
 [[symbol]]
 group = "Bases and coordinates"
@@ -330,7 +330,7 @@ tex = 'c'
 label = "c"
 name = "half the focal distance (prolate) or radius of the focal circle (oblate) of the spheroidal coordinates"
 unit = "m"
-pages = ["theory/curvilinear.md"]
+pages = ["theory/curvilinear.md", "theory/spheroidal.md", "theory/ellipsoidal.md", "theory/coordinate_changes.md", "theory/spheroidal_harmonics.md", "manual/charts.md"]
 
 [[symbol]]
 group = "Bases and coordinates"
@@ -1203,7 +1203,7 @@ tex = '\underline{v}'
 label = "<u>v</u>"
 name = "vector field acted on by differential operators"
 unit = ""
-pages = ["theory/curvilinear.md", "tutorials/generated/operator_identities.md", "tutorials/generated/symbolic_operators.md"]
+pages = ["theory/curvilinear.md", "tutorials/generated/operator_identities.md", "tutorials/generated/symbolic_operators.md", "theory/classical_systems.md", "theory/spheroidal.md"]
 
 [[symbol]]
 group = "Differential geometry"
@@ -1243,7 +1243,7 @@ tex = 'K'
 label = "K"
 name = "total (Gaussian) curvature of a surface"
 unit = "m<sup>−2</sup>"
-pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md"]
+pages = ["theory/submanifolds.md", "manual/submanifolds.md", "tutorials/generated/submanifolds.md", "theory/ellipsoidal.md"]
 
 [[symbol]]
 group = "Differential geometry"
@@ -1251,7 +1251,7 @@ tex = '\Gamma'
 label = "Γ"
 name = "array of connection coefficients Γ[i,j,k] = Γ<sup>k</sup><sub>ij</sub>"
 unit = ""
-pages = ["theory/curvilinear.md", "theory/submanifolds.md", "manual/coorsystems.md", "manual/coorsystems_num.md", "tutorials/generated/christoffel.md", "developer/testing_conventions.md"]
+pages = ["theory/curvilinear.md", "theory/submanifolds.md", "manual/coorsystems.md", "manual/coorsystems_num.md", "tutorials/generated/christoffel.md", "developer/testing_conventions.md", "theory/classical_systems.md"]
 
 [[symbol]]
 group = "Differential geometry"
@@ -1420,7 +1420,7 @@ tex = 'R'
 label = "R"
 name = "rotation matrix 3×3 (Z–Y–Z Euler angles)"
 unit = "1"
-pages = ["theory/rotations.md", "theory/kelvin_mandel.md", "theory/index.md", "theory/curvilinear.md"]
+pages = ["theory/rotations.md", "theory/kelvin_mandel.md", "theory/index.md", "theory/curvilinear.md", "theory/classical_systems.md", "theory/coordinate_changes.md"]
 
 [[symbol]]
 group = "Rotations and projection"
@@ -1428,3 +1428,875 @@ tex = 'Q'
 label = "Q"
 name = "rotation (Bond) matrix 6×6 in Kelvin–Mandel form"
 unit = "1"
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\varrho'
+label = "ϱ"
+name = "distance of the point to the axis e<sub>3</sub> of a spheroidal system"
+unit = "m"
+pages = ["theory/spheroidal.md", "theory/coordinate_changes.md", "theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\tau'
+label = "τ"
+name = "oblate spheroidal coordinate, constant on an oblate spheroid (τ ≥ 0)"
+unit = "1"
+pages = ["theory/spheroidal.md", "theory/ellipsoidal.md", "theory/coordinate_changes.md", "theory/spheroidal_harmonics.md", "manual/charts.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\tau}'
+label = "τ̄"
+name = "shorthand √(τ<sup>2</sup> + 1) of the oblate spheroidal coordinates"
+unit = "1"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\omega'
+label = "ω"
+name = "aspect ratio of a spheroid, q/q̄ (prolate) or τ/τ̄ (oblate)"
+unit = "1"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{u}_\varphi'
+label = "<u>u</u><sub>φ</sub>"
+name = "unit vector cos φ <u>e</u><sub>1</sub> + sin φ <u>e</u><sub>2</sub> of the azimuth"
+unit = "1"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^\varphi'
+label = "<u>e</u><sup>φ</sup>"
+name = "unit vector along the azimuth φ"
+unit = "1"
+pages = ["theory/classical_systems.md", "theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^\theta'
+label = "<u>e</u><sup>θ</sup>"
+name = "unit vector along the polar angle θ (spherical colatitude)"
+unit = "1"
+pages = ["theory/classical_systems.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^z'
+label = "<u>e</u><sup>z</sup>"
+name = "unit vector of the cylindrical axis"
+unit = "1"
+pages = ["theory/classical_systems.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^p'
+label = "<u>e</u><sup>p</sup>"
+name = "unit vector along the spheroidal coordinate p"
+unit = "1"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^q'
+label = "<u>e</u><sup>q</sup>"
+name = "unit vector along the prolate spheroidal coordinate q"
+unit = "1"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^\tau'
+label = "<u>e</u><sup>τ</sup>"
+name = "unit vector along the oblate spheroidal coordinate τ"
+unit = "1"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}_1'
+label = "<u>e</u><sub>1</sub>"
+name = "first vector of the canonical basis"
+unit = "1"
+pages = ["theory/classical_systems.md", "theory/spheroidal.md", "theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}_2'
+label = "<u>e</u><sub>2</sub>"
+name = "second vector of the canonical basis"
+unit = "1"
+pages = ["theory/classical_systems.md", "theory/spheroidal.md", "theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{a}_\varphi'
+label = "<u>a</u><sub>φ</sub>"
+name = "natural vector ∂<u>OM</u>/∂φ of a spheroidal system"
+unit = "m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{a}_p'
+label = "<u>a</u><sub>p</sub>"
+name = "natural vector ∂<u>OM</u>/∂p of a spheroidal system"
+unit = "m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{a}_q'
+label = "<u>a</u><sub>q</sub>"
+name = "natural vector ∂<u>OM</u>/∂q of the prolate system"
+unit = "m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_\varphi'
+label = "χ<sub>φ</sub>"
+name = "Lamé coefficient c p̄ q̄ of the azimuth in a spheroidal system"
+unit = "m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_p'
+label = "χ<sub>p</sub>"
+name = "Lamé coefficient of the coordinate p in a spheroidal system"
+unit = "m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_q'
+label = "χ<sub>q</sub>"
+name = "Lamé coefficient of the coordinate q of the prolate system"
+unit = "m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_\tau'
+label = "χ<sub>τ</sub>"
+name = "Lamé coefficient of the coordinate τ of the oblate system"
+unit = "m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\rho'
+label = "ρ"
+name = "ellipsoidal coordinate, constant on an ellipsoid (a length)"
+unit = "m"
+pages = ["theory/ellipsoidal.md", "theory/coordinate_changes.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\mu'
+label = "μ"
+name = "ellipsoidal coordinate, constant on a hyperboloid of one sheet (a length, h<sub>3</sub> ≤ μ ≤ h<sub>2</sub>)"
+unit = "m"
+pages = ["theory/ellipsoidal.md", "theory/coordinate_changes.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\nu'
+label = "ν"
+name = "ellipsoidal coordinate, constant on a hyperboloid of two sheets (a length, |ν| ≤ h<sub>3</sub>)"
+unit = "m"
+pages = ["theory/ellipsoidal.md", "theory/coordinate_changes.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'h_1'
+label = "h<sub>1</sub>"
+name = "semi-focal distance h<sub>1</sub> of the confocal quadrics, h<sub>1</sub><sup>2</sup> = h<sub>2</sub><sup>2</sup> − h<sub>3</sub><sup>2</sup>"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'h_2'
+label = "h<sub>2</sub>"
+name = "largest semi-focal distance h<sub>2</sub> of the confocal quadrics"
+unit = "m"
+pages = ["theory/ellipsoidal.md", "theory/coordinate_changes.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'h_3'
+label = "h<sub>3</sub>"
+name = "smallest semi-focal distance h<sub>3</sub> of the confocal quadrics"
+unit = "m"
+pages = ["theory/ellipsoidal.md", "theory/coordinate_changes.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'a_1'
+label = "a<sub>1</sub>"
+name = "semi-axis a<sub>1</sub> of the reference ellipsoid (the largest)"
+unit = "m"
+pages = ["theory/ellipsoidal.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'a_2'
+label = "a<sub>2</sub>"
+name = "semi-axis a<sub>2</sub> of the reference ellipsoid (the middle one)"
+unit = "m"
+pages = ["theory/ellipsoidal.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'a_3'
+label = "a<sub>3</sub>"
+name = "semi-axis a<sub>3</sub> of the reference ellipsoid (the smallest)"
+unit = "m"
+pages = ["theory/ellipsoidal.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\lambda'
+label = "λ"
+name = "parameter of the confocal quadrics, x<sub>1</sub><sup>2</sup>/(a<sub>1</sub><sup>2</sup> − λ) + ⋯ = 1"
+unit = "m<sup>2</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\kappa'
+label = "κ"
+name = "variable κ = a<sub>1</sub><sup>2</sup> − λ of the ellipsoidal system"
+unit = "m<sup>2</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'F'
+label = "F"
+name = "rational function of κ whose roots are the squares of the ellipsoidal coordinates"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{a}_\rho'
+label = "<u>a</u><sub>ρ</sub>"
+name = "natural vector ∂<u>OM</u>/∂ρ of the ellipsoidal system"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{a}_\mu'
+label = "<u>a</u><sub>μ</sub>"
+name = "natural vector ∂<u>OM</u>/∂μ of the ellipsoidal system"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_\rho'
+label = "χ<sub>ρ</sub>"
+name = "Lamé coefficient of ρ in the ellipsoidal system (dimensionless)"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_\mu'
+label = "χ<sub>μ</sub>"
+name = "Lamé coefficient of μ in the ellipsoidal system (dimensionless)"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_\nu'
+label = "χ<sub>ν</sub>"
+name = "Lamé coefficient of ν in the ellipsoidal system (dimensionless)"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^\rho'
+label = "<u>e</u><sup>ρ</sup>"
+name = "unit vector along ρ, the outward normal of the ellipsoid"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^\mu'
+label = "<u>e</u><sup>μ</sup>"
+name = "unit vector along the ellipsoidal coordinate μ"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{e}^\nu'
+label = "<u>e</u><sup>ν</sup>"
+name = "unit vector along the ellipsoidal coordinate ν"
+unit = "1"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\rho}_2'
+label = "ρ̄<sub>2</sub>"
+name = "shorthand √(ρ<sup>2</sup> − h<sub>2</sub><sup>2</sup>) of the ellipsoidal coordinate ρ"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\rho}_3'
+label = "ρ̄<sub>3</sub>"
+name = "shorthand √(ρ<sup>2</sup> − h<sub>3</sub><sup>2</sup>) of the ellipsoidal coordinate ρ"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\rho}_i'
+label = "ρ̄<sub>i</sub>"
+name = "shorthand √(ρ<sup>2</sup> − h<sub>i</sub><sup>2</sup>), i = 2, 3"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\mu}_2'
+label = "μ̄<sub>2</sub>"
+name = "shorthand √(h<sub>2</sub><sup>2</sup> − μ<sup>2</sup>) of the ellipsoidal coordinate μ"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\mu}_3'
+label = "μ̄<sub>3</sub>"
+name = "shorthand √(μ<sup>2</sup> − h<sub>3</sub><sup>2</sup>) of the ellipsoidal coordinate μ"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\nu}_2'
+label = "ν̄<sub>2</sub>"
+name = "shorthand √(h<sub>2</sub><sup>2</sup> − ν<sup>2</sup>) of the ellipsoidal coordinate ν"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\nu}_3'
+label = "ν̄<sub>3</sub>"
+name = "shorthand √(h<sub>3</sub><sup>2</sup> − ν<sup>2</sup>) of the ellipsoidal coordinate ν"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\bar{\nu}_i'
+label = "ν̄<sub>i</sub>"
+name = "shorthand √(h<sub>i</sub><sup>2</sup> − ν<sup>2</sup>), i = 2, 3"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'x_1'
+label = "x<sub>1</sub>"
+name = "Cartesian coordinate x<sub>1</sub> of the point (indexed form of x)"
+unit = "m"
+pages = ["theory/spheroidal.md", "theory/ellipsoidal.md", "theory/coordinate_changes.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'x_2'
+label = "x<sub>2</sub>"
+name = "Cartesian coordinate x<sub>2</sub> of the point (indexed form of y)"
+unit = "m"
+pages = ["theory/spheroidal.md", "theory/ellipsoidal.md", "theory/coordinate_changes.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'x_3'
+label = "x<sub>3</sub>"
+name = "Cartesian coordinate x<sub>3</sub> of the point (indexed form of z)"
+unit = "m"
+pages = ["theory/spheroidal.md", "theory/ellipsoidal.md", "theory/coordinate_changes.md", "manual/charts.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'x_i'
+label = "x<sub>i</sub>"
+name = "Cartesian coordinate x<sub>i</sub> of the point, for any index i"
+unit = "m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{x}'
+label = "<u>x</u>"
+name = "Cartesian components of the position vector"
+unit = "m"
+pages = ["theory/coordinate_changes.md", "theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'J'
+label = "J"
+name = "Jacobian of the spherical volume element, J = r<sup>2</sup> sin θ"
+unit = "m<sup>2</sup>"
+pages = ["theory/classical_systems.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'f'
+label = "f"
+name = "scalar field f of the formulas of the coordinate systems"
+unit = ""
+pages = ["theory/classical_systems.md", "theory/spheroidal.md", "theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{\nabla}'
+label = "<u>∇</u>"
+name = "gradient, written with an underlined nabla as the formulas of orthogonal systems"
+unit = "1/m"
+pages = ["theory/classical_systems.md", "theory/spheroidal.md", "theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\underline{\nabla}_S'
+label = "<u>∇</u><sub>S</sub>"
+name = "surface gradient of a spheroid"
+unit = "1/m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\kappa_\varphi'
+label = "κ<sub>φ</sub>"
+name = "principal curvature of a spheroid along the azimuth (negative for the outward normal)"
+unit = "1/m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\kappa_p'
+label = "κ<sub>p</sub>"
+name = "principal curvature of a spheroid along p (negative for the outward normal)"
+unit = "1/m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\kappa_\mu'
+label = "κ<sub>μ</sub>"
+name = "principal curvature of an ellipsoid along μ (negative for the outward normal)"
+unit = "1/m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\kappa_\nu'
+label = "κ<sub>ν</sub>"
+name = "principal curvature of an ellipsoid along ν (negative for the outward normal)"
+unit = "1/m"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = 'S'
+label = "S"
+name = "area of a spheroid or of an ellipsoid"
+unit = "m<sup>2</sup>"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = 'V'
+label = "V"
+name = "volume enclosed by a spheroid"
+unit = "m<sup>3</sup>"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\Delta'
+label = "Δ"
+name = "Laplace operator Δ = ∇<sup>2</sup>"
+unit = "1/m<sup>2</sup>"
+pages = ["theory/classical_systems.md", "theory/spheroidal.md", "theory/ellipsoidal.md", "theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\Delta_S'
+label = "Δ<sub>S</sub>"
+name = "surface Laplacian of a spheroid"
+unit = "1/m<sup>2</sup>"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\mathrm{div}_S'
+label = "div<sub>S</sub>"
+name = "surface divergence of a tangent field on a spheroid"
+unit = "1/m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'n'
+label = "n"
+name = "degree of a spheroidal harmonic, an integer n ≥ m"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'm'
+label = "m"
+name = "order of a spheroidal harmonic, an integer m ≥ 0"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\imath'
+label = "i"
+name = "imaginary unit"
+unit = "1"
+pages = ["theory/spheroidal.md", "theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'P_n^m'
+label = "P<sub>n</sub><sup>m</sup>"
+name = "associated Legendre function of the first kind"
+unit = "1"
+pages = ["theory/spheroidal.md", "theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'Q_n^m'
+label = "Q<sub>n</sub><sup>m</sup>"
+name = "associated Legendre function of the second kind"
+unit = "1"
+pages = ["theory/spheroidal.md", "theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'P_n'
+label = "P<sub>n</sub>"
+name = "Legendre polynomial of degree n"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'Q_n'
+label = "Q<sub>n</sub>"
+name = "Legendre function of the second kind, Neumann integral"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\mathsf{P}_n^m'
+label = "P<sub>n</sub><sup>m</sup>"
+name = "radial factor P<sub>n</sub><sup>m</sup> of a spheroidal chart, generic for prolate or oblate"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\mathsf{Q}_n^m'
+label = "Q<sub>n</sub><sup>m</sup>"
+name = "radial factor Q<sub>n</sub><sup>m</sup> of a spheroidal chart, generic for prolate or oblate"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\mathcal{P}_n^m'
+label = "𝒫<sub>n</sub><sup>m</sup>"
+name = "oblate radial function, 𝒫<sub>n</sub><sup>m</sup>(τ) = i<sup>−n</sup> P<sub>n</sub><sup>m</sup>(iτ)"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\mathcal{Q}_n^m'
+label = "𝒬<sub>n</sub><sup>m</sup>"
+name = "oblate radial function of the second kind, 𝒬<sub>n</sub><sup>m</sup>(τ) = i<sup>n+1</sup> Q<sub>n</sub><sup>m</sup>(iτ)"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\zeta'
+label = "ζ"
+name = "generic radial coordinate of a spheroidal chart: q (prolate) or τ (oblate)"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md", "manual/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\xi'
+label = "ξ"
+name = "distance parameter of the radial coordinate, arccosh q (prolate) or arcsinh τ (oblate)"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\xi^*'
+label = "ξ*"
+name = "threshold of the convergence domain of the exterior re-expansion"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\gamma'
+label = "γ"
+name = "signed square γ = s c<sup>2</sup> of the semi-focal distance"
+unit = "m<sup>2</sup>"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'g_n'
+label = "g<sub>n</sub>"
+name = "factorial ratio (n + m)!/(n − m)! of degree n and order m"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'R_l'
+label = "R<sub>l</sub>"
+name = "interior solid harmonic r<sup>l</sup> P<sub>l</sub><sup>m</sup>(cos θ)"
+unit = ""
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'S_l'
+label = "S<sub>l</sub>"
+name = "exterior solid harmonic r<sup>−l−1</sup> P<sub>l</sub><sup>m</sup>(cos θ)"
+unit = ""
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\tilde U_n'
+label = "Ũ<sub>n</sub>"
+name = "normalized interior harmonic c<sup>n</sup> F<sub>n</sub>, a function of γ"
+unit = ""
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\tilde V_n'
+label = "Ṽ<sub>n</sub>"
+name = "normalized exterior harmonic c<sup>−n−1</sup> G<sub>n</sub>, a function of γ"
+unit = ""
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\omega^{(\mu)}_i'
+label = "ω<sup>(μ)</sup><sub>i</sub>"
+name = "polynomial of order μ and degree i (Gegenbauer coefficient)"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\omega^{(n+1/2)}_i'
+label = "ω<sup>(n+½)</sup><sub>i</sub>"
+name = "polynomial of order n + ½ and degree i, equal to Φ<sup>(n)</sup><sub>i</sub>"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\omega^{(-n-1/2)}_k'
+label = "ω<sup>(−n−½)</sup><sub>k</sub>"
+name = "polynomial of order −n − ½ and degree k"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\Phi^{(n)}_i'
+label = "Φ<sup>(n)</sup><sub>i</sub>"
+name = "re-expansion polynomial of degree i for the index n"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\Phi^{(j)}_k'
+label = "Φ<sup>(j)</sup><sub>k</sub>"
+name = "re-expansion polynomial of degree k for the index j"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'K_i'
+label = "K<sub>i</sub>"
+name = "coefficient of the exterior re-expansion between two spheroidal charts"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = 'L_k'
+label = "L<sub>k</sub>"
+name = "coefficient of the interior re-expansion between two spheroidal charts"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\mu'
+label = "μ"
+name = "order μ of the Gegenbauer polynomials and of the Bessel-type series, real with μ + j not a negative integer"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Confocal systems and harmonics"
+tex = '\Gamma'
+label = "Γ"
+name = "Euler Gamma function"
+unit = "1"
+pages = ["theory/spheroidal_harmonics.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\xi'
+label = "ξ"
+name = "coordinates of a point in a chart, the vector ξ = (q<sup>1</sup>, …, q<sup>d</sup>)"
+unit = ""
+pages = ["theory/coordinate_changes.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\mathcal{C}'
+label = "𝒞"
+name = "chart, the pair of maps between coordinates and points"
+unit = ""
+pages = ["theory/coordinate_changes.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'O'
+label = "O"
+name = "origin of the coordinate systems"
+unit = ""
+pages = ["theory/classical_systems.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'u'
+label = "u"
+name = "unknown of the quadratic c<sup>2</sup>u<sup>2</sup> − du − x<sub>3</sub><sup>2</sup> = 0 (u = τ<sup>2</sup> or −p<sup>2</sup>)"
+unit = "1"
+pages = ["theory/coordinate_changes.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'd'
+label = "d"
+name = "d = ϱ<sup>2</sup> + x<sub>3</sub><sup>2</sup> − c<sup>2</sup> in the inversion of the oblate system"
+unit = "m<sup>2</sup>"
+pages = ["theory/coordinate_changes.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'a'
+label = "a"
+name = "coefficient of κ<sup>2</sup> in the cubic whose roots are the squares of the ellipsoidal coordinates"
+unit = "m<sup>2</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'b'
+label = "b"
+name = "coefficient of κ in the cubic whose roots are the squares of the ellipsoidal coordinates"
+unit = "m<sup>4</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'd'
+label = "d"
+name = "constant term of the cubic whose roots are the squares of the ellipsoidal coordinates"
+unit = "m<sup>6</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'P'
+label = "P"
+name = "reduced coefficient P = b − a<sup>2</sup>/3 of the cubic"
+unit = "m<sup>4</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'Q'
+label = "Q"
+name = "reduced coefficient Q = 2a<sup>3</sup>/27 − ab/3 + d of the cubic"
+unit = "m<sup>6</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'e_i'
+label = "e<sub>i</sub>"
+name = "square of a semi-focal distance, (e<sub>1</sub>, e<sub>2</sub>, e<sub>3</sub>) = (0, h<sub>3</sub><sup>2</sup>, h<sub>2</sub><sup>2</sup>)"
+unit = "m<sup>2</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\kappa_k'
+label = "κ<sub>k</sub>"
+name = "k-th root of the cubic of the ellipsoidal inversion, k = 0, 1, 2"
+unit = "m<sup>2</sup>"
+pages = ["theory/ellipsoidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\chi_\alpha'
+label = "χ<sub>α</sub>"
+name = "Lamé coefficient of a tangential coordinate α of a spheroid"
+unit = "m"
+pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Differential geometry"
+tex = '\kappa_\alpha'
+label = "κ<sub>α</sub>"
+name = "principal curvature along a tangential coordinate α of a spheroid"
+unit = "1/m"
+pages = ["theory/spheroidal.md"]

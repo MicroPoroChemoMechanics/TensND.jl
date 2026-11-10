@@ -1,11 +1,11 @@
 # # [Differential operators, numerically](@id tut-numerical-operators)
 #
 # !!! tip "See also"
-#     **Theory**: [Curvilinear differential calculus](@ref th-curvilinear)
+#     **Theory**: [Curvilinear differential calculus](@ref th-curvilinear) · [Classical coordinate systems](@ref th-predefined-systems)
 #
 #     **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num)
 #
-#     **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Classical identities of the differential operators](@ref tut-operator-identities)
+#     **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Classical identities of the differential operators](@ref tut-operator-identities) · [The operators in the classical systems](@ref tut-operators-catalog)
 #
 # The same five operators as in
 # [Differential operators, symbolically](@ref tut-symbolic-operators), evaluated **pointwise** by

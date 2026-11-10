@@ -129,6 +129,10 @@ include("test_random_bases.jl")
 include("test_special_tens.jl")
 include("test_coorsystems.jl")
 include("test_coorsystems_num.jl")
+# Charts as maps, the confocal systems built on them, and the spheroidal harmonics.
+include("test_charts.jl")
+include("test_coorsystems_confocal.jl")
+include("test_spheroidal_harmonics.jl")
 include("test_submanifold.jl")
 # Calls that tied a TensND method with one of a package it loads.
 include("test_third_party_ties.jl")

@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Manual**: [Submanifolds](@ref man-submanifolds)
 
-    **Tutorials**: [Surfaces: fundamental forms and curvature](@ref tut-submanifolds)
+    **Tutorials**: [Surfaces: fundamental forms and curvature](@ref tut-submanifolds) · [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix)
 
 A hypersurface embedded in ``\mathbb{R}^d`` carries two geometries: the one it
 inherits as a metric space, and the one describing how it curves inside the

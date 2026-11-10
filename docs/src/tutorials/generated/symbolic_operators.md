@@ -5,11 +5,11 @@ EditURL = "../../../../scripts/10_symbolic_operators.jl"
 # [Differential operators, symbolically](@id tut-symbolic-operators)
 
 !!! tip "See also"
-    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear)
+    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear) · [Classical coordinate systems](@ref th-predefined-systems)
 
     **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num) · [Symbolic and numeric](@ref man-symbolic-numeric) · [Elastic moduli](@ref man-elastic-moduli)
 
-    **Tutorials**: [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities) · [Differentiation and interoperability](@ref tut-ad-interop) · [Performance of the structured types](@ref tut-performance) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems)
+    **Tutorials**: [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities) · [The operators in the classical systems](@ref tut-operators-catalog) · [Differentiation and interoperability](@ref tut-ad-interop) · [Performance of the structured types](@ref tut-performance) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems)
 
 The five operators of [Curvilinear differential calculus](@ref th-curvilinear)
 — `grad`, `symgrad`, `divergence`, `laplacian`, `hess` — applied in polar, cylindrical

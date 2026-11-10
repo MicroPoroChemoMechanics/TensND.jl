@@ -41,6 +41,12 @@ const TUTORIAL_MD_DIR = joinpath(@__DIR__, "src", "tutorials", "generated")
 const NOTEBOOK_DIR = joinpath(@__DIR__, "generated_notebooks")
 const CLEAN_SCRIPT_DIR = joinpath(@__DIR__, "generated_scripts")
 
+# A partial build (`TENSND_DOCS_ONLY`, see `partial.jl`) skips the notebooks:
+# the notebook pass executes every script, which is the cost a partial build
+# exists to avoid, and the notebooks are not part of the site. Read here directly,
+# because this file runs before `partial.jl`.
+const PARTIAL_DOCS = !isempty(strip(get(ENV, "TENSND_DOCS_ONLY", "")))
+
 # script file => generated page name (without extension)
 const PUBLISHED_SCRIPTS = [
     # ── Tensor algebra ───────────────────────────────────────────────────────
@@ -55,6 +61,10 @@ const PUBLISHED_SCRIPTS = [
     "12_numerical_operators.jl" => "numerical_operators",
     "13_submanifolds.jl" => "submanifolds",
     "14_operator_identities.jl" => "operator_identities",
+    "15_operators_catalog.jl" => "operators_catalog",
+    "16_spheroidal_appendix.jl" => "spheroidal_appendix",
+    "17_ellipsoidal.jl" => "ellipsoidal",
+    "18_spheroidal_reexpansion.jl" => "spheroidal_reexpansion",
     # ── Applications in mechanics ────────────────────────────────────────────
     "20_green_function.jl" => "green_function",
     "21_cluster.jl" => "cluster",
@@ -107,13 +117,13 @@ end
 function build_tutorial_pages()
     check_pkg_markers()
     mkpath(TUTORIAL_MD_DIR)
-    mkpath(NOTEBOOK_DIR)
+    PARTIAL_DOCS || mkpath(NOTEBOOK_DIR)
     mkpath(CLEAN_SCRIPT_DIR)
     for (script, page) in PUBLISHED_SCRIPTS
         src = joinpath(SCRIPTS_DIR, script)
         isfile(src) || error("docs/literate.jl: published script not found: $src")
         Literate.markdown(src, TUTORIAL_MD_DIR; documenter = true, name = page)
-        Literate.notebook(src, NOTEBOOK_DIR; name = page)
+        PARTIAL_DOCS || Literate.notebook(src, NOTEBOOK_DIR; name = page)
         Literate.script(src, CLEAN_SCRIPT_DIR; name = page)
     end
     return nothing
