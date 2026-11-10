@@ -1,13 +1,11 @@
 # [Elastic moduli](@id man-elastic-moduli)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
     **Theory**: [Isotropic tensors](@ref th-isotropic)
 
     **Manual**: [Structured tensors](@ref man-structured) · [Symbolic and numeric](@ref man-symbolic-numeric) · [Parametrizations and conversions](@ref man-parametrizations)
 
     **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [Differentiation and interoperability](@ref tut-ad-interop) · [Performance of the structured types](@ref tut-performance) · [Differential operators, symbolically](@ref tut-symbolic-operators)
-<!-- /crosslinks -->
 
 An isotropic linear elastic material has two independent constants, and six of
 them are in common use: the bulk modulus ``k``, Young's modulus ``E``, Lamé's

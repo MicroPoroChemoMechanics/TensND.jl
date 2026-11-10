@@ -14,25 +14,39 @@ standalone script under `docs/generated_notebooks/` and
 
 Simplest first within each group.
 
-## Tensor algebra
+## Tensors and bases
 
 | Page | What it shows |
 | :--- | :--- |
 | [Bases, variance and the metric](generated/bases_variance.md) | an oblique basis, dual basis and metric, covariant vs contravariant components, and where variance stops mattering |
 | [Tensor products, contractions and their identities](generated/tensor_algebra.md) | the ⊠/⊠ˢ algebra checked numerically, the identity that **fails**, isotropic projection, and why it does not commute with inversion |
+
+## Material symmetries
+
+| Page | What it shows |
+| :--- | :--- |
 | [The Walpole basis end to end](generated/walpole.md) | the six ``\mathbb{W}_i`` as ``6\times6`` matrices, the multiplication table, the correct decomposition of ``\mathbb{I},\mathbb{J},\mathbb{K}``, and three parametrizations of one carbon/epoxy ply |
 | [The eight-dimensional axially invariant space](generated/walpole_extended.md) | ``\mathbb{W}_7,\mathbb{W}_8``, the complex product rule, and what a five-parameter best fit silently discards |
 | [Projection and symmetry detection](generated/projection.md) | fixed axis vs optimized, determinism, the detection cascade, and the cost of each path |
 
-## Differential calculus
+## Coordinate systems
 
 | Page | What it shows |
 | :--- | :--- |
 | [Differential operators, symbolically](generated/symbolic_operators.md) | the five operators in polar, cylindrical and spherical coordinates; the hoop strain that comes from the connection alone; the index-placement convention |
 | [Christoffel symbols](generated/christoffel.md) | the definition checked term by term, every predefined system tabulated, symbolic and numerical routes compared, spheroidal harmonics |
 | [Differential operators, numerically](generated/numerical_operators.md) | pointwise evaluation by AD, the Lamé hollow-sphere problem with its equilibrium residual, and sensitivities through the operators |
-| [Surfaces: fundamental forms and curvature](generated/submanifolds.md) | sphere, cylinder, plane and paraboloid; Gauss's *Theorema Egregium*; the array-comparison trap |
 | [Classical identities of the differential operators](generated/operator_identities.md) | every identity **checked**, not quoted, on four charts — including a deliberately non-orthogonal one, the only case that tests the covariant/contravariant bookkeeping |
+| [The operators in the classical systems](generated/operators_catalog.md) | gradient, divergence, Laplacian, strain and Hessian of arbitrary fields in polar, cylindrical and spherical coordinates, each compared with its textbook formula |
+| [The spheroid in spheroidal coordinates](generated/spheroidal_appendix.md) | the prolate and oblate systems built step by step: Lamé coefficients, volume and surface of a spheroid, the operators, and the spheroid as a surface with its curvatures and its surface Laplacian |
+| [Ellipsoidal coordinates](generated/ellipsoidal.md) | the confocal quadrics, the system and its operators, the inversion of the chart, the ellipsoid as a surface and the spheroidal limits |
+| [Changing the focal distance of spheroidal harmonics](generated/spheroidal_reexpansion.md) | the harmonics of two coaxial spheroidal systems, the finite interior re-expansion, the exterior series and its domain of convergence |
+
+## Surfaces
+
+| Page | What it shows |
+| :--- | :--- |
+| [Surfaces: fundamental forms and curvature](generated/submanifolds.md) | sphere, cylinder, plane and paraboloid; Gauss's *Theorema Egregium*; the array-comparison trap |
 
 ## Applications in mechanics
 

@@ -9,6 +9,10 @@ their titles, which are read from the pages themselves. A tutorial's block is
 written into its script under `scripts/`, the source Literate generates the
 page from, and into the generated page.
 
+The block is the `!!! tip "See also"` admonition that follows the title, and
+nothing else: no HTML comment marks it, since Julia's Markdown parser does not
+know HTML comments and prints them as text on the rendered page.
+
     python3 .github/scripts/crosslinks.py           # rewrite the blocks
     python3 .github/scripts/crosslinks.py --check   # fail if one is stale
 
@@ -24,8 +28,7 @@ import sys
 import tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-BEGIN = "<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->"
-END = "<!-- /crosslinks -->"
+TIP = '!!! tip "See also"'
 PARTS = (("theory", "Theory"), ("manual", "Manual"), ("tutorials", "Tutorials"))
 TITLE = re.compile(r"^(?:# )?# \[(?P<title>[^\]]+)\]\(@id (?P<id>[\w-]+)\)[ \t]*$", re.M)
 
@@ -47,7 +50,7 @@ def pages():
 
 def block(lines, script):
     """The block, as Markdown, or as the comments Literate turns into Markdown."""
-    body = [BEGIN, '!!! tip "See also"', *(("    " + line) if line else "" for line in lines), END]
+    body = [TIP, *(("    " + line) if line else "" for line in lines)]
     return "\n".join(("# " + line if line else "#") if script else line for line in body)
 
 
@@ -74,20 +77,51 @@ def rewrite(path, new_block):
     line (a bare `#` in a script) on each side."""
     text = open(path, encoding="utf-8").read()
     script = path.endswith(".jl")
-    begin = ("# " + BEGIN) if script else BEGIN
-    end = ("# " + END) if script else END
-    if begin in text:
-        before, rest = text[: text.index(begin)], text[text.index(end) + len(end):]
-    else:
-        m = TITLE.search(text)
-        before, rest = text[: m.end()], text[m.end():]
-    before = before.rstrip("\n")
-    rest = rest.lstrip("\n")
+    m = TITLE.search(text)
+    before = text[: m.end()].rstrip("\n")
+    lines = text[m.end():].lstrip("\n").split("\n")
+    blank = "#" if script else ""
+    indent = "#     " if script else "    "
+    while lines and lines[0] == blank:
+        lines = lines[1:]
+    if lines and lines[0] in ("# " + TIP if script else TIP):
+        # The block runs over the indented lines and the blank lines between
+        # them; the blank lines that follow its last indented line are not part
+        # of it.
+        end = 1
+        for k in range(1, len(lines)):
+            if lines[k].startswith(indent):
+                end = k + 1
+            elif lines[k] != blank:
+                break
+        lines = lines[end:]
+    rest = "\n".join(lines).lstrip("\n")
     if script:
         before = before.removesuffix("\n#")
-        rest = rest[2:] if rest.startswith("#\n") else rest
+        while rest.startswith("#\n"):
+            rest = rest[2:]
         return before + "\n#\n" + new_block + "\n#\n" + rest
     return before + "\n\n" + new_block + "\n\n" + rest
+
+
+HTML_COMMENT = re.compile(r"<!--")
+MATH_TITLE = re.compile(r'^(?:# )?\s*!!! \w+ "[^"\n]*``[^"\n]*"', re.M)
+
+
+def rendering_hazards():
+    """Sources whose text Documenter would print as is: an HTML comment, which
+    Julia's Markdown parser does not know, or math in an admonition title,
+    which Documenter keeps as a plain string."""
+    sources = glob.glob(os.path.join(ROOT, "docs", "src", "**", "*.md"), recursive=True)
+    sources += glob.glob(os.path.join(ROOT, "scripts", "*.jl"))
+    found = []
+    for path in sorted(sources):
+        text = open(path, encoding="utf-8").read()
+        for pattern, what in ((HTML_COMMENT, "HTML comment"), (MATH_TITLE, "math in an admonition title")):
+            for hit in pattern.finditer(text):
+                line = text.count("\n", 0, hit.start()) + 1
+                found.append(f"{os.path.relpath(path, ROOT)}:{line}: {what}")
+    return found
 
 
 def main(check):
@@ -112,6 +146,9 @@ def main(check):
         sys.exit("crosslinks: stale \"See also\" blocks, run .github/scripts/crosslinks.py:\n  " + "\n  ".join(stale))
     print(f"crosslinks: {len(named)} pages {'checked' if check else 'written'}"
           + (f", {len(stale)} updated" if stale and not check else ""))
+    hazards = rendering_hazards()
+    if hazards:
+        sys.exit("crosslinks: text the documentation would print as is:\n  " + "\n  ".join(hazards))
 
 
 if __name__ == "__main__":

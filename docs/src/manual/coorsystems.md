@@ -1,13 +1,11 @@
 # [Coordinate systems (symbolic)](@id man-coorsystems)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
-    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear)
+    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear) · [Classical coordinate systems](@ref th-predefined-systems) · [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal)
 
-    **Manual**: [Coordinate systems (numerical)](@ref man-coorsystems-num)
+    **Manual**: [Coordinate systems (numerical)](@ref man-coorsystems-num) · [Charts and coordinate conversions](@ref man-charts)
 
-    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities)
-<!-- /crosslinks -->
+    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities) · [The operators in the classical systems](@ref tut-operators-catalog) · [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix) · [Ellipsoidal coordinates](@ref tut-ellipsoidal)
 
 Differential operators on tensor fields, with exact symbolic derivatives. The
 mathematics — natural basis, Lamé coefficients, Christoffel symbols, the index
@@ -22,11 +20,16 @@ placement of each operator — is on
 | [`coorsys_polar`](@ref) | ``(r,\theta)`` | ``(1,r)`` |
 | [`coorsys_cylindrical`](@ref) | ``(r,\theta,z)`` | ``(1,r,1)`` |
 | [`coorsys_spherical`](@ref) | ``(\theta,\varphi,r)`` | ``(r,\;r\sin\theta,\;1)`` |
-| [`coorsys_spheroidal`](@ref) | ``(\varphi,p,q)`` | prolate spheroidal |
+| [`coorsys_spheroidal`](@ref) | ``(\varphi,p,q)`` | prolate spheroidal, [Spheroidal coordinates](@ref th-spheroidal) |
+| [`coorsys_spheroidal_oblate`](@ref) | ``(\varphi,p,\tau)`` | oblate spheroidal |
+| [`coorsys_ellipsoidal`](@ref) | ``(\rho,\mu,\nu)`` | ellipsoidal, [Ellipsoidal coordinates](@ref th-ellipsoidal) |
 
 Each curvilinear system is drawn, with its normalized basis and its surfaces of
-constant coordinate, in an interactive figure of
-[Predefined systems](@ref th-predefined-systems).
+constant coordinate, in an interactive figure of its Theory page:
+[Classical coordinate systems](@ref th-predefined-systems),
+[Spheroidal coordinates](@ref th-spheroidal),
+[Ellipsoidal coordinates](@ref th-ellipsoidal). A system that is not in the
+table is built from its position vector, see [Custom systems](@ref) below.
 
 !!! note "Load SymPyPythonCall for the default coordinates"
     Called without coordinates (`coorsys_spherical()`), a constructor names its
@@ -34,8 +37,9 @@ constant coordinate, in an interactive figure of
     With Symbolics, pass the variables, `coorsys_spherical(Tuple(@variables θ ϕ r))`,
     or the type, `coorsys_spherical(Val(Num))`.
 
-!!! note "Spherical coordinates are ordered ``(\theta,\varphi,r)``"
-    Not ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the
+!!! note "Ordering of the spherical coordinates"
+    The spherical coordinates are ordered ``(\theta,\varphi,r)``, not
+    ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the
     canonical basis in the canonical order.
 
 ## The operators
@@ -110,23 +114,57 @@ christoffel(Spherical)[1, 1, 3]     # Γʳ_θθ = −r
 
 ## Custom systems
 
+A system that is not predefined is built from its position vector, by one of
+the routes of [Curvilinear differential calculus](@ref th-curvilinear).
+
+### From the position vector alone
+
 ```julia
 CoordinateSystem(OM, coords, tmp_coords = (), params = ();
               rules = Dict(), tmp_var = Dict(), to_coords = Dict())
 ```
 
-The position vector and the coordinate symbols suffice; the natural basis, Lamé
-coefficients and Christoffel symbols are derived. A variant takes the normalized
-basis and the ``\chi_i`` directly, when they are known in closed form.
+The position vector and the coordinate symbols suffice: the natural basis, the
+Lamé coefficients, the normalized basis and the Christoffel symbols are
+derived. The parabolic coordinates of the plane,
+``\underline{OM}=\bigl((x^2-y^2)/2,\;x\,y\bigr)``:
 
 ```@example cs3
 using TensND, SymPyPythonCall
 
 x, y = symbols("x y", real = true)
-a = symbols("a", positive = true)
-Parabolic = CoordinateSystem(Tens([(x^2 - y^2) / 2, x * y]), (x, y))
+OM = Tens([(x^2 - y^2) / 2, x * y])
+Parabolic = CoordinateSystem(OM, (x, y))
 lame_coefficients(Parabolic)
 ```
+
+### From the position vector, the basis and the Lamé coefficients
+
+```julia
+CoordinateSystem(OM, coords, ℬ, χᵢ, tmp_coords = (), params = (); kwargs...)
+```
+
+When the unit vectors and the Lamé coefficients are known in closed form,
+passing them spares the computer algebra system the work of finding them, and
+keeps them in the form they were written in. Only the Christoffel symbols are
+computed. Here ``\underline{a}_x=(x,y)`` and ``\underline{a}_y=(-y,x)``, both
+of norm ``\chi=\sqrt{x^2+y^2}``:
+
+```@example cs3
+χ = sqrt(x^2 + y^2)
+ℬ = RotatedBasis([x/χ -y/χ; y/χ x/χ])
+Parabolic = CoordinateSystem(OM, (x, y), ℬ, (χ, χ))
+f = SymFunction("f", real = true)(x, y)
+tsimplify(laplacian(f, Parabolic))
+```
+
+Every predefined system is built this way.
+
+### From a function
+
+When no closed form is wanted, the position vector is given as a function of
+the coordinates and the geometry is evaluated at each point by automatic
+differentiation: see [Numerical coordinate systems](@ref man-coorsystems-num).
 
 ## Taming symbolic expressions
 
@@ -142,16 +180,28 @@ control this:
 | `to_coords` | how to eliminate them again before differentiating |
 | `rules` | rewrite rules applied after each simplification |
 
-The prolate spheroidal system is the standard illustration, and
-[`coorsys_spheroidal`](@ref) is built exactly this way:
+The prolate spheroidal system is the standard illustration:
+[`coorsys_spheroidal`](@ref) names ``\bar{p}=\sqrt{1-p^2}`` and
+``\bar{q}=\sqrt{q^2-1}``, and writes the position vector with them.
 
 ```@example cs3
 Spheroidal = coorsys_spheroidal()
+position_vector(Spheroidal)
+```
+
+```@example cs3
 lame_coefficients(Spheroidal)
 ```
 
 ```@example cs3
 simplify(laplacian(position_vector(Spheroidal)[1]^2, Spheroidal))
+```
+
+The ellipsoidal system names its six square roots in the same way:
+
+```@example cs3
+Ellipsoidal = coorsys_ellipsoidal()
+position_vector(Ellipsoidal)
 ```
 
 `rules` is also what resolves sign ambiguities such as ``|\sin\theta|``, which

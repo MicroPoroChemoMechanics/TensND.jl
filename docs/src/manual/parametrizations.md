@@ -1,13 +1,11 @@
 # [Parametrizations and conversions](@id man-parametrizations)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
     **Theory**: [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [The extended Walpole algebra](@ref th-walpole-extended) · [Isotropic tensors](@ref th-isotropic)
 
     **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli)
 
     **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [The eight-dimensional axially invariant space](@ref tut-walpole-extended)
-<!-- /crosslinks -->
 
 Which five numbers describe a transversely isotropic material, how to move
 between the conventions, and how to go in and out of the Kelvin–Mandel matrix.

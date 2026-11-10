@@ -1,13 +1,11 @@
 # [The Walpole basis](@id th-walpole)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
     **Theory**: [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [Isotropic tensors](@ref th-isotropic)
 
     **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations)
 
     **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [Elastic Green's functions](@ref tut-green-function) · [A two-point Green tensor between offset frames](@ref tut-cluster)
-<!-- /crosslinks -->
 
 Transverse isotropy about an axis ``\underline{n}`` is the symmetry class where a
 well-chosen basis is most advantageous: in the Walpole basis [walpole1984](@cite) the
@@ -214,7 +212,7 @@ Both ``\mathbb{J}`` and ``\mathbb{K}`` have singular ``L`` blocks
 is immediate on the table. Converting an isotropic tensor to this
 representation is [`iso_to_ti`](@ref).
 
-!!! warning "``\mathbb{I}`` is not the sum of the six"
+!!! warning "The identity is not the sum of the six"
     ``\sum_i\mathbb{W}_i\neq\mathbb{I}``: the sum overshoots by
     ``\mathbb{W}_3+\mathbb{W}_4``, whose norm is ``\sqrt2``. Likewise
     ``\mathbb{J}\neq\mathbb{W}_1+\mathbb{W}_2`` and

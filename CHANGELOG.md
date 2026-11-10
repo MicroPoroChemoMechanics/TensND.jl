@@ -1,5 +1,59 @@
 # Changelog
 
+## v0.12.1 — confocal coordinate systems: oblate spheroidal, ellipsoidal, and the harmonics that go with them
+
+A patch release: everything is added, nothing changes for existing code. The
+prolate spheroidal system was the only confocal one; a penny-shaped crack, an
+oblate pore or a triaxial inclusion had to be described by hand. The oblate
+spheroidal and the ellipsoidal systems are now predefined, in exact and
+pointwise form. A coordinate system can also be used as a map between numbers,
+from the coordinates to the point and back, and a spheroidal harmonic of one
+system can be expressed in the harmonics of a coaxial system of another
+semi-focal distance, which is what two non-confocal spheroidal surfaces
+require.
+
+### Added
+
+- `coorsys_spheroidal_oblate`, the oblate spheroidal system `(ϕ, p, τ)`, and
+  `coorsys_ellipsoidal`, the ellipsoidal system `(ρ, μ, ν)` of semi-focal
+  distances `h₂ > h₃`, with SymPy or Symbolics symbols. Their pointwise forms,
+  and that of the prolate system, are `coorsys_spheroidal(PointwiseGeometry, c)`,
+  `coorsys_spheroidal_oblate(PointwiseGeometry, c)` and
+  `coorsys_ellipsoidal(PointwiseGeometry, h₂, h₃)`.
+- Charts: `PolarChart`, `CylindricalChart`, `SphericalChart`,
+  `ProlateSpheroidalChart`, `OblateSpheroidalChart`, `EllipsoidalChart`, with
+  `coords_to_cartesian`, `cartesian_to_coords` and `change_coords`. The
+  inversions are in closed form, written without differences of close numbers
+  (the roots of the ellipsoidal cubic in trigonometric form, the smallest one
+  from their product), and differentiable by ForwardDiff with respect to the
+  point and to the parameters of the chart.
+- Spheroidal harmonics: `legendre_P`, `radial_P`, `radial_Q` (the functions of
+  the second kind by a downward recurrence, accurate at every degree),
+  `interior_harmonics`, `exterior_harmonics`, and their re-expansion from one
+  chart to another, `interior_reexpansion`, `exterior_reexpansion`,
+  `reexpansion_polynomials` and `reexpansion_bound`, for prolate, oblate and
+  spherical charts in any combination. Checked against the identities
+  themselves to rounding, in double and in 256-bit arithmetic.
+- Documentation: the Theory, the Manual and the Tutorials are divided into
+  chapters; new pages on the classical, spheroidal and ellipsoidal systems, on
+  the changes of coordinates and on the spheroidal harmonics, with the
+  differential operators written out, an interactive figure of the ellipsoidal
+  system, and tutorials that replay the spheroidal appendix of Barthélémy and
+  Bignonnet (2020), surface operators included.
+
+### Changed
+
+- An operator on an exact system no longer rebuilds and simplifies the metric
+  of the normalized basis each time it removes the auxiliary symbols of a
+  tensor: a substitution keeps an orthonormal basis orthonormal. The operators
+  of the ellipsoidal system with Symbolics complete, where that simplification
+  did not end.
+
+### Fixed
+
+- Documentation: the two marker lines around each "See also" block, and the
+  formulas written in five admonition titles, were printed as raw text.
+
 ## v0.12.0 — each symmetry class as a sum of small matrices
 
 A minor release for one new exported pair of functions. Inside a symmetry class,

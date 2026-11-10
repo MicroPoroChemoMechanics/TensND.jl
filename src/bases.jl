@@ -625,6 +625,14 @@ for OP in (:(tsimplify), :(tsubs), :(tdiff))
         Basis($OP(b.eᵢ, args...; kwargs...))
     @eval $OP(b::CanonicalBasis{dim, Num}, args...; kwargs...) where {dim} = b
 end
+# A substitution leaves an orthonormal basis orthonormal: the vectors are
+# substituted and the basis rebuilt as such, without the metric `Basis` would
+# form and simplify to find out, which on the unit vectors of a confocal system
+# costs more than every other step of an operator.
+tsubs(b::RotatedBasis{dim, <:Sym}, args...; kwargs...) where {dim} =
+    RotatedBasis(tsubs(b.eᵢ, args...; kwargs...), Val(dim), false)
+tsubs(b::RotatedBasis{dim, Num}, args...; kwargs...) where {dim} =
+    RotatedBasis(tsubs(b.eᵢ, args...; kwargs...), Val(dim), false)
 
 
 #####################

@@ -75,6 +75,8 @@ describes an embedded surface rather than the whole space.
 
 ## Page by page
 
+### Tensors and bases
+
 | Page | What it adds |
 | :--- | :----------- |
 | [Notation and conventions](notation.md) | typefaces, index conventions, the dictionary from symbol to Julia operator, and the pair-wise double-contraction convention |
@@ -82,13 +84,34 @@ describes an embedded surface rather than the whole space.
 | [Bases and variance](bases_variance.md) | dual basis, metric, covariant/contravariant components, and the basis-type hierarchy that fixes the cost of everything else |
 | [Kelvin–Mandel representation](kelvin_mandel.md) | the isometry onto ``6\times6`` matrices, and why its rotation matrix being orthogonal is what matters |
 | [Rotations and Euler angles](rotations.md) | the Z–Y–Z convention as implemented, ``R\stackrel{s}{\boxtimes}R``, and the degeneracies of any three-angle parametrization |
+
+### Material symmetries
+
+| Page | What it adds |
+| :--- | :----------- |
 | [Isotropic tensors](isotropic.md) | ``\mathbb{J}``, ``\mathbb{K}``, the ``(\alpha,\beta)`` algebra, isotropization, and why it does not commute with inversion |
 | [The Walpole basis](walpole.md) | the six ``\mathbb{W}_i``, the multiplication table, the synthetic ``2\times2`` triplet, and the ``\ell_i`` of ``\mathbb{I},\mathbb{J},\mathbb{K}`` |
 | [The extended Walpole algebra](walpole_extended.md) | why the axially invariant space is **eight**-dimensional, and what a five-parameter description silently discards |
 | [TI parametrizations](ti_parametrizations.md) | components, engineering constants, Hoenig ratios — three conventions, one class |
 | [Orthotropy](orthotropy.md) | nine constants, the block-diagonal matrix, and why a product of two orthotropic tensors needs twelve |
+| [Cubic symmetry](cubic.md) | the octahedral group, three constants, and the algebra shared with the isotropic class and the geometry shared with the orthotropic one |
 | [Projection onto a symmetry class](projection.md) | normal equations, the condensed objective, the orientation search, and the difference between projecting and averaging |
+
+### Coordinate systems
+
+| Page | What it adds |
+| :--- | :----------- |
 | [Curvilinear differential calculus](curvilinear.md) | natural basis, Lamé coefficients, Christoffel symbols, the five operators and their index placement |
+| [Classical coordinate systems](classical_systems.md) | polar, cylindrical and spherical systems: charts, unit vectors, operators, Christoffel symbols |
+| [Spheroidal coordinates](spheroidal.md) | prolate and oblate systems, volume and surface elements, operators, the spheroid as a surface |
+| [Ellipsoidal coordinates](ellipsoidal.md) | confocal quadrics, the chart and its Lamé coefficients from one rational function, operators, inversion |
+| [Changes of coordinates](coordinate_changes.md) | from a point to its coordinates in closed form, and from one system to another |
+| [Spheroidal harmonics and their re-expansion](spheroidal_harmonics.md) | Legendre functions, interior and exterior harmonics, their expansion in another spheroidal system and its domain of convergence |
+
+### Surfaces
+
+| Page | What it adds |
+| :--- | :----------- |
 | [Submanifolds](submanifolds.md) | first and second fundamental forms, Gauss–Weingarten, curvatures |
 
 ## Relation to the Echoes manual
@@ -117,7 +140,7 @@ easy to trip over:
 
 - the **spherical coordinates are ordered** ``(\theta,\varphi,r)``, not
   ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the canonical
-  basis in the canonical order ([Curvilinear differential calculus](curvilinear.md));
+  basis in the canonical order ([Classical coordinate systems](classical_systems.md));
 - the **gradient appends the derivative index on the right**, and the divergence
   contracts the last index — a library using the opposite convention differs by
   a transpose ([Curvilinear differential calculus](curvilinear.md)).
@@ -132,7 +155,7 @@ on [The Walpole basis](walpole.md) and are pinned by tests.
 | Section | For |
 | :--- | :--- |
 | [Theory](@ref th-index) | the mathematics the library implements, stated once and cited |
-| [Manual](@ref man-getting-started) | how to call it, task by task |
+| [Manual](@ref man-index) | how to call it, task by task |
 | [Tutorials](@ref tut-index) | runnable scripts, each also a notebook |
 | [Developer](@ref dev-architecture) | the source layout, and how to extend it |
 | [API](@ref api-index) | every exported name, grouped by theme |

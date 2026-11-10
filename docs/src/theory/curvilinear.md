@@ -1,18 +1,23 @@
 # [Curvilinear differential calculus](@id th-curvilinear)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
-    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num)
+    **Theory**: [Classical coordinate systems](@ref th-predefined-systems) · [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal)
 
-    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities)
-<!-- /crosslinks -->
+    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num) · [Charts and coordinate conversions](@ref man-charts)
 
-The second pillar of the library, and the second chapter with no counterpart in
-the [Echoes manual](https://jfbarthelemy.github.io/echoes/), which works only in
-Cartesian coordinates. Everything below is derived from the definitions and
-matches `src/coorsystems.jl` (symbolic) and `src/coorsystems_num.jl`
-(automatic differentiation). A classical treatment of the underlying tensor
-analysis is [simmonds1994](@citet).
+    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities) · [The operators in the classical systems](@ref tut-operators-catalog) · [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix) · [Ellipsoidal coordinates](@ref tut-ellipsoidal)
+
+A coordinate system is built in four steps: a position vector as a function of
+the coordinates, its derivatives (the natural basis), their norms and
+directions (the Lamé coefficients and the normalized basis), and the rate at
+which the basis turns (the Christoffel symbols). The differential operators
+follow. This page defines each step and says how `TensND` carries it out,
+symbolically (`src/coorsystems.jl`) or by automatic differentiation
+(`src/coorsystems_num.jl`); the systems it predefines are on the next three
+pages, [Classical coordinate systems](@ref th-predefined-systems),
+[Spheroidal coordinates](@ref th-spheroidal) and
+[Ellipsoidal coordinates](@ref th-ellipsoidal). A classical treatment of the
+underlying tensor analysis is [simmonds1994](@citet).
 
 ## Chart, natural basis, metric
 
@@ -53,163 +58,6 @@ physical components are read. For an *orthogonal* system the metric is
 [`normalized_basis`](@ref), with [`natvec`](@ref) and [`unitvec`](@ref) for
 individual vectors and [`lame_coefficients`](@ref) for the ``\chi_i``.
 
-## [Predefined systems](@id th-predefined-systems)
-
-| System | Coordinates | ``\underline{OM}`` | Lamé ``\chi_i`` |
-| :----- | :---------- | :----------------- | :-------------- |
-| [`coorsys_cartesian`](@ref) | ``(x,y,z)`` | ``(x,\,y,\,z)`` | ``(1,1,1)`` |
-| [`coorsys_polar`](@ref) | ``(r,\theta)`` | ``(r\cos\theta,\;r\sin\theta)`` | ``(1,\,r)`` |
-| [`coorsys_cylindrical`](@ref) | ``(r,\theta,z)`` | ``(r\cos\theta,\;r\sin\theta,\;z)`` | ``(1,\,r,\,1)`` |
-| [`coorsys_spherical`](@ref) | ``(\theta,\varphi,r)`` | ``(r\sin\theta\cos\varphi,\;r\sin\theta\sin\varphi,\;r\cos\theta)`` | ``(r,\;r\sin\theta,\;1)`` |
-| [`coorsys_spheroidal`](@ref) | ``(\varphi,p,q)`` | ``c\,(\bar{p}\bar{q}\cos\varphi,\;\bar{p}\bar{q}\sin\varphi,\;p\,q)`` | ``\bigl(c\,\bar{p}\bar{q},\;c\sqrt{q^2-p^2}/\bar{p},\;c\sqrt{q^2-p^2}/\bar{q}\bigr)`` |
-
-with, for the prolate spheroidal system, ``\bar{p}=\sqrt{1-p^2}``,
-``\bar{q}=\sqrt{q^2-1}`` and ``c`` half the distance between its two foci.
-All five are orthogonal, so each normalized basis is orthonormal; its vectors
-are named after their coordinate, ``\underline{e}^r``, ``\underline{e}^\theta``,
-… — for an orthonormal basis the dual basis is the basis itself, and the
-position of the label carries no meaning.
-
-!!! warning "The spherical coordinates are ordered ``(\theta,\varphi,r)``"
-    Not ``(r,\theta,\varphi)``. The ordering is chosen so that
-    ``\theta=\varphi=0`` reproduces the canonical basis **in the canonical
-    order**, which makes the spherical frame a genuine
-    [`RotatedBasis`](@ref) — see [Rotations](@ref th-rotations) — and lets
-    spherical results be compared with Euler-angle results without a
-    permutation. The same ordering applies to
-    [`init_spherical`](@ref) and to ``\underline{e}^\theta,\underline{e}^\varphi,
-    \underline{e}^r``.
-
-The figures below draw each curvilinear system at a point ``M`` set by the
-sliders: the canonical basis at the origin ``O``, the normalized basis at
-``M``, the angles and lengths that locate ``M``, and, when the box is ticked,
-the lines (in 2-D) or surfaces (in 3-D) on which one coordinate is constant.
-Each coordinate keeps one color throughout. Since
-``\underline{a}^i=\underline{a}_i/\chi_i^2`` is the gradient of ``q^i``, the
-unit vector of a coordinate is normal to the surface on which that coordinate
-is constant, and both are drawn in its color. A 3-D figure turns with the
-mouse.
-
-### Polar coordinates
-
-With ``r>0`` and ``\theta`` taken on any interval of length ``2\pi`` (the
-slider of the figure runs from ``-\pi`` to ``\pi``):
-
-```math
-\underline{e}^r=\cos\theta\,\underline{e}_1+\sin\theta\,\underline{e}_2,
-\qquad
-\underline{e}^\theta=-\sin\theta\,\underline{e}_1+\cos\theta\,\underline{e}_2 .
-```
-
-```@raw html
-<ClientOnly><FrameFigure kind="polar" /></ClientOnly>
-```
-
-### Cylindrical coordinates
-
-The polar pair in the plane ``z=0``, completed by the axial direction:
-``\underline{e}^r`` and ``\underline{e}^\theta`` as above, and
-``\underline{e}^z=\underline{e}_3``. The surfaces of constant coordinate are the
-cylinders of axis ``\underline{e}_3`` (``r``), the half-planes bounded by that
-axis (``\theta``) and the planes normal to it (``z``).
-
-```@raw html
-<ClientOnly><FrameFigure kind="cylindrical" /></ClientOnly>
-```
-
-### Spherical coordinates
-
-With ``r>0``, the colatitude ``\theta\in[0,\pi]`` measured from
-``\underline{e}_3`` and the azimuth ``\varphi`` measured from ``\underline{e}_1``:
-
-```math
-\begin{aligned}
-\underline{e}^\theta&=\cos\theta\cos\varphi\,\underline{e}_1
-+\cos\theta\sin\varphi\,\underline{e}_2-\sin\theta\,\underline{e}_3,\\
-\underline{e}^\varphi&=-\sin\varphi\,\underline{e}_1+\cos\varphi\,\underline{e}_2,\\
-\underline{e}^r&=\sin\theta\cos\varphi\,\underline{e}_1
-+\sin\theta\sin\varphi\,\underline{e}_2+\cos\theta\,\underline{e}_3 .
-\end{aligned}
-```
-
-In this order the triad is the image of the canonical basis by the rotation
-``R(\theta,\varphi,0)`` of [Rotations and Euler angles](@ref th-rotations). The
-surfaces of constant coordinate are the cones of axis ``\underline{e}_3`` and
-apex ``O`` (``\theta``), the half-planes bounded by that axis (``\varphi``) and
-the spheres of center ``O`` (``r``).
-
-```@raw html
-<ClientOnly><FrameFigure kind="spherical" /></ClientOnly>
-```
-
-### Spheroidal coordinates, prolate and oblate
-
-[`coorsys_spheroidal`](@ref) is the **prolate** system of the table. With
-``-1\le p\le1`` and ``q\ge1``, its surfaces of constant coordinate all share
-the foci ``\pm c\,\underline{e}_3``. ``q=\text{const}`` is the prolate
-spheroid
-
-```math
-\frac{x^2+y^2}{c^2\,(q^2-1)}+\frac{z^2}{c^2q^2}=1 ,
-```
-
-``p=\text{const}`` the sheet, on the side ``z/p>0``, of the hyperboloid of two
-sheets
-
-```math
-\frac{z^2}{c^2p^2}-\frac{x^2+y^2}{c^2\,(1-p^2)}=1 ,
-```
-
-and ``\varphi=\text{const}`` a half-plane bounded by the axis. The normalized
-basis, ordered as the coordinates, is
-
-```math
-\begin{aligned}
-\underline{e}^\varphi&=-\sin\varphi\,\underline{e}_1+\cos\varphi\,\underline{e}_2,\\
-\underline{e}^p&=\frac{-p\,\bar{q}\,(\cos\varphi\,\underline{e}_1+\sin\varphi\,\underline{e}_2)
-+q\,\bar{p}\,\underline{e}_3}{\sqrt{q^2-p^2}},\\
-\underline{e}^q&=\frac{q\,\bar{p}\,(\cos\varphi\,\underline{e}_1+\sin\varphi\,\underline{e}_2)
-+p\,\bar{q}\,\underline{e}_3}{\sqrt{q^2-p^2}} .
-\end{aligned}
-```
-
-Far from the foci, as ``q\to\infty``, ``c\,q`` tends to the radius ``r`` and
-``p`` to ``\cos\theta``: the spheroids and hyperboloids become the spheres and
-cones of the spherical system.
-
-The **oblate** system revolves the same confocal ellipses and hyperbolas of a
-meridian plane about their minor axis instead of their major one:
-
-```math
-\underline{OM}=c\,\bigl(\bar{p}\hat{q}\cos\varphi,\;\bar{p}\hat{q}\sin\varphi,\;p\,q\bigr),
-\qquad
-\hat{q}=\sqrt{q^2+1},\quad -1\le p\le1,\quad q\ge0 .
-```
-
-Its foci form the circle of radius ``c`` in the plane ``z=0``.
-``q=\text{const}`` is the oblate spheroid
-
-```math
-\frac{x^2+y^2}{c^2\,(q^2+1)}+\frac{z^2}{c^2q^2}=1 ,
-```
-
-``p=\text{const}`` the half, on the side ``z/p>0``, of the hyperboloid of one
-sheet
-
-```math
-\frac{x^2+y^2}{c^2\,(1-p^2)}-\frac{z^2}{c^2p^2}=1 ,
-```
-
-and the Lamé coefficients and the normalized basis are those of the prolate
-system with ``\bar{q}`` replaced by ``\hat{q}`` and ``\sqrt{q^2-p^2}`` by
-``\sqrt{q^2+p^2}``. `TensND` does not predefine this system: the figure draws
-it for comparison. Its buttons switch between the two systems, and a fourth
-slider sets ``c``, the unit vectors of the canonical basis giving the scale.
-
-```@raw html
-<ClientOnly><FrameFigure kind="spheroidal" /></ClientOnly>
-```
-
 ## Christoffel symbols
 
 The natural basis varies, and the rate at which it does is the connection:
@@ -232,31 +80,9 @@ They are symmetric in ``(i,j)`` because
 and it is the ``\Gamma`` terms — not the partial derivatives — that make a
 divergence in spherical coordinates differ from a sum of derivatives.
 
-For the [predefined systems](@ref th-predefined-systems), the non-vanishing
-ones are
-
-```math
-\textbf{polar / cylindrical:}\qquad
-\Gamma^r_{\theta\theta}=-r,
-\qquad
-\Gamma^\theta_{r\theta}=\Gamma^\theta_{\theta r}=\frac{1}{r}
-```
-
-```math
-\textbf{spherical:}\qquad
-\Gamma^r_{\theta\theta}=-r,\quad
-\Gamma^r_{\varphi\varphi}=-r\sin^2\theta,\quad
-\Gamma^\theta_{\varphi\varphi}=-\sin\theta\cos\theta,
-```
-
-```math
-\Gamma^\theta_{r\theta}=\Gamma^\theta_{\theta r}=\frac{1}{r},\quad
-\Gamma^\varphi_{r\varphi}=\Gamma^\varphi_{\varphi r}=\frac{1}{r},\quad
-\Gamma^\varphi_{\theta\varphi}=\Gamma^\varphi_{\varphi\theta}=\cot\theta .
-```
-
-All Christoffel symbols of the Cartesian system vanish, which is the definition
-of a Cartesian chart.
+The symbols of the classical systems are listed in
+[Classical coordinate systems](@ref th-predefined-systems); all those of the
+Cartesian system vanish, which is the definition of a Cartesian chart.
 
 !!! note "Storage convention"
     [`christoffel`](@ref) returns a ``d\times d\times d`` array indexed
@@ -302,6 +128,47 @@ included — which is where the Christoffel symbols enter.
 Note also that `symgrad` is a primitive, not `(grad + transpose)/2` — applied to
 a displacement field it is directly the linearized strain tensor.
 
+## [Orthogonal systems](@id th-orthogonal-operators)
+
+When the natural vectors are mutually orthogonal, as in every predefined
+system, ``\underline{a}^i=\underline{e}_i/\chi_i`` and the operators only
+involve the Lamé coefficients. For a scalar field ``f`` and a vector field
+``\underline{v}=\sum_iv_i\,\underline{e}_i`` of physical components ``v_i``,
+
+```math
+\underline{\nabla}f=\sum_i\frac{1}{\chi_i}\,\frac{\partial f}{\partial q^i}\,\underline{e}_i,
+\qquad
+\mathrm{div}\,\underline{v}=\frac{1}{J}\sum_i\frac{\partial}{\partial q^i}\Bigl(\frac{J}{\chi_i}\,v_i\Bigr),
+\qquad
+\Delta f=\frac{1}{J}\sum_i\frac{\partial}{\partial q^i}\Bigl(\frac{J}{\chi_i^2}\,\frac{\partial f}{\partial q^i}\Bigr),
+```
+
+where ``J=\prod_i\chi_i`` is the Jacobian of the chart, so that the volume
+element is ``\mathrm{d}\Omega=J\,\mathrm{d}q^1\cdots\mathrm{d}q^d``. The
+divergence formula states that the flux of ``\underline{v}`` through the faces
+of the cell ``\mathrm{d}q^1\cdots\mathrm{d}q^d`` is its divergence times the
+volume of the cell: the face normal to ``\underline{e}_i`` has the area
+``(J/\chi_i)\prod_{j\ne i}\mathrm{d}q^j``. The pages on the predefined systems
+write these three formulas out.
+
+## Building a coordinate system
+
+`TensND` builds a system from what is known about it, by one of four routes.
+
+| Given | Constructor | Computed |
+| :---- | :---------- | :------- |
+| nothing: a predefined system | [`coorsys_spherical`](@ref)`()`, [`coorsys_spheroidal`](@ref)`()`, [`coorsys_ellipsoidal`](@ref)`()`, … | — |
+| ``\underline{OM}``, the normalized basis and the ``\chi_i`` in closed form | `CoordinateSystem(OM, coords, ℬ, χ)` | ``\Gamma`` |
+| ``\underline{OM}`` alone, as an expression | `CoordinateSystem(OM, coords)` | ``\underline{a}_i``, ``\chi_i``, ``\underline{e}_i``, ``\Gamma`` |
+| ``\underline{OM}`` alone, as a function | `CoordinateSystem(OM_func, dim)` | the same, at each point, by automatic differentiation |
+
+The first three return an exact system, whose operators return expressions;
+the last one a pointwise system, whose operators return functions of the
+point. The predefined systems use the second route, since their bases and Lamé
+coefficients are known in a simpler form than a computer algebra system would
+find. [Coordinate systems (symbolic)](@ref man-coorsystems) and
+[Coordinate systems (numerical)](@ref man-coorsystems-num) show each route.
+
 ## Two implementations, one interface
 
 The operators have the same names and meaning whether the derivatives are taken
@@ -331,8 +198,9 @@ coordinate system is handled correctly.
 
 ## Simplification machinery
 
-Non-trivial symbolic charts — the spheroidal one is the standard example —
-produce metric expressions that SymPy will not reduce on its own. The exact `CoordinateSystem`
+Non-trivial symbolic charts — the spheroidal and the ellipsoidal ones are the
+standard examples — produce metric expressions that SymPy will not reduce on
+its own. The exact `CoordinateSystem`
 therefore accepts:
 
 | Argument | Role |
@@ -343,6 +211,8 @@ therefore accepts:
 | `tmp_var` | substitutions replacing expressions by temporary variables |
 | `to_coords` | how to eliminate the temporaries before differentiating |
 
-Without them the Christoffel symbols of a spheroidal chart are computable in
-principle and unusable in practice. Their use is shown in
+The spheroidal systems name ``\bar{p}=\sqrt{1-p^2}`` and
+``\bar{q}=\sqrt{q^2-1}``, the ellipsoidal one its six square roots: the
+position vector is written with these symbols, and `to_coords` restores the
+square roots before a derivative is taken. Their use is shown in
 [Christoffel symbols](@ref tut-christoffel) among the tutorials.

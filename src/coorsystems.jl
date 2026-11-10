@@ -702,10 +702,16 @@ coorsys_spherical(::Val{<:Sym}, coords; canonical = false) = coorsys_spherical(c
 coorsys_spherical(::Val{Num}, coords = Tuple(@variables θ ϕ r); canonical = false) = coorsys_spherical(coords; canonical = canonical)
 
 """
-    coorsys_spheroidal(coords = (symbols("ϕ", real = true),symbols("p", real = true),symbols("q", positive = true),),
-                            c = symbols("c", positive = true),tmp_coords = (symbols("p̄ q̄", positive = true)...,),)
+    coorsys_spheroidal(coords = (ϕ, p, q), c = c, tmp_coords = (p̄, q̄))
 
-Return the spheroidal coordinate system
+Return the prolate spheroidal coordinate system of axis `𝐞₃` and semi-focal
+distance `c` (see [`ProlateSpheroidalChart`](@ref)), with coordinates
+`(ϕ, p, q)`, `-1 ≤ p ≤ 1`, `q ≥ 1`. The position vector is written with the
+auxiliary symbols `p̄ = √(1-p²)` and `q̄ = √(q²-1)`, which the derivatives
+replace by their expressions.
+
+The default symbols (`ϕ`, `p` real, `q`, `c`, `p̄`, `q̄` positive) are SymPy's
+and need `SymPyPythonCall`.
 
 # Examples
 ```julia
@@ -723,47 +729,113 @@ Tens.TensCanonical{1, 3, Sym, Vec{3, Sym}}
 
 julia> laplacian(OM[1]^2, Spheroidal)
 2
-``` 
+```
+
+See also [`coorsys_spheroidal_oblate`](@ref), [`coorsys_ellipsoidal`](@ref).
 """
-function coorsys_spheroidal(coords::NTuple{3, T}, c, tmp_coords) where {T <: SymType}
-    ϕ, p, q = coords
-    params = (c,)
-    p̄, q̄ = tmp_coords
-    OM = Tens(c * [p̄ * q̄ * cos(ϕ), p̄ * q̄ * sin(ϕ), p * q])
-    # OM = Tens(c * [√(1 - p^2) * √(q^2 - 1) * cos(ϕ), √(1 - p^2) * √(q^2 - 1) * sin(ϕ), p * q])
-    ℬ = RotatedBasis(
-        T[
-            -sin(ϕ) -p * sqrt(q^2 - 1) * cos(ϕ) / sqrt(q^2 - p^2) q * sqrt(1 - p^2) * cos(ϕ) / sqrt(q^2 - p^2)
-            cos(ϕ) -p * sqrt(q^2 - 1) * sin(ϕ) / sqrt(q^2 - p^2) q * sqrt(1 - p^2) * sin(ϕ) / sqrt(q^2 - p^2)
-            0 q * sqrt(1 - p^2) / sqrt(q^2 - p^2) p * sqrt(q^2 - 1) / sqrt(q^2 - p^2)
-        ],
-    )
-    χᵢ = (
-        c * sqrt(1 - p^2) * sqrt(q^2 - 1),
-        c * sqrt(q^2 - p^2) / sqrt(1 - p^2),
-        c * sqrt(q^2 - p^2) / sqrt(q^2 - 1),
-    )
-    tmp_var = Dict(1 - p^2 => p̄^2, q^2 - 1 => q̄^2)
-    to_coords = Dict(p̄ => √(1 - p^2), q̄ => √(q^2 - 1))
-    return CoordinateSystem(
-        OM,
-        coords,
-        ℬ,
-        χᵢ,
-        tmp_coords,
-        params;
-        tmp_var = tmp_var,
-        to_coords = to_coords
-    )
-end
+coorsys_spheroidal(coords::NTuple{3, T}, c, tmp_coords) where {T <: SymType} =
+    _coorsys_spheroidal(ProlateSpheroidalChart(c), coords, tmp_coords)
 coorsys_spheroidal(::Val{<:Sym}, coords, c, tmp_coords) = coorsys_spheroidal(coords, c, tmp_coords)
 coorsys_spheroidal(
     ::Val{Num}, coords = Tuple(@variables ϕ p q),
     c = (@variables c)[1], tmp_coords = Tuple(@variables p̄ q̄)
 ) = coorsys_spheroidal(coords, c, tmp_coords)
 
+"""
+    coorsys_spheroidal_oblate(coords = (ϕ, p, τ), c = c, tmp_coords = (p̄, τ̄))
 
-for cs in (:coorsys_cartesian, :coorsys_polar, :coorsys_cylindrical, :coorsys_spherical, :coorsys_spheroidal)
+Return the oblate spheroidal coordinate system of axis `𝐞₃` and semi-focal
+distance `c` (see [`OblateSpheroidalChart`](@ref)), with coordinates
+`(ϕ, p, τ)`, `-1 ≤ p ≤ 1`, `τ ≥ 0`. The position vector is written with the
+auxiliary symbols `p̄ = √(1-p²)` and `τ̄ = √(τ²+1)`.
+
+# Examples
+```julia
+julia> Oblate = coorsys_spheroidal_oblate() ; lame_coefficients(Oblate)
+(c*sqrt(1 - p^2)*sqrt(τ^2 + 1), c*sqrt(p^2 + τ^2)/sqrt(1 - p^2), c*sqrt(p^2 + τ^2)/sqrt(τ^2 + 1))
+```
+
+See also [`coorsys_spheroidal`](@ref), [`coorsys_ellipsoidal`](@ref).
+"""
+coorsys_spheroidal_oblate(coords::NTuple{3, T}, c, tmp_coords) where {T <: SymType} =
+    _coorsys_spheroidal(OblateSpheroidalChart(c), coords, tmp_coords)
+coorsys_spheroidal_oblate(::Val{<:Sym}, coords, c, tmp_coords) = coorsys_spheroidal_oblate(coords, c, tmp_coords)
+coorsys_spheroidal_oblate(
+    ::Val{Num}, coords = Tuple(@variables ϕ p τ),
+    c = (@variables c)[1], tmp_coords = Tuple(@variables p̄ τ̄)
+) = coorsys_spheroidal_oblate(coords, c, tmp_coords)
+
+# Both spheroidal systems: the Lamé coefficients and the unit vectors are the
+# closed forms of the chart, evaluated on the symbols.
+function _coorsys_spheroidal(chart::_SpheroidalChart, coords::NTuple{3, T}, tmp_coords) where {T <: SymType}
+    ϕ, p, q = coords
+    p̄, q̄ = tmp_coords
+    c, s = chart.c, _spheroidal_sign(chart)
+    OM = Tens(c * [p̄ * q̄ * cos(ϕ), p̄ * q̄ * sin(ϕ), p * q])
+    ℬ = RotatedBasis(Matrix{T}(_frame(chart, coords)))
+    tmp_var = Dict(1 - p^2 => p̄^2, q^2 - s => q̄^2)
+    to_coords = Dict(p̄ => sqrt(1 - p^2), q̄ => sqrt(q^2 - s))
+    return CoordinateSystem(
+        OM, coords, ℬ, _lame(chart, coords), tmp_coords, (c,);
+        tmp_var = tmp_var, to_coords = to_coords
+    )
+end
+
+"""
+    coorsys_ellipsoidal(coords = (ρ, μ, ν), h = (h₂, h₃), tmp_coords = (ρ̄₂, ρ̄₃, μ̄₂, μ̄₃, ν̄₂, ν̄₃))
+
+Return the ellipsoidal coordinate system of semi-focal distances `h₂ > h₃ > 0`
+(see [`EllipsoidalChart`](@ref)), with coordinates `(ρ, μ, ν)`,
+`ν² ≤ h₃² ≤ μ² ≤ h₂² ≤ ρ²`. The position vector is written with the auxiliary
+symbols
+
+    ρ̄₂ = √(ρ²-h₂²), ρ̄₃ = √(ρ²-h₃²), μ̄₂ = √(h₂²-μ²), μ̄₃ = √(μ²-h₃²), ν̄₂ = √(h₂²-ν²), ν̄₃ = √(h₃²-ν²),
+
+which the derivatives replace by their expressions.
+
+# Examples
+```julia
+julia> Ellipsoidal = coorsys_ellipsoidal() ; x₁, x₂, x₃ = position_vector(Ellipsoidal) ;
+
+julia> tsimplify(laplacian(x₁^2 - x₃^2, Ellipsoidal))
+0
+```
+
+See also [`coorsys_spheroidal`](@ref), [`coorsys_spheroidal_oblate`](@ref).
+"""
+function coorsys_ellipsoidal(coords::NTuple{3, T}, h::NTuple{2}, tmp_coords::NTuple{6}) where {T <: SymType}
+    ρ, μ, ν = coords
+    h₂, h₃ = h
+    ρ̄₂, ρ̄₃, μ̄₂, μ̄₃, ν̄₂, ν̄₃ = tmp_coords
+    chart = EllipsoidalChart(h₂, h₃)
+    h₁ = sqrt(h₂^2 - h₃^2)
+    OM = Tens([ρ * μ * ν / (h₂ * h₃), ρ̄₃ * μ̄₃ * ν̄₃ / (h₁ * h₃), ρ̄₂ * μ̄₂ * ν̄₂ / (h₁ * h₂)])
+    # The triad is orthonormal and left-handed in the order (ρ, μ, ν).
+    ℬ = RotatedBasis(Matrix{T}(_frame(chart, coords)), Val(3), false)
+    tmp_var = Dict(
+        ρ^2 - h₂^2 => ρ̄₂^2, ρ^2 - h₃^2 => ρ̄₃^2, h₂^2 - μ^2 => μ̄₂^2,
+        μ^2 - h₃^2 => μ̄₃^2, h₂^2 - ν^2 => ν̄₂^2, h₃^2 - ν^2 => ν̄₃^2,
+    )
+    to_coords = Dict(
+        ρ̄₂ => sqrt(ρ^2 - h₂^2), ρ̄₃ => sqrt(ρ^2 - h₃^2), μ̄₂ => sqrt(h₂^2 - μ^2),
+        μ̄₃ => sqrt(μ^2 - h₃^2), ν̄₂ => sqrt(h₂^2 - ν^2), ν̄₃ => sqrt(h₃^2 - ν^2),
+    )
+    return CoordinateSystem(
+        OM, coords, ℬ, _lame(chart, coords), tmp_coords, (h₂, h₃);
+        tmp_var = tmp_var, to_coords = to_coords
+    )
+end
+coorsys_ellipsoidal(::Val{<:Sym}, coords, h, tmp_coords) = coorsys_ellipsoidal(coords, h, tmp_coords)
+coorsys_ellipsoidal(
+    ::Val{Num}, coords = Tuple(@variables ρ μ ν),
+    h = Tuple(@variables h₂ h₃), tmp_coords = Tuple(@variables ρ̄₂ ρ̄₃ μ̄₂ μ̄₃ ν̄₂ ν̄₃)
+) = coorsys_ellipsoidal(coords, h, tmp_coords)
+
+
+for cs in (
+        :coorsys_cartesian, :coorsys_polar, :coorsys_cylindrical, :coorsys_spherical,
+        :coorsys_spheroidal, :coorsys_spheroidal_oblate, :coorsys_ellipsoidal,
+    )
     @eval $cs(T::Type, args...; kwargs...) = $cs(Val(T), args...; kwargs...)
 end
 
@@ -894,5 +966,6 @@ end
 export ∂, AbstractGeometry, ExactGeometry, PointwiseGeometry, CoordinateSystem, lame_coefficients, christoffel, nderiv
 export grad, symgrad, divergence, laplacian, hess
 export normalized_basis, natural_basis, natvec, unitvec, get_coords, position_vector
-export coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal
+export coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical
+export coorsys_spheroidal, coorsys_spheroidal_oblate, coorsys_ellipsoidal
 export @set_coorsys, set_coorsys!, default_coorsys, unset_coorsys!

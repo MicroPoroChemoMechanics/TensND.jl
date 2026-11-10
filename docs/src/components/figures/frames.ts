@@ -6,7 +6,8 @@
 //   polar,
 //   cylindrical,
 //   spherical,
-//   spheroidal   `coorsys_*` (src/coorsystems.jl): the position <u>OM</u> and
+//   spheroidal,
+//   ellipsoidal  `coorsys_*` (src/coorsystems.jl): the position <u>OM</u> and
 //                the normalized basis, in the order of the coordinates.
 //
 // Colors follow one rule: the k-th coordinate (or angle) owns `pal.q[k]`, and
@@ -17,7 +18,7 @@
 import {
   type Annotation, type Bounds, type Palette, type Trace, type Vec2, type Vec3,
   add, arcPoints, arrow2, arrow3, fill2, grid, label2, label3, layout2, layout3,
-  line2, line3, point2, point3, range, scale, sector3, surface3, vec,
+  line2, line3, point2, point3, range, scale, sector3, surface3, unit, vec,
 } from './kit'
 
 export interface Slider {
@@ -44,8 +45,8 @@ export interface Slider {
 /** One of several forms of a figure, chosen with radio buttons. */
 export interface Variant {
   label: string
-  /** Bounds of the sliders that differ in this form, by slider index. */
-  sliders?: Record<number, Partial<Pick<Slider, 'min' | 'max'>>>
+  /** Bounds (and symbol) of the sliders that differ in this form, by slider index. */
+  sliders?: Record<number, Partial<Pick<Slider, 'min' | 'max' | 'symbol'>>>
 }
 
 export interface FrameSpec {
@@ -341,9 +342,10 @@ const spherical: FrameSpec = {
   },
 }
 
-// ── Spheroidal coordinates (φ, p, q), prolate or oblate ──────────────────────
-// With σ = −1 (prolate, the one TensND predefines, `coorsys_spheroidal`) or
-// σ = +1 (oblate, drawn for comparison only):
+// ── Spheroidal coordinates, prolate (φ, p, q) or oblate (φ, p, τ) ────────────
+// With σ = −1 (prolate, `coorsys_spheroidal`) or σ = +1 (oblate,
+// `coorsys_spheroidal_oblate`, whose third coordinate is called τ; the formulas
+// below write q for it in both forms):
 //
 //   OM = c (√(1−p²) √(q²+σ) cos φ, √(1−p²) √(q²+σ) sin φ, p q),
 //
@@ -370,7 +372,7 @@ const spheroidal: FrameSpec = {
   ],
   variants: [
     { label: 'Prolate' },
-    { label: 'Oblate', sliders: { 2: { min: 0.05, max: 1.6 } } },
+    { label: 'Oblate', sliders: { 2: { symbol: sym('τ'), min: 0.05, max: 1.6 } } },
   ],
   iso: 'Surfaces of constant coordinate',
   height: 600,
@@ -425,12 +427,103 @@ const spheroidal: FrameSpec = {
     data.push(...sector3(O, E1, E2, 0.42, 0, f, pal.q[0]))
     ann.push(sectorLabel(O, E1, E2, 0.55, f, sym('φ'), pal.q[0]))
 
+    const third = sym(sigma < 0 ? 'q' : 'τ')
     localBasis3(M, [eph, ep, eq], [vec('e', `<sup>${sym('φ')}</sup>`), vec('e', `<sup>${sym('p')}</sup>`),
-      vec('e', `<sup>${sym('q')}</sup>`)], pal, 0.55, data, ann)
+      vec('e', `<sup>${third}</sup>`)], pal, 0.55, data, ann)
     const b: Bounds = [[-H, H], [-H, H], [-H, H]]
     return { data, layout: layout3(pal, b, ann, uid, EYE) }
   },
 }
 
-export const FRAMES: Record<string, FrameSpec> = { euler, polar, cylindrical, spherical, spheroidal }
+// ── Ellipsoidal coordinates (ρ, μ, ν) ────────────────────────────────────────
+// Semi-focal distances h₂ > h₃ > 0 and h₁ = √(h₂² − h₃²), fixed here at
+// h₂ = 1.2 and h₃ = 0.7 (the sliders are the three coordinates). The chart
+//
+//   x₁ = ρ μ ν / (h₂ h₃),
+//   x₂ = √(ρ²−h₃²) √(μ²−h₃²) √(h₃²−ν²) / (h₁ h₃),
+//   x₃ = √(ρ²−h₂²) √(h₂²−μ²) √(h₂²−ν²) / (h₁ h₂),
+//
+// with ρ ≥ h₂, h₃ ≤ μ ≤ h₂ and −h₃ ≤ ν ≤ h₃, covers x₂ ≥ 0 and x₃ ≥ 0; ν has the
+// sign of x₁. The sliders stay off the bounds, where the chart is singular.
+// ρ = const is the ellipsoid of semi-axes (ρ, √(ρ²−h₃²), √(ρ²−h₂²)), μ = const
+// the hyperboloid of one sheet x₁²/μ² + x₂²/(μ²−h₃²) − x₃²/(h₂²−μ²) = 1, ν = const
+// the sheet, on the side of the sign of ν, of the hyperboloid of two sheets
+// x₁²/ν² − x₂²/(h₃²−ν²) − x₃²/(h₂²−ν²) = 1 (the plane x₁ = 0 for ν = 0). The
+// surfaces are drawn whole, in the eight octants, and cut where they leave the
+// scene (half-side `H`). The focal curves, in the ink color, are the ellipse
+// x₁²/h₂² + x₂²/h₁² = 1 (plane x₃ = 0) and the hyperbola x₁²/h₃² − x₃²/h₁² = 1
+// (plane x₂ = 0). Normalized basis (e^ρ, e^μ, e^ν): the unit vectors of the
+// derivatives ∂OM/∂ρ, ∂OM/∂μ, ∂OM/∂ν, that is of
+//
+//   e^ρ ∝ (x₁/ρ, x₂ ρ/(ρ²−h₃²),   x₃ ρ/(ρ²−h₂²)),
+//   e^μ ∝ (x₁/μ, x₂ μ/(μ²−h₃²),  −x₃ μ/(h₂²−μ²)),
+//   e^ν ∝ (ρ μ/(h₂ h₃), −x₂ ν/(h₃²−ν²), −x₃ ν/(h₂²−ν²)),
+//
+// the last written without the quotient x₁/ν, which is 0/0 at ν = 0. The triad
+// (e^ρ, e^μ, e^ν) is left-handed.
 
+const ELL_H2 = 1.2
+const ELL_H3 = 0.7
+
+const ellipsoidal: FrameSpec = {
+  sliders: [
+    { symbol: sym('ρ'), min: ELL_H2 + 0.05, max: 2.2, step: 0.01, init: 1.7, angle: false },
+    { symbol: sym('μ'), min: ELL_H3 + 0.03, max: ELL_H2 - 0.03, step: 0.01, init: 1.0, angle: false },
+    { symbol: sym('ν'), min: -ELL_H3 + 0.03, max: ELL_H3 - 0.03, step: 0.01, init: 0.4, angle: false },
+  ],
+  iso: 'Surfaces of constant coordinate',
+  height: 600,
+  build([r, m, n], pal, iso, uid) {
+    const [h2, h3] = [ELL_H2, ELL_H3]
+    const h1 = Math.sqrt(h2 * h2 - h3 * h3)
+    const sq = (x: number) => Math.sqrt(Math.max(0, x))
+    const at = (rr: number, mm: number, nn: number): Vec3 => [
+      (rr * mm * nn) / (h2 * h3),
+      (sq(rr * rr - h3 * h3) * sq(mm * mm - h3 * h3) * sq(h3 * h3 - nn * nn)) / (h1 * h3),
+      (sq(rr * rr - h2 * h2) * sq(h2 * h2 - mm * mm) * sq(h2 * h2 - nn * nn)) / (h1 * h2),
+    ]
+    const M = at(r, m, n)
+    const er = unit([M[0] / r, (M[1] * r) / (r * r - h3 * h3), (M[2] * r) / (r * r - h2 * h2)])
+    const em = unit([M[0] / m, (M[1] * m) / (m * m - h3 * h3), (-M[2] * m) / (h2 * h2 - m * m)])
+    const en = unit([(r * m) / (h2 * h3), (-M[1] * n) / (h3 * h3 - n * n), (-M[2] * n) / (h2 * h2 - n * n)])
+    const data: Trace[] = []
+    const ann: Annotation[] = []
+
+    if (iso) {
+      // The ellipsoid ρ = const.
+      const [a1, a2, a3] = [r, sq(r * r - h3 * h3), sq(r * r - h2 * h2)]
+      data.push(surface3(grid((a, b) => [a1 * Math.sin(b) * Math.cos(a), a2 * Math.sin(b) * Math.sin(a), a3 * Math.cos(b)],
+        range(0, TWO_PI, 60), range(0, Math.PI, 36)), pal.q[0], 0.14))
+      // The hyperboloid of one sheet μ = const, cut at |x₁| = H and |x₃| = H.
+      const [b2, b3] = [sq(m * m - h3 * h3), sq(h2 * h2 - m * m)]
+      const tm = Math.min(Math.asinh(H / b3), Math.acosh(H / m))
+      data.push(surface3(grid((a, t) => [m * Math.cosh(t) * Math.cos(a), b2 * Math.cosh(t) * Math.sin(a), b3 * Math.sinh(t)],
+        range(0, TWO_PI, 60), range(-tm, tm, 36)), pal.q[1], 0.18))
+      // One sheet of the hyperboloid of two sheets ν = const (the plane x₁ = 0 for ν = 0).
+      const [c2, c3] = [sq(h3 * h3 - n * n), sq(h2 * h2 - n * n)]
+      const tn = Math.min(Math.asinh(H / c3), Math.acosh(H / Math.max(Math.abs(n), 1e-6)))
+      data.push(surface3(grid((a, t) => [n * Math.cosh(t), c2 * Math.sinh(t) * Math.cos(a), c3 * Math.sinh(t) * Math.sin(a)],
+        range(0, TWO_PI, 60), range(0, tn, 24)), pal.q[2], 0.15))
+    }
+
+    // The lines through M along which one coordinate varies, in the quarter space of the chart.
+    data.push(line3(range(h2, 2.25, 48).map((x) => at(x, m, n)), pal.guide, 2, 'dot'))
+    data.push(line3(range(h3, h2, 48).map((x) => at(r, x, n)), pal.guide, 2, 'dot'))
+    data.push(line3(range(-h3, h3, 48).map((x) => at(r, m, x)), pal.guide, 2, 'dot'))
+
+    // The foci: an ellipse in the plane x₃ = 0, a hyperbola (two branches) in the plane x₂ = 0.
+    data.push(line3(range(0, TWO_PI, 96).map((a) => [h2 * Math.cos(a), h1 * Math.sin(a), 0] as Vec3), pal.ink, 4))
+    const th = Math.min(Math.asinh(H / h1), Math.acosh(H / h3))
+    for (const sg of [1, -1]) {
+      data.push(line3(range(-th, th, 72).map((t) => [sg * h3 * Math.cosh(t), 0, h1 * Math.sinh(t)] as Vec3), pal.ink, 4))
+    }
+
+    canonical3(pal, 1, data, ann)
+    localBasis3(M, [er, em, en], [vec('e', `<sup>${sym('ρ')}</sup>`), vec('e', `<sup>${sym('μ')}</sup>`),
+      vec('e', `<sup>${sym('ν')}</sup>`)], pal, 0.55, data, ann)
+    const b: Bounds = [[-H, H], [-H, H], [-H, H]]
+    return { data, layout: layout3(pal, b, ann, uid, EYE) }
+  },
+}
+
+export const FRAMES: Record<string, FrameSpec> = { euler, polar, cylindrical, spherical, spheroidal, ellipsoidal }

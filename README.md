@@ -21,7 +21,7 @@
 ## Introduction
 
 `TensND.jl` handles tensors of any order and dimension in arbitrary coordinate
-systems — cartesian, polar, cylindrical, spherical, spheroidal, or user-defined.
+systems — cartesian, polar, cylindrical, spherical, spheroidal (prolate and oblate), ellipsoidal, or user-defined.
 A basis carries its metric, so covariant and contravariant components are
 related rather than assumed, and the differential operators follow from the
 chart. The same code runs **symbolically** (via
@@ -37,6 +37,7 @@ chart. The same code runs **symbolically** (via
 - **Symmetry projection**: closest ISO, TI, CUBIC or ORTHO tensor, with the orientation given or searched — deterministically, with no external optimizer, and in closed form at order 2
 - **Differential operators**: `grad`, `symgrad`, `divergence`, `laplacian`, `hess` in curvilinear coordinates — symbolically or pointwise by automatic differentiation (`CoordinateSystem` with an `ExactGeometry` or a `PointwiseGeometry`), on orthogonal **and genuinely non-orthogonal** charts
 - **Submanifolds**: embedded hypersurfaces (`Submanifold`) with their first and second fundamental forms, connection coefficients and curvatures
+- **Charts and spheroidal harmonics**: closed-form conversions between Cartesian, spherical, spheroidal and ellipsoidal coordinates, Legendre functions of both kinds, and the re-expansion of spheroidal harmonics between systems of different focal distances
 - **Generic type system**: works with `Float64`, symbolic types (`Sym`, `Num`), and `ForwardDiff.Dual` for automatic differentiation
 
 The implementation is inspired by the Maple library [Tens3d](http://jean.garrigues.perso.centrale-marseille.fr/tens3d.html) developed by Jean Garrigues.

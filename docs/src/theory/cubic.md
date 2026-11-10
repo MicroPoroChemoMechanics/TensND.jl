@@ -1,13 +1,11 @@
 # [Cubic symmetry](@id th-cubic)
 
-<!-- crosslinks: written by .github/scripts/crosslinks.py from docs/crosslinks.toml; do not edit -->
 !!! tip "See also"
     **Theory**: [Orthotropy](@ref th-orthotropy)
 
     **Manual**: [Structured tensors](@ref man-structured) · [Projection and symmetry detection](@ref man-projection)
 
     **Tutorials**: [Projection and symmetry detection](@ref tut-projection)
-<!-- /crosslinks -->
 
 Cubic symmetry is invariance under the **octahedral group** ``O_h``: the 48
 isometries of a cube. It is the class of a cubic crystal, of a cubic array of

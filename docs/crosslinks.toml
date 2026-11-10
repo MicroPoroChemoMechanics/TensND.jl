@@ -61,15 +61,33 @@ tutorials = ["tut-projection"]
 
 [[subject]]
 name = "Curvilinear coordinates"
-theory = ["th-curvilinear"]
+theory = ["th-curvilinear", "th-predefined-systems"]
 manual = ["man-coorsystems", "man-coorsystems-num"]
-tutorials = ["tut-symbolic-operators", "tut-christoffel", "tut-numerical-operators", "tut-operator-identities"]
+tutorials = ["tut-symbolic-operators", "tut-christoffel", "tut-numerical-operators", "tut-operator-identities", "tut-operators-catalog"]
+
+[[subject]]
+name = "Confocal coordinate systems"
+theory = ["th-spheroidal", "th-ellipsoidal", "th-curvilinear"]
+manual = ["man-coorsystems", "man-charts"]
+tutorials = ["tut-spheroidal-appendix", "tut-ellipsoidal"]
+
+[[subject]]
+name = "Changes of coordinates"
+theory = ["th-coordinate-changes"]
+manual = ["man-charts"]
+tutorials = ["tut-ellipsoidal", "tut-spheroidal-reexpansion"]
+
+[[subject]]
+name = "Spheroidal harmonics"
+theory = ["th-spheroidal-harmonics", "th-spheroidal"]
+manual = ["man-spheroidal-harmonics", "man-charts"]
+tutorials = ["tut-spheroidal-reexpansion", "tut-spheroidal-appendix"]
 
 [[subject]]
 name = "Submanifolds"
 theory = ["th-submanifolds"]
 manual = ["man-submanifolds"]
-tutorials = ["tut-submanifolds"]
+tutorials = ["tut-submanifolds", "tut-spheroidal-appendix"]
 
 [[subject]]
 name = "Symbolic and numeric computation"
