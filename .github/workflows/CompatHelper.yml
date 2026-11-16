@@ -11,6 +11,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+      # The `ubuntu-latest` image no longer provides `julia` (every step below
+      # failed with `julia: command not found` from 2026-11-14 on): install it.
+      - uses: julia-actions/setup-julia@v3
+        with:
+          version: '1'
       # The Pkg server intermittently advertises a General tree hash that its
       # CDN then answers with a 404, which kills the first `Pkg.add` of a cold
       # depot before any of this repository's code runs.  Install the registry
