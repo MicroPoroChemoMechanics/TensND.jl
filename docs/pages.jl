@@ -58,6 +58,7 @@ pages = [
             "theory/coordinate_changes.md",
             "theory/spheroidal_harmonics.md",
             "theory/solid_harmonics.md",
+            "theory/ellipsoidal_harmonics.md",
         ],
         "Surfaces" => [
             "theory/submanifolds.md",
@@ -153,6 +154,7 @@ pages = [
             "api/charts.md",
             "api/spheroidal_harmonics.md",
             "api/solid_harmonics.md",
+            "api/ellipsoidal_harmonics.md",
         ],
         "Surfaces" => [
             "api/submanifold.md",

@@ -1,7 +1,7 @@
 # [Solid harmonics and the Lamé solutions](@id man-solid-harmonics)
 
 !!! info "See also"
-    **Theory**: [Solid harmonics, vector harmonics and the Lamé solutions](@ref th-solid-harmonics) · **API**: [Solid harmonics](@ref api-solid-harmonics)
+    **Theory**: [Solid harmonics, vector harmonics and the Lamé solutions](@ref th-solid-harmonics), [Ellipsoidal harmonics](@ref th-ellipsoidal-harmonics) · **API**: [Solid harmonics](@ref api-solid-harmonics), [Ellipsoidal harmonics](@ref api-ellipsoidal-harmonics)
 
 The complex solid harmonics expand a harmonic field about a point; the vector
 harmonics and the solutions of the Lamé equation built on them expand the
@@ -94,3 +94,28 @@ abs(S[2, 0]) < 1e-13
 that the translation of the Lamé solutions needs over the images; with
 `lame_solution_translation(i, j, n′, n, m′, m, Y, B)` the coefficients are
 those of the sum of a solution over the array.
+
+## [Ellipsoidal harmonics](@id man-ellipsoidal-harmonics)
+
+Around a triaxial ellipsoid the harmonics separate in the coordinates of an
+[`EllipsoidalChart`](@ref) ([theory](@ref th-ellipsoidal-harmonics)). For the
+ellipsoid of semi-axes ``(1.3, 0.9, 0.5)``, ``h_2^2 = a_1^2 - a_3^2`` and
+``h_3^2 = a_1^2 - a_2^2``; the three harmonics of degree 1 are the coordinates
+up to constant factors:
+
+```@example solid
+a₁, a₂, a₃ = 1.3, 0.9, 0.5
+chart = EllipsoidalChart(sqrt(a₁^2 - a₃^2), sqrt(a₁^2 - a₂^2))
+K1, L1, M1 = lame_functions(chart, 1)
+c = ellipsoidal_signed_coordinates(chart, x)
+prod(first(lame_value(K1, c, i)) for i in 1:3) ≈ chart.h₂ * chart.h₃ * x[1]
+```
+
+The exterior harmonic of the same degree decays as the field of a dipole:
+
+```@example solid
+far = 300 .* [0.3, 0.5, -0.8]
+cf = ellipsoidal_signed_coordinates(chart, far)
+F = first(lame_second_kind(chart, K1, cf.ρ)) * first(lame_value(K1, cf, 2)) * first(lame_value(K1, cf, 3))
+F / (chart.h₂ * chart.h₃ * far[1] / norm(far)^3)
+```
