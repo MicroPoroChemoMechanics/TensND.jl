@@ -66,8 +66,42 @@ See also [`radial_P`](@ref), [`radial_Q`](@ref).
 """
 function legendre_P(N::Integer, m::Integer, x)
     _check_degree_order(N, m)
-    s = sqrt((1 - x) * (1 + x))
-    return _legendre_forward(N, m, x, _double_factorial_power(-s, m), -1)
+    return _legendre_forward(N, m, x, _sectoral(m, x, Val(:cut)), -1)
+end
+
+# F_m^m = (2m-1)!! wᵐ, with the root w = -√(1-x²) on the cut (`Val(:cut)`) and
+# w = √(ζ²-s) for a spheroidal chart of sign s; at the order 0, 1 for every
+# argument, the root being then neither needed nor defined off its branch.
+_sectoral_root(x, ::Val{:cut}) = -sqrt((1 - x) * (1 + x))
+_sectoral_root(x, s::Integer) = sqrt(x^2 - s)
+# dw/dx = κ x / w: κ = -1 on the cut, 1 for a chart.
+_root_slope(::Val{:cut}) = -1
+_root_slope(::Integer) = 1
+_sectoral(m::Integer, x, branch) = iszero(m) ? one(x) / one(x) : _double_factorial_power(_sectoral_root(x, branch), m)
+
+# The derivative of F_m^m: 0 at the order 0, κ x/w at the order 1 (singular
+# where the root vanishes, as P_n^1 is), and κ (2m-1)(2m-3) m x (2m-5)!! w^{m-2}
+# at the higher orders, finite there.
+function _sectoral_derivative(m::Integer, x, branch)
+    iszero(m) && return zero(one(x) / one(x))
+    w = _sectoral_root(x, branch)
+    κ = _root_slope(branch)
+    m == 1 && return κ * x / w
+    return κ * (2m - 1) * (2m - 3) * m * x * _double_factorial_power(w, m - 2)
+end
+
+# The derivatives of the functions of `_legendre_forward` (values `F`, of order
+# m, seed derivative `dFm`), by the derivative of the recurrence:
+# (n-m+1) F′_{n+1} = (2n+1)(F_n + x F′_n) + σ (n+m) F′_{n-1}.
+function _legendre_forward_derivative(F::AbstractVector, m::Integer, x, dFm, σ::Integer)
+    N = length(F) - 1
+    d = zeros(promote_type(eltype(F), typeof(dFm)), N + 1)
+    m > N && return d
+    d[m + 1] = dFm
+    for n in m:(N - 1)
+        d[n + 2] = ((2n + 1) * (F[n + 1] + x * d[n + 1]) + σ * (n + m) * (n > m ? d[n] : zero(dFm))) / (n - m + 1)
+    end
+    return d
 end
 
 """
@@ -89,7 +123,7 @@ function radial_P(chart::_SpheroidalChart, N::Integer, m::Integer, ζ)
     _check_degree_order(N, m)
     s = _spheroidal_sign(chart)
     # `𝒫` obeys the recurrence of `P` with the sign of its last term reversed.
-    return _legendre_forward(N, m, ζ, _double_factorial_power(sqrt(ζ^2 - s), m), -s)
+    return _legendre_forward(N, m, ζ, _sectoral(m, ζ, s), -s)
 end
 function radial_P(::SphericalChart, N::Integer, m::Integer, r)
     _check_degree_order(N, m)
@@ -206,9 +240,9 @@ end
 """
     legendre_dP(N, m, x) -> Vector
 
-Derivatives `dP_n^m/dx` of the functions of [`legendre_P`](@ref), `|x| < 1`,
-for `m ≤ n ≤ N` (zero for `n < m`), from
-`(1-x²) P_n^m′ = (n+m) P_{n-1}^m - n x P_n^m`.
+Derivatives `dP_n^m/dx` of the functions of [`legendre_P`](@ref), for
+`m ≤ n ≤ N` (zero for `n < m`), by the derivative of their recurrence: finite
+at `x = ±1` but at the order 1, where `P_n^1` is not differentiable.
 
 # Examples
 ```jldoctest
@@ -218,20 +252,21 @@ true
 """
 function legendre_dP(N::Integer, m::Integer, x)
     P = legendre_P(N, m, x)
-    return [n < m ? zero(P[1]) : ((n + m) * (n > 0 ? P[n] : zero(P[1])) - n * x * P[n + 1]) / (1 - x^2) for n in 0:N]
+    return _legendre_forward_derivative(P, m, x, _sectoral_derivative(m, x, Val(:cut)), -1)
 end
 
 """
     radial_dP(chart, N, m, ζ) -> Vector
 
 Derivatives of the functions of [`radial_P`](@ref) with respect to their
-argument, from `(ζ²-s) 𝖯_n′ = n ζ 𝖯_n - s (n+m) 𝖯_{n-1}` (`s = 1` prolate,
-`-1` oblate), and `n rⁿ⁻¹` in the [`SphericalChart`](@ref).
+argument, by the derivative of their recurrence (they satisfy
+`(ζ²-s) 𝖯_n′ = n ζ 𝖯_n - s (n+m) 𝖯_{n-1}`, `s = 1` prolate, `-1` oblate), and
+`n rⁿ⁻¹` in the [`SphericalChart`](@ref).
 """
 function radial_dP(chart::_SpheroidalChart, N::Integer, m::Integer, ζ)
     s = _spheroidal_sign(chart)
     P = radial_P(chart, N, m, ζ)
-    return [n < m ? zero(P[1]) : (n * ζ * P[n + 1] - s * (n + m) * (n > 0 ? P[n] : zero(P[1]))) / (ζ^2 - s) for n in 0:N]
+    return _legendre_forward_derivative(P, m, ζ, _sectoral_derivative(m, ζ, s), -s)
 end
 function radial_dP(::SphericalChart, N::Integer, m::Integer, r)
     _check_degree_order(N, m)

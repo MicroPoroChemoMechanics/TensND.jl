@@ -31,7 +31,10 @@
 Values of a family of complex solid harmonics at one point, for the degrees
 ``0 \\le n \\le N``: `h[n, m]` for ``|m| \\le n``. Only the orders ``m \\ge 0`` are
 stored, the others following from ``h_n^{-m} = (-1)^m\\,\\overline{h_n^m}``; an
-order beyond the degree reads as zero, as the translation formulas need.
+order beyond the degree reads as zero, as the translation formulas need. The
+fields are `nmax` (``N``) and `values`, which holds ``h_n^m``, ``m \\ge 0``, at
+the position [`solid_harmonic_index`](@ref)`(n, m)`: tables of one degree add,
+scale and accumulate on their `values`.
 
 See also [`regular_solid_harmonics`](@ref), [`irregular_solid_harmonics`](@ref).
 """
@@ -40,8 +43,37 @@ struct SolidHarmonicTable{C <: Complex}
     values::Vector{C}
 end
 
+"""
+    SolidHarmonicTable(f, N)
+
+The table of the values `f(n, m)` for ``0 \\le m \\le n \\le N``, the negative
+orders following from the conjugates: a family of harmonics that shares the
+symmetry ``h_n^{-m} = (-1)^m\\,\\overline{h_n^m}`` of the solid harmonics, read
+with the same indexing and by the same vector harmonics.
+
+# Examples
+```jldoctest
+julia> h = SolidHarmonicTable((n, m) -> complex(n, m), 2);
+
+julia> h[2, -1]
+-2 + 1im
+```
+"""
+SolidHarmonicTable(f::F, N::Integer) where {F} = SolidHarmonicTable(Int(N), [complex(f(n, m)) for n in 0:N for m in 0:n])
+
 # The position of (n, m ≥ 0) in the packed storage.
 @inline _packed(n::Integer, m::Integer) = (n * (n + 1)) >> 1 + m + 1
+
+"""
+    solid_harmonic_index(n, m) -> Int
+
+The position of ``h_n^m`` (``0 \\le m \\le n``) in the `values` of a
+[`SolidHarmonicTable`](@ref): the degrees in increasing order and, within a
+degree, the orders ``0, \\dots, n``; a table of degree ``N`` holds
+`solid_harmonic_index(N, N)` values.
+"""
+solid_harmonic_index(n::Integer, m::Integer) =
+    0 ≤ m ≤ n ? _packed(n, m) : throw(DomainError((n, m), "a stored harmonic has 0 ≤ m ≤ n"))
 
 function Base.getindex(h::SolidHarmonicTable{C}, n::Integer, m::Integer) where {C}
     0 ≤ n ≤ h.nmax || throw(BoundsError(h, (n, m)))
@@ -353,6 +385,6 @@ _weighted_minus(B::SolidHarmonicTable, Y, N, M) =
 _weighted_3(B::SolidHarmonicTable, Y, N, M) =
     -_entry(B, N + 1, M) + (N - M) * (N + M) * _entry(Y, N - 1, M) / (2N + 1)
 
-export SolidHarmonicTable, regular_solid_harmonics, irregular_solid_harmonics, solid_harmonic_norm
+export SolidHarmonicTable, solid_harmonic_index, regular_solid_harmonics, irregular_solid_harmonics, solid_harmonic_norm
 export regular_vector_harmonic, irregular_vector_harmonic
 export regular_lame_solution, irregular_lame_solution, lame_solution_translation

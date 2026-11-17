@@ -211,6 +211,16 @@ end
                 @test radial_dQ(chart, 6, m, ζ) ≈ ForwardDiff.derivative(z -> radial_Q(chart, 6, m, z), ζ) rtol = 1.0e-11
             end
         end
+        # finite at the ends of the cut but at the order 1, and the order 0 on
+        # every branch: P_n′(±1) = (±1)^{n+1} n(n+1)/2, P_2^2 = 3(1-x²)
+        for x in (1.0, -1.0)
+            @test legendre_dP(5, 0, x) ≈ [x^(n + 1) * n * (n + 1) / 2 for n in 0:5]
+            @test legendre_dP(3, 2, x)[3] ≈ -6x
+        end
+        @test legendre_P(3, 0, 2.0) ≈ radial_P(ProlateSpheroidalChart(1.0), 3, 0, 2.0)
+        @test radial_P(ProlateSpheroidalChart(1.0), 3, 0, 0.5) ≈ legendre_P(3, 0, 0.5)
+        @test radial_dP(ProlateSpheroidalChart(1.0), 3, 0, 0.5) ≈ legendre_dP(3, 0, 0.5)
+        @test radial_dP(OblateSpheroidalChart(1.0), 4, 2, 0.0) ≈ ForwardDiff.derivative(z -> radial_P(OblateSpheroidalChart(1.0), 4, 2, z), 0.0)
         @test_throws DomainError radial_dP(SphericalChart(), 2, -1, 1.0)
         @test_throws DomainError radial_dQ(SphericalChart(), 2, -1, 1.0)
     end

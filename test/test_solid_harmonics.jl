@@ -36,6 +36,11 @@ end
         @test_throws BoundsError y[4, 0]
         @test_throws BoundsError y[-1, 0]
         @test regular_solid_harmonics(zeros(3), 2)[0, 0] == 1
+        # a table from its values
+        h = SolidHarmonicTable((n, m) -> y[n, m], 3)
+        @test h.values == y.values && h[2, -1] == y[2, -1]
+        @test y.values[solid_harmonic_index(2, 1)] == y[2, 1] && solid_harmonic_index(3, 3) == length(y.values)
+        @test_throws DomainError solid_harmonic_index(2, 3)
     end
 
     @testsection "The meridian harmonics of the spherical chart" begin

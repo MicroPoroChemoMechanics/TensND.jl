@@ -7,6 +7,7 @@ usage: [Solid harmonics and the Lamé solutions](@ref man-solid-harmonics).
 
 ```@docs
 SolidHarmonicTable
+solid_harmonic_index
 regular_solid_harmonics
 irregular_solid_harmonics
 solid_harmonic_norm
