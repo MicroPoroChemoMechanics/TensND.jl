@@ -8,6 +8,7 @@ using LinearAlgebra, Tensors, Rotations
 # function, not two that the same `using` would make ambiguous.
 import Tensors: divergence
 using ForwardDiff, StaticArrays
+using SpecialFunctions: erfc, loggamma, logfactorial
 using Random: Random, AbstractRNG
 using SymPyCore: SymPyCore, Sym
 using Symbolics
@@ -30,6 +31,7 @@ include("structured_tens_ops.jl")
 include("structured_tens_promotion.jl")
 include("symmetry_blocks.jl")
 include("symmetric_parts.jl")
+include("tens_lazy.jl")
 include("tens_projection.jl")
 include("orientation_search.jl")
 include("symmetry_search.jl")
@@ -39,6 +41,9 @@ include("special_tens.jl")
 include("random_tens.jl")
 include("charts.jl")
 include("spheroidal_harmonics.jl")
+include("solid_harmonics.jl")
+include("lattice_harmonics.jl")
+include("ellipsoidal_harmonics.jl")
 include("coorsystems.jl")
 include("coorsystems_num.jl")
 include("submanifold.jl")

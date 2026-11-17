@@ -429,41 +429,16 @@ end
 
 Numerical polar coordinate system. Coordinates: (r, θ). Lamé coefficients: (1, r).
 """
-function coorsys_polar(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real}
-    dim = 2
-    χ_func = (x::AbstractVector{<:Number}) -> [one(x[1]), x[1]]          # (1, r)
-    R_func = (x::AbstractVector{<:Number}) -> begin
-        θ = x[2]
-        [cos(θ) -sin(θ); sin(θ) cos(θ)]
-    end
-    Γ_func = (x::AbstractVector{<:Number}) -> begin
-        χ = χ_func(x)
-        ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
-        _christoffel_orthogonal(χ, ∂χ)
-    end
-    return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
-end
+coorsys_polar(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real} =
+    _pointwise_system(PolarChart(), T)
 
 """
     coorsys_cylindrical(PointwiseGeometry, T = Float64)
 
 Numerical cylindrical coordinate system. Coordinates: (r, θ, z). Lamé coefficients: (1, r, 1).
 """
-function coorsys_cylindrical(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real}
-    dim = 3
-    χ_func = (x::AbstractVector{<:Number}) -> [one(x[1]), x[1], one(x[1])]  # (1, r, 1)
-    R_func = (x::AbstractVector{<:Number}) -> begin
-        θ = x[2]
-        z = zero(θ); o = one(θ)
-        [cos(θ) -sin(θ) z; sin(θ) cos(θ) z; z z o]
-    end
-    Γ_func = (x::AbstractVector{<:Number}) -> begin
-        χ = χ_func(x)
-        ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
-        _christoffel_orthogonal(χ, ∂χ)
-    end
-    return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
-end
+coorsys_cylindrical(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real} =
+    _pointwise_system(CylindricalChart(), T)
 
 """
     coorsys_spherical(PointwiseGeometry, T = Float64)
@@ -471,29 +446,8 @@ end
 Numerical spherical coordinate system. Coordinates: (θ, ϕ, r) — same convention as
 `coorsys_spherical()`. Lamé coefficients: (r, r·sin(θ), 1).
 """
-function coorsys_spherical(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real}
-    dim = 3
-    # coords = (θ, ϕ, r)
-    χ_func = (x::AbstractVector{<:Number}) -> [x[3], x[3] * sin(x[1]), one(x[1])]
-    R_func = (x::AbstractVector{<:Number}) -> begin
-        θ, ϕ = x[1], x[2]
-        z = θ * 0
-        # Columns = 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ expressed in Cartesian. 𝐞ᶿ = (cos θ cos ϕ,
-        # cos θ sin ϕ, −sin θ): its second entry read sin θ cos ϕ, so the
-        # "normalized" basis was not even normed (|𝐞ᶿ|² = cos²ϕ + sin²θ).
-        [
-            cos(θ) * cos(ϕ)  -sin(ϕ)  sin(θ) * cos(ϕ);
-            cos(θ) * sin(ϕ)   cos(ϕ)  sin(θ) * sin(ϕ);
-            -sin(θ)          z        cos(θ)
-        ]
-    end
-    Γ_func = (x::AbstractVector{<:Number}) -> begin
-        χ = χ_func(x)
-        ∂χ = ForwardDiff.jacobian(y -> χ_func(y), collect(x))
-        _christoffel_orthogonal(χ, ∂χ)
-    end
-    return _pointwise_system(Val(dim), T, χ_func, R_func, Γ_func)
-end
+coorsys_spherical(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real} =
+    _pointwise_system(SphericalChart(), T)
 
 # A pointwise system from a chart: its closed-form Lamé coefficients and unit
 # vectors, the Christoffel symbols from the derivatives of the former.

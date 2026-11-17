@@ -45,6 +45,22 @@ would lose the function to rounding:
 radial_Q(chart, 60, 0, 2.0)[[1, 21, 41, 61]]
 ```
 
+On the oblate side, ``\tau = 0`` is the focal disk, where
+``\mathcal{Q}_n^m`` is finite; the exterior harmonics take there the values of
+its two faces, ``p > 0`` and ``p < 0``, those of a penny-shaped crack:
+
+```@example sh
+radial_Q(OblateSpheroidalChart(1.0), 3, 0, 0.0)              # π/2, 1, π/4, 2/3
+```
+
+The derivatives with respect to the argument come from the three-term
+identities of the functions, [`legendre_dP`](@ref), [`radial_dP`](@ref) and
+[`radial_dQ`](@ref):
+
+```@example sh
+radial_dQ(chart, 3, 1, 2.0)
+```
+
 ## Harmonics at a point
 
 [`interior_harmonics`](@ref) and [`exterior_harmonics`](@ref) take the
@@ -128,5 +144,6 @@ c₁, c₂ = symbols("c₁ c₂", positive = true)
 interior_reexpansion(ProlateSpheroidalChart(c₂), ProlateSpheroidalChart(c₁), 2, 0)
 ```
 
-[`radial_Q`](@ref) sizes an iteration on the value of its argument: it takes
-numbers.
+[`radial_Q`](@ref) runs its recurrence upward on a symbol, which needs no
+size; the downward run, which it takes on numbers far from the focal set, is
+sized on the value of its argument.

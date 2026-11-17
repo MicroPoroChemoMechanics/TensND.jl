@@ -15,4 +15,6 @@ EllipsoidalChart
 coords_to_cartesian
 cartesian_to_coords
 change_coords
+unit_vectors
+lame_coefficients(::AbstractChart, ::Any)
 ```

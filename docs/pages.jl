@@ -57,6 +57,8 @@ pages = [
             "theory/ellipsoidal.md",
             "theory/coordinate_changes.md",
             "theory/spheroidal_harmonics.md",
+            "theory/solid_harmonics.md",
+            "theory/ellipsoidal_harmonics.md",
         ],
         "Surfaces" => [
             "theory/submanifolds.md",
@@ -84,6 +86,7 @@ pages = [
             "manual/coorsystems_num.md",
             "manual/charts.md",
             "manual/spheroidal_harmonics.md",
+            "manual/solid_harmonics.md",
         ],
         "Surfaces" => [
             "manual/submanifolds.md",
@@ -150,6 +153,8 @@ pages = [
             "api/coorsystems_num.md",
             "api/charts.md",
             "api/spheroidal_harmonics.md",
+            "api/solid_harmonics.md",
+            "api/ellipsoidal_harmonics.md",
         ],
         "Surfaces" => [
             "api/submanifold.md",

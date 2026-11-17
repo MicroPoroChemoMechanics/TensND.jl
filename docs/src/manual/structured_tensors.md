@@ -266,3 +266,68 @@ cubic one changes nothing.
 The measured cost of each is in [Performance of the structured types](@ref tut-performance).
 A tensor of any of these classes, with random coefficients and orientation,
 is drawn by [`rand`](@ref Base.rand(::Type{<:TensND._RandomClass})) ([Random tensors](@ref man-random-tensors)).
+
+## [The zero tensor and the multiples of the identity](@id man-lazy-tensors)
+
+Two lazy tensors store nothing but a factor: [`TensZero`](@ref), the zero
+tensor of any order, and [`TensIdentity`](@ref), the multiple ``\lambda\,\boldsymbol{1}``
+of the identity at the order 2 or ``\lambda\,\mathbb{I}`` at the order 4,
+``\mathbb{I}`` being the symmetric identity of [`tens_Id4`](@ref). They are
+tensors like the others, but an operation that involves them reduces to its
+result without forming any component:
+
+```@example lazy
+using TensND
+𝟎 = TensZero{4, 3, Float64}()
+𝕀 = TensIdentity{4, 3}(2.0)
+ℂ = TensISO{3}(3.0, 1.0)
+(𝟎 + ℂ === ℂ, 𝟎 ⊡ ℂ, 𝕀 ⊡ ℂ)
+```
+
+The zero tensor is neutral for the sums and returns the zero tensor of the
+order of the result in the products and contractions (a scalar zero at the
+order 0). ``\lambda\,\boldsymbol{1}\cdot\mathbf{A} = \lambda\,\mathbf{A}`` whatever
+the order of ``\mathbf{A}``, and ``\lambda\,\boldsymbol{1}:\mathbf{A}`` contracts the
+first two indices of ``\mathbf{A}``. ``\lambda\,\mathbb{I}:\mathbf{A}`` is
+``\lambda`` times the part of ``\mathbf{A}`` symmetric in its first two indices,
+that is ``\lambda\,\mathbf{A}`` itself for a tensor whose type carries that
+symmetry, the structured tensors and those stored as symmetric:
+
+```@example lazy
+A = Tens([1.0 2.0 0.0; 0.0 1.0 0.0; 0.0 0.0 3.0])
+𝕀 ⊡ A
+```
+
+The inverse of ``\lambda\,\mathbb{I}`` is ``\lambda^{-1}\mathbb{I}``, and two
+identities compose by their factors. A sum with any other tensor goes through
+the isotropic tensor the identity is, and the operations without a closed form
+through its components:
+
+```@example lazy
+(inv(𝕀), 𝕀 ⊡ 𝕀, 𝕀 + ℂ)
+```
+
+At the order 4 a second identity is at hand, the identity on all the tensors of
+order 2, ``\mathbb{I}^{\mathrm{f}}_{ijkl} = \delta_{ik}\delta_{jl}``, which has
+the major symmetry and not the minor ones: ``\mathbb{I}^{\mathrm{f}}:\mathbf{A} =
+\mathbf{A}`` for any ``\mathbf{A}``, symmetric or not. The kind is the last type
+parameter of `TensIdentity`, `:sym` for ``\mathbb{I}`` and `:full` for
+``\mathbb{I}^{\mathrm{f}}``; the product of two identities is ``\mathbb{I}`` as soon
+as one of them is ``\mathbb{I}``, since ``\mathbb{I}`` projects on the symmetric
+tensors:
+
+```@example lazy
+𝕀ᶠ = TensIdentity{4, 3}(1.0, Val(:full))
+(𝕀ᶠ ⊡ A == A, 𝕀ᶠ ⊡ 𝕀, 𝕀ᶠ ⊡ 𝕀ᶠ)
+```
+
+`zero(t)` and `one(t)` stay in the type of `t`, as Julia's conventions require
+of them, so that an accumulator or an array keeps its type. The lazy tensors of
+the order, the dimension and the element type of a given tensor are built by
+`TensZero(t)` and `TensIdentity(t)` (`TensIdentity(t, Val(:full))` for
+``\mathbb{I}^{\mathrm{f}}``):
+
+```@example lazy
+(zero(ℂ), TensZero(ℂ), TensIdentity(ℂ))
+```
+

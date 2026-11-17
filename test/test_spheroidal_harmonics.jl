@@ -169,6 +169,62 @@ end
         end
     end
 
+    @testsection "radial_Q: the upward route and the focal disk" begin
+        P, O = ProlateSpheroidalChart(1.0), OblateSpheroidalChart(1.0)
+        # both routes, where both hold, and against extended precision
+        for (mk, ζ) in ((ProlateSpheroidalChart, 1.05), (ProlateSpheroidalChart, 1.3), (OblateSpheroidalChart, 0.2), (OblateSpheroidalChart, 0.6)), m in (0, 1, 3)
+            chart = mk(1.0)
+            up = TensND._radial_Q(Val(:upward), chart, 6, m, ζ)
+            down = TensND._radial_Q(Val(:downward), chart, 6, m, ζ)
+            @test up ≈ down rtol = 1.0e-12
+            ref = Float64.(TensND._radial_Q(Val(:downward), mk(big"1.0"), 6, m, BigFloat(ζ)))
+            @test radial_Q(chart, 6, m, ζ) ≈ ref rtol = 1.0e-13
+        end
+        @test TensND._q_route(O, 30, 0, 0.01) === Val(:upward)
+        @test TensND._q_route(O, 30, 0, 1.0) === Val(:downward)
+        # On the disk τ = 0: 𝒬_n(0) = iⁿ⁺¹ Q_n(i0), Q_n(i0) = −(1/2) PV∫ P_n(t)/t dt
+        # − (iπ/2) P_n(0) (Neumann's integral, the even P_n giving the residue
+        # alone, the odd ones a regular integral)
+        t, w = _sh_gauss(40)
+        Q = radial_Q(O, 7, 0, 0.0)
+        for n in 0:7
+            ref = iseven(n) ? (-1)^(n ÷ 2) * π / 2 * _sh_legendre(n, 0.0) :
+                (-1)^((n + 1) ÷ 2) * (-sum(w[j] * _sh_legendre(n, t[j]) / t[j] for j in eachindex(t)) / 2)
+            @test Q[n + 1] ≈ ref atol = 1.0e-13
+        end
+        @test Q[1] ≈ π / 2 && Q[2] ≈ 1
+        # the Casoratian there, at every order
+        for m in 0:4
+            Pm = radial_P(O, m + 1, m, 0.0)
+            Qm = radial_Q(O, m + 1, m, 0.0)
+            @test Pm[m + 2] * Qm[m + 1] + Pm[m + 1] * Qm[m + 2] ≈ (-1)^m * factorial(2m) rtol = 1.0e-13
+        end
+        # and the derivative there
+        @test ForwardDiff.derivative(τ -> radial_Q(O, 4, 2, τ), 0.0) ≈ radial_dQ(O, 4, 2, 0.0) rtol = 1.0e-12
+    end
+
+    @testsection "Derivatives" begin
+        for m in 0:3
+            @test legendre_dP(6, m, 0.35) ≈ ForwardDiff.derivative(x -> legendre_P(6, m, x), 0.35) rtol = 1.0e-12
+            for (chart, ζ) in ((ProlateSpheroidalChart(1.0), 1.4), (OblateSpheroidalChart(1.0), 0.7), (OblateSpheroidalChart(1.0), 0.03), (SphericalChart(), 1.3))
+                @test radial_dP(chart, 6, m, ζ) ≈ ForwardDiff.derivative(z -> radial_P(chart, 6, m, z), ζ) rtol = 1.0e-12
+                @test radial_dQ(chart, 6, m, ζ) ≈ ForwardDiff.derivative(z -> radial_Q(chart, 6, m, z), ζ) rtol = 1.0e-11
+            end
+        end
+        # finite at the ends of the cut but at the order 1, and the order 0 on
+        # every branch: P_n′(±1) = (±1)^{n+1} n(n+1)/2, P_2^2 = 3(1-x²)
+        for x in (1.0, -1.0)
+            @test legendre_dP(5, 0, x) ≈ [x^(n + 1) * n * (n + 1) / 2 for n in 0:5]
+            @test legendre_dP(3, 2, x)[3] ≈ -6x
+        end
+        @test legendre_P(3, 0, 2.0) ≈ radial_P(ProlateSpheroidalChart(1.0), 3, 0, 2.0)
+        @test radial_P(ProlateSpheroidalChart(1.0), 3, 0, 0.5) ≈ legendre_P(3, 0, 0.5)
+        @test radial_dP(ProlateSpheroidalChart(1.0), 3, 0, 0.5) ≈ legendre_dP(3, 0, 0.5)
+        @test radial_dP(OblateSpheroidalChart(1.0), 4, 2, 0.0) ≈ ForwardDiff.derivative(z -> radial_P(OblateSpheroidalChart(1.0), 4, 2, z), 0.0)
+        @test_throws DomainError radial_dP(SphericalChart(), 2, -1, 1.0)
+        @test_throws DomainError radial_dQ(SphericalChart(), 2, -1, 1.0)
+    end
+
     @testsection "Each harmonic is harmonic" begin
         # the Laplacian of the harmonic times cos mϕ, by the pointwise system
         for (chart, CS, ξ) in (
@@ -396,6 +452,13 @@ end
         L = interior_reexpansion(ProlateSpheroidalChart(c₂), OblateSpheroidalChart(c₁), 4, 1)
         @test [val(l, Dict(c₁ => 1.1, c₂ => 1.7)) for l in L] ≈
             interior_reexpansion(ProlateSpheroidalChart(1.7), OblateSpheroidalChart(1.1), 4, 1) rtol = 1.0e-12
+        # the second kind goes upward on a symbol
+        for (chart, z, z₀) in ((ProlateSpheroidalChart(1.0), q, 1.7), (OblateSpheroidalChart(1.0), τ, 0.4))
+            v = radial_Q(chart, 4, 1, z)
+            @test [val(v[i], Dict(z => z₀)) for i in 1:5] ≈ radial_Q(chart, 4, 1, z₀) rtol = 1.0e-10
+        end
+        v = radial_Q(ProlateSpheroidalChart(1.0), 3, 0, qs)
+        @test [Float64(v[i].subs(Dict(qs => 1.7))) for i in 1:4] ≈ radial_Q(ProlateSpheroidalChart(1.0), 3, 0, 1.7) rtol = 1.0e-10
     end
 
     @testsection "Errors" begin
@@ -413,6 +476,6 @@ end
         @test_throws DomainError interior_reexpansion(P, O, 2, -1)
         # the focal set
         @test_throws DomainError radial_Q(P, 3, 0, 1.0)
-        @test_throws DomainError radial_Q(O, 3, 0, 0.0)
+        @test_throws DomainError radial_Q(O, 3, 0, -0.1)
     end
 end

@@ -121,6 +121,26 @@ coords_to_cartesian(ProlateSpheroidalChart(c), (ϕ, p, q))
 
 The inverse maps select a root or a sign from values: they take numbers.
 
+## Unit vectors and Lamé coefficients
+
+At a point of given coordinates, [`unit_vectors`](@ref) returns the unit
+vectors ``\underline{e}_i = (\partial\underline{x}/\partial\xi_i)/\chi_i`` as the
+columns of a matrix of Cartesian components, in the order of the coordinates,
+and [`lame_coefficients`](@ref lame_coefficients(::AbstractChart, ::Any)) the
+coefficients ``\chi_i = \lVert\partial\underline{x}/\partial\xi_i\rVert``. Both
+are closed forms in static arrays, which allocate nothing; on the sphere of
+radius 2, at the colatitude ``\pi/3`` and the azimuth ``\pi/4``, the columns
+are ``(\underline{e}_\theta, \underline{e}_\varphi, \underline{e}_r)``:
+
+```@example charts
+ξ = (π / 3, π / 4, 2.0)
+unit_vectors(SphericalChart(), ξ)
+```
+
+```@example charts
+lame_coefficients(SphericalChart(), ξ)                    # (r, r sin θ, 1)
+```
+
 ## A pointwise system from a chart
 
 The spheroidal and ellipsoidal systems exist in pointwise form, with the

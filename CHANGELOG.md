@@ -1,5 +1,92 @@
 # Changelog
 
+## v0.13.0 — harmonics of every kind; the zero tensor and the multiples of the identity; the frame of a chart
+
+A minor release, by the extent of what it adds: nothing breaks for existing
+code. The harmonic functions an expansion about an inclusion needs lived partly
+here (the spheroidal ones) and partly in MeanFieldHomogenization (the solid,
+vector, ellipsoidal and periodic ones, and a second implementation of the
+Legendre functions); they all live here now, with one implementation each. The
+zero tensor and the multiples of the identity had to be formed as isotropic
+tensors, and every operation on them went through their coefficients; they are
+now lazy tensors whose operations reduce to their result. The unit vectors of a
+chart at a point were reachable only through a pointwise coordinate system,
+which allocates a basis at each call.
+
+### Breaking changes
+
+None in the API or the behavior. Being a minor release below 1.0, it is not
+accepted by a `[compat]` bound `TensND = "0.12"`: dependents widen it to
+`"0.12, 0.13"` or raise it to `"0.13"`.
+
+### Added
+
+- The complex solid harmonics in the normalization of Kushch (2013), in which a
+  decaying harmonic translates to another center with decaying harmonics as
+  its only coefficients: `regular_solid_harmonics`, `irregular_solid_harmonics`
+  (a `SolidHarmonicTable` of every degree and order at a point, by recurrences
+  on the Cartesian components, valid at the origin and for duals and symbols)
+  and `solid_harmonic_norm`.
+- The three families of vector harmonics (`regular_vector_harmonic`,
+  `irregular_vector_harmonic`), the regular and decaying solutions of the Lamé
+  equation of an isotropic solid built on them (`regular_lame_solution`,
+  `irregular_lame_solution`, the third family in the Papkovich–Neuber form) and
+  the coefficients that translate them to another center
+  (`lame_solution_translation`), affine in `4(1-ν)`.
+- The sums of the decaying harmonics and of their biharmonic counterparts over a
+  periodic orthogonal array, by Ewald's splitting, with images left out on
+  demand (`lattice_solid_harmonics`, `lattice_solid_biharmonics`); the cutoff and
+  the factorials follow the precision of the number type, `BigFloat` included.
+- The Lamé functions of the ellipsoidal chart (`LameFunction`, `lame_functions`,
+  `lame_value`), the coordinates with the roots signed by octant that make the
+  ellipsoidal harmonics hold in the whole space (`ellipsoidal_signed_coordinates`)
+  and the functions of the second kind (`lame_second_kind`).
+- The derivatives of the Legendre functions, `legendre_dP`, `radial_dP` and
+  `radial_dQ`, from their three-term identities.
+- `radial_Q` on a symbol, which had no route: the recurrence runs upward, from
+  `arccoth q` or `arccot τ` and the raising of the order. Numbers take that route
+  too close to the focal set, where the downward one grows as `1/ξ`.
+
+- `TensZero{order, dim, T}()`, the zero tensor, which stores nothing, and
+  `TensIdentity{order, dim}(λ)`, λ 𝟏 at the order 2 and λ 𝕀 at the order 4
+  (𝕀 the symmetric identity of `tens_Id4`), which stores λ alone. They carry
+  the whole tensor interface, and the operations that involve them return
+  their result without forming any component: the zero tensor is neutral for
+  the sums and gives the zero of the order of the result in every product and
+  contraction, without allocation; `λ𝟏 ⋅ A = λA`; `λ𝟏 ⊡ A` contracts the first
+  pair of `A`; `λ𝕀 ⊡ A = λA` for a tensor whose type carries the symmetry of
+  that pair, its symmetric part otherwise; inverses, powers and products of
+  identities remain identities.
+- `TensIdentity{4, dim}(λ, Val(:full))`, λ 𝕀ᶠ, the identity on all the tensors
+  of order 2 (`𝕀ᶠᵢⱼₖₗ = δᵢₖδⱼₗ`), which has the major symmetry and not the
+  minor ones: `λ𝕀ᶠ ⊡ A = λA` for any `A`. The kind of an order-4 identity is
+  the last type parameter of `TensIdentity`, `:sym` (𝕀, the default) or
+  `:full`; the product of two identities is 𝕀 as soon as one of them is 𝕀.
+- `TensZero(t)` and `TensIdentity(t)` (`TensIdentity(t, Val(:full))`): the
+  lazy zero and identity of the order, the dimension and the element type of
+  `t`. `zero(t)` and `one(t)` keep the type of `t`, as Julia's conventions
+  require, so that an accumulator or an array of tensors keeps its type.
+- `unit_vectors(chart, ξ)` and `lame_coefficients(chart, ξ)`: the unit vectors
+  and the Lamé coefficients of every chart at the point of coordinates `ξ`, in
+  closed form and in static arrays. The pointwise polar, cylindrical and
+  spherical systems are now built from their charts, as the confocal ones were.
+
+### Changed
+
+- `radial_Q` and `exterior_harmonics` on the oblate side accept `τ = 0`, the focal
+  disk, on which `𝒬_n^m` is finite; they threw a `DomainError` there. The
+  exterior harmonics take on the disk the values of its two faces, those of a
+  penny-shaped crack.
+- SpecialFunctions becomes a direct dependency (`erfc`, `loggamma`); it was
+  already loaded through ForwardDiff.
+
+### Fixed
+
+- **`cartesian_to_coords(::OblateSpheroidalChart)` had a derivative `NaN` on the
+  equatorial plane**, contrary to its docstring: `p` was formed as the root of
+  `p²`. Beyond the sphere of radius `c` it is now `z/(c τ)`, smooth there; the
+  values are unchanged.
+
 ## v0.12.1 — confocal coordinate systems: oblate spheroidal, ellipsoidal, and the harmonics that go with them
 
 A patch release: everything is added, nothing changes for existing code. The

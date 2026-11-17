@@ -24,7 +24,7 @@ unitvec
 natvec
 normalized_basis
 natural_basis
-lame_coefficients
+lame_coefficients(::TensND.AbstractCoorSystem)
 christoffel
 nderiv
 coorsys_cartesian

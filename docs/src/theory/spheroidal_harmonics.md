@@ -177,8 +177,43 @@ from the behaviors at large ``\zeta``,
 ``\mathsf{Q}_n^m\sim(-1)^m\frac{(n+m)!}{(2n+1)!!}\zeta^{-n-1}``. The dominant
 solution is needed at the degrees ``m`` and ``m+1`` only, where it cannot
 overflow. The values are accurate to rounding at every degree and are
-differentiable in ``\zeta``. The functions are singular on the focal set
-(``q=1``, ``\tau=0``).
+differentiable in ``\zeta``.
+
+Close to the focal set the downward run grows long, as ``1/\xi``, while the
+upward one loses little: over the degrees ``m`` to ``N`` its error grows by
+``e^{2\xi(N-m)}``. [`radial_Q`](@ref) runs it upward when that factor stays
+below 16, and on a symbol, which has no size to start a downward run from. The
+recurrence of ``\mathsf{Q}_n^m``,
+
+```math
+(n-m+1)\,\mathsf{Q}_{n+1}^m=s\,(2n+1)\,\zeta\,\mathsf{Q}_n^m-s\,(n+m)\,\mathsf{Q}_{n-1}^m ,
+```
+
+starts at the order 0 from ``\mathsf{Q}_0=\operatorname{arccoth}q`` or
+``\operatorname{arccot}\tau`` and ``\mathsf{Q}_1=s\,(\zeta\,\mathsf{Q}_0-1)``, and
+the order is raised by
+
+```math
+\sqrt{\zeta^2-s}\;\mathsf{Q}_n^{k+1}=(n-k)\,\zeta\,\mathsf{Q}_n^k-(n+k)\,\mathsf{Q}_{n-1}^k ,
+```
+
+from ``k=0`` to ``m-1`` at the degrees ``n\le m+1``. The prolate functions are
+singular on the focal segment, ``q=1``. On the oblate side ``\tau=0`` is the
+focal disk, on which ``\mathcal{Q}_n^m`` is finite and the recurrence reduces to
+two terms; the exterior harmonics take there the values of the two faces of the
+disk, ``p>0`` and ``p<0``, and are singular on its edge ``p=0`` alone.
+
+The derivatives with respect to ``\zeta`` follow from the three-term identities
+
+```math
+(\zeta^2-s)\,\mathsf{P}_n^{m\prime}=n\,\zeta\,\mathsf{P}_n^m-s\,(n+m)\,\mathsf{P}_{n-1}^m ,
+\qquad
+(\zeta^2-s)\,\mathsf{Q}_n^{m\prime}=s\,(n-m+1)\,\mathsf{Q}_{n+1}^m-(n+1)\,\zeta\,\mathsf{Q}_n^m ,
+```
+
+the second of which holds down to ``n=m``, and on the cut from
+``(1-p^2)\,P_n^{m\prime}=(n+m)\,P_{n-1}^m-n\,p\,P_n^m``:
+[`legendre_dP`](@ref), [`radial_dP`](@ref) and [`radial_dQ`](@ref).
 
 ## Expansion in solid harmonics
 
