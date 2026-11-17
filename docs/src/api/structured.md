@@ -6,6 +6,8 @@ Compact storage for isotropic tensors, in arbitrary dimension. Theory:
 
 ```@docs
 TensISO
+TensZero
+TensIdentity
 tens_Id2
 tens_Id4
 tens_J4
