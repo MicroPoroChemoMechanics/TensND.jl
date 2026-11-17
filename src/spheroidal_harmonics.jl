@@ -29,11 +29,16 @@ end
 
 # `(n-m+1) F_{n+1} = (2n+1) x F_n + σ (n+m) F_{n-1}` upward from `F_m^m`, into
 # `v[n+1]`, `m ≤ n ≤ N`. Each step reads the two previous ones: a recurrence.
-function _legendre_forward(N::Integer, m::Integer, x, Fmm, σ::Integer)
-    v = zeros(typeof(Fmm), N + 1)
+# The second value is `(2m+1) x F_m^m` for the first kind; it is given for the
+# second kind.
+_legendre_forward(N::Integer, m::Integer, x, Fmm, σ::Integer) =
+    _legendre_forward(N, m, x, Fmm, (2m + 1) * x * Fmm, σ)
+function _legendre_forward(N::Integer, m::Integer, x, Fm, Fm1, σ::Integer)
+    T = promote_type(typeof(Fm), typeof(Fm1))
+    v = zeros(T, N + 1)
     m > N && return v
-    v[m + 1] = Fmm
-    m < N && (v[m + 2] = (2m + 1) * x * Fmm)
+    v[m + 1] = Fm
+    m < N && (v[m + 2] = Fm1)
     for n in (m + 1):(N - 1)
         v[n + 2] = ((2n + 1) * x * v[n + 1] + σ * (n + m) * v[n]) / (n - m + 1)
     end
@@ -106,29 +111,74 @@ Radial factor of the exterior harmonics of `chart`, `v[n+1]` for `m ≤ n ≤ N`
 - [`SphericalChart`](@ref): `r⁻ⁿ⁻¹`.
 
 `𝖰_n^m` is the minimal solution of its recurrence: run upward, the recurrence
-loses it to rounding. The ratios `𝖰_n^m/𝖰_{n-1}^m` are therefore computed
-downward, from their limit `e^{-ξ}` far above `N`, and the first value follows
-from the Casoratian with the dominant solution at the lowest degree,
+loses it to rounding, by the factor `e^{2ξ(n-m)}` at the degree `n`, with
+`ξ = arccosh q` or `arcsinh τ`. Where that factor stays below 16 over the
+degrees asked for (close to the focal set) and for a symbol, the recurrence is
+run upward, from `𝖰_m^m` and `𝖰_{m+1}^m` obtained from
+`𝖰_0 = arccoth q` (`arccot τ`) and `𝖰_1 = s(ζ 𝖰_0 - 1)` by raising the order,
+
+    √(ζ²-s) 𝖰_n^{k+1} = (n-k) ζ 𝖰_n^k - (n+k) 𝖰_{n-1}^k .
+
+Elsewhere the ratios `𝖰_n^m/𝖰_{n-1}^m` are computed downward, from their limit
+`e^{-ξ}` far above `N`, and the first value follows from the Casoratian with
+the dominant solution at the lowest degree,
 
     𝖯_{m+1}^m 𝖰_m^m - s 𝖯_m^m 𝖰_{m+1}^m = (-1)^m (2m)!,
 
 with `s = 1` (prolate) or `s = -1` (oblate). The result is accurate to rounding
-at every degree and differentiable (duals in `ζ`). It is singular on the focal
-set (`q = 1`, `τ = 0`).
+at every degree and differentiable (duals in `ζ`). On the prolate side it is
+singular on the focal segment, `q = 1`; on the oblate side `τ = 0` is the focal
+disk, on which `𝒬_n^m` is finite, and the exterior harmonics take there the
+values of its two faces, `p > 0` and `p < 0`.
 
 See also [`radial_P`](@ref), [`exterior_harmonics`](@ref).
 """
 function radial_Q(chart::_SpheroidalChart, N::Integer, m::Integer, ζ)
     _check_degree_order(N, m)
+    return _radial_Q(_q_route(chart, N, m, ζ), chart, N, m, ζ)
+end
+
+# The downward run is an iteration sized on a value: numbers and duals only,
+# a symbol goes upward. A number goes upward where the loss `e^{2ξ(N-m)}` of
+# that run stays below 16, downward elsewhere; both are accurate there.
+_q_route(chart, N, m, ζ) = _q_route(chart, N, m, ζ, Val(is_hard_numeric(typeof(ζ))))
+_q_route(chart, N, m, ζ, ::Val{false}) = Val(:upward)
+function _q_route(chart::_SpheroidalChart, N, m, ζ, ::Val{true})
+    ξ = -log(primal(_decay_ratio(chart, ζ)))
+    _check_off_focal(chart, ζ)
+    return 2 * ξ * (N - m) ≤ 4 * log(oftype(ξ, 2)) ? Val(:upward) : Val(:downward)
+end
+_check_off_focal(::ProlateSpheroidalChart, q) = primal(q) > 1 || throw(
+    DomainError(q, "the exterior harmonics are singular on the focal segment of the chart, q = 1")
+)
+_check_off_focal(::OblateSpheroidalChart, τ) = primal(τ) ≥ 0 || throw(
+    DomainError(τ, "the oblate coordinate τ is non-negative")
+)
+
+# 𝖰_0: arccoth q, arccot τ (finite at τ = 0).
+_q_zero(::ProlateSpheroidalChart, q) = acoth(q)
+_q_zero(::OblateSpheroidalChart, τ) = acot(τ)
+
+function _radial_Q(::Val{:upward}, chart::_SpheroidalChart, N::Integer, m::Integer, ζ)
+    s = _spheroidal_sign(chart)
+    Q0 = _q_zero(chart, ζ)
+    # 𝖰 obeys (n-m+1) 𝖰_{n+1} = s (2n+1) ζ 𝖰_n - s (n+m) 𝖰_{n-1}: the order 0
+    # at the degrees 0 … m+1, then raised to the order m
+    Q = _legendre_forward(m + 1, 0, s * ζ, Q0, s * (ζ * Q0 - 1), -s)
+    w = sqrt(ζ^2 - s)
+    for k in 0:(m - 1)                      # a recurrence in the order
+        for n in (m + 1):-1:(k + 1)
+            Q[n + 1] = ((n - k) * ζ * Q[n + 1] - (n + k) * Q[n]) / w
+        end
+    end
+    return _legendre_forward(N, m, s * ζ, Q[m + 1], Q[m + 2], -s)
+end
+
+function _radial_Q(::Val{:downward}, chart::_SpheroidalChart, N::Integer, m::Integer, ζ)
     s = _spheroidal_sign(chart)
     ratio = _decay_ratio(chart, ζ)
     T = typeof(ratio)
-    # The downward run is an iteration sized on a value: numbers and duals
-    # only, a symbol has no such size.
     ξ = -log(primal(ratio))
-    ξ > zero(ξ) || throw(
-        DomainError(ζ, "the exterior harmonics are singular on the focal set of the chart")
-    )
     # A start `L` degrees above `N` leaves an error `e^{-2Lξ}` on the ratio at
     # `N`: `L` is taken so that it falls below the rounding of the number type.
     L = ceil(Int, precision(typeof(ξ)) * log(2) / (2 * ξ)) + 20
@@ -151,6 +201,65 @@ end
 function radial_Q(::SphericalChart, N::Integer, m::Integer, r)
     _check_degree_order(N, m)
     return [n < m ? zero(inv(r)) : inv(r)^(n + 1) for n in 0:N]
+end
+
+"""
+    legendre_dP(N, m, x) -> Vector
+
+Derivatives `dP_n^m/dx` of the functions of [`legendre_P`](@ref), `|x| < 1`,
+for `m ≤ n ≤ N` (zero for `n < m`), from
+`(1-x²) P_n^m′ = (n+m) P_{n-1}^m - n x P_n^m`.
+
+# Examples
+```jldoctest
+julia> legendre_dP(2, 0, 0.5) ≈ [0, 1, 1.5]
+true
+```
+"""
+function legendre_dP(N::Integer, m::Integer, x)
+    P = legendre_P(N, m, x)
+    return [n < m ? zero(P[1]) : ((n + m) * (n > 0 ? P[n] : zero(P[1])) - n * x * P[n + 1]) / (1 - x^2) for n in 0:N]
+end
+
+"""
+    radial_dP(chart, N, m, ζ) -> Vector
+
+Derivatives of the functions of [`radial_P`](@ref) with respect to their
+argument, from `(ζ²-s) 𝖯_n′ = n ζ 𝖯_n - s (n+m) 𝖯_{n-1}` (`s = 1` prolate,
+`-1` oblate), and `n rⁿ⁻¹` in the [`SphericalChart`](@ref).
+"""
+function radial_dP(chart::_SpheroidalChart, N::Integer, m::Integer, ζ)
+    s = _spheroidal_sign(chart)
+    P = radial_P(chart, N, m, ζ)
+    return [n < m ? zero(P[1]) : (n * ζ * P[n + 1] - s * (n + m) * (n > 0 ? P[n] : zero(P[1]))) / (ζ^2 - s) for n in 0:N]
+end
+function radial_dP(::SphericalChart, N::Integer, m::Integer, r)
+    _check_degree_order(N, m)
+    return [n < m || n == 0 ? zero(r) : n * r^(n - 1) for n in 0:N]
+end
+
+"""
+    radial_dQ(chart, N, m, ζ) -> Vector
+
+Derivatives of the functions of [`radial_Q`](@ref) with respect to their
+argument, from `(ζ²-s) 𝖰_n′ = s (n-m+1) 𝖰_{n+1} - (n+1) ζ 𝖰_n` (`s = 1`
+prolate, `-1` oblate), which holds down to `n = m`, and `-(n+1) r⁻ⁿ⁻²` in the
+[`SphericalChart`](@ref).
+
+# Examples
+```jldoctest
+julia> radial_dQ(OblateSpheroidalChart(1.0), 1, 0, 0.0) ≈ [-1, -π / 2]
+true
+```
+"""
+function radial_dQ(chart::_SpheroidalChart, N::Integer, m::Integer, ζ)
+    s = _spheroidal_sign(chart)
+    Q = radial_Q(chart, N + 1, m, ζ)
+    return [n < m ? zero(Q[1]) : (s * (n - m + 1) * Q[n + 2] - (n + 1) * ζ * Q[n + 1]) / (ζ^2 - s) for n in 0:N]
+end
+function radial_dQ(::SphericalChart, N::Integer, m::Integer, r)
+    _check_degree_order(N, m)
+    return [n < m ? zero(inv(r)) : -(n + 1) * inv(r)^(n + 2) for n in 0:N]
 end
 
 # The two meridian coordinates of a point, angular then radial, as the
@@ -422,5 +531,5 @@ reexpansion_bound(::SphericalChart, from::_SpheroidalChart) = from.c
 reexpansion_bound(to::ProlateSpheroidalChart, ::SphericalChart) = one(to.c)
 reexpansion_bound(to::OblateSpheroidalChart, ::SphericalChart) = zero(to.c)
 
-export legendre_P, radial_P, radial_Q, interior_harmonics, exterior_harmonics
+export legendre_P, legendre_dP, radial_P, radial_dP, radial_Q, radial_dQ, interior_harmonics, exterior_harmonics
 export reexpansion_polynomials, exterior_reexpansion, interior_reexpansion, reexpansion_bound
