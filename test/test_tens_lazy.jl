@@ -10,6 +10,7 @@ _lz_full(t::Number) = t
 _lz_δ(i, j) = i == j ? 1.0 : 0.0
 _lz_id2(d) = [_lz_δ(i, j) for i in 1:d, j in 1:d]
 _lz_id4(d) = [(_lz_δ(i, k) * _lz_δ(j, l) + _lz_δ(i, l) * _lz_δ(j, k)) / 2 for i in 1:d, j in 1:d, k in 1:d, l in 1:d]
+_lz_id4f(d) = [_lz_δ(i, k) * _lz_δ(j, l) for i in 1:d, j in 1:d, k in 1:d, l in 1:d]
 
 @testsection "Lazy tensors" begin
     rng = Random.MersenneTwister(4)
@@ -150,6 +151,80 @@ _lz_id4(d) = [(_lz_δ(i, k) * _lz_δ(j, l) + _lz_δ(i, l) * _lz_δ(j, k)) / 2 fo
         @test dcontract(𝕀, 𝟏) == TensIdentity{2, 3}(6.0) && dcontract(𝟏, 𝕀) == TensIdentity{2, 3}(6.0)
         @test dcontract(𝟏, 𝟏) == 12.0
         @test dcontract(𝕀, 𝟎₂) === 𝟎₂ && dcontract(𝟎₄, 𝟏) === 𝟎₂
+    end
+
+    @testsection "Constructors from a tensor" begin
+        Ciso = TensISO{3}(3.0, 4.0)
+        @test TensZero(Ciso) === TensZero{4, 3, Float64}()
+        @test TensZero(A) === TensZero{2, 3, Float64}()
+        @test TensIdentity(Ciso) === TensIdentity{4, 3}(1.0)
+        @test TensIdentity(TensISO{2}(1.0f0)) === TensIdentity{2, 2}(1.0f0)
+        @test TensIdentity(Ciso, Val(:full)) === TensIdentity{4, 3}(1.0, Val(:full))
+        @test_throws ArgumentError TensIdentity(v)
+        # zero and one stay in the type of their argument
+        @test zero(Ciso) isa TensISO && one(Ciso) isa TensISO
+    end
+
+    @testsection "Full identity" begin
+        λ = 1.5
+        𝕀ᶠ = TensIdentity{4, 3}(λ, Val(:full))
+        @test 𝕀ᶠ isa TensIdentity{4, 3, Float64, :full}
+        @test TensIdentity{2, 3}(1.0, Val(:full)) isa TensIdentity{2, 3, Float64, :sym}
+        @test_throws ArgumentError TensIdentity{4, 3}(1.0, Val(:other))
+        for d in (2, 3)
+            I = TensIdentity{4, d}(λ, Val(:full))
+            @test Array(I) == λ * _lz_id4f(d)
+            @test mandel(I) == λ * Matrix(1.0LinearAlgebra.I, d^2, d^2)
+            @test norm(I) ≈ norm(λ * _lz_id4f(d))
+        end
+        @test !isisotropic(𝕀ᶠ) && !issymmetric(𝕀ᶠ) && !Tensors.isminorsymmetric(𝕀ᶠ) && Tensors.ismajorsymmetric(𝕀ᶠ)
+        @test sprint(show, 𝕀ᶠ) == "(1.5) 𝕀ᶠ"
+        @test sprint(show, MIME("text/plain"), 𝕀ᶠ) == "TensIdentity{4, 3, Float64, :full}\n→ lazy: (1.5) 𝕀ᶠ"
+        # the same in every orthonormal basis
+        ℬ = random_basis(rng, Float64)
+        @test _lz_full(express(𝕀ᶠ, ℬ)) ≈ λ * _lz_id4f(3)
+        @test Array(components(𝕀ᶠ, ℬ, (:cont, :cont, :cont, :cont))) ≈ λ * _lz_id4f(3)
+        # scalars keep the kind
+        for t in (-𝕀ᶠ, 2𝕀ᶠ, 𝕀ᶠ * 2, 𝕀ᶠ / 2, inv(𝕀ᶠ), 𝕀ᶠ^2, one(𝕀ᶠ), adjoint(𝕀ᶠ), transpose(𝕀ᶠ))
+            @test t isa TensIdentity{4, 3, Float64, :full}
+        end
+        @test get_data(inv(𝕀ᶠ)) == (1 / λ,) && get_data(𝕀ᶠ^2) == (λ^2,) && get_data(one(𝕀ᶠ)) == (1.0,)
+        @test 𝕀ᶠ / Symbolics.Num(2) isa TensIdentity{4, 3, <:Any, :full}
+        # equality: 𝕀 and 𝕀ᶠ differ unless both vanish
+        @test 𝕀ᶠ == TensIdentity{4, 3}(λ, Val(:full))
+        @test 𝕀ᶠ != TensIdentity{4, 3}(λ) && TensIdentity{4, 3}(λ) != 𝕀ᶠ
+        @test 0𝕀ᶠ == TensIdentity{4, 3}(0.0) && TensIdentity{4, 3}(0.0) == 0𝕀ᶠ
+        # sums: one kind adds the factors, otherwise the components
+        @test 𝕀ᶠ + 𝕀ᶠ === TensIdentity{4, 3}(2λ, Val(:full))
+        @test 𝕀ᶠ - 𝕀ᶠ === TensIdentity{4, 3}(0.0, Val(:full))
+        @test _lz_full(𝕀ᶠ + 𝕀) ≈ λ * _lz_id4f(3) + 3 * _lz_id4(3)
+        @test _lz_full(𝕀 - 𝕀ᶠ) ≈ 3 * _lz_id4(3) - λ * _lz_id4f(3)
+        @test _lz_full(𝕀ᶠ + C) ≈ λ * _lz_id4f(3) + _lz_full(C)
+        @test _lz_full(TensISO{3}(2.0, 1.0) - 𝕀ᶠ) ≈ _lz_full(TensISO{3}(2.0, 1.0)) - λ * _lz_id4f(3)
+        @test 𝟎₄ + 𝕀ᶠ === 𝕀ᶠ && 𝕀ᶠ - 𝟎₄ === 𝕀ᶠ && 𝟎₄ - 𝕀ᶠ === -𝕀ᶠ
+        # contractions: the identity map, on either side, whatever the symmetry
+        @test _lz_full(dcontract(𝕀ᶠ, A)) ≈ λ * _lz_full(A)
+        @test _lz_full(dcontract(A, 𝕀ᶠ)) ≈ λ * _lz_full(A)
+        @test _lz_full(dcontract(𝕀ᶠ, C)) ≈ λ * _lz_full(C)
+        @test _lz_full(dcontract(C, 𝕀ᶠ)) ≈ λ * _lz_full(C)
+        for B in (TensISO{3}(2.0, 1.0), rand(rng, TensTI{4}), rand(rng, TensOrtho{4}), rand(rng, TensCubic))
+            @test dcontract(𝕀ᶠ, B) ≈ λ * B && dcontract(B, 𝕀ᶠ) ≈ λ * B
+        end
+        # products of identities, against their components
+        I4 = (𝕀, 𝕀ᶠ)
+        for a in I4, b in I4
+            p = dcontract(a, b)
+            @test _lz_full(p) ≈ reshape(reshape(_lz_full(a), 9, 9) * reshape(_lz_full(b), 9, 9), 3, 3, 3, 3)
+            @test p isa TensIdentity{4, 3, Float64, (a === b === 𝕀ᶠ ? :full : :sym)}
+        end
+        @test dcontract(𝕀ᶠ, 𝟏) === TensIdentity{2, 3}(2λ) && dcontract(𝟏, 𝕀ᶠ) === TensIdentity{2, 3}(2λ)
+        @test dcontract(𝕀ᶠ, 𝟎₄) === 𝟎₄ && dcontract(𝟎₂, 𝕀ᶠ) === 𝟎₂
+        Ciso = TensISO{3}(2.0, 1.0)
+        g(L, B) = dcontract(L, B)
+        g(𝕀ᶠ, Ciso)
+        @test (@allocated g(𝕀ᶠ, Ciso)) == 0
+        @test (@inferred dcontract(𝕀ᶠ, Ciso)) isa TensISO{4, 3, Float64}
+        @test ForwardDiff.derivative(t -> _lz_full(dcontract(TensIdentity{4, 3}(t, Val(:full)), C)), 0.4) ≈ _lz_full(C)
     end
 
     @testsection "Derivatives and symbols" begin

@@ -21,6 +21,15 @@ pointwise coordinate system, which allocates a basis at each call.
   pair of `A`; `λ𝕀 ⊡ A = λA` for a tensor whose type carries the symmetry of
   that pair, its symmetric part otherwise; inverses, powers and products of
   identities remain identities.
+- `TensIdentity{4, dim}(λ, Val(:full))`, λ 𝕀ᶠ, the identity on all the tensors
+  of order 2 (`𝕀ᶠᵢⱼₖₗ = δᵢₖδⱼₗ`), which has the major symmetry and not the
+  minor ones: `λ𝕀ᶠ ⊡ A = λA` for any `A`. The kind of an order-4 identity is
+  the last type parameter of `TensIdentity`, `:sym` (𝕀, the default) or
+  `:full`; the product of two identities is 𝕀 as soon as one of them is 𝕀.
+- `TensZero(t)` and `TensIdentity(t)` (`TensIdentity(t, Val(:full))`): the
+  lazy zero and identity of the order, the dimension and the element type of
+  `t`. `zero(t)` and `one(t)` keep the type of `t`, as Julia's conventions
+  require, so that an accumulator or an array of tensors keeps its type.
 - `unit_vectors(chart, ξ)` and `lame_coefficients(chart, ξ)`: the unit vectors
   and the Lamé coefficients of every chart at the point of coordinates `ξ`, in
   closed form and in static arrays. The pointwise polar, cylindrical and

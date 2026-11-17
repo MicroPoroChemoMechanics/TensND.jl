@@ -307,3 +307,27 @@ through its components:
 (inv(𝕀), 𝕀 ⊡ 𝕀, 𝕀 + ℂ)
 ```
 
+At the order 4 a second identity is at hand, the identity on all the tensors of
+order 2, ``\mathbb{I}^{\mathrm{f}}_{ijkl} = \delta_{ik}\delta_{jl}``, which has
+the major symmetry and not the minor ones: ``\mathbb{I}^{\mathrm{f}}:\mathbf{A} =
+\mathbf{A}`` for any ``\mathbf{A}``, symmetric or not. The kind is the last type
+parameter of `TensIdentity`, `:sym` for ``\mathbb{I}`` and `:full` for
+``\mathbb{I}^{\mathrm{f}}``; the product of two identities is ``\mathbb{I}`` as soon
+as one of them is ``\mathbb{I}``, since ``\mathbb{I}`` projects on the symmetric
+tensors:
+
+```@example lazy
+𝕀ᶠ = TensIdentity{4, 3}(1.0, Val(:full))
+(𝕀ᶠ ⊡ A == A, 𝕀ᶠ ⊡ 𝕀, 𝕀ᶠ ⊡ 𝕀ᶠ)
+```
+
+`zero(t)` and `one(t)` stay in the type of `t`, as Julia's conventions require
+of them, so that an accumulator or an array keeps its type. The lazy tensors of
+the order, the dimension and the element type of a given tensor are built by
+`TensZero(t)` and `TensIdentity(t)` (`TensIdentity(t, Val(:full))` for
+``\mathbb{I}^{\mathrm{f}}``):
+
+```@example lazy
+(zero(ℂ), TensZero(ℂ), TensIdentity(ℂ))
+```
+

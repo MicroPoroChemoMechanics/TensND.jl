@@ -1,16 +1,18 @@
 ##############################################################################
 # Lazy tensors: the zero tensor and the multiples of the identity.            #
 #                                                                            #
-# `TensZero{order, dim, T}` stores nothing and `TensIdentity{order, dim, T}`  #
-# stores its factor λ alone: λ 𝟏 at the order 2, λ 𝕀 at the order 4, 𝕀 the  #
-# symmetric identity (`𝕀ᵢⱼₖₗ = (δᵢₖδⱼₗ + δᵢₗδⱼₖ)/2`, `tens_Id4`). Both are     #
-# tensors like the others (components, bases, Kelvin–Mandel, display); what   #
+# `TensZero{order, dim, T}` stores nothing and `TensIdentity{order, dim, T,  #
+# S}` stores its factor λ alone: λ 𝟏 at the order 2, and at the order 4      #
+# either λ 𝕀 (S = :sym), 𝕀 the identity on the symmetric tensors             #
+# (`𝕀ᵢⱼₖₗ = (δᵢₖδⱼₗ + δᵢₗδⱼₖ)/2`, `tens_Id4`), or λ 𝕀ᶠ (S = :full), the        #
+# identity on all the tensors of order 2 (`𝕀ᶠᵢⱼₖₗ = δᵢₖδⱼₗ`). They are        #
+# tensors like the others (components, bases, Kelvin–Mandel, display); what  #
 # they add is that an operation on them reduces to its result without        #
 # forming any component: the zero tensor is neutral for the sums and         #
-# absorbing for the products and contractions, λ 𝟏 contracts as λ times the  #
-# identity map and λ 𝕀 ⊡ 𝐀 = λ 𝐀 for a tensor with the minor symmetries.    #
-# An operation without a closed form goes through `TensISO`, which both are  #
-# exactly, and the promotions of the structured tensors.                     #
+# absorbing for the products and contractions, λ 𝟏 and λ 𝕀ᶠ contract as λ   #
+# times the identity map and λ 𝕀 ⊡ 𝐀 = λ 𝐀 for a tensor with the minor       #
+# symmetries. An operation without a closed form goes through the tensor     #
+# they are: `TensISO` for 𝟎, 𝟏 and 𝕀, a `Tens` of `Tensor` storage for 𝕀ᶠ.   #
 ##############################################################################
 
 """
@@ -40,17 +42,41 @@ See also [`TensIdentity`](@ref).
 struct TensZero{order, dim, T <: Number} <: AbstractTens{order, dim, T} end
 
 """
+    TensZero(t::AbstractTens)
+
+The zero tensor of the order, the dimension and the element type of `t`. Unlike
+`zero(t)`, which stays in the type of `t`, it is lazy: write it where an
+operation gains by the zero being known from its type.
+
+# Examples
+```jldoctest
+julia> TensZero(TensISO{3}(3.0, 4.0))
+TensZero{4, 3, Float64}
+→ lazy: 𝟎
+```
+"""
+TensZero(::AbstractTens{order, dim, T}) where {order, dim, T} = TensZero{order, dim, T}()
+
+"""
     TensIdentity{order, dim}(λ = true)
+    TensIdentity{4, dim}(λ, Val(:full))
 
 The multiple ``\\lambda\\,\\boldsymbol{1}`` (order 2) or ``\\lambda\\,\\mathbb{I}``
-(order 4) of the identity in dimension `dim`, which stores `λ` alone;
-``\\mathbb{I}`` is the symmetric identity,
+(order 4) of the identity in dimension `dim`, which stores `λ` alone. At the
+order 4, ``\\mathbb{I}`` is by default the identity on the symmetric tensors,
 ``\\mathbb{I}_{ijkl} = (\\delta_{ik}\\delta_{jl} + \\delta_{il}\\delta_{jk})/2``, that of
-[`tens_Id4`](@ref). Its contractions reduce to the identity map:
-``\\lambda\\boldsymbol{1}\\cdot\\mathbf{A} = \\lambda\\mathbf{A}``,
-``\\lambda\\mathbb{I}:\\mathbf{A} = \\lambda\\mathbf{A}`` for a tensor with the
-minor symmetries (its symmetric part otherwise), and its inverse is
-``\\lambda^{-1}\\boldsymbol{1}`` or ``\\lambda^{-1}\\mathbb{I}``.
+[`tens_Id4`](@ref) and of the schemes of homogenization; with `Val(:full)` it is
+the identity on all the tensors of order 2,
+``\\mathbb{I}^{\\mathrm{f}}_{ijkl} = \\delta_{ik}\\delta_{jl}``, which has the major symmetry
+and not the minor ones. The kind is the last type parameter, `:sym` or `:full`
+(`:sym` at the order 2, where the two coincide). The contractions reduce to the
+identity map: ``\\lambda\\boldsymbol{1}\\cdot\\mathbf{A} = \\lambda\\mathbf{A}``,
+``\\lambda\\mathbb{I}^{\\mathrm{f}}:\\mathbf{A} = \\lambda\\mathbf{A}``, and
+``\\lambda\\mathbb{I}:\\mathbf{A} = \\lambda\\mathbf{A}`` for a tensor with the minor
+symmetries (its symmetric part otherwise); the product of two identities is the
+identity of the order of the result, ``\\mathbb{I}`` as soon as one of them is
+``\\mathbb{I}``, and the inverse of ``\\lambda`` times an identity is ``\\lambda^{-1}``
+times the same.
 
 # Examples
 ```jldoctest
@@ -62,33 +88,69 @@ julia> 𝕀 ⊡ C == 2C
 true
 
 julia> inv(𝕀)
-TensIdentity{4, 3, Float64}
+TensIdentity{4, 3, Float64, :sym}
 → lazy: (0.5) 𝕀
+
+julia> 𝕀ᶠ = TensIdentity{4, 3}(1.0, Val(:full));
+
+julia> 𝕀ᶠ ⊡ 𝕀
+TensIdentity{4, 3, Float64, :sym}
+→ lazy: (2.0) 𝕀
 ```
 
 See also [`TensZero`](@ref), [`TensISO`](@ref).
 """
-struct TensIdentity{order, dim, T <: Number} <: AbstractTens{order, dim, T}
+struct TensIdentity{order, dim, T <: Number, S} <: AbstractTens{order, dim, T}
     λ::T
-    function TensIdentity{order, dim}(λ::T = true) where {order, dim, T <: Number}
+    function TensIdentity{order, dim}(λ::T = true, ::Val{S} = Val(:sym)) where {order, dim, T <: Number, S}
         order in (2, 4) || throw(
             ArgumentError(
-                "TensIdentity: the identity is of order 2 (𝟏) or 4 (𝕀, symmetric), got $order"
+                "TensIdentity: the identity is of order 2 (𝟏) or 4 (𝕀 or 𝕀ᶠ), got $order"
             )
         )
-        return new{order, dim, T}(λ)
+        S in (:sym, :full) || throw(
+            ArgumentError("TensIdentity: the kind of the identity is :sym or :full, got :$S")
+        )
+        return new{order, dim, T, order == 2 ? :sym : S}(λ)
     end
 end
 
+"""
+    TensIdentity(t::AbstractTens)
+    TensIdentity(t::AbstractTens{4}, Val(:full))
+
+The identity of the order, the dimension and the element type of `t`, at the
+order 2 or 4: ``\\boldsymbol{1}``, or ``\\mathbb{I}`` (the identity on the
+symmetric tensors) unless `Val(:full)` asks for ``\\mathbb{I}^{\\mathrm{f}}``. Unlike
+`one(t)`, which stays in the type of `t`, it is lazy.
+
+# Examples
+```jldoctest
+julia> TensIdentity(TensISO{3}(3.0, 4.0))
+TensIdentity{4, 3, Float64, :sym}
+→ lazy: (1.0) 𝕀
+```
+"""
+TensIdentity(::AbstractTens{order, dim, T}, kind::Val = Val(:sym)) where {order, dim, T} =
+    TensIdentity{order, dim}(one(T), kind)
+
 const _LazyTens{order, dim, T} = Union{TensZero{order, dim, T}, TensIdentity{order, dim, T}}
+# The two kinds of the identity of order 4.
+const _IdSym{dim, T} = TensIdentity{4, dim, T, :sym}
+const _IdFull{dim, T} = TensIdentity{4, dim, T, :full}
+# The kind of an identity, and the same identity with the factor λ.
+_kind(::TensIdentity{order, dim, T, S}) where {order, dim, T, S} = Val(S)
+_with_factor(t::TensIdentity{order, dim}, λ) where {order, dim} = TensIdentity{order, dim}(λ, _kind(t))
 
 # ── Interface of AbstractTens ────────────────────────────────────────────────
 
 Base.size(::_LazyTens{order, dim}) where {order, dim} = ntuple(_ -> dim, Val(order))
 Base.getindex(::TensZero{order, dim, T}, ::Vararg{Integer, order}) where {order, dim, T} = zero(T)
 Base.getindex(t::TensIdentity{2}, i::Integer, j::Integer) = t.λ * δkron(typeof(t.λ), i, j)
-Base.getindex(t::TensIdentity{4}, i::Integer, j::Integer, k::Integer, l::Integer) =
+Base.getindex(t::_IdSym, i::Integer, j::Integer, k::Integer, l::Integer) =
     t.λ * (δkron(typeof(t.λ), i, k) * δkron(typeof(t.λ), j, l) + δkron(typeof(t.λ), i, l) * δkron(typeof(t.λ), j, k)) / 2
+Base.getindex(t::_IdFull, i::Integer, j::Integer, k::Integer, l::Integer) =
+    t.λ * δkron(typeof(t.λ), i, k) * δkron(typeof(t.λ), j, l)
 
 get_data(::TensZero) = ()
 get_data(t::TensIdentity) = (t.λ,)
@@ -108,10 +170,14 @@ express(t::_LazyTens{order, dim}, ℬ::OrthonormalBasis{dim}, ::NTuple{order, Sy
     order in (2, 4) && dim in (2, 3) ?
     SymmetricTensor{order, dim, eltype(t)}((ij...) -> @inbounds t[ij...]) :
     _static_tensor(get_array(t), Val(dim), Val(order))
+# 𝕀ᶠ has not the minor symmetries: a `Tensor`
+@inline _static_tensor(t::_IdFull{dim}) where {dim} =
+    dim in (2, 3) ? Tensor{4, dim, eltype(t)}((ij...) -> @inbounds t[ij...]) :
+    _static_tensor(get_array(t), Val(dim), Val(4))
 
 # The isotropic tensor each one is.
 TensISO(t::TensIdentity{2, dim}) where {dim} = TensISO{dim}(t.λ)
-TensISO(t::TensIdentity{4, dim}) where {dim} = TensISO{dim}(t.λ, t.λ)
+TensISO(t::_IdSym{dim}) where {dim} = TensISO{dim}(t.λ, t.λ)
 TensISO(::TensZero{2, dim, T}) where {dim, T} = TensISO{dim}(zero(T))
 TensISO(::TensZero{4, dim, T}) where {dim, T} = TensISO{dim}(zero(T), zero(T))
 
@@ -122,6 +188,11 @@ LinearAlgebra.issymmetric(::_LazyTens{2}) = true
 LinearAlgebra.issymmetric(::_LazyTens{4}) = true
 Tensors.isminorsymmetric(::_LazyTens{4}) = true
 Tensors.ismajorsymmetric(::_LazyTens{4}) = true
+# 𝕀ᶠ is no `TensISO` (the isotropic tensors with the minor symmetries) and has
+# the major symmetry alone
+isisotropic(::_IdFull) = false
+LinearAlgebra.issymmetric(::_IdFull) = false
+Tensors.isminorsymmetric(::_IdFull) = false
 Base.iszero(::TensZero) = true
 Base.iszero(t::TensIdentity) = iszero(t.λ)
 
@@ -130,14 +201,17 @@ Base.iszero(t::TensIdentity) = iszero(t.λ)
 _mandel(::TensZero{2, dim, T}) where {dim, T} = zeros(T, dim * (dim + 1) ÷ 2)
 _mandel(::TensZero{4, dim, T}) where {dim, T} = zeros(T, dim * (dim + 1) ÷ 2, dim * (dim + 1) ÷ 2)
 _mandel(t::TensIdentity{2, dim}) where {dim} = [i ≤ dim ? t.λ : zero(t.λ) for i in 1:(dim * (dim + 1) ÷ 2)]
-_mandel(t::TensIdentity{4, dim}) where {dim} =
+_mandel(t::_IdSym{dim}) where {dim} =
     [i == j ? t.λ : zero(t.λ) for i in 1:(dim * (dim + 1) ÷ 2), j in 1:(dim * (dim + 1) ÷ 2)]
+# the 9×9 (4×4) form of a tensor without the minor symmetries: the identity
+_mandel(t::_IdFull{dim}) where {dim} = [i == j ? t.λ : zero(t.λ) for i in 1:(dim * dim), j in 1:(dim * dim)]
 
 # ── Display ──────────────────────────────────────────────────────────────────
 
 Base.show(io::IO, ::TensZero) = print(io, "𝟎")
 Base.show(io::IO, t::TensIdentity{2}) = print(io, "(", t.λ, ") 𝟏")
-Base.show(io::IO, t::TensIdentity{4}) = print(io, "(", t.λ, ") 𝕀")
+Base.show(io::IO, t::_IdSym) = print(io, "(", t.λ, ") 𝕀")
+Base.show(io::IO, t::_IdFull) = print(io, "(", t.λ, ") 𝕀ᶠ")
 function Base.show(io::IO, ::MIME"text/plain", t::_LazyTens)
     println(io, typeof(t))
     print(io, "→ lazy: ")
@@ -147,27 +221,27 @@ end
 # ── Scalars, zero and one ────────────────────────────────────────────────────
 
 Base.:-(t::TensZero) = t
-Base.:-(t::TensIdentity{order, dim}) where {order, dim} = TensIdentity{order, dim}(-t.λ)
+Base.:-(t::TensIdentity) = _with_factor(t, -t.λ)
 Base.:*(::Number, t::TensZero{order, dim, T}) where {order, dim, T} = TensZero{order, dim, T}()
 Base.:*(t::TensZero, α::Number) = α * t
 Base.:/(t::TensZero{order, dim, T}, α::Number) where {order, dim, T} = TensZero{order, dim, typeof(zero(T) / α)}()
-Base.:*(α::Number, t::TensIdentity{order, dim}) where {order, dim} = TensIdentity{order, dim}(α * t.λ)
+Base.:*(α::Number, t::TensIdentity) = _with_factor(t, α * t.λ)
 Base.:*(t::TensIdentity, α::Number) = α * t
-Base.:/(t::TensIdentity{order, dim}, α::Number) where {order, dim} = TensIdentity{order, dim}(t.λ / α)
+Base.:/(t::TensIdentity, α::Number) = _with_factor(t, t.λ / α)
 # against the division of a real tensor by a symbol
 Base.:/(t::TensZero{order, dim, <:Real}, α::Symbolics.Num) where {order, dim} = TensZero{order, dim, typeof(zero(eltype(t)) / α)}()
-Base.:/(t::TensIdentity{order, dim, <:Real}, α::Symbolics.Num) where {order, dim} = TensIdentity{order, dim}(t.λ / α)
+Base.:/(t::TensIdentity{<:Any, <:Any, <:Real}, α::Symbolics.Num) = _with_factor(t, t.λ / α)
 
 Base.zero(::_LazyTens{order, dim, T}) where {order, dim, T} = TensZero{order, dim, T}()
-Base.one(::_LazyTens{order, dim, T}) where {order, dim, T} = TensIdentity{order, dim}(one(T))
+Base.one(::TensZero{order, dim, T}) where {order, dim, T} = TensIdentity{order, dim}(one(T))
+Base.one(t::TensIdentity) = _with_factor(t, one(t.λ))
 Base.transpose(t::_LazyTens) = t
 Base.adjoint(t::TensZero) = t
-Base.adjoint(t::TensIdentity{order, dim}) where {order, dim} = TensIdentity{order, dim}(conj(t.λ))
+Base.adjoint(t::TensIdentity) = _with_factor(t, conj(t.λ))
 
-Base.inv(t::TensIdentity{order, dim}) where {order, dim} = TensIdentity{order, dim}(inv(t.λ))
+Base.inv(t::TensIdentity) = _with_factor(t, inv(t.λ))
 Base.inv(t::TensZero) = throw(DomainError(t, "the zero tensor has no inverse"))
-Base.literal_pow(::typeof(^), t::TensIdentity{order, dim}, ::Val{p}) where {order, dim, p} =
-    TensIdentity{order, dim}(t.λ^p)
+Base.literal_pow(::typeof(^), t::TensIdentity, ::Val{p}) where {p} = _with_factor(t, t.λ^p)
 # the power −1 of λ 𝟏 against that of the matrices
 Base.literal_pow(::typeof(^), t::TensIdentity{2}, ::Val{-1}) = inv(t)
 # the positive powers of the zero tensor are zero, its power 0 is the identity
@@ -181,27 +255,42 @@ LinearAlgebra.tr(::TensZero{2, dim, T}) where {dim, T} = zero(T)
 LinearAlgebra.tr(t::TensIdentity{2, dim}) where {dim} = dim * t.λ
 LinearAlgebra.norm(::TensZero{order, dim, T}) where {order, dim, T} = abs(zero(T))
 LinearAlgebra.norm(t::TensIdentity{2, dim}) where {dim} = abs(t.λ) * sqrt(oftype(float(abs(t.λ)), dim))
-LinearAlgebra.norm(t::TensIdentity{4, dim}) where {dim} = abs(t.λ) * sqrt(oftype(float(abs(t.λ)), dim * (dim + 1) ÷ 2))
+LinearAlgebra.norm(t::_IdSym{dim}) where {dim} = abs(t.λ) * sqrt(oftype(float(abs(t.λ)), dim * (dim + 1) ÷ 2))
+LinearAlgebra.norm(t::_IdFull{dim}) where {dim} = abs(t.λ) * oftype(float(abs(t.λ)), dim)
 
 Base.:(==)(::TensZero{order, dim}, ::TensZero{order, dim}) where {order, dim} = true
-Base.:(==)(a::TensIdentity{order, dim}, b::TensIdentity{order, dim}) where {order, dim} = a.λ == b.λ
+Base.:(==)(a::TensIdentity{2, dim}, b::TensIdentity{2, dim}) where {dim} = a.λ == b.λ
+Base.:(==)(a::_IdSym{dim}, b::_IdSym{dim}) where {dim} = a.λ == b.λ
+Base.:(==)(a::_IdFull{dim}, b::_IdFull{dim}) where {dim} = a.λ == b.λ
+# 𝕀 and 𝕀ᶠ differ unless both are multiplied by zero
+Base.:(==)(a::_IdSym{dim}, b::_IdFull{dim}) where {dim} = iszero(a.λ) && iszero(b.λ)
+Base.:(==)(a::_IdFull{dim}, b::_IdSym{dim}) where {dim} = b == a
 
 # ── Sums ─────────────────────────────────────────────────────────────────────
 
-# The zero tensor is neutral and two identities add their factors; any other
-# sum with an identity goes through the isotropic tensor it is.
+# The tensor an identity is, for the operations without a closed form.
+_eager(t::TensIdentity) = TensISO(t)
+_eager(t::_IdFull) = Tens(_static_tensor(t))
+
+# The zero tensor is neutral and two identities of one kind add their factors;
+# any other sum with an identity goes through the tensor it is.
 _lazy_add(::TensZero, B::AbstractTens) = B
 _lazy_sub(::TensZero, B::AbstractTens) = -B
 for (F, OP) in ((:_lazy_add, :+), (:_lazy_sub, :-))
     @eval begin
         $F(A::AbstractTens, ::TensZero) = A
-        $F(a::TensIdentity, B::AbstractTens) = $OP(TensISO(a), B)
-        $F(A::AbstractTens, b::TensIdentity) = $OP(A, TensISO(b))
+        $F(a::TensIdentity, B::AbstractTens) = $OP(_eager(a), B)
+        $F(A::AbstractTens, b::TensIdentity) = $OP(A, _eager(b))
         # the operands of a sum share their order and dimension
         $F(a::TensZero, b::TensZero) = TensZero{get_order(a), get_dim(a), promote_type(eltype(a), eltype(b))}()
         $F(::TensZero, b::TensIdentity) = $OP(b)
         $F(a::TensIdentity, ::TensZero) = a
-        $F(a::TensIdentity, b::TensIdentity) = TensIdentity{get_order(a), get_dim(a)}($OP(a.λ, b.λ))
+        $F(a::TensIdentity, b::TensIdentity) = $OP(_eager(a), _eager(b))
+        # one method per kind: a kind left as a free parameter would make the
+        # method less specific than the one above
+        $F(a::TensIdentity{2}, b::TensIdentity{2}) = _with_factor(a, $OP(a.λ, b.λ))
+        $F(a::_IdSym, b::_IdSym) = _with_factor(a, $OP(a.λ, b.λ))
+        $F(a::_IdFull, b::_IdFull) = _with_factor(a, $OP(a.λ, b.λ))
     end
 end
 # `+B` of a tensor is the tensor itself.
@@ -230,25 +319,35 @@ _identity_dot(a::TensIdentity{2}, B::AbstractTens) = a.λ * B
 _identity_dot(A::AbstractTens, b::TensIdentity{2}) = b.λ * A
 _identity_dot(a::TensIdentity{2}, b::TensIdentity{2}) = TensIdentity{2, get_dim(a)}(a.λ * b.λ)
 
-# λ 𝟏 ⊡ 𝐀 contracts the first two indices of 𝐀, 𝐀 ⊡ λ 𝟏 its last two; λ 𝕀 ⊡ 𝐀
-# is λ times the symmetric part of 𝐀 in its first two indices, 𝐀 itself for a
-# tensor that has that symmetry by its type, and the mirror image on the right.
+# λ 𝟏 ⊡ 𝐀 contracts the first two indices of 𝐀, 𝐀 ⊡ λ 𝟏 its last two; λ 𝕀ᶠ ⊡ 𝐀
+# and 𝐀 ⊡ λ 𝕀ᶠ are λ 𝐀; λ 𝕀 ⊡ 𝐀 is λ times the symmetric part of 𝐀 in its first
+# two indices, 𝐀 itself for a tensor that has that symmetry by its type, and
+# the mirror image on the right.
 _identity_ddot(a::TensIdentity{2}, B::AbstractTens) = a.λ * contract(B, 1, 2)
 _identity_ddot(A::AbstractTens{order}, b::TensIdentity{2}) where {order} = b.λ * contract(A, order - 1, order)
-_identity_ddot(a::TensIdentity{4}, B::AbstractTens) = a.λ * _sym_pair(B, Val(:first))
-_identity_ddot(A::AbstractTens, b::TensIdentity{4}) = b.λ * _sym_pair(A, Val(:last))
+_identity_ddot(a::_IdSym, B::AbstractTens) = a.λ * _sym_pair(B, Val(:first))
+_identity_ddot(A::AbstractTens, b::_IdSym) = b.λ * _sym_pair(A, Val(:last))
+_identity_ddot(a::_IdFull, B::AbstractTens) = a.λ * B
+_identity_ddot(A::AbstractTens, b::_IdFull) = b.λ * A
 # two identities: the product of their factors on the identity of the order of
-# the result, the trace of 𝟏 for 𝟏 ⊡ 𝟏
-_identity_ddot(a::TensIdentity{4}, b::TensIdentity{4}) = TensIdentity{4, get_dim(a)}(a.λ * b.λ)
-_identity_ddot(a::TensIdentity{4}, b::TensIdentity{2}) = TensIdentity{2, get_dim(a)}(a.λ * b.λ)
-_identity_ddot(a::TensIdentity{2}, b::TensIdentity{4}) = TensIdentity{2, get_dim(a)}(a.λ * b.λ)
+# the result, 𝕀 as soon as one of them is 𝕀, the trace of 𝟏 for 𝟏 ⊡ 𝟏
+for I4 in (:_IdSym, :_IdFull)
+    @eval begin
+        _identity_ddot(a::$I4, b::TensIdentity{2}) = TensIdentity{2, get_dim(a)}(a.λ * b.λ)
+        _identity_ddot(a::TensIdentity{2}, b::$I4) = TensIdentity{2, get_dim(a)}(a.λ * b.λ)
+    end
+    for J4 in (:_IdSym, :_IdFull)
+        S = I4 === J4 === :_IdFull ? QuoteNode(:full) : QuoteNode(:sym)
+        @eval _identity_ddot(a::$I4, b::$J4) = TensIdentity{4, get_dim(a)}(a.λ * b.λ, Val($S))
+    end
+end
 _identity_ddot(a::TensIdentity{2}, b::TensIdentity{2}) = get_dim(a) * a.λ * b.λ
 
 # The tensors whose type carries the symmetry of a pair of indices: the
 # structured ones and the lazy ones (both pairs), and those stored as
 # Tensors.jl symmetric tensors.
 const _PairSymmetric{dim} = Union{
-    TensISO{2, dim}, TensISO{4, dim}, TensTI{2}, TensTI{4}, TensOrtho, TensCubic, _LazyTens{2, dim}, _LazyTens{4, dim},
+    TensISO{2, dim}, TensISO{4, dim}, TensTI{2}, TensTI{4}, TensOrtho, TensCubic, _LazyTens{2, dim}, TensZero{4, dim}, _IdSym{dim},
     TensOrthonormal{2, dim, <:Any, <:SymmetricTensor{2, dim}}, TensOrthonormal{4, dim, <:Any, <:SymmetricTensor{4, dim}},
 }
 _sym_pair(A::_PairSymmetric, ::Val) = A
