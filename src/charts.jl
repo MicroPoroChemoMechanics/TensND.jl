@@ -207,6 +207,9 @@ end
 # ── Lamé coefficients and unit vectors ───────────────────────────────────────
 
 # `χᵢ = ‖∂𝐱/∂ξᵢ‖`, in the order of the coordinates.
+_lame(::PolarChart, ξ) = (one(ξ[1]), ξ[1])
+_lame(::CylindricalChart, ξ) = (one(ξ[1]), ξ[1], one(ξ[1]))
+_lame(::SphericalChart, ξ) = (ξ[3], ξ[3] * sin(ξ[1]), one(ξ[3]))
 function _lame(chart::_SpheroidalChart, ξ)
     _, p, q = _three(ξ)
     c, s = chart.c, _spheroidal_sign(chart)
@@ -228,6 +231,20 @@ end
 
 # The unit vectors `𝐞ᵢ = (∂𝐱/∂ξᵢ)/χᵢ` as the columns of a matrix, in Cartesian
 # components.
+function _frame(::PolarChart, ξ)
+    s, c = sincos(ξ[2])
+    return SMatrix{2, 2}(c, s, -s, c)
+end
+function _frame(::CylindricalChart, ξ)
+    s, c = sincos(ξ[2])
+    o, z = one(s), zero(s)
+    return SMatrix{3, 3}(c, s, z, -s, c, z, z, z, o)
+end
+function _frame(::SphericalChart, ξ)
+    sθ, cθ = sincos(ξ[1])
+    sϕ, cϕ = sincos(ξ[2])
+    return SMatrix{3, 3}(cθ * cϕ, cθ * sϕ, -sθ, -sϕ, cϕ, zero(sϕ), sθ * cϕ, sθ * sϕ, cθ)
+end
 function _frame(chart::_SpheroidalChart, ξ)
     ϕ, p, q = _three(ξ)
     s = _spheroidal_sign(chart)
@@ -254,6 +271,41 @@ function _frame(chart::EllipsoidalChart, ξ)
         x₁ / (ν * χᵥ), -x₂ * ν / ((h₃^2 - ν^2) * χᵥ), -x₃ * ν / ((h₂^2 - ν^2) * χᵥ),
     )
 end
+
+"""
+    lame_coefficients(chart::AbstractChart, ξ) -> SVector
+
+The Lamé coefficients ``\\chi_i = \\lVert \\partial\\underline{x}/\\partial\\xi_i \\rVert`` of
+`chart` at the point of coordinates `ξ`, in the order of the coordinates, in
+closed form: duals and symbols pass through.
+
+# Examples
+```jldoctest
+julia> lame_coefficients(SphericalChart(), (π / 2, 0.0, 2.0)) ≈ [2, 2, 1]
+true
+```
+
+See also [`unit_vectors`](@ref).
+"""
+lame_coefficients(chart::AbstractChart, ξ) = SVector(promote(_lame(chart, ξ)...)...)
+
+"""
+    unit_vectors(chart::AbstractChart, ξ) -> SMatrix
+
+The unit vectors ``\\underline{e}_i = (\\partial\\underline{x}/\\partial\\xi_i)/\\chi_i``
+of `chart` at the point of coordinates `ξ`, as the columns of a matrix of
+Cartesian components, in the order of the coordinates. The forms are closed
+and allocate nothing; duals and symbols pass through.
+
+# Examples
+```jldoctest
+julia> unit_vectors(CylindricalChart(), (1.0, π / 2, 0.0)) ≈ [0 -1 0; 1 0 0; 0 0 1]
+true
+```
+
+See also [`lame_coefficients`](@ref), [`coords_to_cartesian`](@ref).
+"""
+unit_vectors(chart::AbstractChart, ξ) = _frame(chart, ξ)
 
 # ── Point → coordinates ──────────────────────────────────────────────────────
 #
@@ -313,10 +365,23 @@ function cartesian_to_coords(chart::OblateSpheroidalChart, x)
     large = (abs(d) + Δ) / (2 * c^2)
     # On the focal circle both roots vanish.
     small = iszero(large) ? large : z^2 / (c^2 * large)
-    τ², p² = d ≥ zero(d) ? (large, small) : (small, large)
-    p = z < zero(z) ? -sqrt(p²) : sqrt(p²)
+    return _oblate_coords(atan(x[2], x[1]), z, c, d, large, small)
+end
+# Beyond the sphere of radius `c` (`d ≥ 0`), `τ² = large` and `p = z/(c τ)`: a
+# quotient smooth across the equatorial plane, where `√(p²)` is not
+# differentiable. Within it, `p² = large` and the root keeps its accuracy on
+# the axis; the equatorial plane there is the focal disk. On the focal circle
+# both roots vanish.
+function _oblate_coords(ϕ, z, c, d, large, small)
+    if d ≥ zero(d)
+        τ = sqrt(large)
+        p = iszero(τ) ? zero(τ) : z / (c * τ)
+    else
+        τ = sqrt(small)
+        p = z < zero(z) ? -sqrt(large) : sqrt(large)
+    end
     p = clamp(p, -one(p), one(p))            # `|p| = 1` on the axis, up to rounding
-    return SVector(promote(atan(x[2], x[1]), p, sqrt(τ²))...)
+    return SVector(promote(ϕ, p, τ)...)
 end
 function cartesian_to_coords(chart::EllipsoidalChart, x)
     h₂², h₃² = chart.h₂^2, chart.h₃^2
@@ -364,4 +429,4 @@ change_coords(to::AbstractChart{dim}, from::AbstractChart{dim}, ξ) where {dim} 
 
 export AbstractChart, PolarChart, CylindricalChart, SphericalChart
 export ProlateSpheroidalChart, OblateSpheroidalChart, EllipsoidalChart
-export coords_to_cartesian, cartesian_to_coords, change_coords
+export coords_to_cartesian, cartesian_to_coords, change_coords, unit_vectors

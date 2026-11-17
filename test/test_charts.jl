@@ -233,6 +233,27 @@ end
             @test Matrix(R) ≈ J ./ SVector(χ...)' rtol = 1.0e-12
             @test R' * R ≈ I atol = 1.0e-13
             @test det(R) ≈ (chart isa EllipsoidalChart ? -1 : 1) atol = 1.0e-13
+            # the public accessors are these closed forms
+            @test lame_coefficients(chart, ξ) == SVector(χ...)
+            @test unit_vectors(chart, ξ) == R
+        end
+        # the cylindrical, spherical and polar charts, against the same Jacobian
+        for (chart, ξ) in (
+                (CylindricalChart(), (1.3, 0.7, -0.4)), (CylindricalChart(), (0.2, -2.9, 1.1)),
+                (SphericalChart(), (0.4, 1.9, 2.2)), (SphericalChart(), (2.7, -0.6, 0.5)),
+                (PolarChart(), (1.3, 0.7)), (PolarChart(), (0.5, -2.2)),
+            )
+            ξv = SVector(ξ)
+            J = ForwardDiff.jacobian(u -> coords_to_cartesian(chart, u), ξv)
+            χ = lame_coefficients(chart, ξ)
+            R = unit_vectors(chart, ξ)
+            @test χ ≈ [norm(J[:, i]) for i in axes(J, 2)] rtol = 1.0e-12
+            @test Matrix(R) ≈ J ./ χ' rtol = 1.0e-12
+            @test det(R) ≈ 1 atol = 1.0e-13
+            # closed forms on the stack
+            f(c, u) = unit_vectors(c, u)
+            f(chart, ξ)
+            @test (@allocated f(chart, ξ)) == 0
         end
     end
 
@@ -245,6 +266,15 @@ end
             χ = TensND._lame(chart, ξ′)
             R = TensND._frame(chart, ξ′)
             @test Jinv ≈ (R ./ SVector(χ...)')' rtol = 1.0e-8
+        end
+        # on the equatorial plane of the oblate chart, where p = 0: the
+        # derivatives are finite and those of the map inverted
+        for x in (SVector(1.9, 0.7, 0.0), SVector(-0.4, 2.6, 0.0))
+            chart = OblateSpheroidalChart(1.5)
+            Jinv = ForwardDiff.jacobian(y -> cartesian_to_coords(chart, y), x)
+            ξ′ = cartesian_to_coords(chart, x)
+            @test ξ′[2] == 0
+            @test Jinv ≈ (unit_vectors(chart, ξ′) ./ lame_coefficients(chart, ξ′)')' rtol = 1.0e-12
         end
         # a Jacobian at points of every sign for the spheroidal charts
         for chart in (ProlateSpheroidalChart(1.5), OblateSpheroidalChart(1.5)), x in _ch_x
