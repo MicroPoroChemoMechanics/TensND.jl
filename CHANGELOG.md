@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.12.2 — the zero tensor and the multiples of the identity; the frame of a chart
+
+A patch release: everything is added, nothing changes for existing code but a
+derivative. The zero tensor and the multiples of the identity had to be formed
+as isotropic tensors, and every operation on them went through their
+coefficients; they are now lazy tensors whose operations reduce to their
+result. The unit vectors of a chart at a point were reachable only through a
+pointwise coordinate system, which allocates a basis at each call.
+
+### Added
+
+- `TensZero{order, dim, T}()`, the zero tensor, which stores nothing, and
+  `TensIdentity{order, dim}(λ)`, λ 𝟏 at the order 2 and λ 𝕀 at the order 4
+  (𝕀 the symmetric identity of `tens_Id4`), which stores λ alone. They carry
+  the whole tensor interface, and the operations that involve them return
+  their result without forming any component: the zero tensor is neutral for
+  the sums and gives the zero of the order of the result in every product and
+  contraction, without allocation; `λ𝟏 ⋅ A = λA`; `λ𝟏 ⊡ A` contracts the first
+  pair of `A`; `λ𝕀 ⊡ A = λA` for a tensor whose type carries the symmetry of
+  that pair, its symmetric part otherwise; inverses, powers and products of
+  identities remain identities.
+- `unit_vectors(chart, ξ)` and `lame_coefficients(chart, ξ)`: the unit vectors
+  and the Lamé coefficients of every chart at the point of coordinates `ξ`, in
+  closed form and in static arrays. The pointwise polar, cylindrical and
+  spherical systems are now built from their charts, as the confocal ones were.
+
+### Fixed
+
+- **`cartesian_to_coords(::OblateSpheroidalChart)` had a derivative `NaN` on the
+  equatorial plane**, contrary to its docstring: `p` was formed as the root of
+  `p²`. Beyond the sphere of radius `c` it is now `z/(c τ)`, smooth there; the
+  values are unchanged.
+
 ## v0.12.1 — confocal coordinate systems: oblate spheroidal, ellipsoidal, and the harmonics that go with them
 
 A patch release: everything is added, nothing changes for existing code. The
