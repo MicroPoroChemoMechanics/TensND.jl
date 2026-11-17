@@ -134,6 +134,8 @@ include("test_coorsystems_num.jl")
 include("test_charts.jl")
 include("test_coorsystems_confocal.jl")
 include("test_spheroidal_harmonics.jl")
+include("test_solid_harmonics.jl")
+include("test_lattice_harmonics.jl")
 include("test_submanifold.jl")
 # Calls that tied a TensND method with one of a package it loads.
 include("test_third_party_ties.jl")
