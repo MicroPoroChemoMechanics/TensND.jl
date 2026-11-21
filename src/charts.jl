@@ -16,7 +16,8 @@ and the coordinates of the point `x` are `cartesian_to_coords(chart, x)`.
 
 Predefined: [`PolarChart`](@ref), [`CylindricalChart`](@ref),
 [`SphericalChart`](@ref), [`ProlateSpheroidalChart`](@ref),
-[`OblateSpheroidalChart`](@ref), [`EllipsoidalChart`](@ref).
+[`OblateSpheroidalChart`](@ref), [`EllipsoidalChart`](@ref),
+[`ToroidalChart`](@ref).
 """
 abstract type AbstractChart{dim} end
 
@@ -155,6 +156,62 @@ The ellipsoidal chart whose ellipsoid `ρ = a₁` has the semi-axes
 EllipsoidalChart(a₁::Number, a₂::Number, a₃::Number) =
     EllipsoidalChart(sqrt(a₁^2 - a₃^2), sqrt(a₁^2 - a₂^2))
 
+"""
+    ToroidalChart(a)
+
+Toroidal coordinates `(ϕ, α, β)` of axis `𝐞₃` and focal radius `a > 0`, with
+`α ≥ 0` and `-π < β ≤ π`:
+
+    x₁ = a sinh α cos ϕ / (cosh α - cos β),
+    x₂ = a sinh α sin ϕ / (cosh α - cos β),
+    x₃ = a sin β / (cosh α - cos β).
+
+The surfaces `α = const` are the tori of center-line radius `a coth α` and tube
+radius `a / sinh α`, around the focal circle of radius `a` in the plane
+`x₃ = 0`, which is `α → ∞`. The surfaces `β = const` are the spherical caps
+through the focal circle, of centers `a cot β 𝐞₃`. The axis `𝐞₃` is `α = 0`,
+with the origin at `β = π` and the point at infinity at `β = 0`.
+
+A torus of center-line radius `R` and tube radius `r < R` is the surface
+`α = acosh(R / r)` of the chart of focal radius `a = √(R² - r²)`.
+
+The unit vectors `(𝐞ᵩ, 𝐞ₐ, 𝐞ᵦ)`, taken in the order of the coordinates, form a
+right-handed triad; `𝐞ₐ` points toward the focal circle, into the torus
+`α = const`.
+
+See also [`coorsys_toroidal`](@ref).
+"""
+struct ToroidalChart{T <: Number} <: AbstractChart{3}
+    a::T
+    function ToroidalChart(a::T) where {T <: Number}
+        _check_positive(a, "focal radius")
+        return new{T}(a)
+    end
+end
+
+"""
+    ToroidalChart(R, r)
+
+The toroidal chart whose surface `α = acosh(R / r)` is the torus of center-line
+radius `R` and tube radius `r`, with `R > r > 0`.
+"""
+function ToroidalChart(R::Number, r::Number)
+    _check_torus_radii(promote(R, r)...)
+    return ToroidalChart(sqrt(R^2 - r^2))
+end
+
+_check_torus_radii(R::T, r::T) where {T} = _check_torus_radii(R, r, Val(is_hard_numeric(T)))
+_check_torus_radii(R, r, ::Val{false}) = nothing
+function _check_torus_radii(R, r, ::Val{true})
+    R > r > zero(r) || throw(
+        DomainError(
+            (R, r),
+            "the center-line radius R and the tube radius r of a torus must satisfy R > r > 0",
+        )
+    )
+    return nothing
+end
+
 _three(ξ) = (ξ[1], ξ[2], ξ[3])
 
 # ── Coordinates → point ──────────────────────────────────────────────────────
@@ -204,6 +261,20 @@ function coords_to_cartesian(chart::EllipsoidalChart, ξ)
     )
 end
 
+# `δ = cosh α - cos β`. Far from the focal circle both coordinates are small
+# and the difference loses its digits: numbers use the sum of two squares, a
+# symbol keeps the form that reads.
+_toroidal_delta(α, β) = _toroidal_delta(α, β, Val(is_hard_numeric(promote_type(typeof(α), typeof(β)))))
+_toroidal_delta(α, β, ::Val{false}) = cosh(α) - cos(β)
+_toroidal_delta(α, β, ::Val{true}) = 2 * (sinh(α / 2)^2 + sin(β / 2)^2)
+
+function coords_to_cartesian(chart::ToroidalChart, ξ)
+    ϕ, α, β = _three(ξ)
+    d = _toroidal_delta(α, β)
+    ϱ = chart.a * sinh(α) / d
+    return SVector(promote(ϱ * cos(ϕ), ϱ * sin(ϕ), chart.a * sin(β) / d)...)
+end
+
 # ── Lamé coefficients and unit vectors ───────────────────────────────────────
 
 # `χᵢ = ‖∂𝐱/∂ξᵢ‖`, in the order of the coordinates.
@@ -227,6 +298,11 @@ function _lame(chart::EllipsoidalChart, ξ)
         sqrt(ρ^2 - μ^2) * sqrt(μ^2 - ν^2) / (sqrt(μ^2 - h₃^2) * sqrt(h₂^2 - μ^2)),
         sqrt(ρ^2 - ν^2) * sqrt(μ^2 - ν^2) / (sqrt(h₃^2 - ν^2) * sqrt(h₂^2 - ν^2)),
     )
+end
+function _lame(chart::ToroidalChart, ξ)
+    _, α, β = _three(ξ)
+    χ = chart.a / _toroidal_delta(α, β)
+    return (χ * sinh(α), χ, χ)
 end
 
 # The unit vectors `𝐞ᵢ = (∂𝐱/∂ξᵢ)/χᵢ` as the columns of a matrix, in Cartesian
@@ -269,6 +345,19 @@ function _frame(chart::EllipsoidalChart, ξ)
         x₁ / (ρ * χᵨ), x₂ * ρ / ((ρ^2 - h₃^2) * χᵨ), x₃ * ρ / ((ρ^2 - h₂^2) * χᵨ),
         x₁ / (μ * χᵤ), x₂ * μ / ((μ^2 - h₃^2) * χᵤ), -x₃ * μ / ((h₂^2 - μ^2) * χᵤ),
         x₁ / (ν * χᵥ), -x₂ * ν / ((h₃^2 - ν^2) * χᵥ), -x₃ * ν / ((h₂^2 - ν^2) * χᵥ),
+    )
+end
+function _frame(::ToroidalChart, ξ)
+    ϕ, α, β = _three(ξ)
+    d = _toroidal_delta(α, β)
+    # Components of `𝐞ₐ` on the radial unit vector of the meridian plane and on
+    # `𝐞₃`; those of `𝐞ᵦ` are `(m₃, -mᵨ)`.
+    mᵨ, m₃ = (1 - cosh(α) * cos(β)) / d, -sinh(α) * sin(β) / d
+    T = typeof(mᵨ * cos(ϕ))
+    return SMatrix{3, 3, T}(
+        -sin(ϕ), cos(ϕ), zero(T),
+        mᵨ * cos(ϕ), mᵨ * sin(ϕ), m₃,
+        m₃ * cos(ϕ), m₃ * sin(ϕ), -mᵨ,
     )
 end
 
@@ -318,7 +407,8 @@ unit_vectors(chart::AbstractChart, ξ) = _frame(chart, ξ)
 Coordinates in `chart` of the point of Cartesian components `x`, the inverse of
 [`coords_to_cartesian`](@ref). The inversion is in closed form and
 differentiable (ForwardDiff duals in `x` and in the parameters of the chart),
-away from the singular set of the chart (axis, foci, focal curves).
+away from the singular set of the chart (axis, foci, focal curves). On the
+focal circle of a [`ToroidalChart`](@ref) the coordinate `α` is infinite.
 
 For an [`EllipsoidalChart`](@ref), the coordinates returned are those of the
 mirror image of `x` in the quarter space `x₂ ≥ 0`, `x₃ ≥ 0` that the chart
@@ -407,6 +497,19 @@ function cartesian_to_coords(chart::EllipsoidalChart, x)
     ν = clamp(chart.h₂ * chart.h₃ * x[1] / sqrt(ρ² * μ²), -chart.h₃, chart.h₃)
     return SVector(promote(sqrt(ρ²), sqrt(μ²), ν)...)
 end
+function cartesian_to_coords(chart::ToroidalChart, x)
+    a = chart.a
+    ϱ = hypot(x[1], x[2])
+    z = x[3]
+    # `e^α` is the ratio of the distances to the far and to the near point of
+    # the focal circle in the meridian plane, `d₊² = d₋² + 4 a ϱ`: written with
+    # `log1p`, `α` keeps its relative accuracy near the axis, where the ratio
+    # tends to one. On the focal circle `d₋ = 0` and `α` is infinite.
+    α = log1p(4 * a * ϱ / ((ϱ - a)^2 + z^2)) / 2
+    # `β` is the angle under which the diameter of the focal circle is seen.
+    β = atan(2 * a * z, ϱ^2 + z^2 - a^2)
+    return SVector(promote(atan(x[2], x[1]), α, β)...)
+end
 
 """
     change_coords(to::AbstractChart, from::AbstractChart, ξ) -> SVector
@@ -428,5 +531,5 @@ change_coords(to::AbstractChart{dim}, from::AbstractChart{dim}, ξ) where {dim} 
     cartesian_to_coords(to, coords_to_cartesian(from, ξ))
 
 export AbstractChart, PolarChart, CylindricalChart, SphericalChart
-export ProlateSpheroidalChart, OblateSpheroidalChart, EllipsoidalChart
+export ProlateSpheroidalChart, OblateSpheroidalChart, EllipsoidalChart, ToroidalChart
 export coords_to_cartesian, cartesian_to_coords, change_coords, unit_vectors

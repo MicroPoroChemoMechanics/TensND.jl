@@ -12,6 +12,7 @@ SphericalChart
 ProlateSpheroidalChart
 OblateSpheroidalChart
 EllipsoidalChart
+ToroidalChart
 coords_to_cartesian
 cartesian_to_coords
 change_coords

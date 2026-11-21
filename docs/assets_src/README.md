@@ -16,7 +16,7 @@ MeanFieldHomogenization.jl, so that the two packages look alike.
 | file | output under `docs/src/assets/` |
 | :--- | :--- |
 | `src/style.jl` | — the palette by role, the sheet and its white panel, `label` and `smart_label`, the primitives |
-| `src/coordinates.jl` | `coordinates/`: the meridian plane of the prolate and oblate systems, the three sections of the ellipsoidal chart, the domain of convergence of the re-expansion of exterior spheroidal harmonics |
+| `src/coordinates.jl` | `coordinates/`: the meridian plane of the prolate and oblate systems, the three sections of the ellipsoidal chart, the domain of convergence of the re-expansion of exterior spheroidal harmonics, the meridian plane of the toroidal system |
 
 ## Regenerating
 

@@ -1,9 +1,10 @@
 # =============================================================================
 #  coordinates.jl — the confocal coordinate systems of the theory pages:
 #  the spheroidal meridian plane, the three sections of the ellipsoidal chart,
-#  the domain of convergence of the re-expansion of exterior harmonics.
+#  the domain of convergence of the re-expansion of exterior harmonics, the
+#  meridian plane of the toroidal system.
 #  Docs: theory/spheroidal.md, theory/ellipsoidal.md,
-#        theory/spheroidal_harmonics.md.
+#        theory/spheroidal_harmonics.md, theory/toroidal.md.
 # =============================================================================
 
 "The frame of a panel: center `c`, scale `s` pixels per unit, y axis up."
@@ -319,4 +320,66 @@ function reexpansion_domain()
     end
 end
 
-coordinates_figures() = (spheroidal_meridian(); ellipsoidal_sections(); reexpansion_domain(); nothing)
+# ── 4. The meridian plane of the toroidal system ─────────────────────────────
+
+"Bipolar coordinates of a meridian plane: the circles `α = const` around the two foci, the arcs `β = const` through them, the point M and its two unit vectors."
+function toroidal_meridian()
+    return sheet("coordinates/toroidal_meridian", 560, 470) do
+        W, H = 520.0, 390.0
+        center = Point(280, 14 + H / 2)
+        f = Frame(center, 82.0)
+        a = 1.0
+        αs = (0.6, 1.0, 1.6)
+        βs = (π / 4, π / 2, 3π / 4)
+        α0, β0 = 0.6, π / 4
+        @assert α0 in αs && β0 in βs
+        # M and the unit vectors, from the formulas of the page
+        δ = cosh(α0) - cos(β0)
+        Mρ, Mz = a * sinh(α0) / δ, a * sin(β0) / δ
+        eα = ((1 - cosh(α0) * cos(β0)) / δ, -sinh(α0) * sin(β0) / δ)
+        eβ = (eα[2], -eα[1])
+        @assert isapprox(eα[1]^2 + eα[2]^2, 1; atol = 1.0e-12)
+        # M lies on the drawn circle α0 and on the drawn arc β0
+        @assert isapprox((Mρ - a * coth(α0))^2 + Mz^2, (a / sinh(α0))^2; atol = 1.0e-12)
+        @assert isapprox(Mρ^2 + (Mz - a * cot(β0))^2, (a / sin(β0))^2; atol = 1.0e-12)
+        # e^α is normal to the circle α = α0, toward its center side of the focus
+        @assert abs((Mρ - a * coth(α0)) * eα[2] - Mz * eα[1]) < 1.0e-12
+        @assert eα[1] * (a - Mρ) + eα[2] * (0 - Mz) > 0
+        # α = ln(d'/d)
+        @assert isapprox(log(hypot(Mρ + a, Mz) / hypot(Mρ - a, Mz)), α0; atol = 1.0e-12)
+
+        win = (center, W, H)
+        windowed(center, W, H) do
+            θ = range(0, 2π; length = 241)
+            # circles of Apollonius, around F (ϱ > 0) and around F' (ϱ < 0)
+            for α in αs, sg in (1, -1)
+                c, r = a * coth(α), a / sinh(α)
+                curve([f(sg * (c + r * cos(t)), r * sin(t)) for t in θ]; color = COORD_Q, lw = 1.5)
+            end
+            # circles through F and F': the arc z > 0 is β, the arc z < 0 is β - π
+            for β in βs
+                c, r = a * cot(β), a / sin(β)
+                curve([f(r * cos(t), c + r * sin(t)) for t in θ]; color = COORD_P, lw = 1.5)
+                curve([f(r * cos(t), -c - r * sin(t)) for t in θ]; color = COORD_P, lw = 1.5)
+            end
+            axes_of(f, W, H, "rho.alt", "x_3")
+            curve([f(0, 0), f(a, 0)]; color = INK, lw = 2.8)
+            dot(f(a, 0)); dot(f(-a, 0))
+        end
+        M, F, F′ = f(Mρ, Mz), f(a, 0), f(-a, 0)
+        @layer (setcolor(MUTED); setline(1.3); setdash([5, 3]); line(M, F, :stroke); line(M, F′, :stroke))
+        avoid_segment!(M, F); avoid_segment!(M, F′)
+        frame_vectors(M, eα, eβ, "underline(e)^alpha", "underline(e)^beta", COORD_Q, COORD_P; win = win)
+        smart_label(m("d"), M + 0.5 * (F - M); win = win, size = 17, color = MUTED, radii = (2, 5, 9, 14, 20))
+        smart_label(m("d'"), M + 0.55 * (F′ - M); win = win, size = 17, color = MUTED, radii = (2, 5, 9, 14, 20))
+        label(m("F"), F + Point(9, 15); size = 16, bg = PANEL)
+        label(m("F'"), F′ + Point(-11, 15); size = 16, bg = PANEL)
+        label(m("a"), f(a / 2, 0) + Point(0, 13); size = 16, bg = PANEL)
+        smart_label(m("M"), M; win = win, size = 17, radii = (4, 7, 11, 16, 22, 30), angles = 0:15:345)
+        y = 14 + H + 24
+        legend_item(Point(center.x - 190, y), COORD_Q, m("alpha = \"const\""))
+        legend_item(Point(center.x + 40, y), COORD_P, m("beta = \"const\""))
+    end
+end
+
+coordinates_figures() = (spheroidal_meridian(); ellipsoidal_sections(); reexpansion_domain(); toroidal_meridian(); nothing)

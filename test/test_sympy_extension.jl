@@ -37,6 +37,13 @@
     @test get_coords(coorsys_ellipsoidal(Val(Sym))) == ellipsoidal
     @test TensND.core(coorsys_ellipsoidal()).params == symbols("h₂ h₃", positive = true)
     @test TensND.core(coorsys_ellipsoidal(Val(Sym))).params == symbols("h₂ h₃", positive = true)
+    # The toroidal system: coordinates, focal radius and auxiliary symbol.
+    toroidal = (symbols("ϕ", real = true), symbols("α", positive = true), symbols("β", real = true))
+    @test get_coords(coorsys_toroidal()) == toroidal
+    @test get_coords(coorsys_toroidal(toroidal)) == toroidal
+    @test get_coords(coorsys_toroidal(Val(Sym))) == toroidal
+    @test TensND.core(coorsys_toroidal()).params == (symbols("a", positive = true),)
+    @test TensND.core(coorsys_toroidal(Val(Sym))).tmp_coords == (symbols("d̄", positive = true),)
     @test first(init_cartesian()) == (x, y, z)
     @test first(init_cartesian(2)) == symbols("x y", real = true)
     @test first(init_polar()) == symbols("r θ", real = true)
