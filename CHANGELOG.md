@@ -1,5 +1,46 @@
 # Changelog
 
+## v0.14.0 — toroidal coordinates and toroidal functions
+
+A minor release that adds a coordinate system and its special functions;
+nothing breaks for existing code. A ring-shaped inclusion or a toroidal pore is
+bounded by a coordinate surface of the toroidal system, in which the Laplace
+equation separates once a factor is taken out: the system was missing, and so
+were the Legendre functions of half-integer degree its harmonic functions are
+built on.
+
+### Breaking changes
+
+None in the API or the behavior. Being a minor release below 1.0, it is not
+accepted by a `[compat]` bound `TensND = "0.13"`: dependents widen it to
+`"0.13, 0.14"` or raise it to `"0.14"`.
+
+### Added
+
+- `ToroidalChart(a)`, the toroidal coordinates `(ϕ, α, β)` of focal radius `a`
+  as a map between coordinates and points, and `ToroidalChart(R, r)` for the
+  chart of which the torus of radii `R` and `r` is a coordinate surface. Like
+  the other charts it gives the Cartesian components of a point, its
+  coordinates back (in closed form, accurate next to the axis and next to the
+  focal circle), the Lamé coefficients and the unit vectors, on numbers, duals
+  and symbols.
+- `coorsys_toroidal`, the same system as a coordinate system: exact, with SymPy
+  or Symbolics, and pointwise (`coorsys_toroidal(PointwiseGeometry, a)`), with
+  the differential operators of both.
+- `toroidal_P`, `toroidal_Q`, `toroidal_dP` and `toroidal_dQ`: the Legendre
+  functions of degree `n - 1/2`, of both kinds and of any integer order, at
+  `cosh α`, and their derivatives with respect to `α`, for all the degrees up
+  to `N` at once. The function of the second kind is the minimal solution of
+  the recurrence in the degree: it is computed upward where that is accurate
+  and from the ratios of consecutive degrees elsewhere, so that the result is
+  accurate to rounding at every degree. Numbers and duals (nested included);
+  symbols are refused, the evaluation being an iteration that stops on a value.
+- Documentation: the theory pages *Toroidal coordinates* (the system built from
+  the bipolar coordinates of a meridian plane, its operators, the separation of
+  the Laplace equation, the torus as a surface) and *Toroidal functions*, a
+  manual page, an interactive figure of the frame and a drawing of the meridian
+  plane.
+
 ## v0.13.0 — harmonics of every kind; the zero tensor and the multiples of the identity; the frame of a chart
 
 A minor release, by the extent of what it adds: nothing breaks for existing
