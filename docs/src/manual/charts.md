@@ -1,9 +1,9 @@
 # [Charts and coordinate conversions](@id man-charts)
 
 !!! tip "See also"
-    **Theory**: [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal) · [Curvilinear differential calculus](@ref th-curvilinear) · [Changes of coordinates](@ref th-coordinate-changes) · [Spheroidal harmonics and their re-expansion](@ref th-spheroidal-harmonics)
+    **Theory**: [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal) · [Curvilinear differential calculus](@ref th-curvilinear) · [Toroidal coordinates](@ref th-toroidal) · [Toroidal functions](@ref th-toroidal-harmonics) · [Changes of coordinates](@ref th-coordinate-changes) · [Spheroidal harmonics and their re-expansion](@ref th-spheroidal-harmonics)
 
-    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Spheroidal harmonics](@ref man-spheroidal-harmonics)
+    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Toroidal functions](@ref man-toroidal-harmonics) · [Spheroidal harmonics](@ref man-spheroidal-harmonics)
 
     **Tutorials**: [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix) · [Ellipsoidal coordinates](@ref tut-ellipsoidal) · [Changing the focal distance of spheroidal harmonics](@ref tut-spheroidal-reexpansion)
 
@@ -24,6 +24,7 @@ numbers. The predefined ones:
 | [`ProlateSpheroidalChart`](@ref) | ``(\varphi,p,q)`` | `ProlateSpheroidalChart(c)` |
 | [`OblateSpheroidalChart`](@ref) | ``(\varphi,p,\tau)`` | `OblateSpheroidalChart(c)` |
 | [`EllipsoidalChart`](@ref) | ``(\rho,\mu,\nu)`` | `EllipsoidalChart(h₂, h₃)` or `EllipsoidalChart(a₁, a₂, a₃)` |
+| [`ToroidalChart`](@ref) | ``(\varphi,\alpha,\beta)`` | `ToroidalChart(a)` or `ToroidalChart(R, r)` |
 
 The coordinates are ordered as in the system of the same name
 ([Coordinate systems (symbolic)](@ref man-coorsystems)).

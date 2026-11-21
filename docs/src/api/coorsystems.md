@@ -34,4 +34,5 @@ coorsys_spherical
 coorsys_spheroidal
 coorsys_spheroidal_oblate
 coorsys_ellipsoidal
+coorsys_toroidal
 ```

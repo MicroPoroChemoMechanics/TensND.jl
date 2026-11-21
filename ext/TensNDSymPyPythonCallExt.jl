@@ -17,7 +17,7 @@ using SymPyPythonCall
 using SymPyPythonCall: Sym, sympy, symbols
 import TensND: tsimplify, tfactor, tsubs, tdiff, ttrigsimp, texpand_trig, tlimit
 import TensND: coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal
-import TensND: coorsys_spheroidal_oblate, coorsys_ellipsoidal
+import TensND: coorsys_spheroidal_oblate, coorsys_ellipsoidal, coorsys_toroidal
 import TensND: init_cartesian, init_polar, init_cylindrical, init_spherical, init_rotated
 
 # ── Elementwise symbolic operations on a `Sym` ──────────────────────────────
@@ -50,6 +50,9 @@ _oblate_auxiliary() = symbols("p̄ τ̄", positive = true)
 _ellipsoidal_symbols() = (symbols("ρ μ", positive = true)..., symbols("ν", real = true))
 _ellipsoidal_focal() = symbols("h₂ h₃", positive = true)
 _ellipsoidal_auxiliary() = symbols("ρ̄₂ ρ̄₃ μ̄₂ μ̄₃ ν̄₂ ν̄₃", positive = true)
+_toroidal_symbols() = (symbols("ϕ", real = true), symbols("α", positive = true), symbols("β", real = true))
+_toroidal_focal() = symbols("a", positive = true)
+_toroidal_auxiliary() = (symbols("d̄", positive = true),)
 
 coorsys_cartesian() = coorsys_cartesian(_cartesian_symbols(Val(3)))
 coorsys_cartesian(v::Val{<:Sym}) = coorsys_cartesian(v, _cartesian_symbols(Val(3)))
@@ -71,6 +74,10 @@ coorsys_ellipsoidal(coords::NTuple{3} = _ellipsoidal_symbols(), h::NTuple{2} = _
     coorsys_ellipsoidal(coords, h, _ellipsoidal_auxiliary())
 coorsys_ellipsoidal(v::Val{<:Sym}, coords = _ellipsoidal_symbols(), h = _ellipsoidal_focal()) =
     coorsys_ellipsoidal(v, coords, h, _ellipsoidal_auxiliary())
+coorsys_toroidal(coords::NTuple{3} = _toroidal_symbols(), a = _toroidal_focal()) =
+    coorsys_toroidal(coords, a, _toroidal_auxiliary())
+coorsys_toroidal(v::Val{<:Sym}, coords = _toroidal_symbols(), a = _toroidal_focal()) =
+    coorsys_toroidal(v, coords, a, _toroidal_auxiliary())
 
 init_cartesian() = init_cartesian(_cartesian_symbols(Val(3)))
 init_cartesian(v::Union{Val{2}, Val{3}}) = init_cartesian(_cartesian_symbols(v))

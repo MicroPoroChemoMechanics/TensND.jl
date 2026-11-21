@@ -76,7 +76,7 @@ be computed, and the basis keeps the form it was written in.
 
 ## 5. A predefined system, exact and pointwise at once
 
-The spheroidal and ellipsoidal systems are written once, as a **chart**
+The spheroidal, ellipsoidal and toroidal systems are written once, as a **chart**
 (`src/charts.jl`): a small type that holds the parameters and three functions
 of the coordinates, generic in the number type.
 
@@ -111,5 +111,5 @@ symbolic array.
    points included?
 
 Steps 2–4 are exactly what `test/test_coorsystems.jl`,
-`test/test_coorsystems_num.jl` and `test/test_coorsystems_confocal.jl` do for
-the predefined systems, and step 5 what `test/test_charts.jl` does.
+`test/test_coorsystems_num.jl`, `test/test_coorsystems_confocal.jl` and
+`test/test_coorsystems_toroidal.jl` do for the predefined systems, and step 5 what `test/test_charts.jl` does.

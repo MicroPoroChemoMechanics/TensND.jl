@@ -27,20 +27,23 @@ function _check_degree_order(N::Integer, m::Integer)
     return nothing
 end
 
-# `(n-m+1) F_{n+1} = (2n+1) x F_n + σ (n+m) F_{n-1}` upward from `F_m^m`, into
-# `v[n+1]`, `m ≤ n ≤ N`. Each step reads the two previous ones: a recurrence.
-# The second value is `(2m+1) x F_m^m` for the first kind; it is given for the
-# second kind.
+# `(ν-m+1) F_{ν+1} = (2ν+1) x F_ν + σ (ν+m) F_{ν-1}` upward from `F_m^m`, into
+# `v[n+1]`, `m ≤ n ≤ N`, the degree being `ν = n + shift`: `shift = 0` for the
+# integer degrees, `-1//2` for the half-integer degrees of the toroidal
+# functions. Each step reads the two previous ones: a recurrence. The second
+# value is `(2m+1) x F_m^m` for the first kind of integer degree; it is given
+# otherwise.
 _legendre_forward(N::Integer, m::Integer, x, Fmm, σ::Integer) =
     _legendre_forward(N, m, x, Fmm, (2m + 1) * x * Fmm, σ)
-function _legendre_forward(N::Integer, m::Integer, x, Fm, Fm1, σ::Integer)
+function _legendre_forward(N::Integer, m::Integer, x, Fm, Fm1, σ::Integer, shift = 0)
     T = promote_type(typeof(Fm), typeof(Fm1))
     v = zeros(T, N + 1)
     m > N && return v
     v[m + 1] = Fm
     m < N && (v[m + 2] = Fm1)
     for n in (m + 1):(N - 1)
-        v[n + 2] = ((2n + 1) * x * v[n + 1] + σ * (n + m) * v[n]) / (n - m + 1)
+        ν = n + shift
+        v[n + 2] = ((2ν + 1) * x * v[n + 1] + σ * (ν + m) * v[n]) / (ν - m + 1)
     end
     return v
 end

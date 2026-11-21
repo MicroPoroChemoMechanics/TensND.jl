@@ -1,9 +1,9 @@
 # [Coordinate systems (symbolic)](@id man-coorsystems)
 
 !!! tip "See also"
-    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear) · [Classical coordinate systems](@ref th-predefined-systems) · [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal)
+    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear) · [Classical coordinate systems](@ref th-predefined-systems) · [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal) · [Toroidal coordinates](@ref th-toroidal) · [Toroidal functions](@ref th-toroidal-harmonics)
 
-    **Manual**: [Coordinate systems (numerical)](@ref man-coorsystems-num) · [Charts and coordinate conversions](@ref man-charts)
+    **Manual**: [Coordinate systems (numerical)](@ref man-coorsystems-num) · [Charts and coordinate conversions](@ref man-charts) · [Toroidal functions](@ref man-toroidal-harmonics)
 
     **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities) · [The operators in the classical systems](@ref tut-operators-catalog) · [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix) · [Ellipsoidal coordinates](@ref tut-ellipsoidal)
 
@@ -23,12 +23,14 @@ placement of each operator — is on
 | [`coorsys_spheroidal`](@ref) | ``(\varphi,p,q)`` | prolate spheroidal, [Spheroidal coordinates](@ref th-spheroidal) |
 | [`coorsys_spheroidal_oblate`](@ref) | ``(\varphi,p,\tau)`` | oblate spheroidal |
 | [`coorsys_ellipsoidal`](@ref) | ``(\rho,\mu,\nu)`` | ellipsoidal, [Ellipsoidal coordinates](@ref th-ellipsoidal) |
+| [`coorsys_toroidal`](@ref) | ``(\varphi,\alpha,\beta)`` | toroidal, [Toroidal coordinates](@ref th-toroidal) |
 
 Each curvilinear system is drawn, with its normalized basis and its surfaces of
 constant coordinate, in an interactive figure of its Theory page:
 [Classical coordinate systems](@ref th-predefined-systems),
 [Spheroidal coordinates](@ref th-spheroidal),
-[Ellipsoidal coordinates](@ref th-ellipsoidal). A system that is not in the
+[Ellipsoidal coordinates](@ref th-ellipsoidal),
+[Toroidal coordinates](@ref th-toroidal). A system that is not in the
 table is built from its position vector, see [Custom systems](@ref) below.
 
 !!! note "Load SymPyPythonCall for the default coordinates"

@@ -20,8 +20,9 @@ Predefined: `coorsys_cartesian(PointwiseGeometry)`, `coorsys_polar(PointwiseGeom
 `coorsys_cylindrical(PointwiseGeometry)`, `coorsys_spherical(PointwiseGeometry)`,
 each with an optional element type (`Float64` by default);
 `coorsys_spheroidal(PointwiseGeometry, c)`,
-`coorsys_spheroidal_oblate(PointwiseGeometry, c)` and
-`coorsys_ellipsoidal(PointwiseGeometry, h₂, h₃)`; any chart from its
+`coorsys_spheroidal_oblate(PointwiseGeometry, c)`,
+`coorsys_ellipsoidal(PointwiseGeometry, h₂, h₃)` and
+`coorsys_toroidal(PointwiseGeometry, a)`; any chart from its
 position vector with `CoordinateSystem(OM_func, dim, T)`.
 """
 struct PointwiseGeometry{X, R, G} <: AbstractGeometry
@@ -493,6 +494,16 @@ function coorsys_ellipsoidal(::Type{PointwiseGeometry}, h₂::Real, h₃::Real)
     chart = EllipsoidalChart(h₂, h₃)
     return _pointwise_system(chart, float(typeof(chart.h₂)))
 end
+
+"""
+    coorsys_toroidal(PointwiseGeometry, a)
+
+Numerical toroidal coordinate system of focal radius `a`. Coordinates:
+(ϕ, α, β) — same convention as `coorsys_toroidal()`, see
+[`ToroidalChart`](@ref).
+"""
+coorsys_toroidal(::Type{PointwiseGeometry}, a::T) where {T <: Real} =
+    _pointwise_system(ToroidalChart(a), float(T))
 
 """
     CoordinateSystem(OM_func::Function, dim::Integer, T::Type = Float64)

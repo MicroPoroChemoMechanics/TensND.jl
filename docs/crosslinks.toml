@@ -72,6 +72,12 @@ manual = ["man-coorsystems", "man-charts"]
 tutorials = ["tut-spheroidal-appendix", "tut-ellipsoidal"]
 
 [[subject]]
+name = "Toroidal coordinates"
+theory = ["th-toroidal", "th-toroidal-harmonics", "th-curvilinear"]
+manual = ["man-coorsystems", "man-charts", "man-toroidal-harmonics"]
+tutorials = []
+
+[[subject]]
 name = "Changes of coordinates"
 theory = ["th-coordinate-changes"]
 manual = ["man-charts"]

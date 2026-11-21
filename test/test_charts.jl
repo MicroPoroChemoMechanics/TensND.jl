@@ -22,6 +22,11 @@ const _ch_ellipsoidal_ξ = [
     (2.5, 1.3, 0.4), (3.1, 1.8, -0.7), (2.05, 1.05, 0.95), (4.0, 1.5, -0.1),
     (2.2, 1.95, 0.6), (5.0, 1.1, -0.9), (2.8, 1.6, 0.25), (3.7, 1.4, -0.5),
 ]
+# (ϕ, α, β): α > 0, -π < β < π; small and large α, both signs of β.
+const _ch_toroidal_ξ = [
+    (0.3, 0.4, 1.7), (-2.1, 1.6, -2.5), (1.2, 0.05, 0.9), (-0.7, 2.2, -0.2),
+    (2.8, 0.55, 3.0), (-1.9, 1.1, -1.3), (0.9, 3.5, 0.8), (-3.0, 0.35, -2.9),
+]
 # Cartesian points covering the eight octants.
 const _ch_x = [
     SVector(s₁ * 0.7, s₂ * 1.9, s₃ * 1.3) for s₁ in (-1, 1) for s₂ in (-1, 1) for s₃ in (-1, 1)
@@ -31,7 +36,14 @@ _ch_cases = (
     (ProlateSpheroidalChart(1.5), _ch_prolate_ξ),
     (OblateSpheroidalChart(1.5), _ch_oblate_ξ),
     (EllipsoidalChart(2.0, 1.0), _ch_ellipsoidal_ξ),
+    (ToroidalChart(1.5), _ch_toroidal_ξ),
 )
+
+# The same chart with a dual parameter.
+_ch_dual_chart(::ProlateSpheroidalChart) = ProlateSpheroidalChart(ForwardDiff.Dual(1.5, 1.0))
+_ch_dual_chart(::OblateSpheroidalChart) = OblateSpheroidalChart(ForwardDiff.Dual(1.5, 1.0))
+_ch_dual_chart(::EllipsoidalChart) = EllipsoidalChart(ForwardDiff.Dual(2.0, 1.0), ForwardDiff.Dual(1.0, 0.0))
+_ch_dual_chart(::ToroidalChart) = ToroidalChart(ForwardDiff.Dual(1.5, 1.0))
 
 # The orderings of the ellipsoidal coordinates.
 _ch_ordered(h₂, h₃, ξ) = ξ[3]^2 <= h₃^2 <= ξ[2]^2 <= h₂^2 <= ξ[1]^2
@@ -55,6 +67,7 @@ end
         for chart in (
                     PolarChart(), CylindricalChart(), SphericalChart(),
                     ProlateSpheroidalChart(1.5), OblateSpheroidalChart(1.5),
+                    ToroidalChart(1.5),
                 ), x in _ch_x
             n = chart isa PolarChart ? 2 : 3
             xs = SVector{n}(x[1:n])
@@ -136,6 +149,72 @@ end
             x = SVector(a₁ * sin(u) * cos(v), a₂ * sin(u) * sin(v), a₃ * cos(u))
             @test cartesian_to_coords(chart, x)[1] ≈ a₁ rtol = 1.0e-12
         end
+    end
+
+    @testsection "Toroidal chart: independent references" begin
+        a = 1.5
+        chart = ToroidalChart(a)
+        for ξ in _ch_toroidal_ξ
+            ϕ, α, β = ξ
+            x = coords_to_cartesian(chart, ξ)
+            ϱ = hypot(x[1], x[2])
+            # on the torus of center-line radius a coth α and tube radius a / sinh α
+            @test (ϱ - a * coth(α))^2 + x[3]^2 ≈ (a / sinh(α))^2 rtol = 1.0e-12
+            # on the sphere of center a cot β 𝐞₃ through the focal circle
+            @test ϱ^2 + (x[3] - a * cot(β))^2 ≈ (a / sin(β))^2 rtol = 1.0e-11
+            # e^α is the ratio of the distances to the far and near focal points
+            @test hypot(ϱ + a, x[3]) / hypot(ϱ - a, x[3]) ≈ exp(α) rtol = 1.0e-12
+            # the meridian half-plane
+            @test atan(x[2], x[1]) ≈ ϕ rtol = 1.0e-13
+            # 𝐞ₐ points into the torus, toward the focal circle
+            R = unit_vectors(chart, ξ)
+            focal = SVector(a * cos(ϕ), a * sin(ϕ), 0.0)
+            @test dot(R[:, 2], focal - x) > 0
+        end
+        # the chart of a torus given by its two radii
+        R₀, r₀ = 2.0, 0.5
+        chart = ToroidalChart(R₀, r₀)
+        @test chart.a ≈ sqrt(R₀^2 - r₀^2)
+        α₀ = acosh(R₀ / r₀)
+        for (ϕ, θ) in ((0.3, 0.0), (1.1, 2.0), (-2.0, -1.2), (2.9, π))
+            x = SVector((R₀ + r₀ * cos(θ)) * cos(ϕ), (R₀ + r₀ * cos(θ)) * sin(ϕ), r₀ * sin(θ))
+            @test cartesian_to_coords(chart, x)[2] ≈ α₀ rtol = 1.0e-12
+        end
+        @test ToroidalChart(2, 0.5) isa ToroidalChart{Float64}
+    end
+
+    @testsection "Toroidal chart: degenerate points" begin
+        a = 1.5
+        chart = ToroidalChart(a)
+        # the origin is α = 0, β = π
+        ξ = cartesian_to_coords(chart, SVector(0.0, 0.0, 0.0))
+        @test ξ[2] == 0
+        @test ξ[3] ≈ π
+        # the axis is α = 0, and β follows from x₃ = a cot(β/2)
+        for z in (-7.3, -0.4, 0.9, 12.0)
+            ξ = cartesian_to_coords(chart, SVector(0.0, 0.0, z))
+            @test ξ[2] == 0
+            @test a * cot(ξ[3] / 2) ≈ z rtol = 1.0e-12
+            @test coords_to_cartesian(chart, ξ) ≈ [0.0, 0.0, z] atol = 1.0e-12
+        end
+        # close to the axis, α keeps its relative accuracy: α ≈ 2 a ϱ / (a² + z²)
+        for ϱ in (1.0e-9, 1.0e-13), z in (0.0, 0.8)
+            ξ = cartesian_to_coords(chart, SVector(ϱ, 0.0, z))
+            @test ξ[2] ≈ 2 * a * ϱ / (a^2 + z^2) rtol = 1.0e-9
+        end
+        # the focal circle is α = ∞; close to it α = ln(2a/δ) to first order
+        @test cartesian_to_coords(chart, SVector(a, 0.0, 0.0))[2] == Inf
+        @test cartesian_to_coords(chart, SVector(0.0, -a, 0.0))[2] == Inf
+        δ = 1.0e-8
+        @test cartesian_to_coords(chart, SVector(a + δ, 0.0, 0.0))[2] ≈ log(2a / δ) rtol = 1.0e-7
+        # far away, α → 0 and β → 0 with x ≈ 2a (α 𝐞ᵨ + β 𝐞₃)/(α² + β²)
+        x = SVector(3.0e5, -4.0e5, 1.2e6)
+        ξ = cartesian_to_coords(chart, x)
+        @test coords_to_cartesian(chart, ξ) ≈ x rtol = 1.0e-9
+        @test 2a * ξ[3] / (ξ[2]^2 + ξ[3]^2) ≈ x[3] rtol = 1.0e-6
+        # the equatorial plane: β = 0 outside the focal circle, π inside
+        @test cartesian_to_coords(chart, SVector(2a, 0.0, 0.0))[3] == 0
+        @test cartesian_to_coords(chart, SVector(a / 2, 0.0, 0.0))[3] ≈ π
     end
 
     @testsection "Degenerate points" begin
@@ -292,6 +371,7 @@ end
         for (mk, c₀) in (
                 (c -> ProlateSpheroidalChart(c), 1.5),
                 (c -> OblateSpheroidalChart(c), 1.5),
+                (a -> ToroidalChart(a), 1.5),
             )
             ξ = cartesian_to_coords(mk(c₀), x)
             dξ = ForwardDiff.derivative(c -> cartesian_to_coords(mk(c), x), c₀)
@@ -328,6 +408,7 @@ end
         for mk in (
                 c -> ProlateSpheroidalChart(c), c -> OblateSpheroidalChart(c),
                 c -> EllipsoidalChart(2.0 + c, 1.0),
+                a -> ToroidalChart(a),
             )
             id(c) = coords_to_cartesian(mk(c), cartesian_to_coords(mk(c), x))
             @test ForwardDiff.derivative(id, 1.0) ≈ zeros(3) atol = 1.0e-10
@@ -360,6 +441,7 @@ end
                         (ProlateSpheroidalChart(big"1.5"), _ch_prolate_ξ),
                         (OblateSpheroidalChart(big"1.5"), _ch_oblate_ξ),
                         (EllipsoidalChart(big"2.0", big"1.0"), _ch_ellipsoidal_ξ),
+                        (ToroidalChart(big"1.5"), _ch_toroidal_ξ),
                     ), ξ in ξs
                 ξb = SVector(BigFloat.(ξ)...)
                 x = coords_to_cartesian(chart, ξb)
@@ -384,9 +466,7 @@ end
             @test eltype(@inferred cartesian_to_coords(chart, xd)) <: ForwardDiff.Dual
             @test eltype(@inferred change_coords(chart, chart, ξd)) <: ForwardDiff.Dual
             # a dual parameter
-            cd = chart isa EllipsoidalChart ? EllipsoidalChart(ForwardDiff.Dual(2.0, 1.0), ForwardDiff.Dual(1.0, 0.0)) :
-                chart isa ProlateSpheroidalChart ? ProlateSpheroidalChart(ForwardDiff.Dual(1.5, 1.0)) :
-                OblateSpheroidalChart(ForwardDiff.Dual(1.5, 1.0))
+            cd = _ch_dual_chart(chart)
             @inferred coords_to_cartesian(cd, ξ)
             @inferred cartesian_to_coords(cd, x)
             a, b = _ch_alloc(chart, ξ, x)
@@ -473,6 +553,11 @@ end
         @test_throws DomainError EllipsoidalChart(1.0, 0.0)
         @test_throws DomainError EllipsoidalChart(1.0, 1.0)
         @test_throws DomainError EllipsoidalChart(1.0, 2.0, 3.0)
+        @test_throws DomainError ToroidalChart(0.0)
+        @test_throws DomainError ToroidalChart(-1.5)
+        @test_throws DomainError ToroidalChart(1.0, 1.0)
+        @test_throws DomainError ToroidalChart(1.0, 2.0)
+        @test_throws DomainError ToroidalChart(2.0, 0.0)
         @test ProlateSpheroidalChart(2) isa ProlateSpheroidalChart{Int}
         @test ProlateSpheroidalChart(1.5f0) isa ProlateSpheroidalChart{Float32}
         @test eltype(coords_to_cartesian(ProlateSpheroidalChart(1.5f0), (0.3f0, 0.2f0, 2.0f0))) == Float32
@@ -495,6 +580,16 @@ end
         X = coords_to_cartesian(E, (ρs, μs, νs))
         at = Dict(h₂s => 2.0, h₃s => 1.0, ρs => 2.5, μs => 1.3, νs => 0.4)
         @test [Float64(X[i].subs(at)) for i in 1:3] ≈ coords_to_cartesian(EllipsoidalChart(2.0, 1.0), (2.5, 1.3, 0.4)) rtol = 1.0e-12
+        as, αs = symbols("a α", positive = true)
+        βs = symbols("β", real = true)
+        Tor = ToroidalChart(as)
+        @test Tor.a == as
+        X = coords_to_cartesian(Tor, (ϕs, αs, βs))
+        at = Dict(as => 1.5, ϕs => 0.3, αs => 0.4, βs => 1.7)
+        @test [Float64(X[i].subs(at)) for i in 1:3] ≈ coords_to_cartesian(ToroidalChart(1.5), (0.3, 0.4, 1.7)) rtol = 1.0e-12
+        # the radii of a torus as symbols: nothing is compared
+        Rs, rs = symbols("R r", positive = true)
+        @test ToroidalChart(Rs, rs).a == sqrt(Rs^2 - rs^2)
 
         # Symbolics
         Symbolics.@variables c ϕ p q ρ μ ν h₂ h₃
@@ -513,5 +608,14 @@ end
         # the Lamé coefficients and the frame accept symbols too
         χ = TensND._lame(E, (ρ, μ, ν))
         @test [val(χ[i], d) for i in 1:3] ≈ collect(TensND._lame(EllipsoidalChart(2.0, 1.0), (2.5, 1.3, 0.4))) rtol = 1.0e-12
+        Symbolics.@variables a α β
+        Tor = ToroidalChart(a)
+        d = Dict(a => 1.5, ϕ => 0.3, α => 0.4, β => 1.7)
+        X = coords_to_cartesian(Tor, (ϕ, α, β))
+        @test [val(X[i], d) for i in 1:3] ≈ coords_to_cartesian(ToroidalChart(1.5), (0.3, 0.4, 1.7)) rtol = 1.0e-12
+        χ = TensND._lame(Tor, (ϕ, α, β))
+        @test [val(χ[i], d) for i in 1:3] ≈ collect(TensND._lame(ToroidalChart(1.5), (0.3, 0.4, 1.7))) rtol = 1.0e-12
+        R = TensND._frame(Tor, (ϕ, α, β))
+        @test [val(R[i, j], d) for i in 1:3, j in 1:3] ≈ Matrix(TensND._frame(ToroidalChart(1.5), (0.3, 0.4, 1.7))) rtol = 1.0e-12
     end
 end

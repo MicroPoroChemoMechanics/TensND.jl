@@ -2300,3 +2300,67 @@ label = "κ<sub>α</sub>"
 name = "principal curvature along a tangential coordinate α of a spheroid"
 unit = "1/m"
 pages = ["theory/spheroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\alpha'
+label = "α"
+name = "toroidal coordinate, constant on a torus around the focal circle (α ≥ 0)"
+unit = "1"
+pages = ["theory/toroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\beta'
+label = "β"
+name = "toroidal coordinate, constant on a spherical cap through the focal circle (−π < β ≤ π)"
+unit = "rad"
+pages = ["theory/toroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'a'
+label = "a"
+name = "focal radius of the toroidal system, radius of its focal circle"
+unit = "m"
+pages = ["theory/toroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\delta'
+label = "δ"
+name = "shorthand cosh α − cos β of the toroidal coordinates"
+unit = "1"
+pages = ["theory/toroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'R'
+label = "R"
+name = "center-line radius of a torus"
+unit = "m"
+pages = ["theory/toroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'r'
+label = "r"
+name = "tube radius of a torus"
+unit = "m"
+pages = ["theory/toroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\varrho'
+label = "ϱ"
+name = "distance to the axis <u>e</u><sub>3</sub> in a meridian plane of the toroidal system"
+unit = "m"
+pages = ["theory/toroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = '\theta'
+label = "θ"
+name = "poloidal angle of a torus, measured in the meridian plane from the outer equator"
+unit = "rad"
+pages = ["theory/toroidal.md"]

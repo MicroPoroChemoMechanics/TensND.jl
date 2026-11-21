@@ -92,7 +92,8 @@ The differential operators [`grad`](@ref), [`symgrad`](@ref), [`divergence`](@re
 
 Predefined systems: [`coorsys_cartesian`](@ref), [`coorsys_polar`](@ref),
 [`coorsys_cylindrical`](@ref), [`coorsys_spherical`](@ref),
-[`coorsys_spheroidal`](@ref) — exact by default, pointwise with
+[`coorsys_spheroidal`](@ref), [`coorsys_spheroidal_oblate`](@ref),
+[`coorsys_ellipsoidal`](@ref), [`coorsys_toroidal`](@ref) — exact by default, pointwise with
 `PointwiseGeometry` as first argument (e.g. `coorsys_polar(PointwiseGeometry)`).
 [`@set_coorsys`](@ref) makes an exact one the default so the operators take a
 single argument.
@@ -831,10 +832,49 @@ coorsys_ellipsoidal(
     h = Tuple(@variables h₂ h₃), tmp_coords = Tuple(@variables ρ̄₂ ρ̄₃ μ̄₂ μ̄₃ ν̄₂ ν̄₃)
 ) = coorsys_ellipsoidal(coords, h, tmp_coords)
 
+"""
+    coorsys_toroidal(coords = (ϕ, α, β), a = a, tmp_coords = (d̄,))
+
+Return the toroidal coordinate system of axis `𝐞₃` and focal radius `a` (see
+[`ToroidalChart`](@ref)), with coordinates `(ϕ, α, β)`, `α ≥ 0`,
+`-π < β ≤ π`. The position vector is written with the auxiliary symbol
+`d̄ = cosh α - cos β`, which the derivatives replace by its expression.
+
+The default symbols (`ϕ`, `β` real, `α`, `a`, `d̄` positive) are SymPy's and need
+`SymPyPythonCall`.
+
+# Examples
+```julia
+julia> Toroidal = coorsys_toroidal() ; lame_coefficients(Toroidal)
+(a*sinh(α)/(cosh(α) - cos(β)), a/(cosh(α) - cos(β)), a/(cosh(α) - cos(β)))
+```
+
+See also [`coorsys_spheroidal`](@ref), [`coorsys_ellipsoidal`](@ref).
+"""
+function coorsys_toroidal(coords::NTuple{3, T}, a, tmp_coords::NTuple{1}) where {T <: SymType}
+    ϕ, α, β = coords
+    d̄ = tmp_coords[1]
+    chart = ToroidalChart(a)
+    OM = Tens(a * [sinh(α) * cos(ϕ) / d̄, sinh(α) * sin(ϕ) / d̄, sin(β) / d̄])
+    ℬ = RotatedBasis(Matrix{T}(_frame(chart, coords)))
+    tmp_var = Dict(cosh(α) - cos(β) => d̄)
+    to_coords = Dict(d̄ => cosh(α) - cos(β))
+    return CoordinateSystem(
+        OM, coords, ℬ, _lame(chart, coords), tmp_coords, (a,);
+        tmp_var = tmp_var, to_coords = to_coords
+    )
+end
+coorsys_toroidal(::Val{<:Sym}, coords, a, tmp_coords) = coorsys_toroidal(coords, a, tmp_coords)
+coorsys_toroidal(
+    ::Val{Num}, coords = Tuple(@variables ϕ α β),
+    a = (@variables a)[1], tmp_coords = Tuple(@variables d̄)
+) = coorsys_toroidal(coords, a, tmp_coords)
+
 
 for cs in (
         :coorsys_cartesian, :coorsys_polar, :coorsys_cylindrical, :coorsys_spherical,
         :coorsys_spheroidal, :coorsys_spheroidal_oblate, :coorsys_ellipsoidal,
+        :coorsys_toroidal,
     )
     @eval $cs(T::Type, args...; kwargs...) = $cs(Val(T), args...; kwargs...)
 end
@@ -967,5 +1007,5 @@ export ∂, AbstractGeometry, ExactGeometry, PointwiseGeometry, CoordinateSystem
 export grad, symgrad, divergence, laplacian, hess
 export normalized_basis, natural_basis, natvec, unitvec, get_coords, position_vector
 export coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical
-export coorsys_spheroidal, coorsys_spheroidal_oblate, coorsys_ellipsoidal
+export coorsys_spheroidal, coorsys_spheroidal_oblate, coorsys_ellipsoidal, coorsys_toroidal
 export @set_coorsys, set_coorsys!, default_coorsys, unset_coorsys!

@@ -7,7 +7,8 @@
 //   cylindrical,
 //   spherical,
 //   spheroidal,
-//   ellipsoidal  `coorsys_*` (src/coorsystems.jl): the position <u>OM</u> and
+//   ellipsoidal,
+//   toroidal     `coorsys_*` (src/coorsystems.jl): the position <u>OM</u> and
 //                the normalized basis, in the order of the coordinates.
 //
 // Colors follow one rule: the k-th coordinate (or angle) owns `pal.q[k]`, and
@@ -526,4 +527,81 @@ const ellipsoidal: FrameSpec = {
   },
 }
 
-export const FRAMES: Record<string, FrameSpec> = { euler, polar, cylindrical, spherical, spheroidal, ellipsoidal }
+// ── Toroidal coordinates (φ, α, β) ───────────────────────────────────────────
+// With the focal radius a and δ = cosh α − cos β (`coorsys_toroidal`):
+//
+//   OM = a (sinh α cos φ, sinh α sin φ, sin β) / δ,
+//
+// α ≥ 0 and −π < β ≤ π. α = const is the torus of center-line radius a coth α
+// and tube radius a / sinh α around the focal circle, of radius a in the plane
+// z = 0; β = const is the cap, on the side of the sign of β, of the sphere of
+// center a cot β e3 through the focal circle; φ = const is a half-plane bounded
+// by the axis. Normalized basis (e^φ, e^α, e^β), right-handed:
+//
+//   e^α = ((1 − cosh α cos β) (cos φ, sin φ), −sinh α sin β) / δ,
+//   e^β = (−sinh α sin β (cos φ, sin φ), cosh α cos β − 1) / δ.
+//
+// A cap is cut where it leaves the scene: |OM|² = a² (cosh α + cos β)/δ.
+
+const toroidal: FrameSpec = {
+  sliders: [
+    { symbol: sym('φ'), min: -24, max: 24, step: 1, init: -4, angle: true },
+    { symbol: sym('α'), min: 0.4, max: 2.2, step: 0.01, init: 1.1, angle: false },
+    { symbol: sym('β'), min: -22, max: 22, step: 1, init: 8, angle: true },
+    { symbol: sym('a'), min: 0.5, max: 1.4, step: 0.05, init: 1, angle: false, color: 'var(--tensnd-fig-ink)' },
+  ],
+  iso: 'Surfaces of constant coordinate',
+  height: 600,
+  build([f, al, be, a], pal, iso, uid) {
+    const cf = Math.cos(f), sf = Math.sin(f)
+    const at = (aa: number, bb: number, phi: number): Vec3 => {
+      const d = Math.cosh(aa) - Math.cos(bb)
+      const rho = (a * Math.sinh(aa)) / d
+      return [rho * Math.cos(phi), rho * Math.sin(phi), (a * Math.sin(bb)) / d]
+    }
+    const d = Math.cosh(al) - Math.cos(be)
+    const mr = (1 - Math.cosh(al) * Math.cos(be)) / d, m3 = (-Math.sinh(al) * Math.sin(be)) / d
+    const M = at(al, be, f)
+    const eph: Vec3 = [-sf, cf, 0]
+    const ea: Vec3 = [mr * cf, mr * sf, m3]
+    const eb: Vec3 = [m3 * cf, m3 * sf, -mr]
+    // The smallest α of the cap β that stays within the radius 1.3 H of the scene.
+    const K = ((1.3 * H) / a) ** 2
+    const aMin = Math.acosh(Math.max(1, (Math.cos(be) * (K + 1)) / (K - 1)))
+    const aMax = 5
+    const data: Trace[] = []
+    const ann: Annotation[] = []
+
+    if (iso) {
+      data.push(surface3(grid((phi, b) => at(al, b, phi), range(0, TWO_PI, 60), range(-Math.PI, Math.PI, 48)), pal.q[1], 0.18))
+      data.push(surface3(grid((phi, aa) => at(aa, be, phi), range(0, TWO_PI, 60), range(aMin, aMax, 36)), pal.q[2], 0.14))
+      data.push(surface3(grid((rho, h) => [rho * cf, rho * sf, h], [0, 0.85 * H], [-0.9 * H, 0.9 * H]), pal.q[0], 0.14))
+    }
+
+    // The lines through M along which one coordinate varies.
+    data.push(line3(arcPoints([0, 0, M[2]], E1, E2, Math.hypot(M[0], M[1]), 0, TWO_PI, 96), pal.guide, 2, 'dot'))
+    data.push(line3(range(aMin, aMax, 72).map((aa) => at(aa, be, f)), pal.guide, 2, 'dot'))
+    data.push(line3(range(-Math.PI, Math.PI, 96).map((b) => at(al, b, f)), pal.guide, 2, 'dot'))
+    data.push(line3([[0, 0, M[2]], M], pal.guide, 2, 'dot'))
+
+    // The focal circle and its radius.
+    data.push(line3(arcPoints(O, E1, E2, a, 0, TWO_PI, 96), pal.ink, 4))
+    const g = (3 * Math.PI) / 4
+    const R: Vec3 = [a * Math.cos(g), a * Math.sin(g), 0]
+    data.push(line3([O, R], pal.ink, 2, 'dash'))
+    ann.push(label3(scale(0.5, R), '<i>a</i>', pal.ink, { yshift: 12 }))
+
+    canonical3(pal, 1, data, ann)
+    const uf: Vec3 = [cf, sf, 0]
+    data.push(line3([O, scale(1.1, uf)], pal.guide, 2, 'dot'))
+    data.push(...sector3(O, E1, E2, 0.42, 0, f, pal.q[0]))
+    ann.push(sectorLabel(O, E1, E2, 0.55, f, sym('φ'), pal.q[0]))
+
+    localBasis3(M, [eph, ea, eb], [vec('e', `<sup>${sym('φ')}</sup>`), vec('e', `<sup>${sym('α')}</sup>`),
+      vec('e', `<sup>${sym('β')}</sup>`)], pal, 0.55, data, ann)
+    const b: Bounds = [[-H, H], [-H, H], [-H, H]]
+    return { data, layout: layout3(pal, b, ann, uid, EYE) }
+  },
+}
+
+export const FRAMES: Record<string, FrameSpec> = { euler, polar, cylindrical, spherical, spheroidal, ellipsoidal, toroidal }

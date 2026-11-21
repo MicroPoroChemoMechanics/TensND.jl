@@ -41,6 +41,7 @@ include("special_tens.jl")
 include("random_tens.jl")
 include("charts.jl")
 include("spheroidal_harmonics.jl")
+include("toroidal_harmonics.jl")
 include("solid_harmonics.jl")
 include("lattice_harmonics.jl")
 include("ellipsoidal_harmonics.jl")
@@ -53,7 +54,7 @@ include("submanifold.jl")
 # not loaded, they would end in a bare `MethodError`: the hint says what to do.
 const _SYMPY_DEFAULTS = (
     coorsys_cartesian, coorsys_polar, coorsys_cylindrical, coorsys_spherical, coorsys_spheroidal,
-    coorsys_spheroidal_oblate, coorsys_ellipsoidal,
+    coorsys_spheroidal_oblate, coorsys_ellipsoidal, coorsys_toroidal,
     init_cartesian, init_polar, init_cylindrical, init_spherical, init_rotated,
 )
 
