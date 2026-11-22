@@ -1,5 +1,25 @@
 # Changelog
 
+## v0.15.1 — the blocks of the isotropic tensors of the plane
+
+A patch release, additive.
+
+`symmetry_basis`, `symmetry_layout`, `symmetry_matrix` and the reading of the
+blocks on a matrix, `symmetry_blocks(A, M)`, served the classes of the
+three-dimensional space only. A computation that stores a family of tensors by
+its blocks (a relaxation operator of aging viscoelasticity) could therefore not
+work on tensors of the plane.
+
+### Added
+
+- `symmetry_basis` and `symmetry_layout` for `TensISO{4,2}` and `TensISO{2,2}`:
+  the spherical direction, the normal deviator and the shear of the plane; the
+  block ``(\beta)`` on the last two.
+- `symmetry_blocks(A, M)` and `symmetry_matrix(A, b)` take the size of the
+  matrix from the order and the dimension of `A`: ``3\times3`` Kelvin-Mandel
+  matrices for a fourth-order tensor of the plane, ``2\times2`` for a
+  second-order one.
+
 ## v0.15.0 — distances between elasticity tensors, plane states of a transversely isotropic material
 
 A minor release that adds functions and methods; nothing changes for existing

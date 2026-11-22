@@ -13,6 +13,9 @@
 #    TensOrtho                 3×3 normal block,           (a₁), (a₂), (a₃)
 #                              (2C₄₄), (2C₅₅), (2C₆₆)
 #
+#  The isotropic tensors of the plane have the same blocks as those of space;
+#  their second block sits on the two deviators of the plane instead of five.
+#
 #  Whatever operates on such tensors through their products and inverses —
 #  a Volterra operator whose coefficients are functions of two times, say —
 #  works on the blocks, the same way for every class.
@@ -137,14 +140,27 @@ function _ti_mandel_basis(::Type{T}) where {T}
     )
 end
 
+# The isotropic basis of the plane: the spherical direction, the normal
+# deviator, the shear.
+function _iso_mandel_basis_plane(::Type{T}) where {T}
+    o, z = one(T), zero(T)
+    b = inv(sqrt(2o))
+    return SMatrix{3, 3, T}(
+        b, b, z,
+        b, -b, z,
+        z, z, o,
+    )
+end
+
 _basis_type(A) = float(eltype(A))
 
 """
     symmetry_basis(A) -> SMatrix
 
 The orthonormal basis, as columns, in which the matrix of a member of the class
-and frame of `A` is block diagonal: Kelvin-Mandel vectors (``6\\times6``) at
-order 4, vectors (``3\\times3``) at order 2. Each block of
+and frame of `A` is block diagonal: Kelvin-Mandel vectors (``6\\times6`` in
+space, ``3\\times3`` in the plane) at order 4, vectors (``3\\times3``,
+``2\\times2``) at order 2. Each block of
 [`symmetry_blocks`](@ref) sits on the diagonal of ``Q^{\\mathsf T}MQ`` at the
 positions [`symmetry_layout`](@ref) lists, once per copy.
 
@@ -153,13 +169,15 @@ positions [`symmetry_layout`](@ref) lists, once per copy.
 | ISO, CUBIC | the spherical direction, the two normal deviators, the three shears |
 | TI about ``\\underline{n}`` | axial, transverse spherical, the two in-plane deviators, the two out-of-plane shears |
 | ORTHO | the frame's normal and shear directions |
+| ISO of the plane | the spherical direction, the normal deviator, the shear |
 """
 symmetry_basis(A::TensISO{4, 3}) = _iso_mandel_basis(_basis_type(A))
 symmetry_basis(A::TensCubic) = _km_congruence(_frame_matrix(A.frame)) * _iso_mandel_basis(_basis_type(A))
 symmetry_basis(A::Union{TensTI{4, <:Any, 5}, TensTI{4, <:Any, 6}}) =
     _km_congruence(first(_axis_frame(A.n))) * _ti_mandel_basis(_basis_type(A))
 symmetry_basis(A::TensOrtho{4}) = _km_congruence(_frame_matrix(A.frame))
-symmetry_basis(A::TensISO{2, 3}) = SMatrix{3, 3, _basis_type(A)}(I)
+symmetry_basis(A::TensISO{4, 2}) = _iso_mandel_basis_plane(_basis_type(A))
+symmetry_basis(A::TensISO{2, dim}) where {dim} = SMatrix{dim, dim, _basis_type(A)}(I)
 symmetry_basis(A::TensTI{2, <:Any, 2}) = first(_axis_frame(A.n))
 symmetry_basis(A::TensOrtho{2}) = _frame_matrix(A.frame)
 
@@ -168,27 +186,30 @@ symmetry_basis(A::TensOrtho{2}) = _frame_matrix(A.frame)
 
 For each block of [`symmetry_blocks`](@ref)`(A)`, the index sets of its copies on
 the diagonal of ``Q^{\\mathsf T}MQ``, ``Q`` = [`symmetry_basis`](@ref)`(A)`: the
-isotropic shear modulus ``\\beta`` sits on five, the transverse shear ``\\ell_5``
-on two, and so on.
+isotropic shear modulus ``\\beta`` sits on five in space and on two in the
+plane, the transverse shear ``\\ell_5`` on two, and so on.
 """
 symmetry_layout(::TensISO{4, 3}) = ((SVector(1),), (SVector(2), SVector(3), SVector(4), SVector(5), SVector(6)))
 symmetry_layout(::TensCubic) = ((SVector(1),), (SVector(2), SVector(3)), (SVector(4), SVector(5), SVector(6)))
 symmetry_layout(::Union{TensTI{4, <:Any, 5}, TensTI{4, <:Any, 6}}) =
     ((SVector(1, 2),), (SVector(3), SVector(4)), (SVector(5), SVector(6)))
 symmetry_layout(::TensOrtho{4}) = ((SVector(1, 2, 3),), (SVector(4),), (SVector(5),), (SVector(6),))
-symmetry_layout(::TensISO{2, 3}) = ((SVector(1), SVector(2), SVector(3)),)
+symmetry_layout(::TensISO{4, 2}) = ((SVector(1),), (SVector(2), SVector(3)))
+symmetry_layout(::TensISO{2, dim}) where {dim} = (ntuple(SVector, Val(dim)),)
 symmetry_layout(::TensTI{2, <:Any, 2}) = ((SVector(1), SVector(2)), (SVector(3),))
 symmetry_layout(::TensOrtho{2}) = ((SVector(1),), (SVector(2),), (SVector(3),))
 
-_matrix_size(::AbstractTens{4}) = 6
-_matrix_size(::AbstractTens{2}) = 3
+# Kelvin-Mandel components of a symmetric second-order tensor at order 4,
+# components of a vector at order 2.
+_matrix_size(::AbstractTens{4, dim}) where {dim} = dim * (dim + 1) ÷ 2
+_matrix_size(::AbstractTens{2, dim}) where {dim} = dim
 
 """
     symmetry_blocks(A, M::AbstractMatrix) -> Tuple of SMatrix
 
-The blocks, in the class and frame of `A`, of the matrix `M`: a ``6\\times6``
-Kelvin-Mandel matrix at order 4, a ``3\\times3`` matrix of components at order 2,
-in the canonical basis. Each block is read on its first copy in
+The blocks, in the class and frame of `A`, of the matrix `M`: a Kelvin-Mandel
+matrix at order 4 (``6\\times6`` in space, ``3\\times3`` in the plane), a matrix
+of components at order 2, in the canonical basis. Each block is read on its first copy in
 ``Q^{\\mathsf T}MQ``; when `M` belongs to the class,
 `symmetry_matrix(A, symmetry_blocks(A, M)) ≈ M`, and the blocks are those of the
 tensor `M` stands for.

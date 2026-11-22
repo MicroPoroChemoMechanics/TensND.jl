@@ -21,6 +21,8 @@ import Symbolics
     pairs = [
         "ISO order 4" => () -> TensISO{3}(2 + rand(rng), 1 + rand(rng)),
         "ISO order 2" => () -> TensISO{3}(1 + rand(rng)),
+        "ISO of the plane, order 4" => () -> TensISO{2}(2 + rand(rng), 1 + rand(rng)),
+        "ISO of the plane, order 2" => () -> TensISO{2}(1 + rand(rng)),
         "cubic" => () -> TensCubic(2 + rand(rng), 1 + rand(rng), 1 + rand(rng), frame),
         "TI order 4" => ti6,
         "TI order 4, symmetric" => () -> TensTI{4}(3 + rand(rng), 2 + rand(rng), rand(rng), 1 + rand(rng), 1 + rand(rng), axis),
