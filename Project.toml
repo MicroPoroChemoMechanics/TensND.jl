@@ -1,6 +1,6 @@
 name = "TensND"
 uuid = "474b5345-2588-4284-8a58-2430a1a40cb0"
-version = "0.14.1"
+version = "0.15.0"
 authors = ["Jean-François Barthélémy"]
 
 [deps]
@@ -17,6 +17,7 @@ Tensors = "48a634ad-e948-5137-8d70-aa71f2a747f4"
 [compat]
 Aqua = "0.8"
 ForwardDiff = "0.10, 1"
+JSON = "0.21, 1"
 LinearAlgebra = "1"
 OMEinsum = "0.9"
 Random = "1"
@@ -40,10 +41,11 @@ TensNDSymPyPythonCallExt = "SymPyPythonCall"
 
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+JSON = "682c06a0-de6a-54ab-a142-c8b1cf79cde6"
 OMEinsum = "ebe7aa44-baf0-506c-a96f-8464559b3922"
 TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 TimerOutputs = "a759f4b9-e2f1-59dc-863e-4aeb61b1ea8f"
 
 [targets]
-test = ["Aqua", "OMEinsum", "SymPyPythonCall", "TOML", "Test", "TimerOutputs"]
+test = ["Aqua", "JSON", "OMEinsum", "SymPyPythonCall", "TOML", "Test", "TimerOutputs"]

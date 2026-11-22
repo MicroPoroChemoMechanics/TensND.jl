@@ -49,6 +49,7 @@ pages = [
             "theory/orthotropy.md",
             "theory/cubic.md",
             "theory/projection.md",
+            "theory/tensor_distances.md",
         ],
         "Coordinate systems" => [
             "theory/curvilinear.md",
@@ -82,6 +83,7 @@ pages = [
             "manual/parametrizations.md",
             "manual/elastic_moduli.md",
             "manual/projection.md",
+            "manual/tensor_distances.md",
         ],
         "Coordinate systems" => [
             "manual/coorsystems.md",
@@ -108,6 +110,7 @@ pages = [
             "tutorials/generated/walpole.md",
             "tutorials/generated/walpole_extended.md",
             "tutorials/generated/projection.md",
+            "tutorials/generated/closest_isotropic.md",
         ],
         "Coordinate systems" => [
             "tutorials/generated/symbolic_operators.md",

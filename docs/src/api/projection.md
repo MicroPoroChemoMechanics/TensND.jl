@@ -25,6 +25,26 @@ best_fit_cubic
 ```
 
 
+## Distances and closest tensors
+
+Distances between symmetric tensors that treat a stiffness and its compliance
+alike, and the tensor of a symmetry class closest to a tensor in the sense of
+each. Theory: [Distances between elasticity tensors](@ref th-tensor-distances);
+usage: [Distances and closest tensors](@ref man-tensor-distances).
+
+```@docs
+tensor_function
+tensor_distance
+closest_tensor
+AbstractTensorDistance
+EuclideanDistance
+LogEuclideanDistance
+RiemannianDistance
+FunctionEuclideanDistance
+ArctanEuclideanDistance
+PowerEuclideanDistance
+```
+
 ## Exact rotation-group averages
 
 A projection is a least-squares **fit** and drops whatever does not fit; a

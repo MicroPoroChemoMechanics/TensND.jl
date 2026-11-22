@@ -299,7 +299,9 @@ Everything above minimizes the **Euclidean** (Frobenius) distance. That choice i
 not neutral: it is not invariant under inversion, so projecting a stiffness and
 projecting its compliance give different materials
 ([Isotropic tensors](@ref th-isotropic)). Distances that repair this —
-log-Euclidean, power-Euclidean, arctan-Euclidean — are constructed by
-[morin2020](@citet). `TensND` implements the Euclidean one only, so a reported
-projection should always state which of ``\mathbb{C}`` or ``\mathbb{S}`` was
-projected.
+log-Euclidean, Riemannian, power-Euclidean, arctan-Euclidean
+[morin2020](@cite) — are defined in
+[Distances between elasticity tensors](@ref th-tensor-distances), with the
+closest tensor of a class for each; [`closest_tensor`](@ref) computes it.
+`project` and the best fits are Euclidean, so a reported projection should
+always state which of ``\mathbb{C}`` or ``\mathbb{S}`` was projected.

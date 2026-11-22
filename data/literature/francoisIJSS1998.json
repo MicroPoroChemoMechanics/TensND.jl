@@ -1,0 +1,75 @@
+{
+ "schema": "tensnd-literature/1",
+ "source": {
+  "key": "francois1998",
+  "doi": "10.1016/S0020-7683(97)00303-X",
+  "citation": "François, M., Geymonat, G., Berthaud, Y. (1998). Determination of the symmetries of an experimentally determined stiffness tensor: application to acoustic measurements. International Journal of Solids and Structures 35, 4091-4106.",
+  "location": "the stiffness as printed in Morin, Gilormini and Derrien (2020), J. Elast. 138, 221-232, equation (50); the moduli of the closest isotropic tensors in its section 5.2, quoted from Moakher and Norris (2006), J. Elast. 85, 215-263"
+ },
+ "transcription": {
+  "from": "the article of Morin et al. (PDF), read on the page text and compared with the image of the page",
+  "checked_against_source": true,
+  "note": "Stiffness identified by ultrasonic measurements, in the Kelvin-Mandel notation (order 11, 22, 33, 23, 13, 12, with the factors sqrt(2) and 2), in GPa. The published moduli are those of the Euclidean projection of the stiffness (primal) and of the inverse of the Euclidean projection of the compliance (dual)."
+ },
+ "quantities": {
+  "k_primal_GPa": 170.11,
+  "mu_primal_GPa": 96.87,
+  "k_dual_GPa": 169.33,
+  "mu_dual_GPa": 55.81
+ },
+ "tables": {
+  "kelvin_mandel_GPa": [
+   [
+    243,
+    136,
+    135,
+    31.1,
+    73.5,
+    -24
+   ],
+   [
+    136,
+    239,
+    137,
+    -39.6,
+    15.6,
+    22.6
+   ],
+   [
+    135,
+    137,
+    233,
+    41,
+    -69.3,
+    4.2
+   ],
+   [
+    31.1,
+    -39.6,
+    41,
+    266,
+    -20,
+    -4
+   ],
+   [
+    73.5,
+    15.6,
+    -69.3,
+    -20,
+    238,
+    -4
+   ],
+   [
+    -24,
+    22.6,
+    4.2,
+    -4,
+    -4,
+    260
+   ]
+  ]
+ },
+ "notes": [
+  "The dual shear modulus computed from this matrix is 55.78 GPa; the published value is 55.81."
+ ]
+}
