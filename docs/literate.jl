@@ -55,6 +55,7 @@ const PUBLISHED_SCRIPTS = [
     "03_walpole.jl" => "walpole",
     "04_walpole_extended.jl" => "walpole_extended",
     "05_projection.jl" => "projection",
+    "06_closest_isotropic.jl" => "closest_isotropic",
     # ── Differential calculus ────────────────────────────────────────────────
     "10_symbolic_operators.jl" => "symbolic_operators",
     "11_christoffel.jl" => "christoffel",

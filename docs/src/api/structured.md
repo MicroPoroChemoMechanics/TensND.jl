@@ -90,6 +90,8 @@ plane_strain_stiffness
 plane_stress_stiffness
 plane_stress_to_plane_strain
 plane_strain_to_plane_stress
+iso_from_plane_strain
+iso_from_plane_stress
 ```
 
 `isotropify` is the exact rotation-group average, not a form of compact

@@ -23,6 +23,8 @@ function inside another.
 | read two moduli | `young_poisson(ℂ)` (`E_ν(ℂ)`), `lame_shear(ℂ)` (`λ_μ(ℂ)`), …, with the same `role` |
 | work in 2-D (plane strain) | the same builders with `Val(2)` first |
 | switch between plane strain and plane stress | `plane_strain_stiffness`, `plane_stress_stiffness`, `plane_stress_to_plane_strain`, `plane_strain_to_plane_stress` |
+| the same for a transversely isotropic material, in its plane of isotropy | `plane_strain_stiffness(ℂ::TensTI)`, `plane_stress_stiffness(ℂ::TensTI)` |
+| the 3-D isotropic material of a 2-D stiffness | `iso_from_plane_strain`, `iso_from_plane_stress` |
 
 ## The stiffness and its moduli
 
@@ -224,4 +226,68 @@ gives its moduli and [`plane_strain_to_plane_stress`](@ref) goes back:
 ```@example moduli
 E′, ν′ = plane_stress_to_plane_strain(70.0, 0.33)
 young_poisson(plane_stress_stiffness(ℂ)) .≈ (E′, ν′)
+```
+
+### A transversely isotropic material, in its plane of isotropy
+
+A transversely isotropic material of axis ``\underline{e}_3`` is isotropic in the
+plane ``(\underline{e}_1, \underline{e}_2)``: a 2-D computation in that plane sees
+an isotropic material, of shear modulus ``\mu_t = (C_{1111} - C_{1122})/2`` in
+both states. In plane strain, ``\varepsilon_{i3} = 0``, the in-plane law is the
+block of ``\mathbb{C}``,
+
+```math
+\sigma_{\alpha\beta} = (k - \mu_t)\,\varepsilon_{\gamma\gamma}\,\delta_{\alpha\beta} + 2\mu_t\,\varepsilon_{\alpha\beta},
+\qquad k = \frac{C_{1111} + C_{1122}}{2} ,
+```
+
+with ``k`` the plane-strain bulk modulus. In plane stress, ``\sigma_{i3} = 0``,
+the axial strain follows from
+``\sigma_{33} = C_{1133}\,\varepsilon_{\gamma\gamma} + C_{3333}\,\varepsilon_{33} = 0``,
+and the same law holds with ``k`` replaced by
+
+```math
+k^* = k - \frac{C_{1133}^2}{C_{3333}} = \frac{E_1}{2\,(1 - \nu_{12})} ,
+```
+
+where ``E_1`` and ``\nu_{12}`` are Young's modulus and Poisson's ratio of the
+plane. [`plane_strain_stiffness`](@ref) and [`plane_stress_stiffness`](@ref)
+take a `TensTI{4}` and return these two `TensISO{4,2}`; the axis may be any
+direction, the plane is the one normal to it.
+
+```@example moduli
+ℂₜ = ti_from_constants(30.0, 60.0, 0.25, 0.2, 9.0, [0.0, 0.0, 1.0]; form = :engineering, role = :stiffness)
+bulk_shear(plane_strain_stiffness(ℂₜ)), bulk_shear(plane_stress_stiffness(ℂₜ))
+```
+
+The second pair is ``(E_1/(2(1 - \nu_{12})),\ E_1/(2(1 + \nu_{12}))) = (20, 12)``.
+With symbolic components, the two bulk moduli come out as written above:
+
+```@example moduli
+C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃ = symbols("C_1111 C_1122 C_1133 C_3333 C_2323", positive = true)
+ℂₛ = ti_from_constants(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, [0, 0, 1])
+bulk_modulus(plane_strain_stiffness(ℂₛ)), expand(bulk_modulus(plane_stress_stiffness(ℂₛ)))
+```
+
+### Back to three dimensions
+
+A 3-D code run on a geometry invariant along an axis works in plane strain. It
+takes a 3-D stiffness, and [`iso_from_plane_strain`](@ref) gives the isotropic
+one whose plane-strain stiffness is a given `TensISO{4,2}`: the same ``\lambda``
+and ``\mu``. [`iso_from_plane_stress`](@ref) is the reciprocal of
+[`plane_stress_stiffness`](@ref): the same ``\mu`` and
+``\lambda = 2\lambda^*\mu/(2\mu - \lambda^*)``.
+
+```@example moduli
+young_poisson(iso_from_plane_strain(plane_strain_stiffness(ℂ))), young_poisson(iso_from_plane_stress(plane_stress_stiffness(ℂ)))
+```
+
+Composed with the functions above, `iso_from_plane_strain` gives the isotropic
+material with which a plane-strain computation reproduces another state or
+another material. For the plane stress of the transversely isotropic material
+above, it is the material ``(E', \nu')`` of the conversion applied to
+``(E_1, \nu_{12})``:
+
+```@example moduli
+young_poisson(iso_from_plane_strain(plane_stress_stiffness(ℂₜ))), plane_stress_to_plane_strain(30.0, 0.25)
 ```

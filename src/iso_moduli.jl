@@ -401,4 +401,37 @@ the reciprocal of [`plane_stress_to_plane_strain`](@ref).
 """
 plane_strain_to_plane_stress(E, ν) = (E / (1 - ν^2), ν / (1 - ν))
 
+"""
+    iso_from_plane_strain(t::TensISO{4,2}) → TensISO{4,3}
+
+The isotropic 3-D stiffness whose plane-strain stiffness is `t`: the same
+``\\lambda`` and ``\\mu``. The reciprocal of [`plane_strain_stiffness`](@ref) on
+an isotropic material; on the plane-strain stiffness of a transversely
+isotropic one, the isotropic material that behaves as it does in its plane of
+isotropy, under plane strain.
+
+See also [`iso_from_plane_stress`](@ref).
+"""
+iso_from_plane_strain(t::TensISO{4, 2}) = _iso_lame_shear(Val(3), lame_shear(t)...)
+
+"""
+    iso_from_plane_stress(t::TensISO{4,2}) → TensISO{4,3}
+
+The isotropic 3-D stiffness whose plane-stress stiffness is `t`: with
+``\\lambda^*`` and ``\\mu`` the coefficients of
+``t = 2(\\lambda^* + \\mu)\\,\\mathbb{J} + 2\\mu\\,\\mathbb{K}``, the same ``\\mu`` and
+``\\lambda = 2\\lambda^*\\mu/(2\\mu - \\lambda^*)``. The reciprocal of
+[`plane_stress_stiffness`](@ref) on an isotropic material. A plane-stress
+stiffness has ``\\lambda^* < 2\\mu``, a Poisson ratio ``\\lambda^*/(\\lambda^* + 2\\mu)``
+below 1/2; beyond, no 3-D material corresponds to `t`, and the formula returns
+a stiffness that is not positive.
+
+See also [`iso_from_plane_strain`](@ref).
+"""
+function iso_from_plane_stress(t::TensISO{4, 2})
+    λ, μ = lame_shear(t)
+    return _iso_lame_shear(Val(3), 2 * λ * μ / (2 * μ - λ), μ)
+end
+
 export plane_strain_stiffness, plane_stress_stiffness, plane_stress_to_plane_strain, plane_strain_to_plane_stress
+export iso_from_plane_strain, iso_from_plane_stress

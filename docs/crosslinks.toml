@@ -60,6 +60,12 @@ manual = ["man-projection"]
 tutorials = ["tut-projection"]
 
 [[subject]]
+name = "Distances between tensors"
+theory = ["th-tensor-distances"]
+manual = ["man-tensor-distances"]
+tutorials = ["tut-closest-isotropic"]
+
+[[subject]]
 name = "Curvilinear coordinates"
 theory = ["th-curvilinear", "th-predefined-systems"]
 manual = ["man-coorsystems", "man-coorsystems-num"]

@@ -1,5 +1,63 @@
 # Changelog
 
+## v0.15.0 — distances between elasticity tensors, plane states of a transversely isotropic material
+
+A minor release that adds functions and methods; nothing changes for existing
+code.
+
+The Euclidean distance between two stiffnesses is not the one between their
+compliances, and the isotropic tensor closest to a stiffness is not the inverse
+of the one closest to its compliance. The package had that distance only. It
+now has the distances that treat a stiffness and its compliance alike, and the
+closest tensor of a symmetry class in the sense of each.
+
+A transversely isotropic material is isotropic in the plane normal to its
+axis, so that a 2-D computation in that plane is that of an isotropic material,
+in plane strain or in plane stress. The conversions existed for an isotropic
+material only, and nothing went from a 2-D stiffness back to a 3-D one.
+
+### Breaking changes
+
+None in the API or the behavior. Being a minor release below 1.0, it is not
+accepted by a `[compat]` bound `TensND = "0.14"`: dependents widen it to
+`"0.14, 0.15"` or raise it to `"0.15"`.
+
+### Added
+
+- `tensor_function(f, t)`: the function `f` of a symmetric tensor of order 2 or
+  4, taken on its eigenvalues: `tensor_function(log, ℂ)` is the logarithm of a
+  stiffness. On a `TensISO`, a `TensCubic` or a `TensTI` it acts on the
+  coefficients, keeps the class and accepts symbols; on a general tensor it
+  goes through the eigenvalues of the Kelvin-Mandel matrix, with numbers or
+  duals, whose derivative is exact where eigenvalues meet too.
+- `tensor_distance(A, B, d)`, with `EuclideanDistance()` (the default),
+  `LogEuclideanDistance()`, `RiemannianDistance()`, and the distances built on
+  a function with a gauge, `FunctionEuclideanDistance(f, f⁻¹, E₀)`, of which
+  `ArctanEuclideanDistance(E₀)` and `PowerEuclideanDistance(n, E₀)` are two.
+  All but the first are invariant under inversion.
+- `closest_tensor(A, class, [axis or frame]; distance)`: the tensor of the
+  class `:ISO`, `:TI`, `:CUBIC` or `:ORTHO` closest to `A` in the sense of the
+  distance, and that distance. In closed form for the distances built on a
+  function, by an iteration for the Riemannian one. With the default distance
+  it is the result of `project`, which is unchanged.
+- `plane_strain_stiffness(ℂ::TensTI{4})` and `plane_stress_stiffness(ℂ::TensTI{4})`:
+  the `TensISO{4,2}` of the plane of isotropy, of bulk modulus
+  `(C₁₁₁₁ + C₁₁₂₂)/2` in plane strain and `(C₁₁₁₁ + C₁₁₂₂)/2 − C₁₁₃₃²/C₃₃₃₃`
+  in plane stress, and of shear modulus `(C₁₁₁₁ − C₁₁₂₂)/2` in both.
+- `iso_from_plane_strain(t)` and `iso_from_plane_stress(t)`: the isotropic 3-D
+  stiffness whose plane-strain, or plane-stress, stiffness is the
+  `TensISO{4,2}` `t`.
+
+### Documentation
+
+- New theory page *Distances between elasticity tensors*, manual page
+  *Distances and closest tensors*, and tutorial *The isotropic tensor closest
+  to a measured stiffness*, on a stiffness identified by ultrasonic
+  measurements: the two Euclidean answers, the log-Euclidean and the Riemannian
+  ones, the effect of the gauge of the others.
+- The manual page *Elastic moduli* gains the plane states of a transversely
+  isotropic material and the return to three dimensions.
+
 ## v0.14.0 — toroidal coordinates and toroidal functions
 
 A minor release that adds a coordinate system and its special functions;

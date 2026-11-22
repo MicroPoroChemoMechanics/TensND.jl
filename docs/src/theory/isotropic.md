@@ -104,11 +104,12 @@ optimize, because an isotropic tensor has none.
     Projecting a stiffness and projecting the corresponding compliance give
     *different* isotropic materials. This is not a defect of the
     implementation but of the Euclidean distance itself, which is not invariant
-    under inversion. Distances that are — log-Euclidean, power-Euclidean,
-    arctan-Euclidean — are constructed and compared by [morin2020](@citet);
-    `TensND` implements the Euclidean one, so the choice of which of
-    ``\mathbb{C}`` or ``\mathbb{S}`` to project is the user's and must be
-    stated when a result is reported.
+    under inversion. Distances that are — log-Euclidean, Riemannian,
+    power-Euclidean, arctan-Euclidean [morin2020](@cite) — and the closest
+    tensors they define are the subject of
+    [Distances between elasticity tensors](@ref th-tensor-distances). With the
+    Euclidean one, the choice of which of ``\mathbb{C}`` or ``\mathbb{S}`` to
+    project is the user's and must be stated when a result is reported.
 
 ## Storage
 

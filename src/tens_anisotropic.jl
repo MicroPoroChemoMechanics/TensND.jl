@@ -593,6 +593,49 @@ end
 _hoenig_of_engineering(E₁, E₃, ν₁₂, ν₃₁, G₃₁) = (E₁, ν₁₂, E₁ * ν₃₁ / E₃, E₃ / E₁, 2 * (1 + ν₁₂) * G₃₁ / E₁)
 _engineering_of_hoenig(E, ν₁, ν₂, H, Γ) = (E, E * H, ν₁, H * ν₂, E * Γ / (2 * (1 + ν₁)))
 
+# ── Plane strain and plane stress in the plane of isotropy ────────────────────
+
+"""
+    plane_strain_stiffness(ℂ::TensTI{4}) → TensISO{4,2}
+
+The stiffness, in its plane of isotropy, of a transversely isotropic material
+under **plane strain** (no strain along the axis): with the components of `ℂ`
+in a frame whose third axis is the axis of the material,
+
+```math
+2k\\,\\mathbb{J} + 2\\mu_t\\,\\mathbb{K},\\qquad
+k = \\frac{C_{1111} + C_{1122}}{2},\\quad \\mu_t = \\frac{C_{1111} - C_{1122}}{2} ,
+```
+
+an isotropic tensor of the plane. `ℂ` must be major-symmetric
+([`ti_constants`](@ref)). Read as every `TensISO{4,2}` is, its moduli are those
+of the isotropic material that behaves as `ℂ` does in that plane:
+[`iso_from_plane_strain`](@ref) builds it.
+"""
+function plane_strain_stiffness(ℂ::TensTI{4})
+    C₁₁₁₁, C₁₁₂₂ = ti_constants(ℂ)
+    return TensISO{2}(C₁₁₁₁ + C₁₁₂₂, C₁₁₁₁ - C₁₁₂₂)
+end
+
+"""
+    plane_stress_stiffness(ℂ::TensTI{4}) → TensISO{4,2}
+
+The stiffness, in its plane of isotropy, of a transversely isotropic material
+under **plane stress** (no stress on the planes normal to the axis): the axial
+strain is eliminated from ``\\sigma_{33} = 0``, which keeps the shear modulus
+``\\mu_t`` of [`plane_strain_stiffness`](@ref) and replaces its bulk modulus by
+
+```math
+k^* = k - \\frac{C_{1133}^2}{C_{3333}} .
+```
+
+With the engineering constants of the plane, ``k^* = E_1/(2(1 - \\nu_{12}))``.
+"""
+function plane_stress_stiffness(ℂ::TensTI{4})
+    C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃ = ti_constants(ℂ)
+    return TensISO{2}(C₁₁₁₁ + C₁₁₂₂ - 2 * C₁₁₃₃^2 / C₃₃₃₃, C₁₁₁₁ - C₁₁₂₂)
+end
+
 # ── isisotropic / istransverselyisotropic ─────────────────────────────────────────────────────────────
 
 """

@@ -77,4 +77,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
+          # The VitePress build of the whole site no longer fits in the default
+          # heap of Node (about 2 GB): it died with "JavaScript heap out of
+          # memory" once the site passed that size.
+          NODE_OPTIONS: --max-old-space-size=6144
         run: julia --project=docs/ docs/make.jl
