@@ -221,3 +221,34 @@ end
     # the Riemannian iteration takes numbers only
     @test_throws ArgumentError closest_tensor(TensCubic(ForwardDiff.Dual(30.0, 1.0), ForwardDiff.Dual(8.0, 0.0), ForwardDiff.Dual(12.0, 0.0), frame), :ISO; distance = RiemannianDistance())
 end
+
+@testset "in the plane" begin
+    # the same functions on tensors of dimension 2: Kelvin-Mandel matrices of size 3
+    M = [5.0 1.0 0.3; 1.0 4.0 -0.2; 0.3 -0.2 3.0]
+    N = [6.0 0.5 0.1; 0.5 5.0 0.4; 0.1 0.4 2.5]
+    A, B = from_mandel(M), from_mandel(N)
+    km(t) = Matrix(mandel(t, CanonicalBasis{2, Float64}()))
+    @test km(tensor_function(log, A)) ≈ log(Symmetric(M)) rtol = 1.0e-12
+    @test tensor_distance(A, B) ≈ norm(M - N)
+    @test tensor_distance(A, B, LogEuclideanDistance()) ≈ norm(log(Symmetric(M)) - log(Symmetric(N))) rtol = 1.0e-12
+    @test tensor_distance(A, B, RiemannianDistance()) ≈ sqrt(sum(abs2, log.(real.(eigvals(M \ N))))) rtol = 1.0e-10
+    for d in (LogEuclideanDistance(), RiemannianDistance(), ArctanEuclideanDistance(4.0))
+        inverted = d isa FunctionEuclideanDistance ? typeof(d)(d.f, d.inverse, inv(d.gauge)) : d
+        @test tensor_distance(inv(A), inv(B), inverted) ≈ tensor_distance(A, B, d) rtol = 1.0e-10
+        Bi, di = closest_tensor(A, :ISO; distance = d)
+        Si, _ = closest_tensor(inv(A), :ISO; distance = inverted)
+        @test Bi isa TensISO{4, 2}
+        @test all(isapprox.(get_data(inv(Si)), get_data(Bi); rtol = 1.0e-8))
+        @test di ≤ tensor_distance(A, TensISO{2}((get_data(Bi) .* (1.001, 0.999))...), d)
+    end
+    # in the plane 𝕁 = 𝟏 ⊗ 𝟏 / 2 and 𝕂 has two dimensions: ln α = 𝕁 :: ln A, ln β = 𝕂 :: ln A / 2
+    L = log(Symmetric(M))
+    α, β = get_data(first(closest_tensor(A, :ISO; distance = LogEuclideanDistance())))
+    @test log(α) ≈ (L[1, 1] + L[1, 2] + L[2, 1] + L[2, 2]) / 2
+    @test log(β) ≈ (tr(L) - log(α)) / 2
+    # second-order tensors of the plane
+    a, b = [4.0 1.0; 1.0 3.0], [2.0 0.5; 0.5 5.0]
+    @test tensor_distance(Tens(a), Tens(b), LogEuclideanDistance()) ≈ norm(log(Symmetric(a)) - log(Symmetric(b))) rtol = 1.0e-12
+    Ki, _ = closest_tensor(Tens(a), :ISO; distance = LogEuclideanDistance())
+    @test only(get_data(Ki)) ≈ sqrt(det(a))                              # the geometric mean of the eigenvalues
+end

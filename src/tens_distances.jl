@@ -335,6 +335,9 @@ form: it is computed by the method of Gauss and Newton on the logarithm of
 With a distance invariant under inversion, the tensor closest to a stiffness
 is the inverse of the one closest to its compliance.
 
+The tensors are of any dimension, with the isotropic class; the classes with
+an axis or a frame are those of dimension 3.
+
 # Examples
 ```jldoctest
 julia> ℂ = TensCubic(30.0, 8.0, 12.0, CanonicalBasis{3, Float64}());

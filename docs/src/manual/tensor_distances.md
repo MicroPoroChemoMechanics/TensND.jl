@@ -116,3 +116,16 @@ simplify.(get_data(first(closest_tensor(TensCubic(α, β, γ, CanonicalBasis{3, 
 The functions of a general tensor are taken on its eigenvalues, which symbols
 do not give; a structured tensor needs none. The closest tensor in the
 Riemannian sense is the result of an iteration.
+
+## In the plane
+
+The three functions take tensors of any dimension. In dimension 2 a
+fourth-order tensor has a Kelvin-Mandel matrix of size 3, and the isotropic
+class is that of ``\alpha\,\mathbb{J}+\beta\,\mathbb{K}`` with
+``\mathbb{J}=\boldsymbol{1}\otimes\boldsymbol{1}/2``; the classes with an axis
+or a frame are those of dimension 3.
+
+```@example distances
+ℂ₂ = from_mandel([5.0 1.0 0.3; 1.0 4.0 -0.2; 0.3 -0.2 3.0])      # a stiffness of the plane
+closest_tensor(ℂ₂, :ISO; distance = LogEuclideanDistance())
+```
