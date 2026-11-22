@@ -34,6 +34,9 @@ include("literate.jl")
 # and the commit their GitHub links point to.
 include("source_links.jl")
 
+# `show_literature`, which the pages call to show, folded, the data they read.
+include("data_panels.jl")
+
 # The page tree.
 include("pages.jl")
 

@@ -18,7 +18,7 @@ using SymPyPythonCall: symbols, simplify
 # The stiffness of François et al. (1998), in the Kelvin-Mandel notation, GPa,
 # and the published moduli of its closest isotropic tensors.
 const _TD_DATA = JSON.parsefile(joinpath(pkgdir(TensND), "data", "literature", "francoisIJSS1998.json"))
-const _TD_KM = Float64[_TD_DATA["tables"]["kelvin_mandel_GPa"][i][j] for i in 1:6, j in 1:6]
+const _TD_KM = Float64[row[c] for row in _TD_DATA["tables"]["kelvin_mandel"], c in ("11", "22", "33", "23", "13", "12")]
 _td_stiffness() = from_mandel(_TD_KM)
 _td_random_spd(rng, n = 6) = (M = randn(rng, n, n); from_mandel(M * M' + n * I))
 _td_km(t) = Matrix(mandel(t, CanonicalBasis{3, Float64}()))
@@ -147,11 +147,11 @@ end
     @test all(bulk_shear(inv(first(closest_tensor(S, :ISO)))) .≈ dual)
     # the published moduli (GPa): 170.11 and 96.87, 169.33 and 55.81; the last one is
     # 55.78 here, by both routes
-    published = _TD_DATA["quantities"]
-    @test primal[1] ≈ published["k_primal_GPa"] atol = 5.0e-3
-    @test primal[2] ≈ published["mu_primal_GPa"] atol = 5.0e-3
-    @test dual[1] ≈ published["k_dual_GPa"] atol = 5.0e-3
-    @test dual[2] ≈ published["mu_dual_GPa"] atol = 3.0e-2
+    published(name) = _TD_DATA["quantities"][name]["value"]
+    @test primal[1] ≈ published("k_primal") atol = 5.0e-3
+    @test primal[2] ≈ published("mu_primal") atol = 5.0e-3
+    @test dual[1] ≈ published("k_dual") atol = 5.0e-3
+    @test dual[2] ≈ published("mu_dual") atol = 3.0e-2
     # invariant under inversion: the tensor closest to the compliance is the inverse
     for distance in (LogEuclideanDistance(), RiemannianDistance(), ArctanEuclideanDistance(150.0), PowerEuclideanDistance(1, 150.0))
         Bc, dc = closest_tensor(C, :ISO; distance)

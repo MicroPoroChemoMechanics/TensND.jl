@@ -4,69 +4,95 @@
   "key": "francois1998",
   "doi": "10.1016/S0020-7683(97)00303-X",
   "citation": "François, M., Geymonat, G., Berthaud, Y. (1998). Determination of the symmetries of an experimentally determined stiffness tensor: application to acoustic measurements. International Journal of Solids and Structures 35, 4091-4106.",
-  "location": "the stiffness as printed in Morin, Gilormini and Derrien (2020), J. Elast. 138, 221-232, equation (50); the moduli of the closest isotropic tensors in its section 5.2, quoted from Moakher and Norris (2006), J. Elast. 85, 215-263"
+  "location": "the stiffness as printed in Morin, Gilormini and Derrien (2020), J. Elast. 138, 221-232, equation (50)"
  },
  "transcription": {
   "from": "the article of Morin et al. (PDF), read on the page text and compared with the image of the page",
   "checked_against_source": true,
-  "note": "Stiffness identified by ultrasonic measurements, in the Kelvin-Mandel notation (order 11, 22, 33, 23, 13, 12, with the factors sqrt(2) and 2), in GPa. The published moduli are those of the Euclidean projection of the stiffness (primal) and of the inverse of the Euclidean projection of the compliance (dual)."
+  "note": "Stiffness identified by ultrasonic measurements, in the Kelvin-Mandel notation (rows and columns 11, 22, 33, 23, 13, 12, with the factors sqrt(2) and 2), in GPa. The published moduli are those of the Euclidean projection of the stiffness (primal) and of the inverse of the Euclidean projection of the compliance (dual)."
  },
  "quantities": {
-  "k_primal_GPa": 170.11,
-  "mu_primal_GPa": 96.87,
-  "k_dual_GPa": 169.33,
-  "mu_dual_GPa": 55.81
+  "k_primal": {
+   "value": 170.11,
+   "unit": "GPa",
+   "description": "bulk modulus of the isotropic tensor closest to the stiffness, Euclidean distance",
+   "location": "Morin et al. (2020), section 5.2, quoted from Moakher and Norris (2006)"
+  },
+  "mu_primal": {
+   "value": 96.87,
+   "unit": "GPa",
+   "description": "shear modulus of the isotropic tensor closest to the stiffness, Euclidean distance",
+   "location": "Morin et al. (2020), section 5.2, quoted from Moakher and Norris (2006)"
+  },
+  "k_dual": {
+   "value": 169.33,
+   "unit": "GPa",
+   "description": "bulk modulus of the inverse of the isotropic tensor closest to the compliance, Euclidean distance",
+   "location": "Morin et al. (2020), section 5.2, quoted from Moakher and Norris (2006)"
+  },
+  "mu_dual": {
+   "value": 55.81,
+   "unit": "GPa",
+   "description": "shear modulus of the inverse of the isotropic tensor closest to the compliance, Euclidean distance",
+   "location": "Morin et al. (2020), section 5.2, quoted from Moakher and Norris (2006)"
+  }
  },
  "tables": {
-  "kelvin_mandel_GPa": [
-   [
-    243,
-    136,
-    135,
-    31.1,
-    73.5,
-    -24
-   ],
-   [
-    136,
-    239,
-    137,
-    -39.6,
-    15.6,
-    22.6
-   ],
-   [
-    135,
-    137,
-    233,
-    41,
-    -69.3,
-    4.2
-   ],
-   [
-    31.1,
-    -39.6,
-    41,
-    266,
-    -20,
-    -4
-   ],
-   [
-    73.5,
-    15.6,
-    -69.3,
-    -20,
-    238,
-    -4
-   ],
-   [
-    -24,
-    22.6,
-    4.2,
-    -4,
-    -4,
-    260
-   ]
+  "kelvin_mandel": [
+   {
+    "row": "11",
+    "11": 243,
+    "22": 136,
+    "33": 135,
+    "23": 31.1,
+    "13": 73.5,
+    "12": -24
+   },
+   {
+    "row": "22",
+    "11": 136,
+    "22": 239,
+    "33": 137,
+    "23": -39.6,
+    "13": 15.6,
+    "12": 22.6
+   },
+   {
+    "row": "33",
+    "11": 135,
+    "22": 137,
+    "33": 233,
+    "23": 41,
+    "13": -69.3,
+    "12": 4.2
+   },
+   {
+    "row": "23",
+    "11": 31.1,
+    "22": -39.6,
+    "33": 41,
+    "23": 266,
+    "13": -20,
+    "12": -4
+   },
+   {
+    "row": "13",
+    "11": 73.5,
+    "22": 15.6,
+    "33": -69.3,
+    "23": -20,
+    "13": 238,
+    "12": -4
+   },
+   {
+    "row": "12",
+    "11": -24,
+    "22": 22.6,
+    "33": 4.2,
+    "23": -4,
+    "13": -4,
+    "12": 260
+   }
   ]
  },
  "notes": [

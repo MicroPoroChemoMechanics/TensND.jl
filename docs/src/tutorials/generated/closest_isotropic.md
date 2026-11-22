@@ -34,9 +34,12 @@ its source under `data/literature`.
 
 ````@example closest_isotropic
 data = JSON.parsefile(joinpath(pkgdir(TensND), "data", "literature", "francoisIJSS1998.json"))
-rows = data["tables"]["kelvin_mandel_GPa"]
-ℂ = from_mandel(Float64[rows[i][j] for i in 1:6, j in 1:6])
+components = ("11", "22", "33", "23", "13", "12")
+rows = data["tables"]["kelvin_mandel"]
+ℂ = from_mandel(Float64[row[c] for row in rows, c in components])
 round.(mandel(ℂ); digits = 1)
+
+Main.show_literature("francoisIJSS1998") # hide
 ````
 
 It is positive-definite, and far from isotropic: its relative Euclidean
@@ -61,8 +64,8 @@ bulk_shear(primal), bulk_shear(dual)
 These are the values published for this tensor [moakher2006](@cite):
 
 ````@example closest_isotropic
-published = data["quantities"]
-(published["k_primal_GPa"], published["mu_primal_GPa"]), (published["k_dual_GPa"], published["mu_dual_GPa"])
+published(name) = data["quantities"][name]["value"]
+(published("k_primal"), published("mu_primal")), (published("k_dual"), published("mu_dual"))
 ````
 
 The dual shear modulus computed here, 55.78 GPa, differs from the published
