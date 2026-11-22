@@ -140,6 +140,55 @@ end
     @test ForwardDiff.derivative(x -> first(plane_strain_to_plane_stress(x, ν)), E) ≈ 1 / (1 - ν^2)
 end
 
+@testset "plane strain and plane stress of a transversely isotropic material" begin
+    c = (11.0, 4.0, 3.0, 20.0, 2.5)                  # C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃
+    C = ti_from_constants(c..., [0.0, 0.0, 1.0])
+    A = get_array(C)
+    P = @inferred plane_strain_stiffness(C)
+    S = @inferred plane_stress_stiffness(C)
+    # Plane strain: the block of the plane of isotropy; plane stress: ε₃₃
+    # eliminated from σ₃₃ = 0 in the 3-D law.
+    @test get_array(P) ≈ A[1:2, 1:2, 1:2, 1:2]
+    @test get_array(S) ≈ [A[i, j, k, l] - A[i, j, 3, 3] * A[3, 3, k, l] / A[3, 3, 3, 3] for i in 1:2, j in 1:2, k in 1:2, l in 1:2]
+    # The engineering constants of the plane are those of the plane-stress stiffness.
+    E₁, _, ν₁₂ = ti_constants(C; form = :engineering, role = :stiffness)
+    @test bulk_modulus(S) ≈ E₁ / (2 * (1 - ν₁₂))
+    @test shear_modulus(S) ≈ E₁ / (2 * (1 + ν₁₂)) ≈ shear_modulus(P)
+    @test all(young_poisson(S) .≈ plane_stress_to_plane_strain(E₁, ν₁₂))
+    # The axis of the material does not enter: the result is that of its plane.
+    n = normalize([0.3, -0.5, 0.8])
+    Cn = ti_from_constants(c..., n)
+    @test all(get_data(plane_strain_stiffness(Cn)) .≈ get_data(P))
+    @test all(get_data(plane_stress_stiffness(Cn)) .≈ get_data(S))
+    # An isotropic material is a transversely isotropic one about any axis.
+    Ci = iso_stiffness_young_poisson(70.0, 0.33)
+    Ai = get_array(Ci)
+    Ct = ti_from_constants(Ai[1, 1, 1, 1], Ai[1, 1, 2, 2], Ai[1, 1, 3, 3], Ai[3, 3, 3, 3], Ai[2, 3, 2, 3], n)
+    @test all(get_data(plane_strain_stiffness(Ct)) .≈ get_data(plane_strain_stiffness(Ci)))
+    @test all(get_data(plane_stress_stiffness(Ct)) .≈ get_data(plane_stress_stiffness(Ci)))
+    # Back to three dimensions.
+    @test all(get_data(@inferred iso_from_plane_strain(plane_strain_stiffness(Ci))) .≈ get_data(Ci))
+    @test all(get_data(@inferred iso_from_plane_stress(plane_stress_stiffness(Ci))) .≈ get_data(Ci))
+    # The isotropic material that behaves as C does in its plane, in each state.
+    @test all(get_data(plane_strain_stiffness(iso_from_plane_strain(P))) .≈ get_data(P))
+    @test all(get_data(plane_stress_stiffness(iso_from_plane_stress(S))) .≈ get_data(S))
+    # Derivatives: ∂k*/∂C₃₃₃₃ = (C₁₁₃₃/C₃₃₃₃)², and that of the lift, λ = 2λ*μ/(2μ − λ*).
+    kstar(x) = bulk_modulus(plane_stress_stiffness(ti_from_constants(c[1], c[2], c[3], x, c[5], n)))
+    @test ForwardDiff.derivative(kstar, c[4]) ≈ (c[3] / c[4])^2
+    lift(x) = lame_lambda(iso_from_plane_stress(TensISO{2}(2 * (x + 3.0), 2 * 3.0)))
+    @test ForwardDiff.derivative(lift, 1.5) ≈ (2 * 3.0)^2 / (2 * 3.0 - 1.5)^2
+    # Symbolic, exactly, with both backends.
+    a, b, l, nn, p = symbols("C1111 C1122 C1133 C3333 C2323", positive = true)
+    Ss = plane_stress_stiffness(ti_from_constants(a, b, l, nn, p, [0, 0, 1]))
+    @test simplify(bulk_modulus(Ss) - ((a + b) / 2 - l^2 / nn)) == 0
+    @test simplify(shear_modulus(Ss) - (a - b) / 2) == 0
+    Symbolics.@variables c₁ c₂ c₃ c₄ c₅
+    Ps = plane_strain_stiffness(ti_from_constants(c₁, c₂, c₃, c₄, c₅, [0, 0, 1]))
+    @test isequal(Symbolics.simplify(bulk_modulus(Ps) - (c₁ + c₂) / 2; expand = true), 0)
+    # A tensor without major symmetry has no plane stiffness of this kind.
+    @test_throws ArgumentError plane_strain_stiffness(TensTI{4}(1.0, 2.0, 0.3, 0.5, 1.5, 0.8, [0.0, 0.0, 1.0]))
+end
+
 # ── 0.11.1: each modulus on its own, on a stiffness or a compliance ─────────────
 
 # The readers of 0.11.0 on a stiffness, frozen: the new ones must give their bits.

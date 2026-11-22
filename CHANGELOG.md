@@ -1,5 +1,29 @@
 # Changelog
 
+## v0.14.1 — plane strain and plane stress of a transversely isotropic material
+
+A patch release that adds methods and two functions; nothing changes for
+existing code. A transversely isotropic material is isotropic in the plane
+normal to its axis, so that a 2-D computation in that plane is that of an
+isotropic material, in plane strain or in plane stress. The conversions
+existed for an isotropic material only, and nothing went from a 2-D stiffness
+back to a 3-D one, which a 3-D code run on a geometry invariant along an axis
+needs.
+
+### Added
+
+- `plane_strain_stiffness(ℂ::TensTI{4})` and `plane_stress_stiffness(ℂ::TensTI{4})`:
+  the `TensISO{4,2}` of the plane of isotropy, of bulk modulus
+  `(C₁₁₁₁ + C₁₁₂₂)/2` in plane strain and `(C₁₁₁₁ + C₁₁₂₂)/2 − C₁₁₃₃²/C₃₃₃₃`
+  in plane stress, and of shear modulus `(C₁₁₁₁ − C₁₁₂₂)/2` in both.
+- `iso_from_plane_strain(t)` and `iso_from_plane_stress(t)`: the isotropic 3-D
+  stiffness whose plane-strain, or plane-stress, stiffness is the
+  `TensISO{4,2}` `t`. Composed with the functions above and with
+  `plane_stress_to_plane_strain`, they give the isotropic material with which
+  a plane-strain computation reproduces another state or another material.
+
+All four accept numbers, duals and symbols.
+
 ## v0.14.0 — toroidal coordinates and toroidal functions
 
 A minor release that adds a coordinate system and its special functions;
