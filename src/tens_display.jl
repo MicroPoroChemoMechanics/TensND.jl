@@ -77,10 +77,17 @@ rich `text/plain` display, which for a symbolic expression is SymPy's
 two-dimensional form:
 
 ```jldoctest
-julia> laplacian(SymFunction("f", real = true)(r)) |> pprint
+Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
+laplacian(SymFunction("f", real = true)(r), Spherical) |> pprint
+
+# output
+
               d
-ERROR: UndefVarError: `d` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
+ 2          2⋅──(f(r))
+d             dr
+───(f(r)) + ──────────
+  2             r
+dr
 ```
 
 Tensor coefficients are deliberately *not* printed that way: a multi-line

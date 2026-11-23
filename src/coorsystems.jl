@@ -552,17 +552,10 @@ argument may be omitted.
 ```jldoctest
 julia> Polar = coorsys_polar() ; r, θ = get_coords(Polar) ; @set_coorsys Polar ;
 
-julia> laplacian(SymFunction("f", real = true)(r, θ))   # the polar Laplacian
-                              2
-                             ∂
-               ∂             ───(f(r, θ))
-ERROR: ParseError:
-# Error @ none:1:2
-∂             ───(f(r, θ))
-#└───────────────────────┘ ── extra tokens after end of expression
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> f = SymFunction("f", real = true)(r, θ) ;
+
+julia> simplify(laplacian(f) - (diff(f, r, 2) + diff(f, r) / r + diff(f, θ, 2) / r^2))   # the polar Laplacian
+0
 
 julia> n = symbols("n", integer = true) ; simplify(laplacian(r^n * cos(n*θ)))   # = 0
 0
@@ -665,38 +658,12 @@ Return the polar coordinate system
 
 # Examples
 ```jldoctest
-julia> Polar = coorsys_polar() ; r, θ = get_coords(Polar) ; 𝐞ʳ, 𝐞ᶿ = unitvec(Polar) ; ℬᵖ = get_basis(Polar)
-ERROR: MethodError: no method matching get_basis(::CoordinateSystem{2, Sym{PythonCall.Py}, ExactGeometry{2, Sym{PythonCall.Py}, TensND.TensRotated{1, 2, Sym{PythonCall.Py}, Vec{2, Sym{PythonCall.Py}}, RotatedBasis{2, Sym{PythonCall.Py}}}, RotatedBasis{2, Sym{PythonCall.Py}}, OrthogonalBasis{2, Sym{PythonCall.Py}, RotatedBasis{2, Sym{PythonCall.Py}}}}})
-The function `get_basis` exists, but no method is defined for this combination of argument types.
-
-Closest candidates are:
-  get_basis(!Matched::Union{Tens{order, dim, T, A}, TensND.TensOrthogonal{order, dim, T, A}, TensND.TensRotated{order, dim, T, A}} where {order, dim, T, A})
-   @ TensND ~/mpcm/TensND.jl/src/tens.jl:342
-  get_basis(!Matched::TensND.TensCanonical{order, dim, T}) where {order, dim, T}
-   @ TensND ~/mpcm/TensND.jl/src/tens.jl:343
-  get_basis(!Matched::TensISO{order, dim, T}) where {order, dim, T}
-   @ TensND ~/mpcm/TensND.jl/src/tens_isotropic.jl:196
-  ...
-
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> Polar = coorsys_polar() ; r, θ = get_coords(Polar) ; 𝐞ʳ, 𝐞ᶿ = unitvec(Polar) ;
 
 julia> f = SymFunction("f", real = true)(r, θ) ;
 
-julia> laplacian(f, Polar)
-                               2
-                              ∂
-                             ───(f(r, θ))
-                               2
-               ∂             ∂θ
-ERROR: ParseError:
-# Error @ none:1:2
-∂             ∂θ
-#└─────────────┘ ── extra tokens after end of expression
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> simplify(laplacian(f, Polar) - (diff(f, r, 2) + diff(f, r) / r + diff(f, θ, 2) / r^2))
+0
 ``` 
 """
 function coorsys_polar(coords::NTuple{2, T}; canonical = false) where {T <: SymType}
@@ -715,38 +682,14 @@ Return the cylindrical coordinate system
 
 # Examples
 ```jldoctest
-julia> Cylindrical = coorsys_cylindrical() ; rθz = get_coords(Cylindrical) ; 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; ℬᶜ = get_basis(Cylindrical)
-ERROR: MethodError: no method matching get_basis(::CoordinateSystem{3, Sym{PythonCall.Py}, ExactGeometry{3, Sym{PythonCall.Py}, TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}, RotatedBasis{3, Sym{PythonCall.Py}}, OrthogonalBasis{3, Sym{PythonCall.Py}, RotatedBasis{3, Sym{PythonCall.Py}}}}})
-The function `get_basis` exists, but no method is defined for this combination of argument types.
+julia> Cylindrical = coorsys_cylindrical() ; r, θ, z = get_coords(Cylindrical) ; ℬᶜ = normalized_basis(Cylindrical) ;
 
-Closest candidates are:
-  get_basis(!Matched::Union{Tens{order, dim, T, A}, TensND.TensOrthogonal{order, dim, T, A}, TensND.TensRotated{order, dim, T, A}} where {order, dim, T, A})
-   @ TensND ~/mpcm/TensND.jl/src/tens.jl:342
-  get_basis(!Matched::TensND.TensCanonical{order, dim, T}) where {order, dim, T}
-   @ TensND ~/mpcm/TensND.jl/src/tens.jl:343
-  get_basis(!Matched::TensISO{order, dim, T}) where {order, dim, T}
-   @ TensND ~/mpcm/TensND.jl/src/tens_isotropic.jl:196
-  ...
+julia> vʳ, vᶿ, vᶻ = (SymFunction(name, real = true)(r, θ, z) for name in ("vʳ", "vᶿ", "vᶻ")) ;
 
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> 𝐯 = Tens(Vec{3}((vʳ, vᶿ, vᶻ)), ℬᶜ) ;
 
-julia> 𝐯 = Tens(Vec{3}(i -> SymFunction(string("v", rθz[i]), real = true)(rθz...)), ℬᶜ) ;
-ERROR: UndefVarError: `ℬᶜ` not defined in `Main`
-Suggestion: add an appropriate import or assignment. This global was declared but not assigned.
-Stacktrace:
- [1] top-level scope
-   @ none:1
-
-julia> divergence(𝐯, Cylindrical)
-                                                  ∂
-                                    vr(r, θ, z) + ──(vθ(r, θ, z))
-ERROR: UndefVarError: `vr` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> simplify(divergence(𝐯, Cylindrical) - (diff(vʳ, r) + vʳ / r + diff(vᶿ, θ) / r + diff(vᶻ, z)))
+0
 ``` 
 """
 function coorsys_cylindrical(coords::NTuple{3, T}; canonical = false) where {T <: SymType}
@@ -766,22 +709,7 @@ Return the spherical coordinate system
 
 # Examples
 ```jldoctest
-julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; ℬˢ = get_basis(Spherical)
-ERROR: MethodError: no method matching get_basis(::CoordinateSystem{3, Sym{PythonCall.Py}, ExactGeometry{3, Sym{PythonCall.Py}, TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}, RotatedBasis{3, Sym{PythonCall.Py}}, OrthogonalBasis{3, Sym{PythonCall.Py}, RotatedBasis{3, Sym{PythonCall.Py}}}}})
-The function `get_basis` exists, but no method is defined for this combination of argument types.
-
-Closest candidates are:
-  get_basis(!Matched::Union{Tens{order, dim, T, A}, TensND.TensOrthogonal{order, dim, T, A}, TensND.TensRotated{order, dim, T, A}} where {order, dim, T, A})
-   @ TensND ~/mpcm/TensND.jl/src/tens.jl:342
-  get_basis(!Matched::TensND.TensCanonical{order, dim, T}) where {order, dim, T}
-   @ TensND ~/mpcm/TensND.jl/src/tens.jl:343
-  get_basis(!Matched::TensISO{order, dim, T}) where {order, dim, T}
-   @ TensND ~/mpcm/TensND.jl/src/tens_isotropic.jl:196
-  ...
-
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
 
 julia> σʳʳ, σᶿᶿ, σᵠᵠ = (SymFunction(name, real = true)(r) for name in ("σʳʳ", "σᶿᶿ", "σᵠᵠ")) ;
 
@@ -798,10 +726,8 @@ TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, Rotated
  sin(ϕ)⋅cos(θ)   cos(ϕ)  sin(θ)⋅sin(ϕ)
        -sin(θ)        0         cos(θ)
 
-julia> div𝛔 ⋅ 𝐞ʳ
-d            2⋅σʳʳ(r)   σᵠᵠ(r)   σᶿᶿ(r)
-──(σʳʳ(r)) + ──────── - ────── - ──────
-dr              r         r        r
+julia> simplify(div𝛔 ⋅ 𝐞ʳ - (diff(σʳʳ, r) + (2σʳʳ - σᶿᶿ - σᵠᵠ) / r))   # the radial equilibrium
+0
 ``` 
 """
 function coorsys_spherical(coords::NTuple{3, T}; canonical = false) where {T <: SymType}
@@ -838,10 +764,8 @@ TensND.TensCanonical{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}}
  ⋅  1  ⋅
  ⋅  ⋅  1
 
-julia> laplacian(OM[1]^2, Spheroidal)
-                                                                               ↪
-ERROR: UndefVarError: `↪` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
+julia> simplify(laplacian(OM[1]^2, Spheroidal))   # the Laplacian of x₁²
+2
 ```
 
 See also [`coorsys_spheroidal_oblate`](@ref), [`coorsys_ellipsoidal`](@ref).

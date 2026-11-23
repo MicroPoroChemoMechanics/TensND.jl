@@ -287,21 +287,17 @@ rotation.
 
 # Examples
 ```jldoctest
+julia> θ, ϕ, ψ = symbols("θ ϕ ψ", real = true) ;
+
 julia> cθ, cϕ, cψ, sθ, sϕ, sψ = symbols("cθ cϕ cψ sθ sϕ sψ", real = true) ;
 
 julia> d = Dict(cos(θ) => cθ, cos(ϕ) => cϕ, cos(ψ) => cψ, sin(θ) => sθ, sin(ϕ) => sϕ, sin(ψ) => sψ) ;
-ERROR: UndefVarError: `θ` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
 
 julia> subs.(rotation_matrix(θ, ϕ, ψ),d...)
-ERROR: UndefVarError: `θ` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+3×3 StaticArraysCore.SMatrix{3, 3, Sym{PythonCall.Py}, 9} with indices SOneTo(3)×SOneTo(3):
+ cθ⋅cψ⋅cϕ - sψ⋅sϕ  -cθ⋅cϕ⋅sψ - cψ⋅sϕ  cϕ⋅sθ
+ cθ⋅cψ⋅sϕ + cϕ⋅sψ  -cθ⋅sψ⋅sϕ + cψ⋅cϕ  sθ⋅sϕ
+           -cψ⋅sθ              sθ⋅sψ     cθ
 ```
 """
 rotation_matrix(θ, ϕ, ψ = 0) = RotZYZ(ϕ, θ, ψ)
@@ -313,12 +309,12 @@ The 2D rotation matrix of angle `θ`, as a `Tensor{2, 2}`.
 
 # Examples
 ```jldoctest
+julia> θ, ϕ, ψ = symbols("θ ϕ ψ", real = true) ;
+
 julia> rotation_matrix(θ)
-ERROR: UndefVarError: `θ` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+2×2 Tensor{2, 2, Sym{PythonCall.Py}, 4}:
+ cos(θ)  -sin(θ)
+ sin(θ)   cos(θ)
 ```
 """
 rotation_matrix(θ) = Tensor{2, 2}((cos(θ), sin(θ), -sin(θ), cos(θ)))
@@ -334,42 +330,53 @@ symmetric second-order tensor, ``\\mathbf{R}\\,\\boldsymbol{\\varepsilon}\\,\\ma
 
 # Examples
 ```jldoctest
+julia> θ, ϕ, ψ = symbols("θ ϕ ψ", real = true) ;
+
 julia> cθ, cϕ, cψ, sθ, sϕ, sψ = symbols("cθ cϕ cψ sθ sϕ sψ", real = true) ;
 
 julia> d = Dict(cos(θ) => cθ, cos(ϕ) => cϕ, cos(ψ) => cψ, sin(θ) => sθ, sin(ϕ) => sϕ, sin(ψ) => sψ) ;
-ERROR: UndefVarError: `θ` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
 
 julia> R = Tens(subs.(rotation_matrix(θ, ϕ, ψ),d...))
-ERROR: UndefVarError: `θ` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+TensND.TensCanonical{2, 3, Sym{PythonCall.Py}, Tensor{2, 3, Sym{PythonCall.Py}, 9}}
+→ array: 3×3 Tensor{2, 3, Sym{PythonCall.Py}, 9}:
+ cθ⋅cψ⋅cϕ - sψ⋅sϕ  -cθ⋅cϕ⋅sψ - cψ⋅sϕ  cϕ⋅sθ
+ cθ⋅cψ⋅sϕ + cϕ⋅sψ  -cθ⋅sψ⋅sϕ + cψ⋅cϕ  sθ⋅sϕ
+           -cψ⋅sθ              sθ⋅sψ     cθ
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> RR = R ⊠ˢ R
-ERROR: UndefVarError: `R` not defined in `Main`
-Suggestion: add an appropriate import or assignment. This global was declared but not assigned.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+TensND.TensCanonical{4, 3, Sym{PythonCall.Py}, SymmetricTensor{4, 3, Sym{PythonCall.Py}, 36}}
+→ KM: 6×6 Matrix{Sym{PythonCall.Py}}:
+                          (cθ*cψ*cϕ - sψ*sϕ)^2  …                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
+                          (cθ*cψ*sϕ + cϕ*sψ)^2                                      √2⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)
+                                     cψ^2*sθ^2                                                                 -sqrt(2)*cψ*sθ^2*sψ
+             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)                               -cψ⋅sθ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)
+             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                               -cψ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)
+ √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)  …  (cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + (cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> R6 = from_mandel(subs.(mandel(rotation_tensor4(θ, ϕ, ψ)),d...))
-ERROR: UndefVarError: `θ` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+TensND.TensCanonical{4, 3, Sym{PythonCall.Py}, SymmetricTensor{4, 3, Sym{PythonCall.Py}, 36}}
+→ KM: 6×6 Matrix{Sym{PythonCall.Py}}:
+                          (cθ*cψ*cϕ - sψ*sϕ)^2  …                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
+                          (cθ*cψ*sϕ + cϕ*sψ)^2                                      √2⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)
+                                     cψ^2*sθ^2                                                                 -sqrt(2)*cψ*sθ^2*sψ
+             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)                               -cψ⋅sθ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)
+             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                               -cψ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)
+ √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)  …  (cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + (cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> R6 == RR
-ERROR: UndefVarError: `R6` not defined in `Main`
-Suggestion: add an appropriate import or assignment. This global was declared but not assigned.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+true
 ```
 """
 function rotation_tensor4(θ, ϕ = 0, ψ = 0)

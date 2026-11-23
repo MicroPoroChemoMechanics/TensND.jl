@@ -32,12 +32,11 @@ The third column of the matrix is the direction `(sinθ cosϕ, sinθ sinϕ, cos�
 
 # Examples
 ```jldoctest
-julia> R = _rot3_raw(0.3, 0.5, 0.0)
-ERROR: UndefVarError: `_rot3_raw` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> R = TensND._rot3_raw(0.3, 0.5, 0.0)
+3×3 StaticArraysCore.SMatrix{3, 3, Float64, 9} with indices SOneTo(3)×SOneTo(3):
+  0.838387  -0.479426  0.259343
+  0.458013   0.877583  0.14168
+ -0.29552    0.0       0.955336
 ```
 """
 function _rot3_raw(θ, ϕ, ψ)
@@ -149,12 +148,8 @@ Formulas (from ECHOES `tensor_ti.h`):
 julia> C = Float64[10 3 2.5 0 0 0; 3 10 2.5 0 0 0; 2.5 2.5 12 0 0 0;
                    0 0 0 4 0 0; 0 0 0 0 4 0; 0 0 0 0 0 7];
 
-julia> _project_TI_KM(C)
-ERROR: UndefVarError: `_project_TI_KM` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> TensND._project_TI_KM(C)
+(12.0, 13.0, 3.5355339059327373, 7.0, 4.0)
 ```
 """
 function _project_TI_KM(C)
@@ -178,19 +173,10 @@ Build a 6×6 KM matrix (in the frame where `e₃` is the TI axis) from
 
 # Examples
 ```jldoctest
-julia> B = _build_TI_KM(12.0, 13.0, sqrt(2)*2.5, 7.0, 4.0);
-ERROR: UndefVarError: `_build_TI_KM` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> B = TensND._build_TI_KM(12.0, 13.0, sqrt(2)*2.5, 7.0, 4.0);
 
 julia> B[1,1]  # = (ℓ₂ + ℓ₅)/2 = (13+7)/2 = 10
-ERROR: UndefVarError: `B` not defined in `Main`
-Suggestion: add an appropriate import or assignment. This global was declared but not assigned.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+10.0
 ```
 """
 function _build_TI_KM(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)
@@ -229,12 +215,8 @@ entries are averaged: `Cᵢⱼ = (C[i,j] + C[j,i]) / 2`.
 julia> C = Float64[10 3 2.5 0 0 0; 3 8 1.5 0 0 0; 2.5 1.5 12 0 0 0;
                    0 0 0 4 0 0; 0 0 0 0 6 0; 0 0 0 0 0 7];
 
-julia> _project_ORTHO_KM(C)
-ERROR: UndefVarError: `_project_ORTHO_KM` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> TensND._project_ORTHO_KM(C)
+(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5)
 ```
 """
 function _project_ORTHO_KM(C)
@@ -257,19 +239,10 @@ Build a 6×6 KM matrix in the material frame from 9 orthotropic parameters.
 
 # Examples
 ```jldoctest
-julia> B = _build_ORTHO_KM(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5);
-ERROR: UndefVarError: `_build_ORTHO_KM` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> B = TensND._build_ORTHO_KM(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5);
 
 julia> B[4,4]  # = 2*C₄₄ = 4
-ERROR: UndefVarError: `B` not defined in `Main`
-Suggestion: add an appropriate import or assignment. This global was declared but not assigned.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+4.0
 ```
 """
 function _build_ORTHO_KM(C₁₁, C₂₂, C₃₃, C₁₂, C₁₃, C₂₃, C₄₄, C₅₅, C₆₆)
@@ -315,12 +288,8 @@ is handled by the same traces, which symmetrize it implicitly.
 julia> C = Float64[10 4 4 0 0 0; 4 10 4 0 0 0; 4 4 10 0 0 0;
                    0 0 0 4 0 0; 0 0 0 0 4 0; 0 0 0 0 0 4];
 
-julia> _project_CUBIC_KM(C)             # (C₁₁+2C₁₂, C₁₁-C₁₂, 2C₄₄)
-ERROR: UndefVarError: `_project_CUBIC_KM` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> TensND._project_CUBIC_KM(C)             # (C₁₁+2C₁₂, C₁₁-C₁₂, 2C₄₄)
+(18.0, 6.0, 4.0)
 ```
 """
 function _project_CUBIC_KM(C)
@@ -391,19 +360,11 @@ Extract spherical angles (θ, ϕ) from a unit vector `n`:
 
 # Examples
 ```jldoctest
-julia> _angles_from_n((0.0, 0.0, 1.0))
-ERROR: UndefVarError: `_angles_from_n` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> TensND._angles_from_n((0.0, 0.0, 1.0))
+(0.0, 0.0)
 
-julia> _angles_from_n((1.0, 0.0, 0.0))
-ERROR: UndefVarError: `_angles_from_n` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> TensND._angles_from_n((1.0, 0.0, 0.0))
+(1.5707963267948966, 0.0)
 ```
 """
 function _angles_from_n(n)
@@ -421,12 +382,8 @@ Build a unit vector from spherical angles:
 
 # Examples
 ```jldoctest
-julia> _n_from_angles(0.0, 0.0)
-ERROR: UndefVarError: `_n_from_angles` not defined in `Main`
-Suggestion: check for spelling errors or missing imports.
-Stacktrace:
- [1] top-level scope
-   @ none:1
+julia> TensND._n_from_angles(0.0, 0.0)
+(0.0, 0.0, 1.0)
 ```
 """
 function _n_from_angles(θ, ϕ)
