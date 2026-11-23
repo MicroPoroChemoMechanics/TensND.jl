@@ -89,7 +89,7 @@ parameter independent of the data eltype `T`: differentiating with respect to
 the constants does not require a `Dual`-typed geometric frame.
 
 # Examples
-```julia
+```jldoctest
 julia> C = cubic_from_constants(10.0, 4.0, 2.0, CanonicalBasis{3,Float64}());
 
 julia> cubic_constants(C)

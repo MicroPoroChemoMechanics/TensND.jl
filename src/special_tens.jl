@@ -1,12 +1,12 @@
 """
-    levi_civita(T::Type{<:Number} = Sym)
+    levi_civita(T::Type{<:Number} = default_number_type())
 
 Builds an Array{T,3} of Levi-Civita Symbol `ϵᵢⱼₖ = (i-j) (j-k) (k-i) / 2`
 
 # Examples
-```julia
+```jldoctest
 julia> ε = levi_civita(Sym)
-3×3×3 Array{Sym, 3}:
+3×3×3 Array{Sym{PythonCall.Py}, 3}:
 [:, :, 1] =
  0   0  0
  0   0  1
@@ -23,29 +23,28 @@ julia> ε = levi_civita(Sym)
   0  0  0
 ``` 
 """
-levi_civita(T::Type{<:Number} = Sym) = [T(T((i - j) * (j - k) * (k - i)) / T(2)) for i in 1:3, j in 1:3, k in 1:3]
+levi_civita(T::Type{<:Number} = default_number_type()) = [T(T((i - j) * (j - k) * (k - i)) / T(2)) for i in 1:3, j in 1:3, k in 1:3]
 
 """
-    𝐞(i::Integer, dim::Int = 3, T::Type{<:Number} = Sym)
+    𝐞(i::Integer, dim::Int = 3, T::Type{<:Number} = default_number_type())
 
 Vector of the canonical basis
 
 # Examples
-```julia
+```jldoctest
 julia> 𝐞(1)
-Tens{1, 3, Sym, Sym, Vec{3, Sym}, CanonicalBasis{3, Sym}}
-# data: 3-element Vec{3, Sym}:
+TensND.TensCanonical{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
  1
  0
  0
-# var: (:cont,)
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
- 1  0  0
- 0  1  0
- 0  0  1
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 ``` 
 """
-𝐞(::Val{i}, ::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {i, dim, T <: Number} =
+𝐞(::Val{i}, ::Val{dim} = Val(3), ::Val{T} = Val(default_number_type())) where {i, dim, T <: Number} =
     Tens(Vec{dim}(j -> j == i ? one(T) : zero(T)))
 
 """
@@ -54,7 +53,7 @@ Tens{1, 3, Sym, Sym, Vec{3, Sym}, CanonicalBasis{3, Sym}}
 Returns the coordinates, unit vectors and basis of the cartesian basis
 
 # Examples
-```julia
+```jldoctest
 julia> coords, vectors, ℬ = init_cartesian() ; x, y, z = coords ; 𝐞₁, 𝐞₂, 𝐞₃ = vectors ;
 ``` 
 """
@@ -74,29 +73,28 @@ init_cartesian(::Val{dim}) where {dim} = throw(
 
 
 """
-    𝐞ᵖ(i::Integer, θ::T = zero(Sym); canonical = false)
+    𝐞ᵖ(i::Integer, θ::T = zero(default_number_type()); canonical = false)
 
 Vector of the polar basis
 
 # Examples
-```julia
+```jldoctest
 julia> θ = symbols("θ", real = true) ;
 
 julia> 𝐞ᵖ(1, θ)
-Tens{1, 2, Sym, Sym, Vec{2, Sym}, RotatedBasis{2, Sym}}
-# data: 2-element Vec{2, Sym}:
+TensND.TensRotated{1, 2, Sym{PythonCall.Py}, Vec{2, Sym{PythonCall.Py}}, RotatedBasis{2, Sym{PythonCall.Py}}}
+→ array: 2-element Vec{2, Sym{PythonCall.Py}}:
  1
  0
-# var: (:cont,)
-# basis: 2×2 Tensor{2, 2, Sym, 4}:
+→ basis: 2×2 Matrix{Sym{PythonCall.Py}}:
  cos(θ)  -sin(θ)
  sin(θ)   cos(θ)
 ``` 
 """
-𝐞ᵖ(::Val{1}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᵖ(::Val{1}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{2}([cos(θ), sin(θ)])) :
     Tens(Vec{2}([one(T), zero(T)]), Basis(θ))
-𝐞ᵖ(::Val{2}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᵖ(::Val{2}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{2}([-sin(θ), cos(θ)])) :
     Tens(Vec{2}([zero(T), one(T)]), Basis(θ))
 
@@ -106,7 +104,7 @@ Tens{1, 2, Sym, Sym, Vec{2, Sym}, RotatedBasis{2, Sym}}
 Returns the coordinates, base vectors and basis of the polar basis
 
 # Examples
-```julia
+```jldoctest
 julia> coords, vectors, ℬᵖ = init_polar() ; r, θ = coords ; 𝐞ʳ, 𝐞ᶿ = vectors ;
 ``` 
 """
@@ -115,34 +113,33 @@ init_polar(coords; canonical = false) = Tuple(coords),
     Basis(coords[2])
 
 """
-    𝐞ᶜ(i::Integer, θ::T = zero(Sym); canonical = false)
+    𝐞ᶜ(i::Integer, θ::T = zero(default_number_type()); canonical = false)
 
 Vector of the cylindrical basis
 
 # Examples
-```julia
+```jldoctest
 julia> θ = symbols("θ", real = true) ;
 
 julia> 𝐞ᶜ(1, θ)
-Tens{1, 3, Sym, Sym, Vec{3, Sym}, RotatedBasis{3, Sym}}
-# data: 3-element Vec{3, Sym}:
+TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
  1
  0
  0
-# var: (:cont,)
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
  cos(θ)  -sin(θ)  0
  sin(θ)   cos(θ)  0
       0        0  1
 ``` 
 """
-𝐞ᶜ(::Val{1}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᶜ(::Val{1}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([cos(θ), sin(θ), zero(T)])) :
     Tens(Vec{3}([one(T), zero(T), zero(T)]), CylindricalBasis(θ))
-𝐞ᶜ(::Val{2}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᶜ(::Val{2}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([-sin(θ), cos(θ), zero(T)])) :
     Tens(Vec{3}([zero(T), one(T), zero(T)]), CylindricalBasis(θ))
-𝐞ᶜ(::Val{3}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᶜ(::Val{3}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([zero(T), zero(T), one(T)])) :
     Tens(Vec{3}([zero(T), zero(T), one(T)]), CylindricalBasis(θ))
 
@@ -152,7 +149,7 @@ Tens{1, 3, Sym, Sym, Vec{3, Sym}, RotatedBasis{3, Sym}}
 Returns the coordinates, base vectors and basis of the cylindrical basis
 
 # Examples
-```julia
+```jldoctest
 julia> coords, vectors, ℬᶜ = init_cylindrical() ; r, θ, z = coords ; 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = vectors ;
 ``` 
 """
@@ -161,31 +158,31 @@ init_cylindrical(coords; canonical = false) = Tuple(coords),
     CylindricalBasis(coords[2])
 
 """
-    𝐞ˢ(i::Integer, θ::T = zero(Sym), ϕ::T = zero(Sym), ψ::T = zero(Sym); canonical = false)
+    𝐞ˢ(i::Integer, θ::T = zero(default_number_type()), ϕ::T = zero(default_number_type()), ψ::T = zero(default_number_type()); canonical = false)
 
 Vector of the basis rotated with the 3 Euler angles `θ, ϕ, ψ` (spherical if `ψ=0`)
 
 # Examples
-```julia
+```jldoctest
 julia> θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true) ;
 
-Tens{1, 3, Sym, Sym, Vec{3, Sym}, RotatedBasis{3, Sym}}
-# data: 3-element Vec{3, Sym}:
+julia> 𝐞ˢ(1, θ, ϕ, ψ)
+TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
  1
  0
  0
-# var: (:cont,)
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
- -sin(ψ)⋅sin(ϕ) + cos(θ)⋅cos(ψ)⋅cos(ϕ)  -sin(ψ)⋅cos(θ)⋅cos(ϕ) - sin(ϕ)⋅cos(ψ)  sin(θ)⋅cos(ϕ)
-  sin(ψ)⋅cos(ϕ) + sin(ϕ)⋅cos(θ)⋅cos(ψ)  -sin(ψ)⋅sin(ϕ)⋅cos(θ) + cos(ψ)⋅cos(ϕ)  sin(θ)⋅sin(ϕ)
-                        -sin(θ)⋅cos(ψ)                          sin(θ)⋅sin(ψ)         cos(θ)
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ -sin(ψ)⋅sin(ϕ) + cos(θ)⋅cos(ψ)⋅cos(ϕ)  …  sin(θ)⋅cos(ϕ)
+  sin(ψ)⋅cos(ϕ) + sin(ϕ)⋅cos(θ)⋅cos(ψ)     sin(θ)⋅sin(ϕ)
+                        -sin(θ)⋅cos(ψ)            cos(θ)
 ``` 
 """
 function 𝐞ˢ(
         ::Val{1},
-        θ::T1 = 0,
-        ϕ::T2 = 0,
-        ψ::T3 = 0;
+        θ::T1 = zero(default_number_type()),
+        ϕ::T2 = zero(θ),
+        ψ::T3 = zero(ϕ);
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
@@ -205,9 +202,9 @@ function 𝐞ˢ(
 end
 function 𝐞ˢ(
         ::Val{2},
-        θ::T1 = 0,
-        ϕ::T2 = 0,
-        ψ::T3 = 0;
+        θ::T1 = zero(default_number_type()),
+        ϕ::T2 = zero(θ),
+        ψ::T3 = zero(ϕ);
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
@@ -227,9 +224,9 @@ function 𝐞ˢ(
 end
 function 𝐞ˢ(
         ::Val{3},
-        θ::T1 = 0,
-        ϕ::T2 = 0,
-        ψ::T3 = 0;
+        θ::T1 = zero(default_number_type()),
+        ϕ::T2 = zero(θ),
+        ψ::T3 = zero(ϕ);
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
@@ -245,7 +242,7 @@ for eb in (:𝐞, :𝐞ᵖ, :𝐞ᶜ, :𝐞ˢ)
 end
 # The documented form of `𝐞`, with a plain dimension and element type: the
 # forwarding above passes them on unchanged, where `Val`s are expected.
-𝐞(i::Integer, dim::Integer, ::Type{T} = Sym) where {T <: Number} = 𝐞(Val(i), Val(dim), Val(T))
+𝐞(i::Integer, dim::Integer, ::Type{T} = default_number_type()) where {T <: Number} = 𝐞(Val(i), Val(dim), Val(T))
 
 """
     init_spherical(coords = (symbols("θ ϕ", real = true)..., symbols("r", positive = true)); canonical = false)
@@ -256,7 +253,7 @@ the basis coincides with the canonical one when the angles are null and in consi
 the coordinates are ordered as `θ, ϕ, r`.
 
 # Examples
-```julia
+```jldoctest
 julia> coords, vectors, ℬˢ = init_spherical() ; θ, ϕ, r = coords ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ  = vectors ;
 ``` 
 """
@@ -271,7 +268,7 @@ Return the angles, base vectors and basis of the rotated basis.
 Here the coordinates are angles and do not represent a valid parametrization of `ℝ³`
 
 # Examples
-```julia
+```jldoctest
 julia> angles, vectors, ℬʳ = init_rotated() ; θ, ϕ, ψ = angles ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = vectors ;
 ```
 """
@@ -289,13 +286,15 @@ single angle, `rotation_matrix(θ)` is the 2D
 rotation.
 
 # Examples
-```julia
+```jldoctest
+julia> θ, ϕ, ψ = symbols("θ ϕ ψ", real = true) ;
+
 julia> cθ, cϕ, cψ, sθ, sϕ, sψ = symbols("cθ cϕ cψ sθ sϕ sψ", real = true) ;
 
 julia> d = Dict(cos(θ) => cθ, cos(ϕ) => cϕ, cos(ψ) => cψ, sin(θ) => sθ, sin(ϕ) => sϕ, sin(ψ) => sψ) ;
 
 julia> subs.(rotation_matrix(θ, ϕ, ψ),d...)
-3×3 StaticArrays.SMatrix{3, 3, Sym, 9} with indices SOneTo(3)×SOneTo(3):
+3×3 StaticArraysCore.SMatrix{3, 3, Sym{PythonCall.Py}, 9} with indices SOneTo(3)×SOneTo(3):
  cθ⋅cψ⋅cϕ - sψ⋅sϕ  -cθ⋅cϕ⋅sψ - cψ⋅sϕ  cϕ⋅sθ
  cθ⋅cψ⋅sϕ + cϕ⋅sψ  -cθ⋅sψ⋅sϕ + cψ⋅cϕ  sθ⋅sϕ
            -cψ⋅sθ              sθ⋅sψ     cθ
@@ -309,9 +308,11 @@ rotation_matrix(θ, ϕ, ψ = 0) = RotZYZ(ϕ, θ, ψ)
 The 2D rotation matrix of angle `θ`, as a `Tensor{2, 2}`.
 
 # Examples
-```julia
+```jldoctest
+julia> θ, ϕ, ψ = symbols("θ ϕ ψ", real = true) ;
+
 julia> rotation_matrix(θ)
-2×2 Tensor{2, 2, Sym, 4}:
+2×2 Tensor{2, 2, Sym{PythonCall.Py}, 4}:
  cos(θ)  -sin(θ)
  sin(θ)   cos(θ)
 ```
@@ -328,52 +329,51 @@ symmetric second-order tensor, ``\\mathbf{R}\\,\\boldsymbol{\\varepsilon}\\,\\ma
 [`mandel_rotation`](@ref)`(θ, ϕ, ψ)`.
 
 # Examples
-```julia
+```jldoctest
+julia> θ, ϕ, ψ = symbols("θ ϕ ψ", real = true) ;
+
 julia> cθ, cϕ, cψ, sθ, sϕ, sψ = symbols("cθ cϕ cψ sθ sϕ sψ", real = true) ;
 
 julia> d = Dict(cos(θ) => cθ, cos(ϕ) => cϕ, cos(ψ) => cψ, sin(θ) => sθ, sin(ϕ) => sϕ, sin(ψ) => sψ) ;
 
 julia> R = Tens(subs.(rotation_matrix(θ, ϕ, ψ),d...))
-Tens.TensCanonical{2, 3, Sym, Tensor{2, 3, Sym, 9}}
-# data: 3×3 Tensor{2, 3, Sym, 9}:
+TensND.TensCanonical{2, 3, Sym{PythonCall.Py}, Tensor{2, 3, Sym{PythonCall.Py}, 9}}
+→ array: 3×3 Tensor{2, 3, Sym{PythonCall.Py}, 9}:
  cθ⋅cψ⋅cϕ - sψ⋅sϕ  -cθ⋅cϕ⋅sψ - cψ⋅sϕ  cϕ⋅sθ
  cθ⋅cψ⋅sϕ + cϕ⋅sψ  -cθ⋅sψ⋅sϕ + cψ⋅cϕ  sθ⋅sϕ
            -cψ⋅sθ              sθ⋅sψ     cθ
-# var: (:cont, :cont)
-# basis: 3×3 Tens.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> RR = R ⊠ˢ R
-Tens.TensCanonical{4, 3, Sym, SymmetricTensor{4, 3, Sym, 36}}
-# data: 6×6 Matrix{Sym}:
-                          (cθ*cψ*cϕ - sψ*sϕ)^2                            (-cθ*cϕ*sψ - cψ*sϕ)^2           cϕ^2*sθ^2                      √2⋅cϕ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)                     √2⋅cϕ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
-                          (cθ*cψ*sϕ + cϕ*sψ)^2                            (-cθ*sψ*sϕ + cψ*cϕ)^2           sθ^2*sϕ^2                      √2⋅sθ⋅sϕ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)                     √2⋅sθ⋅sϕ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)                                   √2⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)
-                                     cψ^2*sθ^2                                        sθ^2*sψ^2                cθ^2                                       √2⋅cθ⋅sθ⋅sψ                                    -√2⋅cθ⋅cψ⋅sθ                                                              -sqrt(2)*cψ*sθ^2*sψ
-             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)                √2⋅sθ⋅sψ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)    √2⋅cθ⋅sθ⋅sϕ                    cθ*(-cθ*sψ*sϕ + cψ*cϕ) + sθ^2*sψ*sϕ                   cθ*(cθ*cψ*sϕ + cϕ*sψ) - cψ*sθ^2*sϕ                            -cψ⋅sθ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)
-             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                √2⋅sθ⋅sψ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)    √2⋅cθ⋅cϕ⋅sθ                    cθ*(-cθ*cϕ*sψ - cψ*sϕ) + cϕ*sθ^2*sψ                   cθ*(cθ*cψ*cϕ - sψ*sϕ) - cψ*cϕ*sθ^2                            -cψ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)
- √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)  √2⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)  sqrt(2)*cϕ*sθ^2*sϕ  cϕ⋅sθ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + sθ⋅sϕ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)  cϕ⋅sθ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ) + sθ⋅sϕ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)  (cθ*cψ*cϕ - sψ*sϕ)*(-cθ*sψ*sϕ + cψ*cϕ) + (cθ*cψ*sϕ + cϕ*sψ)*(-cθ*cϕ*sψ - cψ*sϕ)
-# var: (:cont, :cont, :cont, :cont)
-# basis: 3×3 Tens.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
+TensND.TensCanonical{4, 3, Sym{PythonCall.Py}, SymmetricTensor{4, 3, Sym{PythonCall.Py}, 36}}
+→ KM: 6×6 Matrix{Sym{PythonCall.Py}}:
+                          (cθ*cψ*cϕ - sψ*sϕ)^2  …                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
+                          (cθ*cψ*sϕ + cϕ*sψ)^2                                      √2⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)
+                                     cψ^2*sθ^2                                                                 -sqrt(2)*cψ*sθ^2*sψ
+             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)                               -cψ⋅sθ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)
+             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                               -cψ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)
+ √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)  …  (cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + (cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> R6 = from_mandel(subs.(mandel(rotation_tensor4(θ, ϕ, ψ)),d...))
-Tens.TensCanonical{4, 3, Sym, SymmetricTensor{4, 3, Sym, 36}}
-# data: 6×6 Matrix{Sym}:
-                          (cθ*cψ*cϕ - sψ*sϕ)^2                            (-cθ*cϕ*sψ - cψ*sϕ)^2           cϕ^2*sθ^2                      √2⋅cϕ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)                     √2⋅cϕ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
-                          (cθ*cψ*sϕ + cϕ*sψ)^2                            (-cθ*sψ*sϕ + cψ*cϕ)^2           sθ^2*sϕ^2                      √2⋅sθ⋅sϕ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)                     √2⋅sθ⋅sϕ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)                                   √2⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)
-                                     cψ^2*sθ^2                                        sθ^2*sψ^2                cθ^2                                       √2⋅cθ⋅sθ⋅sψ                                    -√2⋅cθ⋅cψ⋅sθ                                                              -sqrt(2)*cψ*sθ^2*sψ
-             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)                √2⋅sθ⋅sψ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)    √2⋅cθ⋅sθ⋅sϕ                    cθ*(-cθ*sψ*sϕ + cψ*cϕ) + sθ^2*sψ*sϕ                   cθ*(cθ*cψ*sϕ + cϕ*sψ) - cψ*sθ^2*sϕ                            -cψ⋅sθ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)
-             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                √2⋅sθ⋅sψ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)    √2⋅cθ⋅cϕ⋅sθ                    cθ*(-cθ*cϕ*sψ - cψ*sϕ) + cϕ*sθ^2*sψ                   cθ*(cθ*cψ*cϕ - sψ*sϕ) - cψ*cϕ*sθ^2                            -cψ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)
- √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)  √2⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)  sqrt(2)*cϕ*sθ^2*sϕcϕ⋅sθ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + sθ⋅sϕ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)  cϕ⋅sθ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ) + sθ⋅sϕ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)  (cθ*cψ*cϕ - sψ*sϕ)*(-cθ*sψ*sϕ + cψ*cϕ) + (cθ*cψ*sϕ + cϕ*sψ)*(-cθ*cϕ*sψ - cψ*sϕ)
-# var: (:cont, :cont, :cont, :cont)
-# basis: 3×3 Tens.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
+TensND.TensCanonical{4, 3, Sym{PythonCall.Py}, SymmetricTensor{4, 3, Sym{PythonCall.Py}, 36}}
+→ KM: 6×6 Matrix{Sym{PythonCall.Py}}:
+                          (cθ*cψ*cϕ - sψ*sϕ)^2  …                                   √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
+                          (cθ*cψ*sϕ + cϕ*sψ)^2                                      √2⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ)
+                                     cψ^2*sθ^2                                                                 -sqrt(2)*cψ*sθ^2*sψ
+             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)                               -cψ⋅sθ⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)
+             -√2⋅cψ⋅sθ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)                               -cψ⋅sθ⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ) + sθ⋅sψ⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)
+ √2⋅(cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(cθ⋅cψ⋅sϕ + cϕ⋅sψ)  …  (cθ⋅cψ⋅cϕ - sψ⋅sϕ)⋅(-cθ⋅sψ⋅sϕ + cψ⋅cϕ) + (cθ⋅cψ⋅sϕ + cϕ⋅sψ)⋅(-cθ⋅cϕ⋅sψ - cψ⋅sϕ)
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> R6 == RR
 true

@@ -5,6 +5,8 @@
 
     **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Charts and coordinate conversions](@ref man-charts) · [Toroidal functions](@ref man-toroidal-harmonics)
 
+    **Tutorials**: [An insulating torus in a uniform flux](@ref tut-insulating-torus)
+
 The harmonic functions that separate in toroidal coordinates
 ([Toroidal coordinates](@ref th-toroidal)) are built on Legendre functions of
 half-integer degree and of argument larger than one, the **toroidal

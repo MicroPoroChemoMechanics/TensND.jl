@@ -115,7 +115,7 @@ vector. The coefficients are promoted to a common type; a transversely isotropic
 tensor also promotes its axis, which shares their type. A `TensTI` given six or
 eight coefficients becomes the six- or eight-parameter form.
 
-```julia
+```jldoctest
 julia> rebuild(TensISO{3}(3.0, 2.0), (1.0, 4.0)) == TensISO{3}(1.0, 4.0)
 true
 ```

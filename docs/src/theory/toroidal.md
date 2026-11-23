@@ -5,6 +5,8 @@
 
     **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Charts and coordinate conversions](@ref man-charts) · [Toroidal functions](@ref man-toroidal-harmonics)
 
+    **Tutorials**: [An insulating torus in a uniform flux](@ref tut-insulating-torus)
+
 A torus is the surface swept by a circle that revolves about an axis of its
 plane. The toroidal coordinates are the orthogonal system in which a family of
 tori sharing a focal circle is a family of coordinate surfaces: the natural

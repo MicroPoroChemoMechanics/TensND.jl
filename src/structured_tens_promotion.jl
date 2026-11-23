@@ -45,7 +45,7 @@ This is the obvious promotion for operations that combine `TensISO{4}` with a
 `TensOrtho`, e.g. `TensISO + TensOrtho → TensOrtho`.
 
 # Examples
-```julia
+```jldoctest
 julia> I4 = TensISO{3}(2.0, 3.0);   # α=2, β=3
 
 julia> O = iso_to_ortho(I4, CanonicalBasis{3,Float64}());
@@ -82,7 +82,7 @@ Used to decide whether a `TensTI{4}` (TI with axis `n`) and a `TensOrtho`
 (with a material frame) are compatible for symmetry-preserving arithmetic.
 
 # Examples
-```julia
+```jldoctest
 julia> TensND._axis_on_frame_index((0.0, 0.0, 1.0), CanonicalBasis{3,Float64}())
 3
 
@@ -231,7 +231,7 @@ Used by the mixed arithmetic below so that `TensISO + TensCubic` stays a
 `TensCubic` instead of collapsing to the unstructured method.
 
 # Examples
-```julia
+```jldoctest
 julia> C = iso_to_cubic(TensISO{3}(18.0, 6.0), CanonicalBasis{3,Float64}());
 
 julia> cubic_anisotropy(C)          # isotropic, so exactly zero

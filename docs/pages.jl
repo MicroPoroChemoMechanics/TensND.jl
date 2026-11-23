@@ -86,6 +86,7 @@ pages = [
             "manual/tensor_distances.md",
         ],
         "Coordinate systems" => [
+            "manual/coordinates_overview.md",
             "manual/coorsystems.md",
             "manual/coorsystems_num.md",
             "manual/charts.md",
@@ -129,6 +130,7 @@ pages = [
             "tutorials/generated/green_function.md",
             "tutorials/generated/cluster.md",
             "tutorials/generated/sphere_problems.md",
+            "tutorials/generated/insulating_torus.md",
             "tutorials/generated/hill_tensors.md",
         ],
         "Types, differentiation and performance" => [

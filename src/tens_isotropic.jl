@@ -84,100 +84,91 @@ function Base.replace_in_print_matrix(
 end
 
 """
-    tens_Id2(::Val{dim}, ::Val{T}) where {dim,T<:Number}
+    tens_Id2(dim = 3, T = default_number_type())
 
-Identity tensor of second order `𝟏ᵢⱼ = δᵢⱼ = 1 if i=j otherwise 0`
-
-# Examples
-```julia
-julia> 𝟏 = t𝟏() ; mandel(𝟏)
-6-element Vector{Sym}:
- 1
- 1
- 1
- 0
- 0
- 0
-
-julia> 𝟏.data
-3×3 SymmetricTensor{2, 3, Sym, 6}:
- 1  0  0
- 0  1  0
- 0  0  1
-```
-"""
-tens_Id2(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} = TensISO{2, dim, T}()
-
-"""
-    tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(Sym))
-
-Symmetric identity tensor of fourth order  `𝕀 = 𝟏 ⊠ˢ 𝟏` i.e. `(𝕀)ᵢⱼₖₗ = (δᵢₖδⱼₗ+δᵢₗδⱼₖ)/2`
+Identity tensor of order 2, ``\\boldsymbol{1}``, of components ``\\delta_{ij}``,
+in dimension `dim` and of element type `T` (see [`default_number_type`](@ref)).
+The arguments may also be given as `Val(dim)`, `Val(T)`.
 
 # Examples
-```julia
-julia> 𝕀 = t𝕀() ; mandel(𝕀)
-6×6 Matrix{Sym}:
- 1  0  0  0  0  0
- 0  1  0  0  0  0
- 0  0  1  0  0  0
- 0  0  0  1  0  0
- 0  0  0  0  1  0
- 0  0  0  0  0  1
+```jldoctest
+julia> mandel(tens_Id2(3, Float64))
+6-element Vector{Float64}:
+ 1.0
+ 1.0
+ 1.0
+ 0.0
+ 0.0
+ 0.0
 ```
 """
-tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} = TensISO{4, dim, T}()
+tens_Id2(::Val{dim} = Val(3), ::Val{T} = Val(default_number_type())) where {dim, T} = TensISO{2, dim, T}()
 
 """
-    tens_J4(::Val{dim} = Val(3), ::Val{T} = Val(Sym))
+    tens_Id4(dim = 3, T = default_number_type())
 
-Spherical projector of fourth order  `𝕁 = (𝟏 ⊗ 𝟏) / dim` i.e. `(𝕁)ᵢⱼₖₗ = δᵢⱼδₖₗ/dim`
+Symmetric identity tensor of order 4, ``\\mathbb{I}``, of components
+``(\\delta_{ik}\\delta_{jl}+\\delta_{il}\\delta_{jk})/2``.
 
 # Examples
-```julia
-julia> 𝕁 = t𝕁() ; mandel(𝕁)
-6×6 Matrix{Sym}:
- 1/3  1/3  1/3  0  0  0
- 1/3  1/3  1/3  0  0  0
- 1/3  1/3  1/3  0  0  0
-   0    0    0  0  0  0
-   0    0    0  0  0  0
-   0    0    0  0  0  0
+```jldoctest
+julia> mandel(tens_Id4(3, Float64))
+6×6 Matrix{Float64}:
+ 1.0  0.0  0.0  0.0  0.0  0.0
+ 0.0  1.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  1.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  1.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  1.0  0.0
+ 0.0  0.0  0.0  0.0  0.0  1.0
 ```
 """
-tens_J4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} =
+tens_Id4(::Val{dim} = Val(3), ::Val{T} = Val(default_number_type())) where {dim, T} = TensISO{4, dim, T}()
+
+"""
+    tens_J4(dim = 3, T = default_number_type())
+
+Spherical projector of order 4, ``\\mathbb{J}=(\\boldsymbol{1}\\otimes\\boldsymbol{1})/\\mathrm{dim}``,
+of components ``\\delta_{ij}\\delta_{kl}/\\mathrm{dim}``.
+
+# Examples
+```jldoctest
+julia> mandel(tens_J4(2, Float64))
+3×3 Matrix{Float64}:
+ 0.5  0.5  0.0
+ 0.5  0.5  0.0
+ 0.0  0.0  0.0
+```
+"""
+tens_J4(::Val{dim} = Val(3), ::Val{T} = Val(default_number_type())) where {dim, T} =
     TensISO{dim}(one(T), zero(T))
 
 """
-    tens_K4(::Val{dim} = Val(3), ::Val{T} = Val(Sym))
+    tens_K4(dim = 3, T = default_number_type())
 
-Deviatoric projector of fourth order  `𝕂 = 𝕀 - 𝕁` i.e. `(𝕂)ᵢⱼₖₗ = (δᵢₖδⱼₗ+δᵢₗδⱼₖ)/2 - δᵢⱼδₖₗ/dim`
+Deviatoric projector of order 4, ``\\mathbb{K}=\\mathbb{I}-\\mathbb{J}``.
 
 # Examples
-```julia
-julia> 𝕂 = t𝕂() ; mandel(𝕂)
-6×6 Matrix{Sym}:
-  2/3  -1/3  -1/3  0  0  0
- -1/3   2/3  -1/3  0  0  0
- -1/3  -1/3   2/3  0  0  0
-    0     0     0  1  0  0
-    0     0     0  0  1  0
-    0     0     0  0  0  1
+```jldoctest
+julia> mandel(tens_K4(2, Float64))
+3×3 Matrix{Float64}:
+  0.5  -0.5  0.0
+ -0.5   0.5  0.0
+  0.0   0.0  1.0
 ```
 """
-tens_K4(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} =
+tens_K4(::Val{dim} = Val(3), ::Val{T} = Val(default_number_type())) where {dim, T} =
     TensISO{dim}(zero(T), one(T))
 
 
 """
-    iso_projectors(::Val{dim} = Val(3), ::Val{T} = Val(Sym))
+    iso_projectors(dim = 3, T = default_number_type())
 
-Return the three fourth-order isotropic tensors `(𝕀, 𝕁, 𝕂)` — the symmetric
-identity, spherical projector, and deviatoric projector.  Any isotropic
-4th-order tensor can be written as `α·𝕁 + β·𝕂`.
+The three isotropic tensors of order 4, ``(\\mathbb{I},\\mathbb{J},\\mathbb{K})``: any
+isotropic tensor of order 4 is ``\\alpha\\,\\mathbb{J}+\\beta\\,\\mathbb{K}``.
 
 # Examples
-```julia
-julia> 𝕀, 𝕁, 𝕂 = iso_projectors();
+```jldoctest
+julia> 𝕀, 𝕁, 𝕂 = iso_projectors(3, Float64);
 
 julia> 𝕁 + 𝕂 == 𝕀
 true
@@ -185,7 +176,7 @@ true
 
 See also [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref).
 """
-iso_projectors(::Val{dim} = Val(3), ::Val{T} = Val(Sym)) where {dim, T} =
+iso_projectors(::Val{dim} = Val(3), ::Val{T} = Val(default_number_type())) where {dim, T} =
     tens_Id4(Val(dim), Val(T)), tens_J4(Val(dim), Val(T)), tens_K4(Val(dim), Val(T))
 
 for FUNC in (:tens_Id2, :tens_Id4, :tens_J4, :tens_K4, :iso_projectors)

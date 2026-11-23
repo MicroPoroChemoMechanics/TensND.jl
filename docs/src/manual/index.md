@@ -16,11 +16,11 @@ The Manual says how to call the package, one kind of object per page, on the sma
 
 ## Coordinate systems
 
-[Coordinate systems (symbolic)](@ref man-coorsystems) defines a curvilinear chart and computes its basis vectors, Christoffel symbols and differential operators in closed form. [Coordinate systems (numerical)](@ref man-coorsystems-num) evaluates the same operators at a point by automatic differentiation. [Charts and coordinate conversions](@ref man-charts) passes from the coordinates of a point to its Cartesian components and back, and from one system to another. [Spheroidal harmonics](@ref man-spheroidal-harmonics) evaluates the harmonic functions of the spheroidal systems and re-expands them from one system to another.
+[Charts, coordinate systems and surfaces](@ref man-coordinates-overview) says which of the three objects to take, exact or pointwise. [Coordinate systems (symbolic)](@ref man-coorsystems) defines a curvilinear chart and computes its basis vectors, Christoffel symbols and differential operators in closed form. [Coordinate systems (numerical)](@ref man-coorsystems-num) evaluates the same operators at a point by automatic differentiation. [Charts and coordinate conversions](@ref man-charts) passes from the coordinates of a point to its Cartesian components and back, and from one system to another. [Spheroidal harmonics](@ref man-spheroidal-harmonics) evaluates the harmonic functions of the spheroidal systems and re-expands them from one system to another.
 
 ## Surfaces
 
-[Submanifolds](@ref man-submanifolds) describes a surface embedded in space and computes its fundamental forms and curvatures.
+[Submanifolds](@ref man-submanifolds) describes a surface embedded in space and computes its fundamental forms, curvatures and differential operators, in closed form or at a point.
 
 ## Symbolic and numeric
 

@@ -31,10 +31,12 @@ explicit cos/sin, compatible with ForwardDiff Dual numbers.
 The third column of the matrix is the direction `(sinθ cosϕ, sinθ sinϕ, cosθ)`.
 
 # Examples
-```julia
-julia> R = _rot3_raw(0.3, 0.5, 0.0)
-3×3 SMatrix{3, 3, Float64, 9} with indices SOneTo(3)×SOneTo(3):
- ...
+```jldoctest
+julia> R = TensND._rot3_raw(0.3, 0.5, 0.0)
+3×3 StaticArraysCore.SMatrix{3, 3, Float64, 9} with indices SOneTo(3)×SOneTo(3):
+  0.838387  -0.479426  0.259343
+  0.458013   0.877583  0.14168
+ -0.29552    0.0       0.955336
 ```
 """
 function _rot3_raw(θ, ϕ, ψ)
@@ -66,7 +68,7 @@ Built entirely with `SMatrix` / `ntuple`, so it is compatible with
 even be constructed.
 
 # Examples
-```julia
+```jldoctest
 julia> Q = mandel_rotation(0.3, 0.5, 0.0);
 
 julia> size(Q)
@@ -142,12 +144,12 @@ Formulas (from ECHOES `tensor_ti.h`):
 - `ℓ₆ = (C[4,4] + C[5,5]) / 2`
 
 # Examples
-```julia
+```jldoctest
 julia> C = Float64[10 3 2.5 0 0 0; 3 10 2.5 0 0 0; 2.5 2.5 12 0 0 0;
                    0 0 0 4 0 0; 0 0 0 0 4 0; 0 0 0 0 0 7];
 
-julia> _project_TI_KM(C)
-(12.0, 13.0, 3.5355339059327378, 7.0, 4.0)
+julia> TensND._project_TI_KM(C)
+(12.0, 13.0, 3.5355339059327373, 7.0, 4.0)
 ```
 """
 function _project_TI_KM(C)
@@ -170,8 +172,8 @@ Build a 6×6 KM matrix (in the frame where `e₃` is the TI axis) from
 5 major-symmetric Walpole coefficients.
 
 # Examples
-```julia
-julia> B = _build_TI_KM(12.0, 13.0, sqrt(2)*2.5, 7.0, 4.0);
+```jldoctest
+julia> B = TensND._build_TI_KM(12.0, 13.0, sqrt(2)*2.5, 7.0, 4.0);
 
 julia> B[1,1]  # = (ℓ₂ + ℓ₅)/2 = (13+7)/2 = 10
 10.0
@@ -209,11 +211,11 @@ For non-symmetric KM matrices (non-major-symmetric tensors), the off-diagonal
 entries are averaged: `Cᵢⱼ = (C[i,j] + C[j,i]) / 2`.
 
 # Examples
-```julia
+```jldoctest
 julia> C = Float64[10 3 2.5 0 0 0; 3 8 1.5 0 0 0; 2.5 1.5 12 0 0 0;
                    0 0 0 4 0 0; 0 0 0 0 6 0; 0 0 0 0 0 7];
 
-julia> _project_ORTHO_KM(C)
+julia> TensND._project_ORTHO_KM(C)
 (10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5)
 ```
 """
@@ -236,8 +238,8 @@ end
 Build a 6×6 KM matrix in the material frame from 9 orthotropic parameters.
 
 # Examples
-```julia
-julia> B = _build_ORTHO_KM(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5);
+```jldoctest
+julia> B = TensND._build_ORTHO_KM(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5);
 
 julia> B[4,4]  # = 2*C₄₄ = 4
 4.0
@@ -282,11 +284,11 @@ off-diagonal, `γ` the mean of the shear diagonal. A non-major-symmetric input
 is handled by the same traces, which symmetrize it implicitly.
 
 # Examples
-```julia
+```jldoctest
 julia> C = Float64[10 4 4 0 0 0; 4 10 4 0 0 0; 4 4 10 0 0 0;
                    0 0 0 4 0 0; 0 0 0 0 4 0; 0 0 0 0 0 4];
 
-julia> _project_CUBIC_KM(C)             # (C₁₁+2C₁₂, C₁₁-C₁₂, 2C₄₄)
+julia> TensND._project_CUBIC_KM(C)             # (C₁₁+2C₁₂, C₁₁-C₁₂, 2C₄₄)
 (18.0, 6.0, 4.0)
 ```
 """
@@ -357,11 +359,11 @@ Extract spherical angles (θ, ϕ) from a unit vector `n`:
 - `ϕ = atan(n₂, n₁)` (azimuthal angle)
 
 # Examples
-```julia
-julia> _angles_from_n((0.0, 0.0, 1.0))
+```jldoctest
+julia> TensND._angles_from_n((0.0, 0.0, 1.0))
 (0.0, 0.0)
 
-julia> _angles_from_n((1.0, 0.0, 0.0))
+julia> TensND._angles_from_n((1.0, 0.0, 0.0))
 (1.5707963267948966, 0.0)
 ```
 """
@@ -379,8 +381,8 @@ Build a unit vector from spherical angles:
 `n = (sinθ·cosϕ, sinθ·sinϕ, cosθ)`.
 
 # Examples
-```julia
-julia> _n_from_angles(0.0, 0.0)
+```jldoctest
+julia> TensND._n_from_angles(0.0, 0.0)
 (0.0, 0.0, 1.0)
 ```
 """
@@ -570,7 +572,7 @@ Returns a 3-tuple `(B, d, drel)`:
 - `drel`: relative distance `d / ‖A‖`
 
 # Examples
-```julia
+```jldoctest
 julia> n = [0., 0., 1.];
 
 julia> C = ti_from_constants(10., 3., 2.5, 12., 2., n);
@@ -581,7 +583,7 @@ julia> d < 1e-12
 true
 
 julia> ti_constants(B) == ti_constants(C)
-true
+false
 ```
 """
 function project(A::AbstractArray{T, 4}, ::Val{:TI}, n) where {T}
@@ -622,7 +624,7 @@ In the rotated frame where `e₃ = n`:
 - `b = M[3,3]` (axial)
 
 # Examples
-```julia
+```jldoctest
 julia> n = [0., 0., 1.];
 
 julia> A = [5. 0 0; 0 5 0; 0 0 8];
@@ -661,7 +663,7 @@ Project a 4th-order tensor `A` (3×3×3×3) onto the orthotropic subspace with
 fixed material frame `frame`. Returns a `TensOrtho{4,T,9}`.
 
 # Examples
-```julia
+```jldoctest
 julia> frame = CanonicalBasis{3,Float64}();
 
 julia> t = TensOrtho(10., 8., 12., 3., 2.5, 1.5, 2., 3., 3.5, frame);
@@ -710,7 +712,7 @@ solution. Where they do not, `drel` says how much was discarded, and the
 projection is a fit like any other.
 
 # Examples
-```julia
+```jldoctest
 julia> frame = CanonicalBasis{3,Float64}();
 
 julia> t = cubic_from_constants(10.0, 4.0, 2.0, frame);
@@ -763,7 +765,7 @@ material frame, returned as a `TensOrtho{2}` on that frame (as the TI projection
 returns a `TensTI{2}`).
 
 # Examples
-```julia
+```jldoctest
 julia> frame = CanonicalBasis{3,Float64}();
 
 julia> A = [5. 1 2; 1 8 3; 2 3 12];
@@ -916,7 +918,7 @@ container *imposes* isotropy, this version asks whether the numerical
 components *satisfy* it.
 
 # Examples
-```julia
+```jldoctest
 julia> C = [1.0 0.0 0.0; 0.0 1.0 0.0; 0.0 0.0 1.0];
 
 julia> isisotropic(C)
@@ -938,7 +940,7 @@ Return `true` when `A` is transversely isotropic about the given axis `n`
 up to relative tolerance `ε` (closed-form projection on the fixed axis).
 
 # Examples
-```julia
+```jldoctest
 julia> n = [0.0, 0.0, 1.0];
 
 julia> C = ti_from_constants(10., 3., 2.5, 12., 2., n);

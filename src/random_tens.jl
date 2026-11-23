@@ -135,7 +135,7 @@ generic tensor needs no random frame, its law being already invariant under
 rotations. See [Random tensors](@ref man-random-tensors).
 
 # Examples
-```julia
+```jldoctest
 julia> using Random; rng = Xoshiro(1);
 
 julia> ℂ = rand(rng, TensCubic; definite = true);   # a cubic crystal, random cube

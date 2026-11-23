@@ -1,11 +1,11 @@
 # [Charts and coordinate conversions](@id man-charts)
 
 !!! tip "See also"
-    **Theory**: [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal) · [Curvilinear differential calculus](@ref th-curvilinear) · [Toroidal coordinates](@ref th-toroidal) · [Toroidal functions](@ref th-toroidal-harmonics) · [Changes of coordinates](@ref th-coordinate-changes) · [Spheroidal harmonics and their re-expansion](@ref th-spheroidal-harmonics)
+    **Theory**: [Curvilinear differential calculus](@ref th-curvilinear) · [Classical coordinate systems](@ref th-predefined-systems) · [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal) · [Toroidal coordinates](@ref th-toroidal) · [Toroidal functions](@ref th-toroidal-harmonics) · [Changes of coordinates](@ref th-coordinate-changes) · [Spheroidal harmonics and their re-expansion](@ref th-spheroidal-harmonics)
 
-    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Toroidal functions](@ref man-toroidal-harmonics) · [Spheroidal harmonics](@ref man-spheroidal-harmonics)
+    **Manual**: [Charts, coordinate systems and surfaces](@ref man-coordinates-overview) · [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num) · [Toroidal functions](@ref man-toroidal-harmonics) · [Spheroidal harmonics](@ref man-spheroidal-harmonics)
 
-    **Tutorials**: [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix) · [Ellipsoidal coordinates](@ref tut-ellipsoidal) · [Changing the focal distance of spheroidal harmonics](@ref tut-spheroidal-reexpansion)
+    **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Christoffel symbols](@ref tut-christoffel) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities) · [The operators in the classical systems](@ref tut-operators-catalog) · [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix) · [Ellipsoidal coordinates](@ref tut-ellipsoidal) · [An insulating torus in a uniform flux](@ref tut-insulating-torus) · [Changing the focal distance of spheroidal harmonics](@ref tut-spheroidal-reexpansion)
 
 How to pass from the coordinates of a point to its Cartesian components and
 back, and from one coordinate system to another. The formulas are on

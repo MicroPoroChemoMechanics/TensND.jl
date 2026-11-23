@@ -22,28 +22,28 @@ symmetries it reads them exactly, to the last bit.
 The other keyword arguments go to `Tensors.tomandel`.
 
 # Examples
-```julia
-julia> σ = Tens(SymmetricTensor{2,3}((i, j) -> symbols("σ\$i\$j", real = true))) ;
+```jldoctest
+julia> σ = Tens(SymmetricTensor{2,3}((i, j) -> symbols(string("σ", i, j), real = true))) ;
 
 julia> mandel(σ)
-6-element Vector{Sym}:
-         σ11
-         σ22
-         σ33
-      √2⋅σ32
-      √2⋅σ31
-      √2⋅σ21
+6-element Vector{Sym{PythonCall.Py}}:
+         σ₁₁
+         σ₂₂
+         σ₃₃
+ √2⋅σ₃₂
+ √2⋅σ₃₁
+ √2⋅σ₂₁
 
-julia> C = Tens(SymmetricTensor{4,3}((i, j, k, l) -> symbols("C\$i\$j\$k\$l", real = true))) ;
+julia> C = Tens(SymmetricTensor{4,3}((i, j, k, l) -> symbols(string("C", i, j, k, l), real = true))) ;
 
 julia> mandel(C)
-6×6 Matrix{Sym}:
-         C₁₁₁₁     C₁₁₂₂     C₁₁₃₃  √2⋅C₁₁₃₂  √2⋅C₁₁₃₁  √2⋅C₁₁₂₁
-         C₂₂₁₁     C₂₂₂₂     C₂₂₃₃  √2⋅C₂₂₃₂  √2⋅C₂₂₃₁  √2⋅C₂₂₂₁
-         C₃₃₁₁     C₃₃₂₂     C₃₃₃₃  √2⋅C₃₃₃₂  √2⋅C₃₃₃₁  √2⋅C₃₃₂₁
-      √2⋅C₃₂₁₁  √2⋅C₃₂₂₂  √2⋅C₃₂₃₃   2⋅C₃₂₃₂   2⋅C₃₂₃₁   2⋅C₃₂₂₁
-      √2⋅C₃₁₁₁  √2⋅C₃₁₂₂  √2⋅C₃₁₃₃   2⋅C₃₁₃₂   2⋅C₃₁₃₁   2⋅C₃₁₂₁
-      √2⋅C₂₁₁₁  √2⋅C₂₁₂₂  √2⋅C₂₁₃₃   2⋅C₂₁₃₂   2⋅C₂₁₃₁   2⋅C₂₁₂₁
+6×6 Matrix{Sym{PythonCall.Py}}:
+         C₁₁₁₁          C₁₁₂₂          C₁₁₃₃  …  √2⋅C₁₁₃₁  √2⋅C₁₁₂₁
+         C₂₂₁₁          C₂₂₂₂          C₂₂₃₃     √2⋅C₂₂₃₁  √2⋅C₂₂₂₁
+         C₃₃₁₁          C₃₃₂₂          C₃₃₃₃     √2⋅C₃₃₃₁  √2⋅C₃₃₂₁
+ √2⋅C₃₂₁₁  √2⋅C₃₂₂₂  √2⋅C₃₂₃₃           2⋅C₃₂₃₁        2⋅C₃₂₂₁
+ √2⋅C₃₁₁₁  √2⋅C₃₁₂₂  √2⋅C₃₁₃₃           2⋅C₃₁₃₁        2⋅C₃₁₂₁
+ √2⋅C₂₁₁₁  √2⋅C₂₁₂₂  √2⋅C₂₁₃₃  …        2⋅C₂₁₃₁        2⋅C₂₁₂₁
 ```
 """
 mandel(t::Tensors.AllTensors; symmetrize::Bool = false, kwargs...) =

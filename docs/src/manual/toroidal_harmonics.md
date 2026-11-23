@@ -5,6 +5,8 @@
 
     **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Charts and coordinate conversions](@ref man-charts)
 
+    **Tutorials**: [An insulating torus in a uniform flux](@ref tut-insulating-torus)
+
 How to evaluate the functions on which the harmonic functions of a toroidal
 chart are built. The definitions and the method are on
 [Toroidal functions](@ref th-toroidal-harmonics).

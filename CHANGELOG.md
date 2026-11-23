@@ -1,5 +1,66 @@
 # Changelog
 
+## v0.16.0 — a pointwise submanifold, the default element type, the blocks of the plane
+
+A minor release that adds functions and methods. With SymPyPythonCall loaded,
+existing code gives the same results.
+
+A surface embedded in the space was exact only, derived symbolically, while the
+coordinate systems of the whole space had a pointwise form computed by
+automatic differentiation. The surface has it now. The constructors called
+without an element type needed SymPyPythonCall and failed without it; they now
+return numbers then. The blocks of the symmetry classes, on which a relaxation
+operator of aging viscoelasticity is stored, existed in three dimensions only.
+
+### Breaking changes
+
+None in the API or the behavior. Being a minor release below 1.0, it is not
+accepted by a `[compat]` bound `TensND = "0.15"`: dependents widen it to
+`"0.15, 0.16"` or raise it to `"0.16"`.
+
+### Added
+
+- `Submanifold(OM_func, dim)`: a hypersurface given by a function of its
+  `dim-1` coordinates, whose tangent frame, unit normal, fundamental forms and
+  Gauss–Weingarten coefficients are computed at a point by automatic
+  differentiation. The operators of the pointwise coordinate systems apply to
+  it along the surface (`grad` is the surface gradient, `laplacian` the
+  Laplace–Beltrami operator), and `normal`, `submetric`, `curvature`,
+  `connection` are read at a point. Orthogonal parametrizations; duals pass,
+  including for a parameter of the surface.
+- `symmetry_basis` and `symmetry_layout` for `TensISO{4,2}` and `TensISO{2,2}`:
+  the spherical direction, the normal deviator and the shear of the plane; the
+  block ``(\beta)`` on the last two.
+- `symmetry_blocks(A, M)` and `symmetry_matrix(A, b)` take the size of the
+  matrix from the order and the dimension of `A`: ``3\times3`` Kelvin-Mandel
+  matrices for a fourth-order tensor of the plane, ``2\times2`` for a
+  second-order one.
+
+- `default_number_type()`: the element type of what is built without one
+  (`tens_Id2()`, `tens_Id4()`, `tens_J4()`, `tens_K4()`, `iso_projectors()`,
+  `𝐞(i)`, `levi_civita()`, `CanonicalBasis()`). It is the concrete type of
+  SymPy's symbols once SymPyPythonCall is loaded, as before, and `Float64`
+  otherwise: these calls failed in a session without Python, and now return
+  numbers. With SymPyPythonCall loaded nothing changes. Code that needs a
+  given type, or type stability, passes it: `tens_J4(3, Float64)`.
+
+### Fixed
+
+- The examples of the docstrings are executed by the documentation build
+  (`jldoctest`): several showed constructors that do not exist (`t𝕁()`,
+  `t𝕂()`, `t𝕀()`, `t𝟏()`), outputs of former versions, or a `display` whose
+  output was never printed. They are rewritten with the functions of the
+  package and their actual outputs.
+
+### Documentation
+
+- New manual page *Charts, coordinate systems and surfaces*: which of the three
+  objects to take, exact or pointwise, with an example of each.
+- New tutorial *An insulating torus in a uniform flux*: the ring-shaped pore
+  under a gradient along its axis, solved in the toroidal chart by a series of
+  toroidal functions and a tridiagonal system, checked by automatic
+  differentiation.
+
 ## v0.15.0 — distances between elasticity tensors, plane states of a transversely isotropic material
 
 A minor release that adds functions and methods; nothing changes for existing

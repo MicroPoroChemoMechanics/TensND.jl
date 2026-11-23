@@ -211,6 +211,15 @@ M = mandel(generic_tens(ti))
 symmetry_blocks(ti, M)[1], symmetry_matrix(ti, symmetry_blocks(ti, M)) ≈ M
 ```
 
+The isotropic tensors of the plane have the same blocks as those of space,
+``(\alpha)`` and ``(\beta)`` at order 4, on a ``3\times3`` Kelvin-Mandel
+matrix: the shear modulus sits on the two deviators of the plane.
+
+```@example struct
+iso₂ = TensISO{2}(6.0, 4.0)
+symmetry_basis(iso₂), symmetry_layout(iso₂)
+```
+
 ## Exact promotions
 
 Moving *up* the lattice is exact — an isotropic tensor really is transversely

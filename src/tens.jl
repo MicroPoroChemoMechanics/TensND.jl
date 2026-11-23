@@ -75,17 +75,23 @@ Storing the covariant metric of a non-orthogonal basis as a twice-covariant
 tensor, and raising one index — which necessarily returns the identity, since
 `gⁱᵏ gₖⱼ = δⁱⱼ`:
 
-```julia
+```jldoctest
 julia> ℬ = Basis(Sym[1 0 0; 0 1 0; 0 1 1]) ;
 
 julia> T = Tens(metric(ℬ, :cov), ℬ, (:cov, :cov))
-3×3 Tens{2, 3, Sym, SymmetricTensor{2, 3, Sym, 6}}:
+Tens{2, 3, Sym, SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}, Basis{3, Sym}}
+→ array: 3×3 SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}:
  1  0  0
  0  2  1
  0  1  1
+→ basis: 3×3 Matrix{Sym}:
+ 1  0  0
+ 0  1  0
+ 0  1  1
+→ var: (:cov, :cov)
 
 julia> components(T, (:cont, :cov))
-3×3 Matrix{Sym}:
+3×3 Matrix{Sym{PythonCall.Py}}:
  1  0  0
  0  1  0
  0  0  1

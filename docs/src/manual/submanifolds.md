@@ -3,6 +3,8 @@
 !!! tip "See also"
     **Theory**: [Submanifolds](@ref th-submanifolds)
 
+    **Manual**: [Charts, coordinate systems and surfaces](@ref man-coordinates-overview)
+
     **Tutorials**: [Surfaces: fundamental forms and curvature](@ref tut-submanifolds) · [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix)
 
 Hypersurfaces embedded in ``\mathbb{R}^d``: their induced metric, their
@@ -127,6 +129,32 @@ relation read as a gradient,
 
     which is exactly zero. This is the practical face of
     [Bases and variance](@ref th-bases-variance).
+
+## A surface computed at a point
+
+When the surface is to be evaluated rather than derived, it is given by a
+function of its coordinates, `Submanifold(OM_func, dim)`. The frame, the normal,
+the forms and the Gauss–Weingarten coefficients are computed at a point by
+automatic differentiation, and the operators take fields as functions of the
+coordinates, as for the [pointwise coordinate systems](@ref man-coorsystems-num).
+The parametrization must be orthogonal. On a torus of radii ``a>r``, the
+Gaussian curvature is ``\cos\theta/(r(a+r\cos\theta))``:
+
+```@example sm
+using LinearAlgebra
+a, r = 3.0, 1.0
+torus = Submanifold(v -> [(a + r * cos(v[1]))cos(v[2]), (a + r * cos(v[1]))sin(v[2]), r * sin(v[1])], 3)
+w = [0.4, 1.1]
+χ = lame_coefficients(torus, w)
+b = Array(curvature(torus, w))
+K = det([b[α, β] / (χ[α] * χ[β]) for α in 1:2, β in 1:2])      # in the orthonormal frame
+K, cos(w[1]) / (r * (a + r * cos(w[1])))
+```
+
+The quantities read at a point are those of the exact submanifold:
+[`normal`](@ref)`(SM, u)`, [`submetric`](@ref)`(SM, u)`,
+[`curvature`](@ref)`(SM, u)` and [`connection`](@ref)`(SM, u)`. The point may
+carry derivatives (`ForwardDiff.Dual`), and so may a parameter of the surface.
 
 A worked version of all of the above, on the sphere, cylinder, plane and
 paraboloid, is in

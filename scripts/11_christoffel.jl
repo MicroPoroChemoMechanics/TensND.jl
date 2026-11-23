@@ -3,7 +3,7 @@
 # !!! tip "See also"
 #     **Theory**: [Curvilinear differential calculus](@ref th-curvilinear) · [Classical coordinate systems](@ref th-predefined-systems)
 #
-#     **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num)
+#     **Manual**: [Charts, coordinate systems and surfaces](@ref man-coordinates-overview) · [Coordinate systems (symbolic)](@ref man-coorsystems) · [Coordinate systems (numerical)](@ref man-coorsystems-num) · [Charts and coordinate conversions](@ref man-charts)
 #
 #     **Tutorials**: [Differential operators, symbolically](@ref tut-symbolic-operators) · [Differential operators, numerically](@ref tut-numerical-operators) · [Classical identities of the differential operators](@ref tut-operator-identities) · [The operators in the classical systems](@ref tut-operators-catalog)
 #

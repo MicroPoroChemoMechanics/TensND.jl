@@ -1,7 +1,7 @@
 # [Submanifolds](@id th-submanifolds)
 
 !!! tip "See also"
-    **Manual**: [Submanifolds](@ref man-submanifolds)
+    **Manual**: [Charts, coordinate systems and surfaces](@ref man-coordinates-overview) · [Submanifolds](@ref man-submanifolds)
 
     **Tutorials**: [Surfaces: fundamental forms and curvature](@ref tut-submanifolds) · [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix)
 

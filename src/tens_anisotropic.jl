@@ -729,7 +729,7 @@ end
 Compute the 3×3 component array: `a*(δᵢⱼ − nᵢnⱼ) + b*nᵢnⱼ`.
 
 # Examples
-```julia
+```jldoctest
 julia> A = TensTI{2}(5.0, 8.0, [0., 0., 1.]);
 
 julia> get_array(A)
@@ -845,7 +845,7 @@ end
 Inverse: `(a·nT + b·nₙ)⁻¹ = (1/a)·nT + (1/b)·nₙ`.
 
 # Examples
-```julia
+```jldoctest
 julia> A = TensTI{2}(5.0, 8.0, [0., 0., 1.]);
 
 julia> inv(A).data
@@ -1593,7 +1593,7 @@ guarantees, not whether the numerical components happen to satisfy a tighter
 symmetry.  For value-level detection use `best_sym_tens(t)`.
 
 # Examples
-```julia
+```jldoctest
 julia> symmetry(TensISO{3}(2.0, 3.0))
 :ISO
 
@@ -1618,7 +1618,7 @@ the symmetry axis `NTuple{3}` for a `TensTI`, the material frame
 tensor without a structured reference.
 
 # Examples
-```julia
+```jldoctest
 julia> reference(ti_from_constants(10., 3., 2.5, 12., 2., [0., 0., 1.]))
 (0.0, 0.0, 1.0)
 

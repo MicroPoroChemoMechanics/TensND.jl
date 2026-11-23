@@ -132,4 +132,8 @@ SymPyPythonCall.SymPyCore.:↓(v::AbstractVector{_SymPy}) = _sympy_column(v)
 SymPyPythonCall.SymPyCore.:↓(v::Vector{Sym}) = _sympy_column(v)
 SymPyPythonCall.SymPyCore.:↓(v::Vector{_SymPy}) = _sympy_column(v)
 
+# The element type of the tensors built without one becomes the concrete type
+# of SymPy's symbols (see `default_number_type`).
+TensND._default_number(::Nothing) = Sym{SymPyPythonCall.PythonCall.Py}
+
 end # module
