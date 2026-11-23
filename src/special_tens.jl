@@ -73,7 +73,7 @@ init_cartesian(::Val{dim}) where {dim} = throw(
 
 
 """
-    𝐞ᵖ(i::Integer, θ::T = zero(Sym); canonical = false)
+    𝐞ᵖ(i::Integer, θ::T = zero(default_number_type()); canonical = false)
 
 Vector of the polar basis
 
@@ -91,10 +91,10 @@ TensND.TensRotated{1, 2, Sym{PythonCall.Py}, Vec{2, Sym{PythonCall.Py}}, Rotated
  sin(θ)   cos(θ)
 ``` 
 """
-𝐞ᵖ(::Val{1}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᵖ(::Val{1}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{2}([cos(θ), sin(θ)])) :
     Tens(Vec{2}([one(T), zero(T)]), Basis(θ))
-𝐞ᵖ(::Val{2}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᵖ(::Val{2}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{2}([-sin(θ), cos(θ)])) :
     Tens(Vec{2}([zero(T), one(T)]), Basis(θ))
 
@@ -113,7 +113,7 @@ init_polar(coords; canonical = false) = Tuple(coords),
     Basis(coords[2])
 
 """
-    𝐞ᶜ(i::Integer, θ::T = zero(Sym); canonical = false)
+    𝐞ᶜ(i::Integer, θ::T = zero(default_number_type()); canonical = false)
 
 Vector of the cylindrical basis
 
@@ -133,13 +133,13 @@ TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, Rotated
       0        0  1
 ``` 
 """
-𝐞ᶜ(::Val{1}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᶜ(::Val{1}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([cos(θ), sin(θ), zero(T)])) :
     Tens(Vec{3}([one(T), zero(T), zero(T)]), CylindricalBasis(θ))
-𝐞ᶜ(::Val{2}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᶜ(::Val{2}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([-sin(θ), cos(θ), zero(T)])) :
     Tens(Vec{3}([zero(T), one(T), zero(T)]), CylindricalBasis(θ))
-𝐞ᶜ(::Val{3}, θ::T = zero(Sym); canonical = false) where {T <: Number} =
+𝐞ᶜ(::Val{3}, θ::T = zero(default_number_type()); canonical = false) where {T <: Number} =
     canonical ? Tens(Vec{3}([zero(T), zero(T), one(T)])) :
     Tens(Vec{3}([zero(T), zero(T), one(T)]), CylindricalBasis(θ))
 
@@ -158,7 +158,7 @@ init_cylindrical(coords; canonical = false) = Tuple(coords),
     CylindricalBasis(coords[2])
 
 """
-    𝐞ˢ(i::Integer, θ::T = zero(Sym), ϕ::T = zero(Sym), ψ::T = zero(Sym); canonical = false)
+    𝐞ˢ(i::Integer, θ::T = zero(default_number_type()), ϕ::T = zero(default_number_type()), ψ::T = zero(default_number_type()); canonical = false)
 
 Vector of the basis rotated with the 3 Euler angles `θ, ϕ, ψ` (spherical if `ψ=0`)
 
@@ -180,9 +180,9 @@ TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, Rotated
 """
 function 𝐞ˢ(
         ::Val{1},
-        θ::T1 = 0,
-        ϕ::T2 = 0,
-        ψ::T3 = 0;
+        θ::T1 = zero(default_number_type()),
+        ϕ::T2 = zero(default_number_type()),
+        ψ::T3 = zero(default_number_type());
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
@@ -202,9 +202,9 @@ function 𝐞ˢ(
 end
 function 𝐞ˢ(
         ::Val{2},
-        θ::T1 = 0,
-        ϕ::T2 = 0,
-        ψ::T3 = 0;
+        θ::T1 = zero(default_number_type()),
+        ϕ::T2 = zero(default_number_type()),
+        ψ::T3 = zero(default_number_type());
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
@@ -224,9 +224,9 @@ function 𝐞ˢ(
 end
 function 𝐞ˢ(
         ::Val{3},
-        θ::T1 = 0,
-        ϕ::T2 = 0,
-        ψ::T3 = 0;
+        θ::T1 = zero(default_number_type()),
+        ϕ::T2 = zero(default_number_type()),
+        ψ::T3 = zero(default_number_type());
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical

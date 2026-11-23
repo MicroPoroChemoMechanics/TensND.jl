@@ -16,9 +16,8 @@ The element type of the tensors, vectors and bases built without one
 (`tens_Id4()`, `tens_J4()`, `𝐞(1)`, `levi_civita()`, `CanonicalBasis()`, …):
 `Sym` once SymPyPythonCall is loaded, `Float64` otherwise.
 
-The choice is made at each call: loading SymPyPythonCall later in a session
-changes it. Code that needs a given type passes it, `tens_J4(3, Float64)`,
-which is also type-stable.
+Loading SymPyPythonCall later in a session changes it. Code that needs a given
+type passes it, `tens_J4(3, Float64)`.
 
 # Examples
 ```jldoctest
@@ -26,11 +25,12 @@ julia> default_number_type()    # SymPyPythonCall is loaded in this session
 Sym{PythonCall.Py}
 ```
 """
-default_number_type() = _DEFAULT_NUMBER[]
+default_number_type() = _default_number(nothing)
 
-# Set by the extension of SymPyPythonCall when it is loaded, to the concrete
-# type of its symbols (`Sym` with its Python object), so that the tensors built
-# by default have a concrete element type.
-const _DEFAULT_NUMBER = Ref{DataType}(Float64)
+# `Float64` here; the extension of SymPyPythonCall adds the more specific method
+# on `Nothing`, which returns the concrete type of SymPy's symbols. A method
+# rather than a global value, so that the type is a constant the compiler
+# folds: the calls without an element type stay inferred and cost nothing more.
+_default_number(::Any) = Float64
 
 export default_number_type
