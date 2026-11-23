@@ -181,8 +181,8 @@ TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, Rotated
 function 𝐞ˢ(
         ::Val{1},
         θ::T1 = zero(default_number_type()),
-        ϕ::T2 = zero(default_number_type()),
-        ψ::T3 = zero(default_number_type());
+        ϕ::T2 = zero(θ),
+        ψ::T3 = zero(ϕ);
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
@@ -203,8 +203,8 @@ end
 function 𝐞ˢ(
         ::Val{2},
         θ::T1 = zero(default_number_type()),
-        ϕ::T2 = zero(default_number_type()),
-        ψ::T3 = zero(default_number_type());
+        ϕ::T2 = zero(θ),
+        ψ::T3 = zero(ϕ);
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
@@ -225,8 +225,8 @@ end
 function 𝐞ˢ(
         ::Val{3},
         θ::T1 = zero(default_number_type()),
-        ϕ::T2 = zero(default_number_type()),
-        ψ::T3 = zero(default_number_type());
+        ϕ::T2 = zero(θ),
+        ψ::T3 = zero(ϕ);
         canonical = false,
     ) where {T1 <: Number, T2 <: Number, T3 <: Number}
     if canonical
