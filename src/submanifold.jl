@@ -47,7 +47,7 @@ drive the symbolic simplification of intermediate expressions.
 
 # Examples
 
-```julia
+```jldoctest
 julia> θ, ϕ = symbols("θ ϕ", real = true) ; R = symbols("R", positive = true) ;
 
 julia> OM = Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]) ;
@@ -55,8 +55,27 @@ julia> OM = Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]) ;
 julia> Sphere = Submanifold(OM, (θ, ϕ), (), (R,)) ;
 
 julia> normal(Sphere)          # outward unit normal 𝐞ʳ
+TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
+ 0
+ 0
+ 1
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ cos(θ)⋅cos(ϕ)  -sin(θ)*sin(ϕ)/Abs(sin(θ))  sin(θ)^2*cos(ϕ)/Abs(sin(θ))
+ sin(ϕ)⋅cos(θ)   sin(θ)*cos(ϕ)/Abs(sin(θ))  sin(θ)^2*sin(ϕ)/Abs(sin(θ))
+       -sin(θ)                           0     sin(2*θ)/(2*Abs(sin(θ)))
 
 julia> curvature(Sphere)       # 𝐛 = -𝐚/R for a sphere of radius R
+TensND.TensOrthogonal{2, 3, Sym{PythonCall.Py}, SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}, OrthogonalBasis{3, Sym{PythonCall.Py}, RotatedBasis{3, Sym{PythonCall.Py}}}}
+→ array: 3×3 SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}:
+ -R*sin(θ)/Abs(sin(θ))                        0  0
+                     0  -R*sin(θ)^3/Abs(sin(θ))  0
+                     0                        0  0
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ R⋅cos(θ)⋅cos(ϕ)  -R⋅sin(θ)⋅sin(ϕ)  sin(θ)^2*cos(ϕ)/Abs(sin(θ))
+ R⋅sin(ϕ)⋅cos(θ)   R⋅sin(θ)⋅cos(ϕ)  sin(θ)^2*sin(ϕ)/Abs(sin(θ))
+       -R⋅sin(θ)                 0     sin(2*θ)/(2*Abs(sin(θ)))
+→ var: (:cov, :cov)
 ```
 
 See also [`CoordinateSystem`](@ref), [`normal`](@ref), [`submetric`](@ref),
@@ -151,12 +170,21 @@ Its orientation is that of the generalized cross product of the tangent vectors
 `𝐧` — and with it the sign of [`curvature`](@ref).
 
 # Examples
-```julia
+```jldoctest
 julia> θ, ϕ = symbols("θ ϕ", real = true) ; R = symbols("R", positive = true) ;
 
 julia> Sphere = Submanifold(Tens(R * [sin(θ)cos(ϕ), sin(θ)sin(ϕ), cos(θ)]), (θ, ϕ), (), (R,)) ;
 
 julia> normal(Sphere)   # the outward radial vector 𝐞ʳ
+TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
+ 0
+ 0
+ 1
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ cos(θ)⋅cos(ϕ)  -sin(θ)*sin(ϕ)/Abs(sin(θ))  sin(θ)^2*cos(ϕ)/Abs(sin(θ))
+ sin(ϕ)⋅cos(θ)   sin(θ)*cos(ϕ)/Abs(sin(θ))  sin(θ)^2*sin(ϕ)/Abs(sin(θ))
+       -sin(θ)                           0     sin(2*θ)/(2*Abs(sin(θ)))
 ```
 
 See also [`Submanifold`](@ref), [`curvature`](@ref).

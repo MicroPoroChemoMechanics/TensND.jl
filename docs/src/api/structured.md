@@ -13,6 +13,7 @@ tens_Id4
 tens_J4
 tens_K4
 iso_projectors
+default_number_type
 ```
 
 ## [Blocks of a symmetry class](@id api-symmetry-blocks)

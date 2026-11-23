@@ -8,59 +8,57 @@
 Extract the components of a tensor for new variances and/or in a new basis
 
 # Examples
-```julia
+```jldoctest
 julia> ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;
 
-julia> TV = Tens(Tensor{1,3}(i->symbols("v\$i",real=true)))
-TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
-# data: 3-element Vec{3, Sym}:
+julia> TV = Tens(Tensor{1,3}(i->symbols(string("v", i), real = true)))
+TensND.TensCanonical{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
  v₁
  v₂
  v₃
-# basis: 3×3 TensND.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# var: (:cont,)
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> factor.(components(TV, ℬ, (:cont,)))
-3-element Vector{Sym}:
+3-element Vector{Sym{PythonCall.Py}}:
  -(v1 - v2 - v3)/2
   (v1 - v2 + v3)/2
   (v1 + v2 - v3)/2
 
 julia> components(TV, ℬ, (:cov,))
-3-element Vector{Sym}:
+3-element Vector{Sym{PythonCall.Py}}:
  v₂ + v₃
  v₁ + v₃
  v₁ + v₂
 
 julia> simplify.(components(TV, normalize(ℬ), (:cov,)))
-3-element Vector{Sym}:
+3-element Vector{Sym{PythonCall.Py}}:
  sqrt(2)*(v2 + v3)/2
  sqrt(2)*(v1 + v3)/2
  sqrt(2)*(v1 + v2)/2
 
-julia> TT = Tens(Tensor{2,3}((i,j)->symbols("t\$i\$j",real=true)))
-TensND.TensCanonical{2, 3, Sym, Tensor{2, 3, Sym, 9}}
-# data: 3×3 Tensor{2, 3, Sym, 9}:
+julia> TT = Tens(Tensor{2,3}((i,j)->symbols(string("t", i, j), real = true)))
+TensND.TensCanonical{2, 3, Sym{PythonCall.Py}, Tensor{2, 3, Sym{PythonCall.Py}, 9}}
+→ array: 3×3 Tensor{2, 3, Sym{PythonCall.Py}, 9}:
  t₁₁  t₁₂  t₁₃
  t₂₁  t₂₂  t₂₃
  t₃₁  t₃₂  t₃₃
-# basis: 3×3 TensND.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# var: (:cont, :cont)
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> components(TT, ℬ, (:cov,:cov))
-3×3 Matrix{Sym}:
+3×3 Matrix{Sym{PythonCall.Py}}:
  t₂₂ + t₂₃ + t₃₂ + t₃₃  t₂₁ + t₂₃ + t₃₁ + t₃₃  t₂₁ + t₂₂ + t₃₁ + t₃₂
  t₁₂ + t₁₃ + t₃₂ + t₃₃  t₁₁ + t₁₃ + t₃₁ + t₃₃  t₁₁ + t₁₂ + t₃₁ + t₃₂
  t₁₂ + t₁₃ + t₂₂ + t₂₃  t₁₁ + t₁₃ + t₂₁ + t₂₃  t₁₁ + t₁₂ + t₂₁ + t₂₂
 
 julia> factor.(components(TT, ℬ, (:cont,:cov)))
-3×3 Matrix{Sym}:
+3×3 Matrix{Sym{PythonCall.Py}}:
  -(t12 + t13 - t22 - t23 - t32 - t33)/2  …  -(t11 + t12 - t21 - t22 - t31 - t32)/2
   (t12 + t13 - t22 - t23 + t32 + t33)/2      (t11 + t12 - t21 - t22 + t31 + t32)/2
   (t12 + t13 + t22 + t23 - t32 - t33)/2      (t11 + t12 + t21 + t22 - t31 - t32)/2
@@ -262,23 +260,22 @@ The same tensor, expressed in the basis `ℬ` and/or with the variances `var`: i
 components are those [`components`](@ref) gives there, and the result is again a
 tensor. [`canonical`](@ref)`(t)` expresses it in the canonical basis.
 
-```julia
+```jldoctest
 julia> ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;
 
-julia> TV = Tens(Tensor{1,3}(i->symbols("v\$i",real=true)))
-TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
-# data: 3-element Vec{3, Sym}:
+julia> TV = Tens(Tensor{1,3}(i->symbols(string("v", i), real = true)))
+TensND.TensCanonical{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
  v₁
  v₂
  v₃
-# basis: 3×3 TensND.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# var: (:cont,)
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> factor.(components(TV, ℬ, (:cont,)))
-3-element Vector{Sym}:
+3-element Vector{Sym{PythonCall.Py}}:
  -(v1 - v2 - v3)/2
   (v1 - v2 + v3)/2
   (v1 + v2 - v3)/2
@@ -286,16 +283,16 @@ julia> factor.(components(TV, ℬ, (:cont,)))
 julia> ℬ₀ = Basis(Sym[0 1 1; 1 0 1; 1 1 1]) ;
 
 julia> TV0 = express(TV, ℬ₀)
-Tens{1, 3, Sym, Vec{3, Sym}}
-# data: 3-element Vec{3, Sym}:
-     -v₁ + v₃
-     -v₂ + v₃
- v₁ + v₂ - v₃
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
+Tens{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, Basis{3, Sym}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
+      v₂ + v₃
+      v₁ + v₃
+ v₁ + v₂ + v₃
+→ basis: 3×3 Matrix{Sym}:
  0  1  1
  1  0  1
  1  1  1
-# var: (:cont,)
+→ var: (:cov,)
 ```
 """
 function express(t::AbstractTens, ℬ::AbstractBasis, newvar::NTuple)
@@ -343,32 +340,31 @@ the canonical `ℬ`, its components being [`canonical_components`](@ref)`(t)`.
 A `TensISO`, `TensTI`, `TensOrtho` or `TensCubic` has canonical components
 already and is returned as it is, in its class.
 
-```julia
+```jldoctest
 julia> ℬ = Basis(Sym[0 1 1; 1 0 1; 1 1 0]) ;
 
-julia> TV = Tens(Tensor{1,3}(i->symbols("v\$i",real=true)), ℬ)
-Tens{1, 3, Sym, Vec{3, Sym}}
-# data: 3-element Vec{3, Sym}:
+julia> TV = Tens(Tensor{1,3}(i->symbols(string("v", i), real = true)), ℬ)
+Tens{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, Basis{3, Sym}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
  v₁
  v₂
  v₃
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
+→ basis: 3×3 Matrix{Sym}:
  0  1  1
  1  0  1
- 1  1  1
-# var: (:cont,)
+ 1  1  0
+→ var: (:cont,)
 
 julia> TV0 = canonical(TV)
-TensND.TensCanonical{1, 3, Sym, Vec{3, Sym}}
-# data: 3-element Vec{3, Sym}:
-      v₂ + v₃
-      v₁ + v₃
- v₁ + v₂ + v₃
-# basis: 3×3 TensND.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# var: (:cont,)
+TensND.TensCanonical{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
+ v₂ + v₃
+ v₁ + v₃
+ v₁ + v₂
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 ```
 """
 canonical(t::AbstractTens) = express(t, CanonicalBasis{get_dim(t), eltype(t)}())

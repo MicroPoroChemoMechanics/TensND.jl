@@ -55,7 +55,7 @@ for order in (2, 4)
         `sym ∈ {:ISO, :CUBIC, :TI, :ORTHO, :ANISO}`.
 
         # Examples
-        ```julia
+        ```jldoctest
         julia> n = [0., 0., 1.];
 
         julia> C = ti_from_constants(10., 3., 2.5, 12., 2., n);
@@ -135,7 +135,7 @@ for order in (2, 4)
         Returns `(projected, d, drel, sym)`.
 
         # Examples
-        ```julia
+        ```jldoctest
         julia> n = [0., 0., 1.];
 
         julia> C = ti_from_constants(10., 3., 2.5, 12., 2., n);

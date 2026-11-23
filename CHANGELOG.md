@@ -20,6 +20,22 @@ work on tensors of the plane.
   matrices for a fourth-order tensor of the plane, ``2\times2`` for a
   second-order one.
 
+- `default_number_type()`: the element type of what is built without one
+  (`tens_Id2()`, `tens_Id4()`, `tens_J4()`, `tens_K4()`, `iso_projectors()`,
+  `𝐞(i)`, `levi_civita()`, `CanonicalBasis()`). It is the concrete type of
+  SymPy's symbols once SymPyPythonCall is loaded, as before, and `Float64`
+  otherwise: these calls failed in a session without Python, and now return
+  numbers. With SymPyPythonCall loaded nothing changes. Code that needs a
+  given type, or type stability, passes it: `tens_J4(3, Float64)`.
+
+### Fixed
+
+- The examples of the docstrings are executed by the documentation build
+  (`jldoctest`): several showed constructors that do not exist (`t𝕁()`,
+  `t𝕂()`, `t𝕀()`, `t𝟏()`), outputs of former versions, or a `display` whose
+  output was never printed. They are rewritten with the functions of the
+  package and their actual outputs.
+
 ### Documentation
 
 - New tutorial *An insulating torus in a uniform flux*: the ring-shaped pore

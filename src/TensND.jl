@@ -15,6 +15,7 @@ using Symbolics
 
 include("contraction_kernels.jl")
 include("array_utils.jl")
+include("default_number.jl")
 include("bases.jl")
 include("tens.jl")
 include("tens_display.jl")

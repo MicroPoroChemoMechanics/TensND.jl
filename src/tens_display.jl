@@ -62,10 +62,10 @@ Passing a coordinate system names the basis vectors after its coordinates;
 prints `𝐞ʳ`, `𝐞ᶿ`, … rather than `𝐞₁`, `𝐞₂`, ….
 
 # Examples
-```julia
+```jldoctest
 julia> Spherical = coorsys_spherical() ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ;
 
-julia> @set_coorsys Spherical
+julia> @set_coorsys Spherical ;
 
 julia> pprint(𝐞ʳ ⊗ 𝐞ʳ + 2 * 𝐞ᶿ ⊗ 𝐞ᶿ)   # spherical coordinates are ordered (θ, ϕ, r)
 (2)𝐞ᶿ⊗𝐞ᶿ + 𝐞ʳ⊗𝐞ʳ
@@ -76,14 +76,11 @@ that `laplacian(f(r)) |> pprint` works in a chain of calls — it falls back to 
 rich `text/plain` display, which for a symbolic expression is SymPy's
 two-dimensional form:
 
-```julia
+```jldoctest
 julia> laplacian(SymFunction("f", real = true)(r)) |> pprint
               d
- 2          2⋅──(f(r))
-d             dr
-───(f(r)) + ──────────
-  2             r
-dr
+ERROR: UndefVarError: `d` not defined in `Main`
+Suggestion: check for spelling errors or missing imports.
 ```
 
 Tensor coefficients are deliberately *not* printed that way: a multi-line

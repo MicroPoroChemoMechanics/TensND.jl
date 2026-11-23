@@ -351,24 +351,23 @@ Define a double contracted product between two tensors
 `𝛔 = ℂ ⊡ 𝛆`
 
 # Examples
-```julia
-julia> 𝛆 = Tens(SymmetricTensor{2,3}((i, j) -> symbols("ε\$i\$j", real = true))) ;
+```jldoctest
+julia> 𝛆 = Tens(SymmetricTensor{2,3}((i, j) -> symbols(string("ε", i, j), real = true))) ;
 
 julia> k, μ = symbols("k μ", real =true) ;
 
-julia> ℂ = 3k * t𝕁() + 2μ * t𝕂() ;
+julia> ℂ = 3k * tens_J4(3, Sym) + 2μ * tens_K4(3, Sym) ;
 
 julia> 𝛔 = ℂ ⊡ 𝛆
-Tens{2, 3, Sym, Sym, SymmetricTensor{2, 3, Sym, 6}, CanonicalBasis{3, Sym}}
-# data: 3×3 SymmetricTensor{2, 3, Sym, 6}:
- ε11*(k + 4*μ/3) + ε22*(k - 2*μ/3) + ε33*(k - 2*μ/3)                                              2⋅ε21⋅μ                                              2⋅ε31⋅μ
-                                             2⋅ε21⋅μ  ε11*(k - 2*μ/3) + ε22*(k + 4*μ/3) + ε33*(k - 2*μ/3)                                              2⋅ε32⋅μ
-                                             2⋅ε31⋅μ                                              2⋅ε32⋅μ  ε11*(k - 2*μ/3) + ε22*(k - 2*μ/3) + ε33*(k + 4*μ/3)
-# var: (:cont, :cont)
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
- 1  0  0
- 0  1  0
- 0  0  1
+TensND.TensCanonical{2, 3, Sym{PythonCall.Py}, SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}}
+→ array: 3×3 SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}:
+ 2*ε11*μ + (3*k - 2*μ)*(ε11 + ε22 + ε33)/3  …                                    2⋅ε₃₁⋅μ
+                                   2⋅ε₂₁⋅μ                                       2⋅ε₃₂⋅μ
+                                   2⋅ε₃₁⋅μ     2*ε33*μ + (3*k - 2*μ)*(ε11 + ε22 + ε33)/3
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 ```
 """
 function Tensors.dcontract(
@@ -398,18 +397,23 @@ end
 Define a bilinear operator `𝐯₁⋅𝕊⋅𝐯₂`
 
 # Examples
-```julia
+```jldoctest
 julia> n = Tens(Sym[0, 0, 1]) ;
 
 julia> k, μ = symbols("k μ", real =true) ;
 
-julia> ℂ = 3k * t𝕁() + 2μ * t𝕂() ;
+julia> ℂ = 3k * tens_J4(3, Sym) + 2μ * tens_K4(3, Sym) ;
 
 julia> dotdot(n,ℂ,n) # Acoustic tensor
-3×3 Tens{2, 3, Sym, Sym, Tensor{2, 3, Sym, 9}, CanonicalBasis{3, Sym}}:
+TensND.TensCanonical{2, 3, Sym{PythonCall.Py}, SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}}
+→ array: 3×3 SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}:
  μ  0          0
  0  μ          0
  0  0  k + 4*μ/3
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 ```
 """
 function Tensors.dotdot(
@@ -455,8 +459,8 @@ Define a quadruple contracted product between two tensors
 `𝔸 ⊙ 𝔹 = AᵢⱼₖₗBⁱʲᵏˡ`
 
 # Examples
-```julia
-julia> 𝕀 = t𝕀(Sym) ; 𝕁 = t𝕁(Sym) ; 𝕂 = t𝕂(Sym) ;
+```jldoctest
+julia> 𝕀, 𝕁, 𝕂 = iso_projectors(3, Sym) ;
 
 julia> 𝕀 ⊙ 𝕀
 6

@@ -66,31 +66,33 @@ The attributes of this object can be obtained by
 - `metric(ℬ, :cont)`: square matrix defining the contravariant components of the metric tensor `gⁱʲ=eⁱ⋅eʲ=gⁱʲ[i,j]`
 
 # Examples
-```julia
+```jldoctest
 julia> v = Sym[1 0 0; 0 1 0; 0 1 1] ; ℬ = Basis(v)
 Basis{3, Sym}
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
+→ basis: 3×3 Matrix{Sym}:
  1  0  0
  0  1  0
  0  1  1
-# dual basis: 3×3 Tensor{2, 3, Sym, 9}:
+→ dual basis: 3×3 Matrix{Sym}:
  1  0   0
  0  1  -1
  0  0   1
-# covariant metric tensor: 3×3 SymmetricTensor{2, 3, Sym, 6}:
+→ covariant metric tensor: 3×3 Symmetric{Sym, Matrix{Sym}}:
  1  0  0
  0  2  1
  0  1  1
-# contravariant metric tensor: 3×3 SymmetricTensor{2, 3, Sym, 6}:
+→ contravariant metric tensor: 3×3 Symmetric{Sym, Matrix{Sym}}:
  1   0   0
  0   1  -1
  0  -1   2
 
-julia> θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true) ; ℬʳ = Basis(θ, ϕ, ψ) ; display(vecbasis(ℬʳ, :cov))
-3×3 Tensor{2, 3, Sym, 9}:
- -sin(ψ)⋅sin(ϕ) + cos(θ)⋅cos(ψ)⋅cos(ϕ)  -sin(ψ)⋅cos(θ)⋅cos(ϕ) - sin(ϕ)⋅cos(ψ)  sin(θ)⋅cos(ϕ)
-  sin(ψ)⋅cos(ϕ) + sin(ϕ)⋅cos(θ)⋅cos(ψ)  -sin(ψ)⋅sin(ϕ)⋅cos(θ) + cos(ψ)⋅cos(ϕ)  sin(θ)⋅sin(ϕ)
-                        -sin(θ)⋅cos(ψ)                          sin(θ)⋅sin(ψ)         cos(θ)
+julia> θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true) ; ℬʳ = Basis(θ, ϕ, ψ) ;
+
+julia> vecbasis(ℬʳ, :cov)[:, 3]    # the third vector of the rotated basis
+3-element Vector{Sym{PythonCall.Py}}:
+ sin(θ)⋅cos(ϕ)
+ sin(θ)⋅sin(ϕ)
+        cos(θ)
 ```
 """
 struct Basis{dim, T} <: AbstractBasis{dim, T}
@@ -211,44 +213,44 @@ The attributes of this object can be obtained by
 - `metric(ℬ, :cont)`: square matrix defining the contravariant components of the metric tensor `gⁱʲ=eⁱ⋅eʲ=gⁱʲ[i,j]=δᵢⱼ`
 
 # Examples
-```julia
+```jldoctest
 julia> ℬ = CanonicalBasis()
-CanonicalBasis{3, Sym}
-# basis: 3×3 TensND.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# dual basis: 3×3 TensND.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# covariant metric tensor: 3×3 TensND.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# contravariant metric tensor: 3×3 TensND.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
+CanonicalBasis{3, Sym{PythonCall.Py}}
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
+→ dual basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
+→ covariant metric tensor: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
+→ contravariant metric tensor: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> ℬ₂ = CanonicalBasis{2, Float64}()
 CanonicalBasis{2, Float64}
-# basis: 2×2 TensND.LazyIdentity{2, Float64}:
- 1.0  0.0
- 0.0  1.0
-# dual basis: 2×2 TensND.LazyIdentity{2, Float64}:
- 1.0  0.0
- 0.0  1.0
-# covariant metric tensor: 2×2 TensND.LazyIdentity{2, Float64}:
- 1.0  0.0
- 0.0  1.0
-# contravariant metric tensor: 2×2 TensND.LazyIdentity{2, Float64}:
- 1.0  0.0
- 0.0  1.0
+→ basis: 2×2 TensND.Id2{2, Float64}:
+ 1.0   ⋅
+  ⋅   1.0
+→ dual basis: 2×2 TensND.Id2{2, Float64}:
+ 1.0   ⋅
+  ⋅   1.0
+→ covariant metric tensor: 2×2 TensND.Id2{2, Float64}:
+ 1.0   ⋅
+  ⋅   1.0
+→ contravariant metric tensor: 2×2 TensND.Id2{2, Float64}:
+ 1.0   ⋅
+  ⋅   1.0
 ```
 """
 struct CanonicalBasis{dim, T} <: AbstractBasis{dim, T} end
-CanonicalBasis() = CanonicalBasis{3, Sym}()
+CanonicalBasis() = CanonicalBasis{3, default_number_type()}()
 
 
 _check_orthogonal(R::AbstractMatrix{T}) where {T} = _check_orthogonal(R, Val(is_hard_numeric(T)))
@@ -270,12 +272,14 @@ end
 Orthonormal basis of dimension `dim` (default: 3) and type `T` (default: Sym) built from Euler angles `θ` in 2D and `(θ, ϕ, ψ)` in 3D
 
 # Examples
-```julia
-julia> θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true) ; ℬʳ = RotatedBasis(θ, ϕ, ψ) ; display(vecbasis(ℬʳ, :cov))
-3×3 Tensor{2, 3, Sym, 9}:
- -sin(ψ)⋅sin(ϕ) + cos(θ)⋅cos(ψ)⋅cos(ϕ)  -sin(ψ)⋅cos(θ)⋅cos(ϕ) - sin(ϕ)⋅cos(ψ)  sin(θ)⋅cos(ϕ)
-  sin(ψ)⋅cos(ϕ) + sin(ϕ)⋅cos(θ)⋅cos(ψ)  -sin(ψ)⋅sin(ϕ)⋅cos(θ) + cos(ψ)⋅cos(ϕ)  sin(θ)⋅sin(ϕ)
-                        -sin(θ)⋅cos(ψ)                          sin(θ)⋅sin(ψ)         cos(θ)
+```jldoctest
+julia> θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true) ; ℬʳ = RotatedBasis(θ, ϕ, ψ) ;
+
+julia> vecbasis(ℬʳ, :cov)[:, 3]    # the third vector of the rotated basis
+3-element Vector{Sym{PythonCall.Py}}:
+ sin(θ)⋅cos(ϕ)
+ sin(θ)⋅sin(ϕ)
+        cos(θ)
 ```
 """
 struct RotatedBasis{dim, T} <: AbstractBasis{dim, T}
@@ -441,12 +445,8 @@ end
 Determine the Euler angles corresponding to the input matrix supposed to be a rotation matrix or at least a similarity
 
 # Examples
-```julia
+```jldoctest
 julia> θ, ϕ, ψ = symbols("θ, ϕ, ψ", real = true) ; ℬʳ = RotatedBasis(θ, ϕ, ψ) ; display(vecbasis(ℬʳ, :cov))
-3×3 Tensor{2, 3, Sym, 9}:
- -sin(ψ)⋅sin(ϕ) + cos(θ)⋅cos(ψ)⋅cos(ϕ)  -sin(ψ)⋅cos(θ)⋅cos(ϕ) - sin(ϕ)⋅cos(ψ)  sin(θ)⋅cos(ϕ)
-  sin(ψ)⋅cos(ϕ) + sin(ϕ)⋅cos(θ)⋅cos(ψ)  -sin(ψ)⋅sin(ϕ)⋅cos(θ) + cos(ψ)⋅cos(ϕ)  sin(θ)⋅sin(ϕ)
-                        -sin(θ)⋅cos(ψ)                          sin(θ)⋅sin(ψ)         cos(θ)
 
 julia> angles(ℬʳ)
 (θ = θ, ϕ = ϕ, ψ = ψ)
@@ -662,7 +662,7 @@ element type `Float64` for real numbers (duals included: its entries are exact
 zeros and ones) and of the symbolic type otherwise, promoted with `T` — the
 element type of the data the basis will carry.
 
-```julia
+```jldoctest
 julia> euler_basis(()) isa CanonicalBasis{3, Float64}
 true
 
@@ -696,7 +696,7 @@ The element type of the canonical basis that carries data of type `T`, the rule
 entries of the canonical basis are exact zeros and ones), `T` itself for a
 symbolic or complex type, whose exact `0` and `1` add no float to an exact result.
 
-```julia
+```jldoctest
 julia> canonical_eltype(Int)
 Float64
 ```
@@ -714,7 +714,7 @@ invariant under the reflections of its own axes (an ellipsoid, a crack) is the
 same shape in the permuted basis, its semi-axes permuted by `σ`. A basis that
 is not orthonormal is refused, as by [`RotatedBasis`](@ref).
 
-```julia
+```jldoctest
 julia> permute_basis(RotatedBasis(0.3, 0.2, 0.1), (2, 1, 3)) ;   # e₂, e₁, -e₃
 ```
 """

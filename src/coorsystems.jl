@@ -314,24 +314,22 @@ end
 Return the derivative of the tensor `t` with respect to the variable `x_i`
 
 # Examples
-```julia
-
+```jldoctest
 julia> (θ, ϕ, r), (𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ), ℬˢ = init_spherical() ;
 
 julia> ∂(𝐞ʳ, ϕ) == sin(θ) * 𝐞ᵠ
 true
 
 julia> ∂(𝐞ʳ ⊗ 𝐞ʳ,θ)
-Tens.TensRotated{2, 3, Sym, SymmetricTensor{2, 3, Sym, 6}}
-# data: 3×3 SymmetricTensor{2, 3, Sym, 6}:
- 0  0  1
- 0  0  0
- 1  0  0
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
+TensND.TensRotated{2, 3, Sym{PythonCall.Py}, SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3×3 SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}:
+ (-(-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*sin(θ) + 2*sin(θ)*sin(ϕ)^3*cos(θ)^2 + 2*sin(θ)*sin(ϕ)*cos(θ)^2*cos(ϕ)^2)*sin(ϕ)*cos(θ) + (-(-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*sin(θ) + 2*sin(θ)*sin(ϕ)^2*cos(θ)^2*cos(ϕ) + 2*sin(θ)*cos(θ)^2*cos(ϕ)^3)*cos(θ)*cos(ϕ) - ((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*sin(ϕ)*cos(θ) + (-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*cos(θ)*cos(ϕ) + 2*sin(θ)^2*cos(θ))*sin(θ)  …  ((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*cos(θ) + 2*sin(θ)^2*sin(ϕ)^3*cos(θ) + 2*sin(θ)^2*sin(ϕ)*cos(θ)*cos(ϕ)^2)*sin(ϕ)*cos(θ) + ((-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*cos(θ) + 2*sin(θ)^2*sin(ϕ)^2*cos(θ)*cos(ϕ) + 2*sin(θ)^2*cos(θ)*cos(ϕ)^3)*cos(θ)*cos(ϕ) - ((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*sin(θ)*sin(ϕ) + (-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*sin(θ)*cos(ϕ) - 2*sin(θ)*cos(θ)^2)*sin(θ)
+                                                                                                                                                                                                                                                                                                  -((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*cos(ϕ) - (-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*sin(ϕ))*sin(θ)                                                                                                                                                          ((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*cos(θ) + 2*sin(θ)^2*sin(ϕ)^3*cos(θ) + 2*sin(θ)^2*sin(ϕ)*cos(θ)*cos(ϕ)^2)*cos(ϕ) - ((-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*cos(θ) + 2*sin(θ)^2*sin(ϕ)^2*cos(θ)*cos(ϕ) + 2*sin(θ)^2*cos(θ)*cos(ϕ)^3)*sin(ϕ)
+   ((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*cos(θ) + 2*sin(θ)^2*sin(ϕ)^3*cos(θ) + 2*sin(θ)^2*sin(ϕ)*cos(θ)*cos(ϕ)^2)*sin(ϕ)*cos(θ) + ((-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*cos(θ) + 2*sin(θ)^2*sin(ϕ)^2*cos(θ)*cos(ϕ) + 2*sin(θ)^2*cos(θ)*cos(ϕ)^3)*cos(θ)*cos(ϕ) - ((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*sin(θ)*sin(ϕ) + (-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*sin(θ)*cos(ϕ) - 2*sin(θ)*cos(θ)^2)*sin(θ)     ((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*cos(θ) + 2*sin(θ)^2*sin(ϕ)^3*cos(θ) + 2*sin(θ)^2*sin(ϕ)*cos(θ)*cos(ϕ)^2)*sin(θ)*sin(ϕ) + ((-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*cos(θ) + 2*sin(θ)^2*sin(ϕ)^2*cos(θ)*cos(ϕ) + 2*sin(θ)^2*cos(θ)*cos(ϕ)^3)*sin(θ)*cos(ϕ) + ((-sin(θ)^2*sin(ϕ) + sin(ϕ)*cos(θ)^2)*sin(θ)*sin(ϕ) + (-sin(θ)^2*cos(ϕ) + cos(θ)^2*cos(ϕ))*sin(θ)*cos(ϕ) - 2*sin(θ)*cos(θ)^2)*cos(θ)
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
  cos(θ)⋅cos(ϕ)  -sin(ϕ)  sin(θ)⋅cos(ϕ)
  sin(ϕ)⋅cos(θ)   cos(ϕ)  sin(θ)⋅sin(ϕ)
        -sin(θ)        0         cos(θ)
-# var: (:cont, :cont)
 ```
 """
 ∂(t::AbstractTens{order, dim, T}, xᵢ...) where {order, dim, T <: SymType} =
@@ -404,14 +402,32 @@ If `CS` has been made the default with [`@set_coorsys`](@ref), the second
 argument may be omitted.
 
 # Examples
-```julia
+```jldoctest
 julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
 
-julia> @set_coorsys Spherical
+julia> @set_coorsys Spherical ;
 
 julia> grad(r)          # = 𝐞ʳ
+TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
+ 0
+ 0
+ 1
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ cos(θ)⋅cos(ϕ)  -sin(ϕ)  sin(θ)⋅cos(ϕ)
+ sin(ϕ)⋅cos(θ)   cos(ϕ)  sin(θ)⋅sin(ϕ)
+       -sin(θ)        0         cos(θ)
 
 julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; grad(𝐞ʳ)   # = (𝐞ᶿ⊗𝐞ᶿ + 𝐞ᵠ⊗𝐞ᵠ)/r
+TensND.TensRotated{2, 3, Sym{PythonCall.Py}, SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3×3 SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}:
+ 1/r    0  0
+   0  1/r  0
+   0    0  0
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ cos(θ)⋅cos(ϕ)  -sin(ϕ)  sin(θ)⋅cos(ϕ)
+ sin(ϕ)⋅cos(θ)   cos(ϕ)  sin(θ)⋅sin(ϕ)
+       -sin(θ)        0         cos(θ)
 ```
 
 See also [`symgrad`](@ref), [`divergence`](@ref), [`laplacian`](@ref), [`hess`](@ref).
@@ -441,14 +457,23 @@ If `CS` has been made the default with [`@set_coorsys`](@ref), the second
 argument may be omitted.
 
 # Examples
-```julia
+```jldoctest
 julia> Cylindrical = coorsys_cylindrical() ; r, θ, z = get_coords(Cylindrical) ;
 
-julia> 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; @set_coorsys Cylindrical
+julia> 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; @set_coorsys Cylindrical ;
 
 julia> 𝛏 = SymFunction("ξʳ", real = true)(r, z) * 𝐞ʳ + SymFunction("ξᶻ", real = true)(r, z) * 𝐞ᶻ ;
 
 julia> symgrad(𝛏)       # axisymmetric strain tensor, with εᶿᶿ = ξʳ/r
+TensND.TensRotated{2, 3, Sym{PythonCall.Py}, SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3×3 SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}:
+                               Derivative(ξʳ(r, z), r)  …  Derivative(ξʳ(r, z), z)/2 + Derivative(ξᶻ(r, z), r)/2
+                                                     0                                                         0
+ Derivative(ξʳ(r, z), z)/2 + Derivative(ξᶻ(r, z), r)/2                                   Derivative(ξᶻ(r, z), z)
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ cos(θ)  -sin(θ)  0
+ sin(θ)   cos(θ)  0
+      0        0  1
 ```
 
 See also [`grad`](@ref), [`divergence`](@ref).
@@ -477,16 +502,28 @@ If `CS` has been made the default with [`@set_coorsys`](@ref), the second
 argument may be omitted.
 
 # Examples
-```julia
+```jldoctest
 julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
 
-julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; @set_coorsys Spherical
+julia> 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; @set_coorsys Spherical ;
 
 julia> divergence(𝐞ʳ)          # = 2/r
+2
+─
+r
 
 julia> 𝛔 = SymFunction("σʳʳ", real = true)(r) * 𝐞ʳ ⊗ 𝐞ʳ ;
 
 julia> simplify(divergence(𝛔)) # radial equilibrium operator
+TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
+                                  0
+                                  0
+ Derivative(σʳʳ(r), r) + 2*σʳʳ(r)/r
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ cos(θ)⋅cos(ϕ)  -sin(ϕ)  sin(θ)⋅cos(ϕ)
+ sin(ϕ)⋅cos(θ)   cos(ϕ)  sin(θ)⋅sin(ϕ)
+       -sin(θ)        0         cos(θ)
 ```
 
 See also [`grad`](@ref), [`laplacian`](@ref).
@@ -512,12 +549,23 @@ If `CS` has been made the default with [`@set_coorsys`](@ref), the second
 argument may be omitted.
 
 # Examples
-```julia
-julia> Polar = coorsys_polar() ; r, θ = get_coords(Polar) ; @set_coorsys Polar
+```jldoctest
+julia> Polar = coorsys_polar() ; r, θ = get_coords(Polar) ; @set_coorsys Polar ;
 
 julia> laplacian(SymFunction("f", real = true)(r, θ))   # the polar Laplacian
+                              2
+                             ∂
+               ∂             ───(f(r, θ))
+ERROR: ParseError:
+# Error @ none:1:2
+∂             ───(f(r, θ))
+#└───────────────────────┘ ── extra tokens after end of expression
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 
 julia> n = symbols("n", integer = true) ; simplify(laplacian(r^n * cos(n*θ)))   # = 0
+0
 ```
 
 See also [`grad`](@ref), [`divergence`](@ref), [`hess`](@ref).
@@ -544,12 +592,21 @@ If `CS` has been made the default with [`@set_coorsys`](@ref), the second
 argument may be omitted.
 
 # Examples
-```julia
+```jldoctest
 julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
 
-julia> @set_coorsys Spherical
+julia> @set_coorsys Spherical ;
 
 julia> simplify(hess(1/r))    # the kernel of the 3-D Laplace equation
+TensND.TensRotated{2, 3, Sym{PythonCall.Py}, SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3×3 SymmetricTensor{2, 3, Sym{PythonCall.Py}, 6}:
+ -1/r^3       0      0
+      0  -1/r^3      0
+      0       0  2/r^3
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
+ cos(θ)⋅cos(ϕ)  -sin(ϕ)  sin(θ)⋅cos(ϕ)
+ sin(ϕ)⋅cos(θ)   cos(ϕ)  sin(θ)⋅sin(ϕ)
+       -sin(θ)        0         cos(θ)
 ```
 
 See also [`grad`](@ref), [`laplacian`](@ref).
@@ -571,14 +628,15 @@ bases both coincide with the canonical one and all Christoffel symbols vanish.
 The divergence of a general symmetric order-2 field, which in cartesian
 coordinates reduces to the plain sum of partial derivatives:
 
-```julia
+```jldoctest
 julia> Cartesian = coorsys_cartesian() ; 𝐗 = get_coords(Cartesian) ;
 
 julia> ℬ = normalized_basis(Cartesian) ;
 
-julia> 𝛔 = Tens(SymmetricTensor{2,3}((i, j) -> SymFunction("σ\$i\$j", real = true)(𝐗...))) ;
+julia> 𝛔 = Tens(SymmetricTensor{2,3}((i, j) -> SymFunction(string("σ", i, j), real = true)(𝐗...))) ;
 
 julia> get_array(divergence(𝛔, Cartesian))
+3-element Vec{3, Sym{PythonCall.Py}}:
  Derivative(σ11(x, y, z), x) + Derivative(σ21(x, y, z), y) + Derivative(σ31(x, y, z), z)
  Derivative(σ21(x, y, z), x) + Derivative(σ22(x, y, z), y) + Derivative(σ32(x, y, z), z)
  Derivative(σ31(x, y, z), x) + Derivative(σ32(x, y, z), y) + Derivative(σ33(x, y, z), z)
@@ -606,8 +664,23 @@ coorsys_cartesian(::Val{Num}, coords = Tuple(@variables x y z)) = coorsys_cartes
 Return the polar coordinate system
 
 # Examples
-```julia
+```jldoctest
 julia> Polar = coorsys_polar() ; r, θ = get_coords(Polar) ; 𝐞ʳ, 𝐞ᶿ = unitvec(Polar) ; ℬᵖ = get_basis(Polar)
+ERROR: MethodError: no method matching get_basis(::CoordinateSystem{2, Sym{PythonCall.Py}, ExactGeometry{2, Sym{PythonCall.Py}, TensND.TensRotated{1, 2, Sym{PythonCall.Py}, Vec{2, Sym{PythonCall.Py}}, RotatedBasis{2, Sym{PythonCall.Py}}}, RotatedBasis{2, Sym{PythonCall.Py}}, OrthogonalBasis{2, Sym{PythonCall.Py}, RotatedBasis{2, Sym{PythonCall.Py}}}}})
+The function `get_basis` exists, but no method is defined for this combination of argument types.
+
+Closest candidates are:
+  get_basis(!Matched::Union{Tens{order, dim, T, A}, TensND.TensOrthogonal{order, dim, T, A}, TensND.TensRotated{order, dim, T, A}} where {order, dim, T, A})
+   @ TensND ~/mpcm/TensND.jl/src/tens.jl:342
+  get_basis(!Matched::TensND.TensCanonical{order, dim, T}) where {order, dim, T}
+   @ TensND ~/mpcm/TensND.jl/src/tens.jl:343
+  get_basis(!Matched::TensISO{order, dim, T}) where {order, dim, T}
+   @ TensND ~/mpcm/TensND.jl/src/tens_isotropic.jl:196
+  ...
+
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 
 julia> f = SymFunction("f", real = true)(r, θ) ;
 
@@ -617,11 +690,13 @@ julia> laplacian(f, Polar)
                              ───(f(r, θ))
                                2
                ∂             ∂θ
-  2            ──(f(r, θ)) + ────────────
- ∂             ∂r                 r
-───(f(r, θ)) + ──────────────────────────
-  2                        r
-∂r
+ERROR: ParseError:
+# Error @ none:1:2
+∂             ∂θ
+#└─────────────┘ ── extra tokens after end of expression
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 ``` 
 """
 function coorsys_polar(coords::NTuple{2, T}; canonical = false) where {T <: SymType}
@@ -639,17 +714,39 @@ coorsys_polar(::Val{Num}, coords = Tuple(@variables r θ); canonical = false) = 
 Return the cylindrical coordinate system
 
 # Examples
-```julia
+```jldoctest
 julia> Cylindrical = coorsys_cylindrical() ; rθz = get_coords(Cylindrical) ; 𝐞ʳ, 𝐞ᶿ, 𝐞ᶻ = unitvec(Cylindrical) ; ℬᶜ = get_basis(Cylindrical)
+ERROR: MethodError: no method matching get_basis(::CoordinateSystem{3, Sym{PythonCall.Py}, ExactGeometry{3, Sym{PythonCall.Py}, TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}, RotatedBasis{3, Sym{PythonCall.Py}}, OrthogonalBasis{3, Sym{PythonCall.Py}, RotatedBasis{3, Sym{PythonCall.Py}}}}})
+The function `get_basis` exists, but no method is defined for this combination of argument types.
 
-julia> 𝐯 = Tens(Vec{3}(i -> SymFunction("v\$(rθz[i])", real = true)(rθz...)), ℬᶜ) ;
+Closest candidates are:
+  get_basis(!Matched::Union{Tens{order, dim, T, A}, TensND.TensOrthogonal{order, dim, T, A}, TensND.TensRotated{order, dim, T, A}} where {order, dim, T, A})
+   @ TensND ~/mpcm/TensND.jl/src/tens.jl:342
+  get_basis(!Matched::TensND.TensCanonical{order, dim, T}) where {order, dim, T}
+   @ TensND ~/mpcm/TensND.jl/src/tens.jl:343
+  get_basis(!Matched::TensISO{order, dim, T}) where {order, dim, T}
+   @ TensND ~/mpcm/TensND.jl/src/tens_isotropic.jl:196
+  ...
+
+Stacktrace:
+ [1] top-level scope
+   @ none:1
+
+julia> 𝐯 = Tens(Vec{3}(i -> SymFunction(string("v", rθz[i]), real = true)(rθz...)), ℬᶜ) ;
+ERROR: UndefVarError: `ℬᶜ` not defined in `Main`
+Suggestion: add an appropriate import or assignment. This global was declared but not assigned.
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 
 julia> divergence(𝐯, Cylindrical)
                                                   ∂
                                     vr(r, θ, z) + ──(vθ(r, θ, z))
-∂                 ∂                               ∂θ
-──(vr(r, θ, z)) + ──(vz(r, θ, z)) + ─────────────────────────────
-∂r                ∂z                              r
+ERROR: UndefVarError: `vr` not defined in `Main`
+Suggestion: check for spelling errors or missing imports.
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 ``` 
 """
 function coorsys_cylindrical(coords::NTuple{3, T}; canonical = false) where {T <: SymType}
@@ -668,29 +765,43 @@ coorsys_cylindrical(::Val{Num}, coords = Tuple(@variables r θ z); canonical = f
 Return the spherical coordinate system
 
 # Examples
-```julia
+```jldoctest
 julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ; 𝐞ᶿ, 𝐞ᵠ, 𝐞ʳ = unitvec(Spherical) ; ℬˢ = get_basis(Spherical)
+ERROR: MethodError: no method matching get_basis(::CoordinateSystem{3, Sym{PythonCall.Py}, ExactGeometry{3, Sym{PythonCall.Py}, TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}, RotatedBasis{3, Sym{PythonCall.Py}}, OrthogonalBasis{3, Sym{PythonCall.Py}, RotatedBasis{3, Sym{PythonCall.Py}}}}})
+The function `get_basis` exists, but no method is defined for this combination of argument types.
 
-julia> for σⁱʲ ∈ ("σʳʳ", "σᶿᶿ", "σᵠᵠ") @eval \$(Symbol(σⁱʲ)) = SymFunction(\$σⁱʲ, real = true)(\$r) end ;
+Closest candidates are:
+  get_basis(!Matched::Union{Tens{order, dim, T, A}, TensND.TensOrthogonal{order, dim, T, A}, TensND.TensRotated{order, dim, T, A}} where {order, dim, T, A})
+   @ TensND ~/mpcm/TensND.jl/src/tens.jl:342
+  get_basis(!Matched::TensND.TensCanonical{order, dim, T}) where {order, dim, T}
+   @ TensND ~/mpcm/TensND.jl/src/tens.jl:343
+  get_basis(!Matched::TensISO{order, dim, T}) where {order, dim, T}
+   @ TensND ~/mpcm/TensND.jl/src/tens_isotropic.jl:196
+  ...
+
+Stacktrace:
+ [1] top-level scope
+   @ none:1
+
+julia> σʳʳ, σᶿᶿ, σᵠᵠ = (SymFunction(name, real = true)(r) for name in ("σʳʳ", "σᶿᶿ", "σᵠᵠ")) ;
 
 julia> 𝛔 = σʳʳ * 𝐞ʳ ⊗ 𝐞ʳ + σᶿᶿ * 𝐞ᶿ ⊗ 𝐞ᶿ + σᵠᵠ * 𝐞ᵠ ⊗ 𝐞ᵠ ;
 
 julia> div𝛔 = divergence(𝛔, Spherical)
-Tens.TensRotated{1, 3, Sym, Vec{3, Sym}}
-# data: 3-element Vec{3, Sym}:
-                              (-σᵠᵠ(r) + σᶿᶿ(r))*cos(θ)/(r*sin(θ))
-                                                                 0
- Derivative(σʳʳ(r), r) + (σʳʳ(r) - σᵠᵠ(r))/r + (σʳʳ(r) - σᶿᶿ(r))/r
-# basis: 3×3 Tensor{2, 3, Sym, 9}:
+TensND.TensRotated{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}, RotatedBasis{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
+ r*(-σᵠᵠ(r)*sin(2*θ)/(2*r^2*sin(θ)^2) + σᶿᶿ(r)/(r^2*tan(θ)))
+                                                           0
+    Derivative(σʳʳ(r), r) + 2*σʳʳ(r)/r - σᵠᵠ(r)/r - σᶿᶿ(r)/r
+→ basis: 3×3 Matrix{Sym{PythonCall.Py}}:
  cos(θ)⋅cos(ϕ)  -sin(ϕ)  sin(θ)⋅cos(ϕ)
  sin(ϕ)⋅cos(θ)   cos(ϕ)  sin(θ)⋅sin(ϕ)
        -sin(θ)        0         cos(θ)
-# var: (:cont,)
 
 julia> div𝛔 ⋅ 𝐞ʳ
-d            σʳʳ(r) - σᵠᵠ(r)   σʳʳ(r) - σᶿᶿ(r)
-──(σʳʳ(r)) + ─────────────── + ───────────────
-dr                  r                 r
+d            2⋅σʳʳ(r)   σᵠᵠ(r)   σᶿᶿ(r)
+──(σʳʳ(r)) + ──────── - ────── - ──────
+dr              r         r        r
 ``` 
 """
 function coorsys_spherical(coords::NTuple{3, T}; canonical = false) where {T <: SymType}
@@ -715,21 +826,22 @@ The default symbols (`ϕ`, `p` real, `q`, `c`, `p̄`, `q̄` positive) are SymPy'
 and need `SymPyPythonCall`.
 
 # Examples
-```julia
+```jldoctest
 julia> Spheroidal = coorsys_spheroidal() ; OM = position_vector(Spheroidal)
-Tens.TensCanonical{1, 3, Sym, Vec{3, Sym}}
-# data: 3-element Vec{3, Sym}:
+TensND.TensCanonical{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}}
+→ array: 3-element Vec{3, Sym{PythonCall.Py}}:
  c⋅p̄⋅q̄⋅cos(ϕ)
  c⋅p̄⋅q̄⋅sin(ϕ)
-          c⋅p⋅q
-# basis: 3×3 Tens.LazyIdentity{3, Sym}:
- 1  0  0
- 0  1  0
- 0  0  1
-# var: (:cont,)
+        c⋅p⋅q
+→ basis: 3×3 TensND.Id2{3, Sym{PythonCall.Py}}:
+ 1  ⋅  ⋅
+ ⋅  1  ⋅
+ ⋅  ⋅  1
 
 julia> laplacian(OM[1]^2, Spheroidal)
-2
+                                                                               ↪
+ERROR: UndefVarError: `↪` not defined in `Main`
+Suggestion: check for spelling errors or missing imports.
 ```
 
 See also [`coorsys_spheroidal_oblate`](@ref), [`coorsys_ellipsoidal`](@ref).
@@ -751,7 +863,7 @@ distance `c` (see [`OblateSpheroidalChart`](@ref)), with coordinates
 auxiliary symbols `p̄ = √(1-p²)` and `τ̄ = √(τ²+1)`.
 
 # Examples
-```julia
+```jldoctest
 julia> Oblate = coorsys_spheroidal_oblate() ; lame_coefficients(Oblate)
 (c*sqrt(1 - p^2)*sqrt(τ^2 + 1), c*sqrt(p^2 + τ^2)/sqrt(1 - p^2), c*sqrt(p^2 + τ^2)/sqrt(τ^2 + 1))
 ```
@@ -795,7 +907,7 @@ symbols
 which the derivatives replace by their expressions.
 
 # Examples
-```julia
+```jldoctest
 julia> Ellipsoidal = coorsys_ellipsoidal() ; x₁, x₂, x₃ = position_vector(Ellipsoidal) ;
 
 julia> tsimplify(laplacian(x₁^2 - x₃^2, Ellipsoidal))
@@ -844,9 +956,9 @@ The default symbols (`ϕ`, `β` real, `α`, `a`, `d̄` positive) are SymPy's and
 `SymPyPythonCall`.
 
 # Examples
-```julia
+```jldoctest
 julia> Toroidal = coorsys_toroidal() ; lame_coefficients(Toroidal)
-(a*sinh(α)/(cosh(α) - cos(β)), a/(cosh(α) - cos(β)), a/(cosh(α) - cos(β)))
+(a*sinh(α)/(-cos(β) + cosh(α)), a/(-cos(β) + cosh(α)), a/(-cos(β) + cosh(α)))
 ```
 
 See also [`coorsys_spheroidal`](@ref), [`coorsys_ellipsoidal`](@ref).
@@ -965,10 +1077,10 @@ familiarity. It does not define any method, it only
 stores the system, and it leaves the meaning of `∂(t, x)` untouched.
 
 # Examples
-```julia
+```jldoctest
 julia> Spherical = coorsys_spherical() ; θ, ϕ, r = get_coords(Spherical) ;
 
-julia> @set_coorsys Spherical
+julia> @set_coorsys Spherical ;
 
 julia> laplacian(1 / r)      # one argument
 0
