@@ -48,8 +48,11 @@ include("solid_harmonics.jl")
 include("lattice_harmonics.jl")
 include("ellipsoidal_harmonics.jl")
 include("coorsystems.jl")
-include("coorsystems_num.jl")
+# The exact submanifold before the pointwise geometry, whose operators serve both
+# the pointwise systems and the pointwise submanifolds.
 include("submanifold.jl")
+include("coorsystems_num.jl")
+include("submanifold_num.jl")
 
 # The constructors whose default coordinates are SymPy symbols get them from the
 # extension that SymPyPythonCall loads. Called without coordinates while it is

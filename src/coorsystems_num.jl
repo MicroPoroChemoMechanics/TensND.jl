@@ -33,8 +33,10 @@ struct PointwiseGeometry{X, R, G} <: AbstractGeometry
     Γ_func::G   # x -> Array{T,3}  Γ[i,j,k] = Γᵏᵢⱼ
 end
 
-# The pointwise systems, and how a dimension and an element type make one.
-const _PointwiseSystem{dim, T} = CoordinateSystem{dim, T, <:PointwiseGeometry}
+# The pointwise systems, and how a dimension and an element type make one. A
+# pointwise submanifold shares the geometry and the operators; it differentiates
+# along its `nderiv` surface coordinates only.
+const _PointwiseSystem{dim, T} = Union{CoordinateSystem{dim, T, <:PointwiseGeometry}, Submanifold{dim, T, <:PointwiseGeometry}}
 CoordinateSystem{dim, T}(g::PointwiseGeometry) where {dim, T <: Real} =
     CoordinateSystem{dim, T, typeof(g)}(g)
 _pointwise_system(::Val{dim}, ::Type{T}, χ_func, R_func, Γ_func) where {dim, T} =
@@ -291,15 +293,17 @@ function _grad_raw(f::Function, CS::_PointwiseSystem{dim}) where {dim}
     end
 end
 
+# The components along the directions of differentiation; on a submanifold the
+# normal one vanishes.
 function _grad_at(::Number, f_arr, CS::_PointwiseSystem{dim}, χ, ET, x₀) where {dim}
     Jac = ForwardDiff.jacobian(x -> [f_arr(x)], collect(x₀))
-    return [Jac[1, i] / χ[i] for i in 1:dim]
+    return [i ≤ nderiv(CS) ? Jac[1, i] / χ[i] : zero(ET) for i in 1:dim]
 end
 
 function _grad_at(val::AbstractArray, f_arr, CS::_PointwiseSystem{dim}, χ, ET, x₀) where {dim}
     order = ndims(val)
     result = zeros(ET, size(val)..., dim)
-    for i in 1:dim
+    for i in 1:nderiv(CS)
         result[fill(:, order)..., i] = ∂(f_arr, i, CS, x₀) ./ χ[i]
     end
     return result
@@ -315,7 +319,7 @@ function _div_raw(f::Function, CS::_PointwiseSystem{dim}) where {dim}
         # Same promotion as in `_grad_raw`: the buffer holds geometry *and*
         # field, so a field carrying `Dual` numbers stays differentiable.
         result = zeros(promote_type(eltype(χ), eltype(val)), result_size...)
-        for i in 1:dim
+        for i in 1:nderiv(CS)
             cov_∂ = ∂(f_arr, i, CS, x₀)
             sl = selectdim(cov_∂, order, i)
             result .+= sl ./ χ[i]

@@ -82,9 +82,10 @@ See also [`CoordinateSystem`](@ref), [`normal`](@ref), [`submetric`](@ref),
 [`curvature`](@ref), [`connection`](@ref).
 """
 struct Submanifold{dim, T, G <: AbstractGeometry, TENSA, TENSB} <: AbstractCoorSystem{dim, T}
-    # The geometry shared with every chart lives in `geometry`; a submanifold
-    # adds only the two fundamental forms. See [`ExactGeometry`](@ref). The
-    # forms are derived symbolically, so a submanifold is exact only.
+    # The geometry shared with every chart lives in `geometry`; an exact
+    # submanifold adds the two fundamental forms, expressions of its
+    # coordinates. A pointwise one (`submanifold_num.jl`) stores none: they are
+    # functions of the point.
     geometry::G
     a::TENSA
     b::TENSB
@@ -159,6 +160,10 @@ struct Submanifold{dim, T, G <: AbstractGeometry, TENSA, TENSB} <: AbstractCoorS
         )
         return new{dim, Sym, typeof(geometry), typeof(a), typeof(b)}(geometry, a, b)
     end
+    # The pointwise submanifold (`submanifold_num.jl`): its fundamental forms are
+    # functions of the point, read with it, and not stored.
+    Submanifold{dim, T}(g::G) where {dim, T <: Real, G <: AbstractGeometry} =
+        new{dim, T, G, Nothing, Nothing}(g, nothing, nothing)
 end
 
 """

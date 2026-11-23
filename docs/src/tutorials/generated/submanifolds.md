@@ -7,7 +7,7 @@ EditURL = "../../../../scripts/13_submanifolds.jl"
 !!! tip "See also"
     **Theory**: [Submanifolds](@ref th-submanifolds)
 
-    **Manual**: [Submanifolds](@ref man-submanifolds)
+    **Manual**: [Charts, coordinate systems and surfaces](@ref man-coordinates-overview) · [Submanifolds](@ref man-submanifolds)
 
     **Tutorials**: [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix)
 

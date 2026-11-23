@@ -68,7 +68,7 @@ tutorials = ["tut-closest-isotropic"]
 [[subject]]
 name = "Curvilinear coordinates"
 theory = ["th-curvilinear", "th-predefined-systems"]
-manual = ["man-coorsystems", "man-coorsystems-num"]
+manual = ["man-coordinates-overview", "man-coorsystems", "man-coorsystems-num", "man-charts"]
 tutorials = ["tut-symbolic-operators", "tut-christoffel", "tut-numerical-operators", "tut-operator-identities", "tut-operators-catalog"]
 
 [[subject]]
@@ -98,7 +98,7 @@ tutorials = ["tut-spheroidal-reexpansion", "tut-spheroidal-appendix"]
 [[subject]]
 name = "Submanifolds"
 theory = ["th-submanifolds"]
-manual = ["man-submanifolds"]
+manual = ["man-coordinates-overview", "man-submanifolds"]
 tutorials = ["tut-submanifolds", "tut-spheroidal-appendix"]
 
 [[subject]]

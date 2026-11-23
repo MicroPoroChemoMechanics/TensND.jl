@@ -1,17 +1,33 @@
 # Changelog
 
-## v0.15.1 — the blocks of the isotropic tensors of the plane
+## v0.16.0 — a pointwise submanifold, the default element type, the blocks of the plane
 
-A patch release, additive.
+A minor release that adds functions and methods. With SymPyPythonCall loaded,
+existing code gives the same results.
 
-`symmetry_basis`, `symmetry_layout`, `symmetry_matrix` and the reading of the
-blocks on a matrix, `symmetry_blocks(A, M)`, served the classes of the
-three-dimensional space only. A computation that stores a family of tensors by
-its blocks (a relaxation operator of aging viscoelasticity) could therefore not
-work on tensors of the plane.
+A surface embedded in the space was exact only, derived symbolically, while the
+coordinate systems of the whole space had a pointwise form computed by
+automatic differentiation. The surface has it now. The constructors called
+without an element type needed SymPyPythonCall and failed without it; they now
+return numbers then. The blocks of the symmetry classes, on which a relaxation
+operator of aging viscoelasticity is stored, existed in three dimensions only.
+
+### Breaking changes
+
+None in the API or the behavior. Being a minor release below 1.0, it is not
+accepted by a `[compat]` bound `TensND = "0.15"`: dependents widen it to
+`"0.15, 0.16"` or raise it to `"0.16"`.
 
 ### Added
 
+- `Submanifold(OM_func, dim)`: a hypersurface given by a function of its
+  `dim-1` coordinates, whose tangent frame, unit normal, fundamental forms and
+  Gauss–Weingarten coefficients are computed at a point by automatic
+  differentiation. The operators of the pointwise coordinate systems apply to
+  it along the surface (`grad` is the surface gradient, `laplacian` the
+  Laplace–Beltrami operator), and `normal`, `submetric`, `curvature`,
+  `connection` are read at a point. Orthogonal parametrizations; duals pass,
+  including for a parameter of the surface.
 - `symmetry_basis` and `symmetry_layout` for `TensISO{4,2}` and `TensISO{2,2}`:
   the spherical direction, the normal deviator and the shear of the plane; the
   block ``(\beta)`` on the last two.
@@ -38,6 +54,8 @@ work on tensors of the plane.
 
 ### Documentation
 
+- New manual page *Charts, coordinate systems and surfaces*: which of the three
+  objects to take, exact or pointwise, with an example of each.
 - New tutorial *An insulating torus in a uniform flux*: the ring-shaped pore
   under a gradient along its axis, solved in the toroidal chart by a series of
   toroidal functions and a tridiagonal system, checked by automatic

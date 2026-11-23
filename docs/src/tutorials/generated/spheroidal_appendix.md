@@ -7,7 +7,7 @@ EditURL = "../../../../scripts/16_spheroidal_appendix.jl"
 !!! tip "See also"
     **Theory**: [Spheroidal coordinates](@ref th-spheroidal) · [Ellipsoidal coordinates](@ref th-ellipsoidal) · [Curvilinear differential calculus](@ref th-curvilinear) · [Spheroidal harmonics and their re-expansion](@ref th-spheroidal-harmonics) · [Submanifolds](@ref th-submanifolds)
 
-    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Charts and coordinate conversions](@ref man-charts) · [Spheroidal harmonics](@ref man-spheroidal-harmonics) · [Submanifolds](@ref man-submanifolds)
+    **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Charts and coordinate conversions](@ref man-charts) · [Spheroidal harmonics](@ref man-spheroidal-harmonics) · [Charts, coordinate systems and surfaces](@ref man-coordinates-overview) · [Submanifolds](@ref man-submanifolds)
 
     **Tutorials**: [Ellipsoidal coordinates](@ref tut-ellipsoidal) · [Changing the focal distance of spheroidal harmonics](@ref tut-spheroidal-reexpansion) · [Surfaces: fundamental forms and curvature](@ref tut-submanifolds)
 

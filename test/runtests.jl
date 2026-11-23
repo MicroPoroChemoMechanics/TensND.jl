@@ -142,6 +142,7 @@ include("test_solid_harmonics.jl")
 include("test_lattice_harmonics.jl")
 include("test_ellipsoidal_harmonics.jl")
 include("test_submanifold.jl")
+include("test_submanifold_num.jl")
 # Calls that tied a TensND method with one of a package it loads.
 include("test_third_party_ties.jl")
 include("test_sympy_matrix.jl")

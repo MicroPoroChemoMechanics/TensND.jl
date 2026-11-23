@@ -86,6 +86,7 @@ pages = [
             "manual/tensor_distances.md",
         ],
         "Coordinate systems" => [
+            "manual/coordinates_overview.md",
             "manual/coorsystems.md",
             "manual/coorsystems_num.md",
             "manual/charts.md",
