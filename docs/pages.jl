@@ -129,6 +129,7 @@ pages = [
             "tutorials/generated/green_function.md",
             "tutorials/generated/cluster.md",
             "tutorials/generated/sphere_problems.md",
+            "tutorials/generated/insulating_torus.md",
             "tutorials/generated/hill_tensors.md",
         ],
         "Types, differentiation and performance" => [

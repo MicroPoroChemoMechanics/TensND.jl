@@ -70,6 +70,7 @@ const PUBLISHED_SCRIPTS = [
     "20_green_function.jl" => "green_function",
     "21_cluster.jl" => "cluster",
     "22_sphere_problems.jl" => "sphere_problems",
+    "23_insulating_torus.jl" => "insulating_torus",
     "24_hill_tensors.jl" => "hill_tensors",
     # ── Types, differentiation and performance ───────────────────────────────
     "30_ad_interop.jl" => "ad_interop",

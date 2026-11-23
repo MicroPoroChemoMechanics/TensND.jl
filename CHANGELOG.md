@@ -20,6 +20,13 @@ work on tensors of the plane.
   matrices for a fourth-order tensor of the plane, ``2\times2`` for a
   second-order one.
 
+### Documentation
+
+- New tutorial *An insulating torus in a uniform flux*: the ring-shaped pore
+  under a gradient along its axis, solved in the toroidal chart by a series of
+  toroidal functions and a tridiagonal system, checked by automatic
+  differentiation.
+
 ## v0.15.0 — distances between elasticity tensors, plane states of a transversely isotropic material
 
 A minor release that adds functions and methods; nothing changes for existing

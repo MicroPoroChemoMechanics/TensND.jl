@@ -5,7 +5,7 @@
 
     **Manual**: [Coordinate systems (symbolic)](@ref man-coorsystems) · [Toroidal functions](@ref man-toroidal-harmonics) · [Spheroidal harmonics](@ref man-spheroidal-harmonics)
 
-    **Tutorials**: [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix) · [Ellipsoidal coordinates](@ref tut-ellipsoidal) · [Changing the focal distance of spheroidal harmonics](@ref tut-spheroidal-reexpansion)
+    **Tutorials**: [The spheroid in spheroidal coordinates](@ref tut-spheroidal-appendix) · [Ellipsoidal coordinates](@ref tut-ellipsoidal) · [An insulating torus in a uniform flux](@ref tut-insulating-torus) · [Changing the focal distance of spheroidal harmonics](@ref tut-spheroidal-reexpansion)
 
 How to pass from the coordinates of a point to its Cartesian components and
 back, and from one coordinate system to another. The formulas are on
