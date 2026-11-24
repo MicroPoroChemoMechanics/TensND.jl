@@ -180,6 +180,23 @@ eᵣ = Tens([x[1], x[2], 0.0] / hypot(x[1], x[2]))
 eᵣ ⋅ (eᵣ ⋅ tensor_at(C, x) ⋅ eᵣ) ⋅ eᵣ      # n, the stiffness along the radius of the cylinder
 ```
 
+The five constants may also be given in the notations of
+[`ti_from_constants`](@ref), the radial direction being its axis 3: the
+components ``(C_{tttt}, C_{ttt't'}, C_{ttrr}, C_{rrrr}, C_{trtr})``, the
+engineering constants ``(E_t, E_r, \nu_{tt'}, \nu_{rt}, G_{rt})`` or Hoenig's
+parameters, as a compliance or as the stiffness of the same material:
+
+```@example charts
+Eₜ, Eᵣ, ν, νᵣₜ, Gᵣₜ = 30.0, 12.0, 0.25, 0.1, 5.0
+S = radial_ti(CylindricalChart(), Eₜ, Eᵣ, ν, νᵣₜ, Gᵣₜ; form = :engineering)
+1 / (eᵣ ⋅ (eᵣ ⋅ tensor_at(S, x) ⋅ eᵣ) ⋅ eᵣ)      # Eᵣ, Young's modulus along the radius
+```
+
+```@example charts
+𝕔 = radial_ti(CylindricalChart(), Eₜ, Eᵣ, ν, νᵣₜ, Gᵣₜ; form = :engineering, role = :stiffness)
+tensor_at(𝕔, x) ⊡ tensor_at(S, x) ≈ one(tensor_at(S, x))
+```
+
 Fields of the same chart add, and a field is multiplied by a number and
 inverted, as their patterns are. In an exact coordinate system the field is a
 tensor of constant components in the normalized basis, on which the
