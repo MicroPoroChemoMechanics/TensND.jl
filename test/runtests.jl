@@ -134,6 +134,7 @@ include("test_coorsystems.jl")
 include("test_coorsystems_num.jl")
 # Charts as maps, the confocal systems built on them, and the spheroidal harmonics.
 include("test_charts.jl")
+include("test_chart_fields.jl")
 include("test_coorsystems_confocal.jl")
 include("test_coorsystems_toroidal.jl")
 include("test_spheroidal_harmonics.jl")

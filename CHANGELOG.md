@@ -1,5 +1,31 @@
 # Changelog
 
+## v0.16.1 — tensor fields in the frame of a chart
+
+A patch release that adds one type and three functions; nothing existing
+changes.
+
+### Added
+
+- **`ChartTens(pattern, chart)`: a tensor field whose components are constant
+  in the local frame of a chart**, the unit vectors of a curvilinear system. A
+  material deposited on a sphere or wound around an axis has such a tensor of
+  properties, the same at every point in a frame that turns with the point; it
+  could be written with symbols, in an exact coordinate system, and not with
+  numbers. The pattern is any tensor (isotropic, transversely isotropic,
+  orthotropic, of no class), read in the frame of `unit_vectors(chart, ξ)`.
+  `tensor_at(F, x)` is the tensor at a point, with numbers, dual numbers or
+  symbolic coefficients, a transversely isotropic pattern keeping its class;
+  `tensor_at(F, CS)` is the field in an exact coordinate system, on which the
+  differential operators act. Fields of the same chart add, and a field is
+  multiplied by a number and inverted.
+
+- **`radial_ti(chart, …)` and `radial_axis(chart)`**: the fields transversely
+  isotropic about the radial direction of a spherical or a cylindrical chart,
+  from the Walpole coefficients, from Hill's moduli `(n, l, k, m, p)` about the
+  radius, from the two coefficients of an order-2 tensor, or from an isotropic
+  tensor.
+
 ## v0.16.0 — a pointwise submanifold, the default element type, the blocks of the plane
 
 A minor release that adds functions and methods. With SymPyPythonCall loaded,

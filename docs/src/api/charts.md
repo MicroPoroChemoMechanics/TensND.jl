@@ -19,3 +19,14 @@ change_coords
 unit_vectors
 lame_coefficients(::AbstractChart, ::Any)
 ```
+
+## Tensor fields in the frame of a chart
+
+Usage: [A tensor that turns with the point](@ref man-chart-fields).
+
+```@docs
+ChartTens
+tensor_at
+radial_axis
+radial_ti
+```

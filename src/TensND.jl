@@ -52,6 +52,7 @@ include("coorsystems.jl")
 # the pointwise systems and the pointwise submanifolds.
 include("submanifold.jl")
 include("coorsystems_num.jl")
+include("chart_fields.jl")
 include("submanifold_num.jl")
 
 # The constructors whose default coordinates are SymPy symbols get them from the
