@@ -108,6 +108,7 @@ radial_axis(::CylindricalChart) = (1, 0, 0)
 
 """
     radial_ti(chart, ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆) -> ChartTens
+    radial_ti(chart, c₁, c₂, c₃, c₄, c₅; form, role = :compliance) -> ChartTens
     radial_ti(chart; n, l, k, m, p) -> ChartTens
     radial_ti(chart, aₜ, aᵣ) -> ChartTens
     radial_ti(chart, t::TensISO) -> ChartTens
@@ -123,8 +124,25 @@ and ``p = C_{rtrt}``, that is ``\\ell_1 = n``, ``\\ell_2 = 2k``,
 ``\\ell_3 = \\sqrt2\\,l``, ``\\ell_5 = 2m``, ``\\ell_6 = 2p``. At order 2, from
 the coefficients `aₜ` across the radius and `aᵣ` along it. An isotropic tensor
 is written as the field it is in that class.
+
+With `form`, the five constants are read as [`ti_from_constants`](@ref) reads
+them, the radial direction being its axis 3 and the directions across the
+radius its axes 1 and 2: `form = :components` takes
+``(C_{tttt}, C_{ttt't'}, C_{ttrr}, C_{rrrr}, C_{trtr})``, `:engineering` the
+engineering constants ``(E_t, E_r, \\nu_{tt'}, \\nu_{rt}, G_{rt})`` and `:hoenig`
+Hoenig's parameters, both as a compliance or, with `role = :stiffness`, as the
+stiffness of the same material. `form = :walpole`, the default, is the first
+method.
 """
-radial_ti(chart::AbstractChart{3}, ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆) = ChartTens(TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆, radial_axis(chart)), chart)
+function radial_ti end
+
+Base.@constprop :aggressive function radial_ti(
+        chart::AbstractChart{3}, c₁, c₂, c₃, c₄, c₅; form::Symbol = :walpole, role::Symbol = :compliance
+    )
+    # A keyword read at run time: a branch, as in `ti_from_constants`.
+    form === :walpole && return ChartTens(TensTI{4}(c₁, c₂, c₃, c₄, c₅, radial_axis(chart)), chart)
+    return ChartTens(ti_from_constants(c₁, c₂, c₃, c₄, c₅, radial_axis(chart); form, role), chart)
+end
 radial_ti(chart::AbstractChart{3}; n, l, k, m, p) =
     radial_ti(chart, n, 2 * k, sqrt(convert(sqrt2_eltype(typeof(l)), 2)) * l, 2 * m, 2 * p)
 radial_ti(chart::AbstractChart{3}, aₜ, aᵣ) = ChartTens(TensTI{2}(aₜ, aᵣ, radial_axis(chart)), chart)

@@ -1,5 +1,23 @@
 # Changelog
 
+## v0.16.2 — the usual notations of a transversely isotropic material for `radial_ti`
+
+A patch release: one keyword added, nothing existing changes.
+
+### Added
+
+- **`radial_ti(chart, c₁, c₂, c₃, c₄, c₅; form, role)`** reads the five
+  constants of a field transversely isotropic about the radius as
+  `ti_from_constants` reads those of a tensor, the radial direction being its
+  axis 3: `form = :components` takes `(C_tttt, C_ttt't', C_ttrr, C_rrrr,
+  C_trtr)`, `:engineering` the engineering constants `(E_t, E_r, ν_tt', ν_rt,
+  G_rt)` and `:hoenig` Hoenig's parameters, as a compliance or, with
+  `role = :stiffness`, as the stiffness of the same material. Until now the
+  field was entered by its Walpole coefficients or by Hill's moduli only,
+  whereas a wound or a deposited material is usually known by its Young's
+  moduli and Poisson's ratios along the radius and across it. `form = :walpole`,
+  the default, is the existing method. Numbers, dual numbers and symbols.
+
 ## v0.16.1 — tensor fields in the frame of a chart
 
 A patch release that adds one type and three functions; nothing existing

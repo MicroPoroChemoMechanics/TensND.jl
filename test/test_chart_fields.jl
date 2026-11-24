@@ -67,6 +67,39 @@ using StaticArrays: SVector
         @test radial_axis(SphericalChart()) == (0, 0, 1) && radial_axis(CylindricalChart()) == (1, 0, 0)
     end
 
+    @testset "constants read as ti_from_constants reads them" begin
+        Eₜ, Eᵣ, ν, νᵣₜ, G = 30.0, 12.0, 0.25, 0.1, 5.0
+        for (chart, r, t, _) in frames
+            t′ = cross(r, t)
+            at(F) = canonical_components(tensor_at(F, x))
+            # components: (C_tttt, C_ttt't', C_ttrr, C_rrrr, C_trtr)
+            @test collect(get_data(radial_ti(chart, hill.k + hill.m, hill.k - hill.m, hill.l, hill.n, hill.p; form = :components).pattern)) ≈ collect(get_data(radial_ti(chart; hill...).pattern))
+            # engineering constants: a compliance, read by contraction
+            S = at(radial_ti(chart, Eₜ, Eᵣ, ν, νᵣₜ, G; form = :engineering))
+            @test contraction(S, r, r, r, r) ≈ 1 / Eᵣ
+            @test contraction(S, t, t, t, t) ≈ 1 / Eₜ
+            @test contraction(S, t, t, t′, t′) ≈ -ν / Eₜ
+            @test contraction(S, t, t, r, r) ≈ -νᵣₜ / Eᵣ
+            @test contraction(S, r, t, r, t) ≈ 1 / (4G)
+            # the stiffness of the same material is its inverse
+            C = tensor_at(radial_ti(chart, Eₜ, Eᵣ, ν, νᵣₜ, G; form = :engineering, role = :stiffness), x)
+            @test C ⊡ tensor_at(radial_ti(chart, Eₜ, Eᵣ, ν, νᵣₜ, G; form = :engineering), x) ≈ one(C)
+            # Hoenig's parameters (E, ν₁, ν₂, H, Γ)
+            H = at(radial_ti(chart, 30.0, 0.25, 0.2, 0.4, 0.8; form = :hoenig))
+            @test contraction(H, t, t, t, t) ≈ 1 / 30.0
+            @test contraction(H, r, r, r, r) ≈ 1 / (30.0 * 0.4)
+            @test contraction(H, t, t, r, r) ≈ -0.2 / 30.0
+            @test contraction(H, r, t, r, t) ≈ (1 + 0.25) / (2 * 30.0 * 0.8)
+            engineering(E) = radial_ti(chart, Eₜ, E, ν, νᵣₜ, G; form = :engineering)
+            @test @inferred(engineering(Eᵣ)) isa ChartTens{4, 3, Float64}
+            @test ForwardDiff.derivative(E -> contraction(at(engineering(E)), r, r, r, r), Eᵣ) ≈ -1 / Eᵣ^2
+        end
+        @test_throws ArgumentError radial_ti(SphericalChart(), 1.0, 2.0, 3.0, 4.0, 5.0; form = :voigt)
+        E₁, E₃ = symbols("E_1 E_3", positive = true)
+        Sᵣ = get_data(radial_ti(SphericalChart(), E₁, E₃, Sym(1) / 4, Sym(1) / 10, Sym(5); form = :engineering).pattern)
+        @test iszero(simplify(Sᵣ[1] - 1 / E₃))          # ℓ₁ = S_rrrr
+    end
+
     @testset "dual and symbolic coefficients" begin
         d = ForwardDiff.derivative(n -> canonical_components(tensor_at(radial_ti(SphericalChart(); hill..., n = n), x))[3, 3, 3, 3], 12.0)
         @test d ≈ (x[3] / norm(x))^4
