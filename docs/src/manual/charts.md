@@ -142,6 +142,62 @@ unit_vectors(SphericalChart(), ξ)
 lame_coefficients(SphericalChart(), ξ)                    # (r, r sin θ, 1)
 ```
 
+## [A tensor that turns with the point](@id man-chart-fields)
+
+A material deposited layer by layer on a sphere, or wound around an axis, has
+the same tensor of properties at every point in the frame of the unit vectors
+above, which turns with the point. [`ChartTens`](@ref) holds such a field: a
+*pattern*, whose components in the canonical basis are those of the field in
+the local frame, and the chart. With
+``\boldsymbol{Q}(\underline{x})`` the matrix of the unit vectors at the point
+``\underline{x}``, the field of a pattern ``\boldsymbol{A}`` of order 2 is
+``\boldsymbol{Q}\cdot\boldsymbol{A}\cdot\boldsymbol{Q}^{\!T}``, and likewise
+at any order.
+
+A conductivity of value 5 along the radius of a sphere and 1 across it has a
+transversely isotropic pattern, whose axis is the radial vector of the frame
+(the third one for the spherical chart, [`radial_axis`](@ref)):
+
+```@example charts
+F = ChartTens(TensTI{2}(1.0, 5.0, radial_axis(SphericalChart())), SphericalChart())
+x = [0.3, -0.5, 0.8]
+K = tensor_at(F, x)                       # the tensor at the point x, of axis x/‖x‖
+n = x / norm(x)
+canonical_components(K) ≈ 5 * n * n' + (I - n * n')
+```
+
+[`radial_ti`](@ref) writes the fields that are transversely isotropic about the
+radial direction, of a sphere or of a cylinder, from the two coefficients of an
+order-2 tensor or from the five moduli of a stiffness: with ``r`` the radial
+direction and ``t``, ``t'`` two orthogonal directions across it, Hill's moduli
+are ``n = C_{rrrr}``, ``l = C_{rrtt}``,
+``k = \tfrac12(C_{tttt} + C_{ttt't'})``,
+``m = \tfrac12(C_{tttt} - C_{ttt't'})`` and ``p = C_{rtrt}``.
+
+```@example charts
+C = radial_ti(CylindricalChart(); n = 12.0, l = 5.0, k = 19.0, m = 11.0, p = 4.0)
+eᵣ = Tens([x[1], x[2], 0.0] / hypot(x[1], x[2]))
+eᵣ ⋅ (eᵣ ⋅ tensor_at(C, x) ⋅ eᵣ) ⋅ eᵣ      # n, the stiffness along the radius of the cylinder
+```
+
+Fields of the same chart add, and a field is multiplied by a number and
+inverted, as their patterns are. In an exact coordinate system the field is a
+tensor of constant components in the normalized basis, on which the
+differential operators act
+([Coordinate systems](@ref man-coorsystems)):
+
+```@example charts
+Sph = coorsys_spherical()
+θ, ϕ, r = get_coords(Sph)
+@syms kₜ::positive kᵣ::positive s::real
+𝐊 = tensor_at(radial_ti(SphericalChart(), kₜ, kᵣ), Sph)
+T = r^s * cos(θ)
+factor(simplify(divergence(𝐊 ⋅ grad(T, Sph), Sph) / (r^(s - 2) * cos(θ))))
+```
+
+The temperature ``r^s\cos\theta`` is harmonic for that conductivity when
+``k_r\,s(s + 1) = 2k_t``: the exponent is no longer an integer.
+
 ## A pointwise system from a chart
 
 The spheroidal and ellipsoidal systems exist in pointwise form, with the
