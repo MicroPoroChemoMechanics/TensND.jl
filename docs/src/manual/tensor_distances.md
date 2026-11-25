@@ -16,8 +16,9 @@ that is chosen.
 | find the closest tensor of a class | `closest_tensor(ℂ, :ISO; distance = d)`, `closest_tensor(ℂ, :TI, axis; distance = d)`, … |
 | choose the distance `d` | `EuclideanDistance()` (the default), `LogEuclideanDistance()`, `RiemannianDistance()`, `ArctanEuclideanDistance(E₀)`, `PowerEuclideanDistance(n, E₀)` |
 
-```@setup distances
+```@example distances
 using TensND, LinearAlgebra
+nothing # hide
 ```
 
 ## A function of a tensor
