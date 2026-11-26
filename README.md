@@ -29,12 +29,22 @@ chart. The same code runs **symbolically** (via
 [Symbolics.jl](https://github.com/JuliaSymbolics/Symbolics.jl)) and
 **numerically** (via [ForwardDiff.jl](https://github.com/JuliaDiff/ForwardDiff.jl)).
 
+Dimension 3 is the reference dimension: every type and every function exists
+there. The plane is supported as well, with its tensors, bases, isotropic,
+square and orthotropic classes, elastic moduli, projections, and Cartesian and
+polar coordinates; the tensor algebra, the Kelvin–Mandel notation, the
+isotropic class and the Cartesian coordinate system hold in any dimension.
+What exists in which dimension is listed in
+[Two dimensions, and any dimension](https://MicroPoroChemoMechanics.github.io/TensND.jl/dev/manual/dimensions),
+and what changes with the dimension is derived in
+[Tensors of the plane, of space and of any dimension](https://MicroPoroChemoMechanics.github.io/TensND.jl/dev/theory/dimensions).
+
 ### Key features
 
 - **Basis types**: canonical, rotated, orthogonal, and fully general non-orthogonal bases, with covariant/contravariant components and the metric that relates them
 - **Tensor algebra**: products (`⊗`, `⊗ˢ`, `⊠`, `⊠ˢ`, `⋅`, `⊡`, `⊙`), change of basis, variance management
-- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI`), cubic (`TensCubic`), orthotropic (`TensOrtho`) — 2, 5, 3 and 9 stored scalars instead of 81 components, with closed-form products and inverses one to three orders of magnitude faster than the dense method
-- **Symmetry projection**: closest ISO, TI, CUBIC or ORTHO tensor, with the orientation given or searched — deterministically, with no external optimizer, and in closed form at order 2
+- **Structured tensors**: isotropic (`TensISO`), transversely isotropic (`TensTI`), cubic (`TensCubic`), orthotropic (`TensOrtho`) — 2, 5, 3 and 9 stored scalars instead of 81 components, with closed-form products and inverses one to three orders of magnitude faster than the dense method; in the plane, the isotropic, square (`TensCubic{2}`) and orthotropic (`TensOrtho{4,2}`) classes
+- **Symmetry projection**: closest ISO, TI, CUBIC or ORTHO tensor, with the orientation given or searched — deterministically, with no external optimizer, and in closed form at order 2 and in the plane
 - **Differential operators**: `grad`, `symgrad`, `divergence`, `laplacian`, `hess` in curvilinear coordinates — symbolically or pointwise by automatic differentiation (`CoordinateSystem` with an `ExactGeometry` or a `PointwiseGeometry`), on orthogonal **and genuinely non-orthogonal** charts
 - **Submanifolds**: embedded hypersurfaces (`Submanifold`) with their first and second fundamental forms, connection coefficients and curvatures
 - **Charts and spheroidal harmonics**: closed-form conversions between Cartesian, spherical, spheroidal, ellipsoidal and toroidal coordinates, Legendre functions of both kinds, and the re-expansion of spheroidal harmonics between systems of different focal distances

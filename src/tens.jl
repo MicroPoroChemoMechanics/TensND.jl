@@ -367,21 +367,28 @@ get_var(t::TensVar, i::Integer) = t.var[i]
 
 """
     static_tens(a::AbstractArray, ℬ::AbstractBasis) -> Tens
-    symmetric_tens(a::AbstractArray, ℬ::AbstractBasis) -> Tens
 
 The tensor of components `a` in the basis `ℬ`, as `Tens(a, ℬ)`, with its order
 read on the type of the array and its dimension on that of the basis: the
 result is inferred, where `Tens(a, ℬ)` reads the dimension on the size of `a`
 at run time.
 
-`static_tens` decides the storage as `Tens` does, on the values: symmetric
-storage when the components are symmetric to rounding, so that its type is one
-of two. `symmetric_tens` is for an array symmetric by construction (the
-transpose at order 2, the two minor symmetries at order 4): it stores the mean
-over these symmetries, and its type is known before the values.
+The storage is decided as `Tens` does, on the values: symmetric storage when
+the components are symmetric to rounding, so that the type is one of two. For
+an array symmetric by construction, [`symmetric_tens`](@ref) has one type.
 """
 @inline static_tens(a::AbstractArray{T, order}, ℬ::AbstractBasis{dim}) where {T, order, dim} =
     Tens(_static_tensor(a, Val(dim), Val(order)), ℬ)
+
+"""
+    symmetric_tens(a::AbstractArray, ℬ::AbstractBasis) -> Tens
+
+The tensor of components `a` in the basis `ℬ` for an array symmetric by
+construction (the transpose at order 2, the two minor symmetries at order 4),
+in dimension 2 or 3: it stores the mean over these symmetries, in symmetric
+storage, and its type is known before the values, where that of
+[`static_tens`](@ref) depends on them.
+"""
 @inline symmetric_tens(a::AbstractArray{T, order}, ℬ::AbstractBasis{dim}) where {T, order, dim} =
     Tens(Tensors.symmetric(Tensor{order, dim, T}(a)), ℬ)
 

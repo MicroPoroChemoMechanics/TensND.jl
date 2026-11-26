@@ -5,11 +5,11 @@ EditURL = "../../../../scripts/20_green_function.jl"
 # [Elastic Green's functions](@id tut-green-function)
 
 !!! tip "See also"
-    **Theory**: [Isotropic tensors](@ref th-isotropic) · [The Walpole basis](@ref th-walpole)
+    **Theory**: [Tensors of the plane, of space and of any dimension](@ref th-dimensions) · [Isotropic tensors](@ref th-isotropic) · [The Walpole basis](@ref th-walpole)
 
-    **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli)
+    **Manual**: [Two dimensions, and any dimension](@ref man-dimensions) · [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli)
 
-    **Tutorials**: [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [A two-point Green tensor between offset frames](@ref tut-cluster) · [Acoustic and Hill tensors](@ref tut-hill-tensors)
+    **Tutorials**: [The symmetry classes of a plane section](@ref tut-plane-classes) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [A two-point Green tensor between offset frames](@ref tut-cluster) · [Acoustic and Hill tensors](@ref tut-hill-tensors)
 
 The Kelvin fundamental solution — the displacement produced by a point force
 in an infinite isotropic medium — in plane strain and in three dimensions,
@@ -167,6 +167,103 @@ F = symbols("F", real = true)
 
 J = tsimplify(det(𝟏 + F * grad(𝐆₃ ⋅ 𝐞₁)))
 factor(tsimplify(subs(J, θs => PI / 2, ϕs => 0)))
+````
+
+## The point force is recovered
+
+Away from the source the displacement ``\boldsymbol{G}\cdot\underline{a}`` of
+a unit force ``\underline{a}`` is in equilibrium, and the tractions on any
+closed line (in the plane) or surface (in space) around the source balance the
+force: their resultant is ``-\underline{a}``. In the plane, with
+``\underline{a}=\underline{e}_1`` written in the polar basis and the stress of
+plane strain ``\boldsymbol{\sigma}=\lambda\operatorname{tr}\boldsymbol{\varepsilon}\,\boldsymbol{1}+2\mu\,\boldsymbol{\varepsilon}``:
+
+````@example green_function
+𝐩ʳ, 𝐩ᶿ = unitvec(Polar)
+𝐚 = cos(θ) * 𝐩ʳ - sin(θ) * 𝐩ᶿ
+𝐛 = sin(θ) * 𝐩ʳ + cos(θ) * 𝐩ᶿ
+𝛆 = tsimplify(symgrad(tsimplify(𝐆 ⋅ 𝐚), Polar))
+𝛔 = tsimplify(λ * tr(𝛆) * 𝟏₂ + 2μ * 𝛆)
+get_array(tsimplify(divergence(𝛔, Polar)))
+````
+
+The resultant of the tractions ``\boldsymbol{\sigma}\cdot\underline{e}^r`` on
+the circle of radius ``r``, along the force and normal to it:
+
+````@example green_function
+𝐭 = 𝛔 ⋅ 𝐩ʳ
+simplify(integrate(simplify((𝐭 ⋅ 𝐚) * r), (θ, 0, 2PI))), simplify(integrate(simplify((𝐭 ⋅ 𝐛) * r), (θ, 0, 2PI)))
+````
+
+In space, with ``\underline{a}=\underline{e}_3`` in the spherical basis and
+the resultant on the sphere of radius ``r``:
+
+````@example green_function
+𝐚₃ = cos(θs) * 𝐞ʳˢ - sin(θs) * 𝐞ᶿ
+𝛆₃ = tsimplify(symgrad(tsimplify(𝐆₃ ⋅ 𝐚₃), Spherical))
+𝛔₃ = tsimplify(λ * tr(𝛆₃) * 𝟏 + 2μ * 𝛆₃)
+get_array(tsimplify(divergence(𝛔₃, Spherical)))
+````
+
+````@example green_function
+𝐭₃ = 𝛔₃ ⋅ 𝐞ʳˢ
+simplify(integrate(simplify((𝐭₃ ⋅ 𝐚₃) * rs^2 * sin(θs)), (θs, 0, PI), (ϕs, 0, 2PI)))
+````
+
+## Conduction, in the plane and in space
+
+The Green function of conduction is the temperature of a unit point source
+in a medium of conductivity ``\kappa``: ``-\log r/(2\pi\kappa)`` in the
+plane, ``1/(4\pi\kappa r)`` in space. Each is harmonic away from the source,
+and the flux ``-\kappa\,\mathrm{grad}\,g`` through a circle or a sphere is the
+unit source:
+
+````@example green_function
+κ = symbols("κ", positive = true)
+g₂ = -log(r) / (2PI * κ)
+g₃ = 1 / (4PI * κ * rs)
+simplify(laplacian(g₂, Polar)), simplify(laplacian(g₃, Spherical))
+````
+
+````@example green_function
+flux₂ = integrate(simplify(-κ * (grad(g₂, Polar) ⋅ 𝐩ʳ) * r), (θ, 0, 2PI))
+flux₃ = integrate(simplify(-κ * (grad(g₃, Spherical) ⋅ 𝐞ʳˢ) * rs^2 * sin(θs)), (θs, 0, PI), (ϕs, 0, 2PI))
+flux₂, flux₃
+````
+
+## An orthotropic plane
+
+With an orthotropic conductivity
+``\boldsymbol{K}=\kappa_1\,\underline{e}_1\otimes\underline{e}_1+\kappa_2\,\underline{e}_2\otimes\underline{e}_2``,
+a tensor of the plane, the change of variables ``x/\sqrt{\kappa_1}``,
+``y/\sqrt{\kappa_2}`` brings the equation back to the isotropic one, and
+
+```math
+g=-\frac{1}{4\pi\sqrt{\kappa_1\kappa_2}}\,\log\Bigl(\frac{x^2}{\kappa_1}+\frac{y^2}{\kappa_2}\Bigr) .
+```
+
+It satisfies ``\mathrm{div}(\boldsymbol{K}\cdot\mathrm{grad}\,g)=0`` away from
+the source, in the Cartesian system of the plane:
+
+````@example green_function
+Plane = coorsys_cartesian(Val(2))
+x, y = get_coords(Plane)
+κ₁, κ₂ = symbols("κ₁ κ₂", positive = true)
+𝐊 = TensOrtho{2}(κ₁, κ₂, CanonicalBasis{2, Sym}())
+gₒ = -log(x^2 / κ₁ + y^2 / κ₂) / (4PI * sqrt(κ₁ * κ₂))
+𝐪 = -(𝐊 ⋅ grad(gₒ, Plane))
+simplify(divergence(𝐪, Plane))
+````
+
+and the flux through the unit circle is the unit source, here for
+``\kappa_1=3`` and ``\kappa_2=1`` (the integrand is periodic: the trapezoidal
+rule converges faster than any power of the step):
+
+````@example green_function
+τ = symbols("τ", real = true)
+qₙ = simplify(subs(get_array(𝐪)[1] * x + get_array(𝐪)[2] * y, x => cos(τ), y => sin(τ), κ₁ => 3, κ₂ => 1))
+f = lambdify(qₙ, (τ,))
+sum(f, range(0, 2π; length = 201)[1:200]) * 2π / 200
 ````
 
 ---

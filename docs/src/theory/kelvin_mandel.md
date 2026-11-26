@@ -116,3 +116,29 @@ frame ([Orthotropy](@ref th-orthotropy)).
     canonical frame ``Q=\boldsymbol{1}`` and every convention error hides. It is
     therefore pinned by a test on a **rotated** frame
     ([Testing and conventions](@ref dev-testing)).
+
+## In two dimensions
+
+The map is the same in any dimension ``d``: a symmetric tensor of order 2 has
+``n = d(d+1)/2`` components, listed with the diagonal pairs first and the
+off-diagonal ones from the last column back,
+
+```math
+(1,1),\ \ldots,\ (d,d),\ (d-1,d),\ (d-2,d),\ \ldots,\ (1,d),\ (d-2,d-1),\ \ldots,\ (1,2),
+```
+
+which is the order above for ``d = 3``, each off-diagonal one weighted by
+``\sqrt2``. In the plane, ``n = 3`` and the pairs are ``11\to1``, ``22\to2``,
+``12\to3``; the rotation of the basis by the angle ``\theta`` acts by the
+orthogonal ``3\times3`` matrix
+
+```math
+Q=\begin{pmatrix}
+\cos^2\theta & \sin^2\theta & -\sqrt2\,\cos\theta\sin\theta\\
+\sin^2\theta & \cos^2\theta & \sqrt2\,\cos\theta\sin\theta\\
+\sqrt2\,\cos\theta\sin\theta & -\sqrt2\,\cos\theta\sin\theta & \cos^2\theta-\sin^2\theta
+\end{pmatrix} ,
+```
+
+and every statement of this page holds with ``6`` replaced by ``n``
+([Tensors of the plane, of space and of any dimension](@ref th-dimensions)).

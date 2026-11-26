@@ -26,15 +26,15 @@ transpose return; a sum keeps the shape.
 | :--- | :-: | :-: | :--- | :--- | :--- | :--- | :--- | :--- |
 | `TensISO{2,dim}` | 2 | 1 | ``\lambda`` | none | ``O(3)`` | same | same | itself |
 | `TensISO{4,dim}` | 4 | 2 | ``(\alpha,\beta)`` | none | ``O(3)`` | same | same | itself |
-| `TensCubic{T,B}` | 4 | 3 | ``(\alpha,\beta,\gamma)`` | cube frame | ``O_h`` | same | same | itself |
+| `TensCubic{3,T,B}` | 4 | 3 | ``(\alpha,\beta,\gamma)`` | cube frame | ``O_h`` | same | same | itself |
 | `TensTI{2,T,2}` | 2 | 2 | ``(a,b)`` | axis ``\underline{n}`` | ``D_{\infty h}`` | same | same | itself |
 | `TensTI{2,T,3}` | 2 | 3 | ``(a,b,c)`` | axis ``\underline{n}`` | ``SO(2)`` | same | same | ``c\to-c`` |
 | `TensTI{4,T,5}` | 4 | 5 | ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` | axis ``\underline{n}`` | ``D_{\infty h}`` | `N=6` | same | itself |
 | `TensTI{4,T,6}` | 4 | 6 | ``(\ell_1,\ldots,\ell_6)`` | axis ``\underline{n}`` | ``D_{\infty h}`` | same | same | ``\ell_3\leftrightarrow\ell_4`` |
 | `TensTI{4,T,8}` | 4 | 8 | ``(\ell_1,\ldots,\ell_8)`` | axis ``\underline{n}`` | ``SO(2)`` | same | same | ``\ell_3\leftrightarrow\ell_4``, ``\ell_{7,8}\to-\ell_{7,8}`` |
-| `TensOrtho{2,T,3}` | 2 | 3 | ``(a_1,a_2,a_3)`` | frame | ``D_{2h}`` | same | same | itself |
-| `TensOrtho{4,T,9}` | 4 | 9 | ``(C_{11},\ldots,C_{66})`` | frame | ``D_{2h}`` | `N=12` | same | itself |
-| `TensOrtho{4,T,12}` | 4 | 12 | ``+\,(C_{21},C_{31},C_{32})`` | frame | ``D_{2h}`` | same | same | normal block transposed |
+| `TensOrtho{2,3,T,3}` | 2 | 3 | ``(a_1,a_2,a_3)`` | frame | ``D_{2h}`` | same | same | itself |
+| `TensOrtho{4,3,T,9}` | 4 | 9 | ``(C_{11},\ldots,C_{66})`` | frame | ``D_{2h}`` | `N=12` | same | itself |
+| `TensOrtho{4,3,T,12}` | 4 | 12 | ``+\,(C_{21},C_{31},C_{32})`` | frame | ``D_{2h}`` | same | same | normal block transposed |
 
 The major-symmetric shapes are the ones whose product widens (`N=5 → 6`,
 `N=9 → 12`): their product is a product of two symmetric blocks.
@@ -78,18 +78,40 @@ cub = cubic_from_constants(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄�
 
 ## In two dimensions
 
-Of the classes of this page, only the isotropic one exists in the plane:
-`TensISO{2}(α, β)` is ``\alpha\,\mathbb{J} + \beta\,\mathbb{K}`` on the projectors of
-dimension 2, with the same products and inverse as in dimension 3. The
-transversely isotropic, cubic and orthotropic classes are those of dimension 3;
-an anisotropic tensor of the plane is a general `Tens`, entered by its
-``3\times3`` Kelvin–Mandel matrix with `from_mandel`.
+The plane has three classes: the isotropic one, the square one, `TensCubic{2}`,
+the counterpart of the cubic class on a face of the cube, and the orthotropic
+one, `TensOrtho{order,2}`, on a frame of the plane, `Basis(θ)` or
+`CanonicalBasis{2, T}()`. They have the products, inverses and accessors of
+their classes of space. The plane has no transversely isotropic class
+([Tensors of the plane, of space and of any dimension](@ref th-dimensions)).
+
+| Type | Order | `N` | Stored | Reference | Group | Product |
+| :--- | :-: | :-: | :--- | :--- | :--- | :--- |
+| `TensISO{4,2}` | 4 | 2 | ``(\alpha,\beta)`` | none | ``O(2)`` | same |
+| `TensCubic{2,T,B}` | 4 | 3 | ``(\alpha,\beta,\gamma)`` | square frame | of the square | same |
+| `TensOrtho{2,2,T,2}` | 2 | 2 | ``(a_1,a_2)`` | frame | of the rectangle | same |
+| `TensOrtho{4,2,T,4}` | 4 | 4 | ``(C_{11},C_{22},C_{12},C_{66})`` | frame | of the rectangle | `N=5` |
+| `TensOrtho{4,2,T,5}` | 4 | 5 | ``+\,C_{21}`` | frame | of the rectangle | same |
+
+| Constructor | Builds |
+| :--- | :--- |
+| `TensOrtho(C₁₁, C₂₂, C₁₂, C₆₆, frame)` | `TensOrtho{4,2,T,4}`, ``C_{66} = C_{1212}`` |
+| `TensOrtho(C₁₁, C₂₂, C₁₂, C₆₆, C₂₁, frame)` | `TensOrtho{4,2,T,5}` |
+| `TensOrtho{2}(a₁, a₂, frame)` | `TensOrtho{2,2,T,2}` |
+| `cubic_from_constants(C₁₁, C₁₂, C₄₄, frame)`, `TensCubic(α, β, γ, frame)` | `TensCubic{2,T,B}`, ``\alpha = C_{11} + C_{12}``, ``\beta = C_{11} - C_{12}``, ``\gamma = 2C_{44}`` |
 
 ```@example struct
-TensISO{2}(6.0, 2.0) ⊡ TensISO{2}(0.5, 0.25)
+ℬ₂ = Basis(π / 6)
+ort₂ = TensOrtho(10.0, 6.0, 3.0, 2.0, ℬ₂)
 ```
 
-See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of what is built in the plane.
+```@example struct
+sq₂ = cubic_from_constants(10.0, 4.0, 2.0, ℬ₂)
+mandel_material(inv(sq₂)), sq₂ ⊡ TensISO{2}(6.0, 2.0) isa TensCubic{2}
+```
+
+See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of
+what is built in the plane.
 
 ## Accessors
 
@@ -100,7 +122,7 @@ See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of wh
 | `walpole_coeffs(t, Val(5))` | `TensTI{4}`, major-symmetric | the five independent ones, ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` |
 | `walpole_coeffs(t, Val(8))` | `TensTI{4}` | all eight, zero-padded |
 | [`axis`](@ref) | `TensTI` | the symmetry axis |
-| [`frame`](@ref) | `TensOrtho`, `TensCubic` | the material or cube frame |
+| [`frame`](@ref) | `TensOrtho`, `TensCubic` | the material frame, or that of the cube or of the square |
 | [`reference`](@ref) | `TensTI`, `TensOrtho`, `TensCubic` | axis or frame, whichever applies |
 | [`symmetry`](@ref) | all | the class as a `Symbol` |
 | [`mandel_material`](@ref) | `TensOrtho`, `TensCubic` | the sparse matrix in the class's own frame |
@@ -133,7 +155,7 @@ generic method, exactly and without warning.
 The `CUBIC` row and column need the two frames to describe the same cube, the
 `iso_projectors`/`TI`/`ORTHO` ones the same axis or frame, and a `TI ⊡ ORTHO` product a
 TI axis along one of the frame axes; otherwise the generic method is taken.
-`ORTHO{12}` stands for `TensOrtho{4, T, 12}`, whichever form the operands have.
+`ORTHO{12}` stands for `TensOrtho{4,3,T,12}`, whichever form the operands have.
 
 Two widenings deserve an explanation, and both have the same cause: **the
 major-symmetric tensors of a class do not form a subalgebra**.
@@ -283,9 +305,9 @@ cubic one changes nothing.
 | a stiffness or compliance with an axis of symmetry | `TensTI{4,T,5}` |
 | an object with an axis but no major symmetry (a concentration tensor) | `TensTI{4,T,6}` or `{4,T,8}` |
 | a cubic crystal, a cubic array, a cube-symmetric shape | `TensCubic` |
-| nine constants and a material frame | `TensOrtho{4,T,9}` |
-| an orthotropic object without major symmetry (a product, a concentration tensor) | `TensOrtho{4,T,12}` |
-| an order-2 tensor diagonal in a material frame | `TensOrtho{2,T,3}` |
+| nine constants and a material frame | `TensOrtho{4,3,T,9}` |
+| an orthotropic object without major symmetry (a product, a concentration tensor) | `TensOrtho{4,3,T,12}` |
+| an order-2 tensor diagonal in a material frame | `TensOrtho{2,3,T,3}` |
 | anything else | a plain `Tens` |
 
 The measured cost of each is in [Performance of the structured types](@ref tut-performance).

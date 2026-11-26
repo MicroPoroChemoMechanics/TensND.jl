@@ -6,6 +6,8 @@ The tensor hierarchy, component conversion and the Kelvin-Mandel map. Theory:
 ```@docs
 AbstractTens
 Tens
+static_tens
+symmetric_tens
 components
 canonical_components
 express
@@ -21,8 +23,25 @@ pprint
 mandel
 from_mandel
 mandel_rotation
+mandel_pairs
+mandel_length
+mandel_dimension
+mandel_weights
 diff_with_basis
 tens_basis
+```
+
+## The matrix of a linear map
+
+A tensor of order 4 with the minor symmetries, or of order 2, as the matrix of
+the linear map it is, and what that matrix tells: the sign of the quadratic
+form and the departure from the major symmetry.
+
+```@docs
+operator_matrix
+from_operator_matrix
+definiteness
+major_asymmetry
 ```
 
 ## Tensors.jl and the Voigt forms
@@ -107,13 +126,15 @@ compliance_op_block
 
 ## Small matrices by cofactors
 
-Closed-form inverses of 3×3 matrices, and the acoustic tensor as the six numbers
-an integral over the directions needs: no pivot, no allocation, duals and
-symbols through.
+Closed-form inverses of 2×2 and 3×3 matrices, the adjugate of a symmetric 3×3
+one, and the acoustic tensor as the numbers an integral over the directions
+needs: no pivot, no allocation, duals and symbols through.
 
 ```@docs
 inv3
+sym2_inv
 sym3_inv
+sym3_adj
 acoustic_components
 ```
 

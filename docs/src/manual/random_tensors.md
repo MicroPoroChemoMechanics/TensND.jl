@@ -55,6 +55,8 @@ typeof(crystals), all(t -> minimum(eigvals(Symmetric(Matrix(mandel(t))))) > 0, s
 | `TensTI{4}`, `TensTI{2}` | `N = 5, 6, 8` and `N = 2, 3` | `axis` or `frame` |
 | `TensOrtho{4}`, `TensOrtho{2}` | `N = 9, 12` and `N = 3` | `frame` |
 | `TensCubic` | | `frame` |
+| `TensOrtho{4, 2}`, `TensOrtho{2, 2}` | `N = 4, 5` and `N = 2` | `frame` of the plane |
+| `TensCubic{2}` | | `frame` of the plane |
 | `Tens{order, dim}` | `symmetry = Val(:major)`, `Val(:minor)`, `Val(:none)` at order 4; `Val(:symmetric)`, `Val(:none)` at order 2 | none |
 
 The rotations, axes and frames are drawn by [`random_rotation`](@ref),
@@ -91,6 +93,31 @@ triclinic material:
 ℂ₁ = rand(rng, Tens{4, 3}; definite = true)
 eigvals(Symmetric(Matrix(mandel(ℂ₁))))
 ```
+
+## In two dimensions
+
+The classes of the plane are drawn the same way, with a frame of the plane
+uniform on the circle: `TensOrtho{4, 2}` (four constants, five with
+`TensOrtho{4, 2, Float64, 5}`), `TensOrtho{2, 2}`, `TensCubic{2}` (the square
+class) and the generic `Tens{order, 2}`. `random_rotation(Val(d))`,
+`random_axis(Val(d))` and `random_basis(Val(d))` draw a rotation, an axis and a
+basis in any dimension ``d``, the rotation from the Haar measure of ``SO(d)``.
+
+```@example rnd
+rng₂ = Xoshiro(2)
+𝕆₂ = rand(rng₂, TensOrtho{4, 2}; definite = true)
+ℚ₂ = rand(rng₂, TensCubic{2})
+typeof(𝕆₂), frame(ℚ₂)
+```
+
+```@example rnd
+ℛ₂ = random_basis(rng₂, Val(2))
+R₄ = random_rotation(rng₂, Val(4))
+angles(ℛ₂), transpose(R₄) * R₄ ≈ I
+```
+
+See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of
+what is built in the plane and beyond.
 
 ## The laws
 

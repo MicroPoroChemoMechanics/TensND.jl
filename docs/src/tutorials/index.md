@@ -28,6 +28,8 @@ Simplest first within each group.
 | [The Walpole basis end to end](generated/walpole.md) | the six ``\mathbb{W}_i`` as ``6\times6`` matrices, the multiplication table, the correct decomposition of ``\mathbb{I},\mathbb{J},\mathbb{K}``, and three parametrizations of one carbon/epoxy ply |
 | [The eight-dimensional axially invariant space](generated/walpole_extended.md) | ``\mathbb{W}_7,\mathbb{W}_8``, the complex product rule, and what a five-parameter best fit silently discards |
 | [Projection and symmetry detection](generated/projection.md) | fixed axis vs optimized, determinism, the detection cascade, and the cost of each path |
+| [The isotropic tensor closest to a measured stiffness](generated/closest_isotropic.md) | a stiffness measured by ultrasound, and the isotropic tensors closest to it for the distances of the package |
+| [The symmetry classes of a plane section](generated/plane_classes.md) | the three plane sections of the same measured stiffness, their distance to the isotropic, square and orthotropic classes, and the frame found in closed form |
 
 ## Coordinate systems
 

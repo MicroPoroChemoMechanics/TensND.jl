@@ -274,31 +274,63 @@ get_data(ortho)
 ## In two dimensions
 
 The isotropic builders take `Val(2)` as a first argument and return a tensor
-of the plane, whose Kelvin–Mandel matrix is ``3\times3``: the stiffness in plane
-strain, with the in-plane bulk modulus ``k = \lambda + \mu``.
+of the plane, whose Kelvin–Mandel matrix is ``3\times3``,
+``\mathbb{C} = 2k\,\mathbb{J} + 2\mu\,\mathbb{K}`` with the in-plane bulk
+modulus ``k``:
 
 ```@example symmat
 k₂, μ₂ = symbols("k mu", positive = true)
 plane = iso_stiffness(Val(2), k₂, μ₂)
-mandel(plane)
+show_matrix(plane)
 ```
+
+Read back, it gives ``(k, \mu)``, and two pairs ``(E, \nu)``: those of the
+material of space in plane strain (`convention = :plane_strain`, the default),
+and those of the medium of the plane (`convention = :intrinsic`):
 
 ```@example symmat
-bulk_shear(plane), simplify.(young_poisson(plane))        # read back; E and ν of the 3-D material
+bulk_shear(plane), simplify.(young_poisson(plane)), simplify.(young_poisson(plane; convention = :intrinsic))
 ```
 
-Its compliance, and the stiffness entered by ``(E, \nu)`` and read back:
+Its compliance, and the stiffness entered by ``(E, \nu)`` in each convention
+and read back in the same one:
 
 ```@example symmat
 simplify.(mandel(iso_compliance(Val(2), k₂, μ₂)))
 ```
 
 ```@example symmat
-simplify.(young_poisson(iso_stiffness_young_poisson(Val(2), E, ν)))
+strain = iso_stiffness_young_poisson(Val(2), E, ν)                               # plane strain
+medium = iso_stiffness_young_poisson(Val(2), E, ν; convention = :intrinsic)      # medium of the plane
+simplify.(young_poisson(strain)), simplify.(young_poisson(medium; convention = :intrinsic))
 ```
 
-The plane has no transversely isotropic, cubic or orthotropic class: an
-anisotropic tensor of the plane is entered by its matrix
+An orthotropic tensor of the plane takes four constants
+``(C_{11}, C_{22}, C_{12}, C_{66})`` in its frame, here turned by the angle
+``\varphi``. Its canonical matrix is full; turned back by the Kelvin–Mandel
+rotation of the frame, it gives the four constants in their places:
+
+```@example symmat
+C₂₂, C₆₆ = symbols("C_22 C_66", positive = true)
+φ = symbols("phi", real = true)
+plane_ortho = TensOrtho(C₁₁, C₂₂, C₁₂, C₆₆, Basis(φ))
+Qφ = mandel_rotation(φ)
+simplify.(transpose(Qφ) * mandel(plane_ortho) * Qφ)
+```
+
+```@example symmat
+get_data(plane_ortho)
+```
+
+The square class, ``C_{11} = C_{22}``, takes the three constants of the cubic
+one, read back by `cubic_constants`:
+
+```@example symmat
+square = cubic_from_constants(C₁₁, C₁₂, C₄₄, Basis(φ))
+simplify.(cubic_constants(square)), simplify.(transpose(Qφ) * mandel(square) * Qφ)
+```
+
+The plane has no transversely isotropic class
 ([Two dimensions, and any dimension](@ref man-dimensions)).
 
 ## Another axis, another frame
@@ -361,6 +393,8 @@ ForwardDiff.derivative(axial_young, 19.0), 5.0^2 / 19.0^2        # E₃ = n − 
 | cubic | `cubic_from_constants(C₁₁, C₁₂, C₄₄, frame)` | `inv` | `cubic_constants` |
 | transversely isotropic | `ti_from_constants(c…, n; form)`, with `role = :stiffness` for `:engineering` and `:hoenig` | the same with `role = :compliance`, or `inv` | `ti_constants(t; form, role)`, `hill_moduli`, `walpole_coeffs` |
 | orthotropic | `TensOrtho(C₁₁, …, C₆₆, frame)` | `inv` | `get_data` |
+| orthotropic, plane | `TensOrtho(C₁₁, C₂₂, C₁₂, C₆₆, frame)`, frame of the plane | `inv` | `get_data`, `mandel_material` |
+| square, plane | `cubic_from_constants(C₁₁, C₁₂, C₄₄, frame)`, frame of the plane | `inv` | `cubic_constants` |
 
 [Structured tensors](@ref man-structured) says what the products and the
 inverses of these tensors return, and

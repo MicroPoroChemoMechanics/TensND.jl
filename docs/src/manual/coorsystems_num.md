@@ -35,12 +35,32 @@ laplacian(x -> x[3]^3, CS)(x₀)      # ∇²(r³) = 12 r
 | Constructor | Coordinates |
 | :--- | :--- |
 | [`coorsys_cartesian`](@ref)`(PointwiseGeometry)` | ``(x,y,z)`` |
+| [`coorsys_cartesian`](@ref)`(PointwiseGeometry, Val(d))` | ``(x_1,\ldots,x_d)``, any dimension |
 | [`coorsys_polar`](@ref)`(PointwiseGeometry)` | ``(r,\theta)`` |
 | [`coorsys_cylindrical`](@ref)`(PointwiseGeometry)` | ``(r,\theta,z)`` |
 | [`coorsys_spherical`](@ref)`(PointwiseGeometry)` | ``(\theta,\varphi,r)`` |
 
 The coordinate ordering matches the symbolic systems exactly, spherical
 included.
+
+## In two dimensions
+
+The Cartesian system of the plane is `coorsys_cartesian(PointwiseGeometry, Val(2))`,
+and the polar one `coorsys_polar(PointwiseGeometry)`; a field is a function of
+the vector of the two coordinates.
+
+```@example csn
+Plane = coorsys_cartesian(PointwiseGeometry, Val(2))
+u = x -> x[1]^3 * x[2]
+laplacian(u, Plane)([1.0, 2.0]), get_array(grad(u, Plane)([1.0, 2.0]))
+```
+
+```@example csn
+laplacian(x -> x[1]^2, coorsys_polar(PointwiseGeometry))([2.0, 0.3])      # the Laplacian of r² is 4
+```
+
+See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of
+what is built in the plane and beyond.
 
 ## A custom system needs only a position map
 

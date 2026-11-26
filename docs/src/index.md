@@ -116,8 +116,32 @@ its metric, so covariant and contravariant components are related rather than
 assumed; the differential operators follow from the chart, symbolically or by
 automatic differentiation.
 
-Three structured types — [`TensISO`](@ref), [`TensTI`](@ref) and
-[`TensCubic`](@ref), [`TensOrtho`](@ref) — store the 2, 5, 3 and 9 scalars a
+Dimension 3 is the reference dimension: every type and every function exists
+there. The plane is supported as well, with its tensors, bases, isotropic,
+square and orthotropic classes, elastic moduli, projections, and Cartesian and
+polar coordinates; the tensor algebra, the Kelvin–Mandel notation, the
+isotropic class and the Cartesian coordinate system hold in any dimension. The
+calls are in [Two dimensions, and any dimension](@ref man-dimensions), and what
+changes with the dimension is derived in
+[Tensors of the plane, of space and of any dimension](@ref th-dimensions).
+
+| | Dimension 2 | Dimension 3 | Dimension 4 and above |
+| :--- | :--- | :--- | :--- |
+| tensors of any order, their products and contractions | yes | yes | yes |
+| bases from the matrix of their vectors | yes | yes | yes |
+| rotated bases | one angle | three angles | an orthogonal matrix |
+| random rotations and bases | yes | yes | yes |
+| Kelvin–Mandel matrix | ``3\times3`` | ``6\times6`` | ``n\times n``, ``n = d(d+1)/2`` |
+| isotropic tensors and their algebra | yes | yes | yes |
+| elastic moduli of an isotropic tensor | two conventions | yes | those of the medium of dimension ``d`` |
+| transversely isotropic class | no | yes | no |
+| cubic class | the square class | yes | no |
+| orthotropic class | yes, 4 or 5 constants | yes, 9 or 12 constants | no |
+| projection onto a class | frame in closed form | frame searched | isotropic class only |
+| coordinate systems | Cartesian, polar | all | Cartesian |
+
+Four structured types — [`TensISO`](@ref), [`TensTI`](@ref),
+[`TensCubic`](@ref) and [`TensOrtho`](@ref) — store the 2, 5, 3 and 9 scalars a
 symmetry class really has,
 and compute products and inverses in closed form; [`rand`](@ref Base.rand(::Type{<:TensND._RandomClass})) draws
 any of them, or a generic tensor, with uniformly random orientations. The same code runs on

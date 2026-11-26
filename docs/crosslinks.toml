@@ -30,6 +30,12 @@ manual = ["man-random-tensors", "man-tensors"]
 tutorials = ["tut-cluster"]
 
 [[subject]]
+name = "The plane and any dimension"
+theory = ["th-dimensions"]
+manual = ["man-dimensions"]
+tutorials = ["tut-plane-classes", "tut-green-function"]
+
+[[subject]]
 name = "Isotropic tensors"
 theory = ["th-isotropic"]
 manual = ["man-structured", "man-elastic-moduli"]

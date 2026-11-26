@@ -204,3 +204,25 @@ Neither affects the projections: the objective functions of
 [Projection onto a symmetry class](@ref th-projection) depend on the frame, not
 on the angles chosen to name it, so a degenerate parametrization costs at worst
 a redundant starting point.
+
+## In two dimensions
+
+A rotation of the plane has one angle,
+
+```math
+R(\theta)=\begin{pmatrix}\cos\theta & -\sin\theta\\ \sin\theta & \cos\theta\end{pmatrix} ,
+```
+
+the columns being the vectors of the rotated basis; it acts on the
+Kelvin–Mandel components by a ``3\times3`` orthogonal matrix
+([Kelvin–Mandel representation](@ref th-kelvin-mandel)). Its Haar measure is
+the uniform law of ``\theta`` on the circle. In dimension ``d`` a rotation has
+``d(d-1)/2`` parameters and is given by its matrix, with no angles beyond
+``d = 3``. A Haar rotation of ``SO(d)`` is drawn from a matrix ``G`` of
+independent standard normal entries, written ``G = UT`` with ``U`` orthogonal
+and ``T`` upper triangular of positive diagonal, a decomposition that is
+unique. The law of ``G`` is that of ``OG`` for any orthogonal ``O``, and
+``OG = (OU)\,T``, so that the law of ``U`` is invariant under every orthogonal
+map: it is the Haar measure of ``O(d)``. Reversing the last column of ``U``
+when its determinant is ``-1`` maps it onto that of ``SO(d)``. See
+[Tensors of the plane, of space and of any dimension](@ref th-dimensions).
