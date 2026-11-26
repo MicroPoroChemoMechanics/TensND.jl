@@ -304,6 +304,14 @@ bare `eps(T)`.
 @inline _approx_eps(::Type{T}) where {T <: Complex} = eps(real(T))
 @inline _approx_eps(::Type{T}) where {T} = eps(T)
 
+# Tensors.jl holds the components up to dimension 3, a plain array beyond.
+_in_tensors_jl(::Val{dim}) where {dim} = Val(dim ≤ 3)
+
+# The vector of the components `f(1), …, f(dim)`, in the storage of its dimension.
+_vector_storage(f, dim::Val, ::Type{T}) where {T} = _vector_storage(f, dim, T, _in_tensors_jl(dim))
+_vector_storage(f, ::Val{dim}, ::Type, ::Val{true}) where {dim} = Vec{dim}(f)
+_vector_storage(f, ::Val{dim}, ::Type{T}, ::Val{false}) where {dim, T} = T[f(j) for j in 1:dim]
+
 for order in (2, 4)
     @eval function tensor_or_array(tab::AbstractArray{T, $order}) where {T}
         dim = size(tab, 1)

@@ -271,14 +271,23 @@ function _random_generic(rng, ::Val{4}, ::Val{dim}, ::Type{T}, ::Val{:minor}, de
 end
 function _random_generic(rng, ::Val{4}, ::Val{dim}, ::Type{T}, ::Val{:none}, definite) where {dim, T}
     _refuse_definite(definite, "a generic tensor of order 4 without symmetry")
-    return Tens(Tensor{4, dim}(randn(rng, T, dim, dim, dim, dim)))
+    return Tens(_generic_storage(randn(rng, T, dim, dim, dim, dim), Val(dim)))
 end
 _random_generic(rng, ::Val{2}, ::Val{dim}, ::Type{T}, ::Val{:symmetric}, definite) where {dim, T} =
-    Tens(SymmetricTensor{2, dim, T}(_random_symmetric(rng, T, Val(dim), definite)))
+    Tens(_symmetric_storage(_random_symmetric(rng, T, Val(dim), definite), Val(dim)))
 function _random_generic(rng, ::Val{2}, ::Val{dim}, ::Type{T}, ::Val{:none}, definite) where {dim, T}
     _refuse_definite(definite, "a generic tensor of order 2 without symmetry")
-    return Tens(Tensor{2, dim}(randn(rng, T, dim, dim)))
+    return Tens(_generic_storage(randn(rng, T, dim, dim), Val(dim)))
 end
+# What holds the components drawn: a tensor of Tensors.jl up to dimension 3,
+# the array itself beyond.
+_generic_storage(A, dim::Val) = _generic_storage(A, dim, _in_tensors_jl(dim))
+_generic_storage(A::Array{<:Any, order}, ::Val{dim}, ::Val{true}) where {order, dim} = Tensor{order, dim}(A)
+_generic_storage(A::Array, ::Val, ::Val{false}) = A
+_symmetric_storage(A, dim::Val) = _symmetric_storage(A, dim, _in_tensors_jl(dim))
+_symmetric_storage(A::SMatrix{dim, dim, T}, ::Val{dim}, ::Val{true}) where {dim, T} = SymmetricTensor{2, dim, T}(A)
+_symmetric_storage(A::SMatrix, ::Val, ::Val{false}) = Matrix(A)
+
 _random_generic(rng, ::Val{order}, ::Val, ::Type, ::Val{S}, definite) where {order, S} =
     throw(
     ArgumentError(

@@ -669,39 +669,55 @@ function sotimes(
     end
 end
 
-Base.transpose(t::TensArray{order, dim, T, <:SecondOrderTensor}) where {order, dim, T} =
-    Tens(transpose(get_array(t)), get_basis(t), (get_var(t)[2], get_var(t)[1]))
+# The transposes act on the array of components, whatever holds it: a tensor of
+# Tensors.jl up to dimension 3, a plain array beyond, where the same
+# permutations of the indices are written out. At order 4 the transpose is the
+# minor one, `Tᵢⱼₖₗ ↦ Tⱼᵢₗₖ`.
+const _Storage2 = Union{SecondOrderTensor, Array{<:Any, 2}}
+const _Storage4 = Union{FourthOrderTensor, Array{<:Any, 4}}
 
-Base.transpose(t::TensOrthonormal{order, dim, T, <:SecondOrderTensor}) where {order, dim, T} =
-    Tens(transpose(get_array(t)), get_basis(t))
+_transpose_array(a::SecondOrderTensor) = transpose(a)
+_transpose_array(a::Array{<:Any, 2}) = permutedims(a, (2, 1))
+_transpose_array(a::FourthOrderTensor) = Tensors.transpose(a)
+_transpose_array(a::Array{<:Any, 4}) = permutedims(a, (2, 1, 4, 3))
+_minortranspose_array(a::FourthOrderTensor) = minortranspose(a)
+_minortranspose_array(a::Array{<:Any, 4}) = permutedims(a, (2, 1, 4, 3))
+_majortranspose_array(a::FourthOrderTensor) = _majortranspose(a)
+_majortranspose_array(a::Array{<:Any, 4}) = permutedims(a, (3, 4, 1, 2))
 
-Base.transpose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} = Tens(
-    Tensors.transpose(get_array(t)),
+Base.transpose(t::TensArray{order, dim, T, <:_Storage2}) where {order, dim, T} =
+    Tens(_transpose_array(get_array(t)), get_basis(t), (get_var(t)[2], get_var(t)[1]))
+
+Base.transpose(t::TensOrthonormal{order, dim, T, <:_Storage2}) where {order, dim, T} =
+    Tens(_transpose_array(get_array(t)), get_basis(t))
+
+Base.transpose(t::TensArray{order, dim, T, <:_Storage4}) where {order, dim, T} = Tens(
+    _transpose_array(get_array(t)),
     get_basis(t),
     (get_var(t)[2], get_var(t)[1], get_var(t)[4], get_var(t)[3]),
 )
 
-Base.transpose(t::TensOrthonormal{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
-    Tens(Tensors.transpose(get_array(t)), get_basis(t))
+Base.transpose(t::TensOrthonormal{order, dim, T, <:_Storage4}) where {order, dim, T} =
+    Tens(_transpose_array(get_array(t)), get_basis(t))
 
-Tensors.majortranspose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
+Tensors.majortranspose(t::TensArray{order, dim, T, <:_Storage4}) where {order, dim, T} =
     Tens(
-    _majortranspose(get_array(t)),
+    _majortranspose_array(get_array(t)),
     get_basis(t),
     (get_var(t)[3], get_var(t)[4], get_var(t)[1], get_var(t)[2]),
 )
 
 Tensors.majortranspose(
-    t::TensOrthonormal{order, dim, T, <:FourthOrderTensor},
-) where {order, dim, T} = Tens(_majortranspose(get_array(t)), get_basis(t))
+    t::TensOrthonormal{order, dim, T, <:_Storage4},
+) where {order, dim, T} = Tens(_majortranspose_array(get_array(t)), get_basis(t))
 
-Tensors.minortranspose(t::TensArray{order, dim, T, <:FourthOrderTensor}) where {order, dim, T} =
+Tensors.minortranspose(t::TensArray{order, dim, T, <:_Storage4}) where {order, dim, T} =
     Tens(
-    minortranspose(get_array(t)),
+    _minortranspose_array(get_array(t)),
     get_basis(t),
     (get_var(t)[2], get_var(t)[1], get_var(t)[4], get_var(t)[3]),
 )
 
 Tensors.minortranspose(
-    t::TensOrthonormal{order, dim, T, <:FourthOrderTensor},
-) where {order, dim, T} = Tens(minortranspose(get_array(t)), get_basis(t))
+    t::TensOrthonormal{order, dim, T, <:_Storage4},
+) where {order, dim, T} = Tens(_minortranspose_array(get_array(t)), get_basis(t))

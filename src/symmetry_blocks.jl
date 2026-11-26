@@ -152,6 +152,27 @@ function _iso_mandel_basis_plane(::Type{T}) where {T}
     )
 end
 
+# The isotropic basis in dimension `d`: the spherical direction, the `d − 1`
+# normal deviators `(1, …, 1, −m, 0, …)/√(m(m+1))`, `m = 1, …, d − 1`, then the
+# shears. In the plane and in space it is the two bases above.
+function _iso_mandel_basis(::Type{T}, ::Val{d}) where {T, d}
+    n = _mandel_length(d)
+    return SMatrix{n, n, T}(
+        ntuple(Val(n * n)) do p
+            # column-major: entry p is (row i, column c)
+            i, c = mod1(p, n), (p - 1) ÷ n + 1
+            if c == 1
+                i ≤ d ? inv(sqrt(T(d))) : zero(T)
+            elseif c ≤ d
+                m = c - 1
+                i ≤ m ? inv(sqrt(T(m * (m + 1)))) : i == m + 1 ? -m * inv(sqrt(T(m * (m + 1)))) : zero(T)
+            else
+                i == c ? one(T) : zero(T)
+            end
+        end
+    )
+end
+
 _basis_type(A) = float(eltype(A))
 
 """
@@ -177,6 +198,7 @@ symmetry_basis(A::Union{TensTI{4, <:Any, 5}, TensTI{4, <:Any, 6}}) =
     _km_congruence(first(_axis_frame(A.n))) * _ti_mandel_basis(_basis_type(A))
 symmetry_basis(A::TensOrtho{4}) = _km_congruence(_frame_matrix(A.frame))
 symmetry_basis(A::TensISO{4, 2}) = _iso_mandel_basis_plane(_basis_type(A))
+symmetry_basis(A::TensISO{4, dim}) where {dim} = _iso_mandel_basis(_basis_type(A), Val(dim))
 symmetry_basis(A::TensISO{2, dim}) where {dim} = SMatrix{dim, dim, _basis_type(A)}(I)
 symmetry_basis(A::TensTI{2, <:Any, 2}) = first(_axis_frame(A.n))
 symmetry_basis(A::TensOrtho{2}) = _frame_matrix(A.frame)
@@ -186,8 +208,9 @@ symmetry_basis(A::TensOrtho{2}) = _frame_matrix(A.frame)
 
 For each block of [`symmetry_blocks`](@ref)`(A)`, the index sets of its copies on
 the diagonal of ``Q^{\\mathsf T}MQ``, ``Q`` = [`symmetry_basis`](@ref)`(A)`: the
-isotropic shear modulus ``\\beta`` sits on five in space and on two in the
-plane, the transverse shear ``\\ell_5`` on two, and so on.
+isotropic shear modulus ``\\beta`` sits on five in space, on two in the
+plane and on ``d(d+1)/2 - 1`` in dimension ``d``, the transverse shear
+``\\ell_5`` on two, and so on.
 """
 symmetry_layout(::TensISO{4, 3}) = ((SVector(1),), (SVector(2), SVector(3), SVector(4), SVector(5), SVector(6)))
 symmetry_layout(::TensCubic) = ((SVector(1),), (SVector(2), SVector(3)), (SVector(4), SVector(5), SVector(6)))
@@ -195,6 +218,8 @@ symmetry_layout(::Union{TensTI{4, <:Any, 5}, TensTI{4, <:Any, 6}}) =
     ((SVector(1, 2),), (SVector(3), SVector(4)), (SVector(5), SVector(6)))
 symmetry_layout(::TensOrtho{4}) = ((SVector(1, 2, 3),), (SVector(4),), (SVector(5),), (SVector(6),))
 symmetry_layout(::TensISO{4, 2}) = ((SVector(1),), (SVector(2), SVector(3)))
+symmetry_layout(::TensISO{4, dim}) where {dim} =
+    ((SVector(1),), ntuple(i -> SVector(i + 1), Val(_mandel_length(dim) - 1)))
 symmetry_layout(::TensISO{2, dim}) where {dim} = (ntuple(SVector, Val(dim)),)
 symmetry_layout(::TensTI{2, <:Any, 2}) = ((SVector(1), SVector(2)), (SVector(3),))
 symmetry_layout(::TensOrtho{2}) = ((SVector(1),), (SVector(2),), (SVector(3),))
