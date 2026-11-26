@@ -82,6 +82,7 @@ pages = [
             "manual/structured_tensors.md",
             "manual/parametrizations.md",
             "manual/elastic_moduli.md",
+            "manual/symbolic_materials.md",
             "manual/projection.md",
             "manual/tensor_distances.md",
         ],

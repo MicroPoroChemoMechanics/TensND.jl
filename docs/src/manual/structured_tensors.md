@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [Isotropic tensors](@ref th-isotropic) · [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [Orthotropy](@ref th-orthotropy) · [Cubic symmetry](@ref th-cubic)
 
-    **Manual**: [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations) · [Projection and symmetry detection](@ref man-projection)
+    **Manual**: [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations) · [Symbolic tensors of a material symmetry](@ref man-symbolic-materials) · [Projection and symmetry detection](@ref man-projection)
 
     **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [Projection and symmetry detection](@ref tut-projection) · [A two-point Green tensor between offset frames](@ref tut-cluster)
 
@@ -81,8 +81,9 @@ cub = cubic_from_constants(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄�
 | Function | Applies to | Returns |
 | :--- | :--- | :--- |
 | [`get_data`](@ref) | all | the stored coefficient tuple |
-| [`walpole_coeffs`](@ref) | `TensTI{4}` | the six classical Walpole coefficients |
-| [`walpole_coeffs`](@ref) | `TensTI{4}` | all eight, zero-padded |
+| [`walpole_coeffs`](@ref)`(t)` | `TensTI{4}` | the six classical Walpole coefficients |
+| `walpole_coeffs(t, Val(5))` | `TensTI{4}`, major-symmetric | the five independent ones, ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` |
+| `walpole_coeffs(t, Val(8))` | `TensTI{4}` | all eight, zero-padded |
 | [`axis`](@ref) | `TensTI` | the symmetry axis |
 | [`frame`](@ref) | `TensOrtho`, `TensCubic` | the material or cube frame |
 | [`reference`](@ref) | `TensTI`, `TensOrtho`, `TensCubic` | axis or frame, whichever applies |

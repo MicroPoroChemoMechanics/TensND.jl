@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [The Walpole basis](@ref th-walpole)
 
-    **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations)
+    **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations) · [Symbolic tensors of a material symmetry](@ref man-symbolic-materials)
 
     **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [A two-point Green tensor between offset frames](@ref tut-cluster) · [Acoustic and Hill tensors](@ref tut-hill-tensors)
 

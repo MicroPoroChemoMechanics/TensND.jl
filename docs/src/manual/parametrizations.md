@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [The extended Walpole algebra](@ref th-walpole-extended) · [Isotropic tensors](@ref th-isotropic)
 
-    **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli)
+    **Manual**: [Structured tensors](@ref man-structured) · [Symbolic tensors of a material symmetry](@ref man-symbolic-materials) · [Elastic moduli](@ref man-elastic-moduli)
 
     **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [The eight-dimensional axially invariant space](@ref tut-walpole-extended)
 
@@ -29,10 +29,11 @@ using TensND, LinearAlgebra
 bulk_shear(ℂ), young_poisson(ℂ)
 ```
 
-## The four TI conventions
+## The five TI conventions
 
 | `form` | Parameters | Builds |
 | :--- | :--- | :--- |
+| `:walpole` | ``\ell_1,\ell_2,\ell_3,\ell_5,\ell_6`` | stiffness *or* compliance |
 | `:components` (default) | ``C_{1111},C_{1122},C_{1133},C_{3333},C_{2323}`` | stiffness *or* compliance |
 | `:hill` | ``k,l,m,n,p`` | stiffness *or* compliance |
 | `:engineering` | ``E_1,E_3,\nu_{12},\nu_{31},G_{31}`` | **compliance** |
@@ -52,7 +53,7 @@ ti_constants(𝕊; form = :engineering)
 ## Converting between them
 
 Conversion is a **round trip through the tensor**: build with one constructor,
-read with another extractor. Because all four produce the same object, the
+read with another extractor. Because all five produce the same object, the
 conversion is exact rather than fitted.
 
 ```@example par
@@ -165,17 +166,62 @@ Hoenig's parameters are those of ``E_1 = E``, ``E_3 = EH``, ``\nu_{12} = \nu_1``
 ```
 
 `role` is `:compliance` by default, as these forms have always been read, and
-has no effect on `form = :components` and `form = :hill`, whose five numbers are
-those of the tensor given, whatever it is.
+has no effect on `form = :walpole`, `:components` and `:hill`, whose five numbers
+are those of the tensor given, whatever it is.
 
 !!! warning "A role is the caller's to give"
     Nothing in a `TensTI` tells a stiffness from a compliance. Read with the
-    wrong `role`, a tensor gives the constants of another material.
+    wrong `role`, a tensor gives the constants of another material, and a
+    stiffness entered by its engineering constants without `role = :stiffness`
+    is built as a compliance, without any error.
+    [Symbolic tensors of a material symmetry](@ref man-symbolic-materials)
+    shows each case on symbols, with the matrix that is built.
 
 ## Walpole coefficients
 
-[`walpole_coeffs`](@ref)`(t)` reads the six classical coefficients, `walpole_coeffs(t, Val(8))` all
-eight. Stiffness and compliance are inverse in the synthetic algebra, so their
+A major-symmetric tensor has five independent Walpole coefficients,
+``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)``: `form = :walpole` builds it from them and
+reads them back, as the other forms do with their constants.
+
+```@example par
+ti_constants(ℂ; form = :walpole)
+```
+
+```@example par
+ti_from_constants(ti_constants(ℂ; form = :walpole)..., n; form = :walpole) == ℂ
+```
+
+[`walpole_coeffs`](@ref) reads the same coefficients in three lengths, whatever
+the number on which the tensor is stored:
+
+| Call | Returns | For |
+| :--- | :--- | :--- |
+| `walpole_coeffs(t, Val(5))` | ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` | a major-symmetric tensor (refused otherwise): `form = :walpole` |
+| `walpole_coeffs(t)` | ``(\ell_1,\ldots,\ell_6)`` | any tensor of the class, ``\ell_3 = \ell_4`` when it is major-symmetric |
+| `walpole_coeffs(t, Val(8))` | ``(\ell_1,\ldots,\ell_8)`` | the full axially invariant basis |
+
+!!! warning "Five, six or eight: ask for the length you mean"
+    - `walpole_coeffs(t)` returns **six** coefficients even for a
+      major-symmetric tensor, ``\ell_3`` being repeated as ``\ell_4``. The form
+      `:walpole` has **five**: its fourth number is ``\ell_5``, not ``\ell_4``.
+      To feed `ti_from_constants(…; form = :walpole)` or `radial_ti`, read
+      with `walpole_coeffs(t, Val(5))` or `ti_constants(t; form = :walpole)`,
+      never with `walpole_coeffs(t)`.
+    - The five are refused for a tensor that is not major-symmetric, such as
+      the product `ℂ ⊡ 𝕊` of two tensors that do not commute: its six
+      coefficients have ``\ell_3 \neq \ell_4``.
+    - The coefficients are not moduli: ``\ell_1 = C_{3333}`` comes first, and
+      ``\ell_2 = 2k``, ``\ell_3 = \sqrt2\,C_{1133}``, ``\ell_5 = 2m``,
+      ``\ell_6 = 2p`` carry the factors of the normalized basis.
+
+```@example par
+walpole_coeffs(ℂ), walpole_coeffs(ℂ, Val(5))
+```
+
+The six are the coefficients on which the products of the class are written: a
+product of two major-symmetric tensors has ``\ell_3 \neq \ell_4`` in general, and
+the ``2\times2`` block ``\begin{pmatrix}\ell_1 & \ell_3\\ \ell_4 & \ell_2\end{pmatrix}``
+multiplies as a matrix. Stiffness and compliance are inverse in the synthetic algebra, so their
 ``2\times2`` blocks are inverse matrices and their ``\ell_5,\ell_6`` reciprocal:
 
 ```@example par

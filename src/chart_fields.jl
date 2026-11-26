@@ -142,8 +142,6 @@ function radial_ti end
 Base.@constprop :aggressive function radial_ti(
         chart::AbstractChart{3}, c₁, c₂, c₃, c₄, c₅; form::Symbol = :walpole, role::Symbol = :compliance
     )
-    # A keyword read at run time: a branch, as in `ti_from_constants`.
-    form === :walpole && return ChartTens(TensTI{4}(c₁, c₂, c₃, c₄, c₅, radial_axis(chart)), chart)
     return ChartTens(ti_from_constants(c₁, c₂, c₃, c₄, c₅, radial_axis(chart); form, role), chart)
 end
 radial_ti(chart::AbstractChart{3}; n, l, k, m, p) = ChartTens(_ti_from_hill(k, l, m, n, p, radial_axis(chart)), chart)
