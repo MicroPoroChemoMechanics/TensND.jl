@@ -26,6 +26,23 @@ random_rotation(rng::AbstractRNG, ::Type{T} = Float64) where {T <: AbstractFloat
 random_rotation(::Type{T} = Float64) where {T <: AbstractFloat} = random_rotation(Random.default_rng(), T)
 
 """
+    random_rotation([rng], Val(d), [T = Float64]) -> SMatrix{d, d, T}
+
+A rotation drawn from the Haar measure of SO(d), in any dimension `d`: an
+orthogonal matrix drawn from the Haar measure of O(d), the last column of which
+is reversed when its determinant is `-1`. In dimension 2 it is the rotation of
+an angle uniform on the circle; `Val(3)` is the method above.
+"""
+random_rotation(rng::AbstractRNG, ::Val{3}, ::Type{T} = Float64) where {T <: AbstractFloat} = random_rotation(rng, T)
+function random_rotation(rng::AbstractRNG, ::Val{d}, ::Type{T} = Float64) where {d, T <: AbstractFloat}
+    Q = _haar_orthogonal(rng, T, Val(d))
+    # Reversing one column maps the Haar measure of O(d) restricted to the
+    # matrices of determinant -1 onto that of SO(d).
+    return Q * Diagonal(SVector{d, T}(ntuple(i -> i == d ? sign(det(Q)) : one(T), Val(d))))
+end
+random_rotation(dim::Val, ::Type{T} = Float64) where {T <: AbstractFloat} = random_rotation(Random.default_rng(), dim, T)
+
+"""
     random_axis([rng], [T = Float64]) -> NTuple{3, T}
 
 A unit vector drawn uniformly on the unit sphere: three independent standard
@@ -37,6 +54,16 @@ random_axis(rng::AbstractRNG, ::Type{T} = Float64) where {T <: AbstractFloat} =
 random_axis(::Type{T} = Float64) where {T <: AbstractFloat} = random_axis(Random.default_rng(), T)
 
 """
+    random_axis([rng], Val(d), [T = Float64]) -> NTuple{d, T}
+
+A unit vector drawn uniformly on the unit sphere of dimension `d`: `d`
+independent standard normal numbers, normalized.
+"""
+random_axis(rng::AbstractRNG, ::Val{d}, ::Type{T} = Float64) where {d, T <: AbstractFloat} =
+    Tuple(normalize(randn(rng, SVector{d, T})))
+random_axis(dim::Val, ::Type{T} = Float64) where {T <: AbstractFloat} = random_axis(Random.default_rng(), dim, T)
+
+"""
     random_basis([rng], [T = Float64]) -> RotatedBasis{3, T}
 
 The orthonormal basis of the columns of a [`random_rotation`](@ref): a frame
@@ -46,6 +73,16 @@ or cubic tensor.
 random_basis(rng::AbstractRNG, ::Type{T} = Float64) where {T <: AbstractFloat} =
     RotatedBasis(random_rotation(rng, T), Val(3), Val(:typed))
 random_basis(::Type{T} = Float64) where {T <: AbstractFloat} = random_basis(Random.default_rng(), T)
+
+"""
+    random_basis([rng], Val(d), [T = Float64]) -> RotatedBasis{d, T}
+
+The orthonormal basis of the columns of a [`random_rotation`](@ref) of
+dimension `d`: a frame of uniformly random orientation.
+"""
+random_basis(rng::AbstractRNG, ::Val{d}, ::Type{T} = Float64) where {d, T <: AbstractFloat} =
+    RotatedBasis(random_rotation(rng, Val(d), T), Val(d), Val(:typed))
+random_basis(dim::Val, ::Type{T} = Float64) where {T <: AbstractFloat} = random_basis(Random.default_rng(), dim, T)
 
 # ── The laws of the coefficients ─────────────────────────────────────────────
 

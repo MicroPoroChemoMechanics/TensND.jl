@@ -130,6 +130,7 @@ include("test_orientation_search.jl")
 include("test_tens_rotational_average.jl")
 # Every operation, with each operand written in its own random basis.
 include("test_random_bases.jl")
+include("test_rotations_any_dimension.jl")
 include("test_special_tens.jl")
 include("test_coorsystems.jl")
 include("test_coorsystems_num.jl")

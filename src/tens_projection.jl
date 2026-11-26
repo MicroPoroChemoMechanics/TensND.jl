@@ -53,14 +53,25 @@ end
 
 """
     mandel_rotation(θ, ϕ, ψ) → SMatrix{6,6}
+    mandel_rotation(θ) → SMatrix{3,3}
     mandel_rotation(R::AbstractMatrix) → SMatrix{6,6}
+    mandel_rotation(R::StaticMatrix{d,d}) → SMatrix{n,n}
+    mandel_rotation(R::AbstractMatrix, Val(d)) → SMatrix{n,n}
 
-6×6 Kelvin-Mandel (Bond) rotation matrix, from ZYZ Euler angles `(θ, ϕ, ψ)`
-or directly from a 3×3 rotation matrix `R` whose **columns** are the new
-basis vectors.
+Kelvin-Mandel (Bond) rotation matrix of a rotation `R` whose **columns** are
+the new basis vectors, of size `n = d(d+1)/2` in dimension `d`: 6×6 in
+dimension 3, from the ZYZ Euler angles `(θ, ϕ, ψ)` or from the matrix; 3×3 in
+the plane, from the angle `θ`. With the pairs `I = (i,j)`, `J = (k,l)` of the
+Kelvin-Mandel notation and their weights `w = 1` (`i = j`) or `√2`,
 
-Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = mandel_rotation(…)`;
-`Q` is orthogonal.
+    Q[I, J] = w_I w_J (R[i,k] R[j,l] + R[i,l] R[j,k]) / 2 .
+
+It transforms the Kelvin-Mandel matrix of a tensor of order 4 as
+`C' = Q' · C · Q`; `Q` is orthogonal.
+
+A plain matrix is taken to be 3×3 and refused otherwise; the dimension of a
+static matrix or of a `Tensors.Tensor{2}` is read on its type, and `Val(d)`
+gives it for a plain matrix of another size.
 
 Built entirely with `SMatrix` / `ntuple`, so it is compatible with
 `ForwardDiff.Dual` **and** with non-`isbits` element types such as
@@ -73,26 +84,45 @@ julia> Q = mandel_rotation(0.3, 0.5, 0.0);
 
 julia> size(Q)
 (6, 6)
+
+julia> size(mandel_rotation(0.3))
+(3, 3)
 ```
 """
 mandel_rotation(θ, ϕ, ψ) = mandel_rotation(_rot3_raw(θ, ϕ, ψ))
+function mandel_rotation(θ::Number)
+    c, s = cos(θ), sin(θ)
+    return mandel_rotation(SMatrix{2, 2}(c, s, -s, c))
+end
 
 export mandel_rotation
 
-function mandel_rotation(R::AbstractMatrix{T}) where {T}
+mandel_rotation(R::AbstractMatrix) = mandel_rotation(R, Val(3))
+mandel_rotation(R::Union{StaticMatrix{d, d}, Tensors.Tensor{2, d}}) where {d} =
+    _mandel_rotation(R, Val(d), Val(_mandel_length(d)))
+function mandel_rotation(R::AbstractMatrix, ::Val{d}) where {d}
+    size(R) == (d, d) || _throw_mandel_rotation_size(d, size(R))
+    return _mandel_rotation(R, Val(d), Val(_mandel_length(d)))
+end
+# Apart, so that the message is not built on the path of a valid call.
+@noinline _throw_mandel_rotation_size(d, sz) =
+    throw(DimensionMismatch("mandel_rotation: a $(d)×$(d) matrix is needed, got $(sz); give the dimension as `Val(d)`"))
+
+function _mandel_rotation(R::AbstractMatrix{T}, ::Val{d}, ::Val{n}) where {T, d, n}
     sq2 = sqrt(2 * one(T))
-    return SMatrix{6, 6, T}(
-        ntuple(Val(36)) do n
-            # column-major: element n is (row I, column J)
-            I = mod1(n, 6)
-            J = (n - 1) ÷ 6 + 1
-            i, j = _KM_COUPLES[I]
-            k, l = _KM_COUPLES[J]
-            @inbounds if I ≤ 3 && J ≤ 3
+    return SMatrix{n, n, T}(
+        ntuple(Val(n * n)) do m
+            # column-major: element m is (row I, column J). The pairs are read
+            # here, not captured: they are then constants of the compiled code.
+            I = mod1(m, n)
+            J = (m - 1) ÷ n + 1
+            i, j = _mandel_pairs(Val(d))[I]
+            k, l = _mandel_pairs(Val(d))[J]
+            @inbounds if I ≤ d && J ≤ d
                 R[i, k]^2                                   # normal-normal
-            elseif I ≤ 3
+            elseif I ≤ d
                 sq2 * R[i, k] * R[i, l]                     # normal-shear
-            elseif J ≤ 3
+            elseif J ≤ d
                 sq2 * R[i, k] * R[j, k]                     # shear-normal
             else
                 R[i, k] * R[j, l] + R[i, l] * R[j, k]       # shear-shear
