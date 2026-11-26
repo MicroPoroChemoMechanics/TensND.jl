@@ -128,11 +128,14 @@ is written as the field it is in that class.
 With `form`, the five constants are read as [`ti_from_constants`](@ref) reads
 them, the radial direction being its axis 3 and the directions across the
 radius its axes 1 and 2: `form = :components` takes
-``(C_{tttt}, C_{ttt't'}, C_{ttrr}, C_{rrrr}, C_{trtr})``, `:engineering` the
+``(C_{tttt}, C_{ttt't'}, C_{ttrr}, C_{rrrr}, C_{trtr})``, `:hill` Hill's moduli
+in the order ``(k, l, m, n, p)`` (the keywords of the third method, by
+position), `:engineering` the
 engineering constants ``(E_t, E_r, \\nu_{tt'}, \\nu_{rt}, G_{rt})`` and `:hoenig`
-Hoenig's parameters, both as a compliance or, with `role = :stiffness`, as the
-stiffness of the same material. `form = :walpole`, the default, is the first
-method.
+Hoenig's parameters, the last two as a compliance or, with `role = :stiffness`,
+as the stiffness of the same material. `form = :walpole`, the default, is the
+first method. [`hill_moduli`](@ref) reads Hill's moduli of the field back, and
+`ti_constants(F.pattern; form, role)` its constants in another form.
 """
 function radial_ti end
 
@@ -143,10 +146,11 @@ Base.@constprop :aggressive function radial_ti(
     form === :walpole && return ChartTens(TensTI{4}(c₁, c₂, c₃, c₄, c₅, radial_axis(chart)), chart)
     return ChartTens(ti_from_constants(c₁, c₂, c₃, c₄, c₅, radial_axis(chart); form, role), chart)
 end
-radial_ti(chart::AbstractChart{3}; n, l, k, m, p) =
-    radial_ti(chart, n, 2 * k, sqrt(convert(sqrt2_eltype(typeof(l)), 2)) * l, 2 * m, 2 * p)
+radial_ti(chart::AbstractChart{3}; n, l, k, m, p) = ChartTens(_ti_from_hill(k, l, m, n, p, radial_axis(chart)), chart)
 radial_ti(chart::AbstractChart{3}, aₜ, aᵣ) = ChartTens(TensTI{2}(aₜ, aᵣ, radial_axis(chart)), chart)
 radial_ti(chart::AbstractChart{3}, t::TensISO{4, 3}) = ChartTens(t + TensTI{4}(0, 0, 0, 0, 0, radial_axis(chart)), chart)
 radial_ti(chart::AbstractChart{3}, t::TensISO{2, 3}) = (a = first(get_data(t)); radial_ti(chart, a, a))
+
+hill_moduli(F::ChartTens{4}) = hill_moduli(F.pattern)
 
 export ChartTens, tensor_at, radial_axis, radial_ti

@@ -29,11 +29,12 @@ using TensND, LinearAlgebra
 bulk_shear(ℂ), young_poisson(ℂ)
 ```
 
-## The three TI conventions
+## The four TI conventions
 
 | `form` | Parameters | Builds |
 | :--- | :--- | :--- |
 | `:components` (default) | ``C_{1111},C_{1122},C_{1133},C_{3333},C_{2323}`` | stiffness *or* compliance |
+| `:hill` | ``k,l,m,n,p`` | stiffness *or* compliance |
 | `:engineering` | ``E_1,E_3,\nu_{12},\nu_{31},G_{31}`` | **compliance** |
 | `:hoenig` | ``E,\nu_1,\nu_2,H,\Gamma`` | **compliance** |
 
@@ -51,7 +52,7 @@ ti_constants(𝕊; form = :engineering)
 ## Converting between them
 
 Conversion is a **round trip through the tensor**: build with one constructor,
-read with another extractor. Because all three produce the same object, the
+read with another extractor. Because all four produce the same object, the
 conversion is exact rather than fitted.
 
 ```@example par
@@ -64,6 +65,59 @@ ti_constants(𝕊; form = :hoenig)   # and in dimensionless Hoenig ratios
 
 ``H`` is the axial-to-transverse modulus ratio and ``\Gamma`` the shear
 anisotropy; an isotropic material sits at ``H=\Gamma=1`` with ``\nu_1=\nu_2``.
+
+## [Hill's moduli](@id man-hill-moduli)
+
+Hill's moduli ``(k, l, m, n, p)`` are those of fiber composites: for a
+stiffness of axis ``\underline{e}_3``, the plane-strain bulk modulus
+``k = \tfrac12(C_{1111}+C_{1122})``, the coupling ``l = C_{1133}``, the shear
+modulus in the plane of isotropy ``m = \tfrac12(C_{1111}-C_{1122})``, the axial
+modulus ``n = C_{3333}`` and the shear modulus along the axis ``p = C_{2323}``
+([Hill form](@ref th-ti-hill)). `form = :hill` takes them in that order, and
+[`hill_moduli`](@ref) reads them back by name:
+
+```@example par
+ℍ = ti_from_constants(19.0, 5.0, 11.0, 12.0, 4.0, n; form = :hill)    # k, l, m, n, p
+hill_moduli(ℍ)
+```
+
+```@example par
+h = hill_moduli(ℂ)          # of the carbon/epoxy ply above
+h.k, h.p                    # its plane-strain bulk modulus and its axial shear modulus
+```
+
+The other forms of the same tensor are one call away, in both directions:
+
+```@example par
+ti_constants(ℍ; form = :components)        # (k + m, k − m, l, n, p)
+```
+
+```@example par
+ti_constants(ℍ; form = :engineering, role = :stiffness)   # E₁, E₃, ν₁₂, ν₃₁, G₃₁ of the stiffness ℍ
+```
+
+```@example par
+E₁, E₃, ν₁₂, ν₃₁, G₃₁ = 9.0, 140.0, 0.40, 0.30, 4.6
+hill_moduli(ti_from_constants(E₁, E₃, ν₁₂, ν₃₁, G₃₁, n; form = :engineering, role = :stiffness))
+```
+
+Like the components, Hill's moduli are those of the tensor given: `role` has no
+effect on them, and the moduli of a compliance are those of its own components.
+An isotropic tensor has Hill's moduli about any axis, and symbols go through:
+
+```@example par
+using SymPyPythonCall
+κ, μ = symbols("kappa mu", positive = true)
+hill_moduli(iso_stiffness(κ, μ))
+```
+
+```@example par
+k, l, m, nₕ, p = symbols("k l m n p", positive = true)
+ti_constants(ti_from_constants(k, l, m, nₕ, p, (0, 0, 1); form = :hill); form = :engineering, role = :stiffness)[2:4]   # E₃, ν₁₂, ν₃₁
+```
+
+A field transversely isotropic about the radius of a sphere or of a cylinder
+takes the same forms: see [A tensor that turns with the point](@ref man-chart-fields).
 
 ## Stiffness or compliance: `role`
 
@@ -111,8 +165,8 @@ Hoenig's parameters are those of ``E_1 = E``, ``E_3 = EH``, ``\nu_{12} = \nu_1``
 ```
 
 `role` is `:compliance` by default, as these forms have always been read, and
-has no effect on `form = :components`, whose five numbers are those of the tensor
-given, whatever it is.
+has no effect on `form = :components` and `form = :hill`, whose five numbers are
+those of the tensor given, whatever it is.
 
 !!! warning "A role is the caller's to give"
     Nothing in a `TensTI` tells a stiffness from a compliance. Read with the

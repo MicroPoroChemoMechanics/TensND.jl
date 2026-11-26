@@ -1018,6 +1018,46 @@ unit = "Pa"
 
 [[symbol]]
 group = "Elastic moduli"
+tex = 'k'
+label = "k"
+name = "plane-strain bulk modulus about the axis, (C<sub>1111</sub> + C<sub>1122</sub>)/2 (Hill form)"
+unit = ""
+pages = ["theory/ti_parametrizations.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'l'
+label = "l"
+name = "coupling modulus between the plane of isotropy and the axis, C<sub>1133</sub> (Hill form)"
+unit = ""
+pages = ["theory/ti_parametrizations.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'm'
+label = "m"
+name = "shear modulus in the plane of isotropy, (C<sub>1111</sub> − C<sub>1122</sub>)/2 (Hill form)"
+unit = ""
+pages = ["theory/ti_parametrizations.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'n'
+label = "n"
+name = "modulus along the axis, C<sub>3333</sub> (Hill form)"
+unit = ""
+pages = ["theory/ti_parametrizations.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'p'
+label = "p"
+name = "shear modulus along the axis, C<sub>2323</sub> (Hill form)"
+unit = ""
+pages = ["theory/ti_parametrizations.md"]
+
+[[symbol]]
+group = "Elastic moduli"
 tex = 'E_1'
 label = "E<sub>1</sub>"
 name = "transverse Young's modulus (engineering TI form)"

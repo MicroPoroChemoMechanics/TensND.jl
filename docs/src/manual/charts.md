@@ -180,10 +180,17 @@ eᵣ = Tens([x[1], x[2], 0.0] / hypot(x[1], x[2]))
 eᵣ ⋅ (eᵣ ⋅ tensor_at(C, x) ⋅ eᵣ) ⋅ eᵣ      # n, the stiffness along the radius of the cylinder
 ```
 
+[`hill_moduli`](@ref) reads them back, about the radial direction:
+
+```@example charts
+hill_moduli(C)
+```
+
 The five constants may also be given in the notations of
 [`ti_from_constants`](@ref), the radial direction being its axis 3: the
-components ``(C_{tttt}, C_{ttt't'}, C_{ttrr}, C_{rrrr}, C_{trtr})``, the
-engineering constants ``(E_t, E_r, \nu_{tt'}, \nu_{rt}, G_{rt})`` or Hoenig's
+components ``(C_{tttt}, C_{ttt't'}, C_{ttrr}, C_{rrrr}, C_{trtr})``, Hill's
+moduli by position, in the order ``(k, l, m, n, p)``
+([Hill's moduli](@ref man-hill-moduli)), the engineering constants ``(E_t, E_r, \nu_{tt'}, \nu_{rt}, G_{rt})`` or Hoenig's
 parameters, as a compliance or as the stiffness of the same material:
 
 ```@example charts
@@ -195,6 +202,14 @@ S = radial_ti(CylindricalChart(), Eₜ, Eᵣ, ν, νᵣₜ, Gᵣₜ; form = :eng
 ```@example charts
 𝕔 = radial_ti(CylindricalChart(), Eₜ, Eᵣ, ν, νᵣₜ, Gᵣₜ; form = :engineering, role = :stiffness)
 tensor_at(𝕔, x) ⊡ tensor_at(S, x) ≈ one(tensor_at(S, x))
+```
+
+The pattern of a field is a tensor like another, so that its constants are read
+in any form: here Hill's moduli of the wound material given by its engineering
+constants, and the engineering constants of the one given by Hill's moduli.
+
+```@example charts
+hill_moduli(𝕔), ti_constants(C.pattern; form = :engineering, role = :stiffness)
 ```
 
 Fields of the same chart add, and a field is multiplied by a number and
