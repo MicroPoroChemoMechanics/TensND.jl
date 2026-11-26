@@ -196,6 +196,12 @@ pairs vanish:
 | orthotropic | of the rectangle, 2 mirror lines | ``d_{12}' = a' = 0`` in a frame | 4 | `TensOrtho{4,2}` |
 | general | none | — | 6 | `Tens` |
 
+![The four symmetry classes of the tensors of the plane, each with a shape that has its symmetries: a disc, a square with its four mirror lines, a rectangle with its two, and a shape without symmetry; the square and the rectangle carry their frame](../assets/symmetries/plane_classes.svg)
+
+A shape with the symmetries of each class: every line through the center of
+the disc is a mirror line, the square has four, the rectangle two, at the
+axes of its frame.
+
 The orthotropic class has the Kelvin–Mandel matrix, in its frame,
 
 ```math
