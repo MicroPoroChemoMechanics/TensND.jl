@@ -379,8 +379,10 @@ end
     @test get_array(from_mandel(mandel(S2))) ≈ S2
     T2 = Tensor{4, 2}((i, j, k, l) -> 1.0 * (i + 2j) * (k + l))
     @test get_array(from_mandel(mandel(T2))) ≈ T2
+    # Neither d(d+1)/2 nor d² for any dimension d.
     @test_throws DimensionMismatch from_mandel(rand(5, 5))
     @test_throws DimensionMismatch from_mandel(rand(5))
+    @test_throws DimensionMismatch from_mandel(rand(6, 10))
 end
 
 @testsection "zero of a vector, and tensors of dimension 1" begin

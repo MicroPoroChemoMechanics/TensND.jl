@@ -99,6 +99,7 @@ opequal(x, y) = x == y || x ≈ y
 
 include("test_bases.jl")
 include("test_tens.jl")
+include("test_kelvin_mandel.jl")
 include("test_tensor_products.jl")
 include("test_hot_paths.jl")
 include("test_dual_inverse.jl")

@@ -33,44 +33,6 @@
 #      m=2 doublet {(11−22)/√2, 12}    → aI + bG → (ℓ₅, ℓ₈)
 # =============================================================================
 
-# ── Kelvin-Mandel helpers (minor-symmetric, Tensors.jl index convention) ─────
-
-const _MANDEL_IDX = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
-const _MANDEL_IDX_2D = ((1, 1), (2, 2), (1, 2))
-
-# The Kelvin-Mandel components of the minor-symmetric part of a component array,
-# read as it is, with no assumption of major symmetry (a concentration tensor
-# has none), for `mandel(A; symmetrize = true)`. The four entries of a pair are
-# summed two by two, so that on a minor-symmetric array the average is exact:
-# `((a + a) + (a + a)) / 4 == a` to the last bit.
-_minor_part(A, i, j, k, l) = ((A[i, j, k, l] + A[j, i, k, l]) + (A[i, j, l, k] + A[j, i, l, k])) / 4
-_minor_part(A, i, j) = (A[i, j] + A[j, i]) / 2
-
-_mandel_pairs(::Val{3}) = _MANDEL_IDX
-_mandel_pairs(::Val{2}) = _MANDEL_IDX_2D
-
-# The dimension is read from the size, and each branch names its `Val`, so that
-# the result is inferred.
-function _mandel_minor(A::AbstractArray)
-    d = size(A, 1)
-    d == 3 && return _mandel_minor(A, Val(3))
-    d == 2 && return _mandel_minor(A, Val(2))
-    throw(DimensionMismatch("no Kelvin-Mandel form for a component array of size $(size(A))"))
-end
-
-function _mandel_minor(A::AbstractArray{T, 4}, v::Val{dim}) where {T, dim}
-    w = _mandel_weights(T, v)
-    P = _mandel_pairs(v)
-    return [w[I] * w[J] * _minor_part(A, P[I]..., P[J]...) for I in eachindex(P), J in eachindex(P)]
-end
-
-_mandel_minor(A::AbstractArray{T, 2}, v::Val) where {T} =
-    [w * _minor_part(A, P...) for (w, P) in zip(_mandel_weights(T, v), _mandel_pairs(v))]
-
-# The weights of the Kelvin-Mandel slots: one on the normal pairs, √2 on the shear ones.
-_mandel_weights(::Type{T}, ::Val{3}) where {T} = (one(T), one(T), one(T), sqrt(T(2)), sqrt(T(2)), sqrt(T(2)))
-_mandel_weights(::Type{T}, ::Val{2}) where {T} = (one(T), one(T), sqrt(T(2)))
-
 """
     _axis_frame(n) → (R, n̂)
 

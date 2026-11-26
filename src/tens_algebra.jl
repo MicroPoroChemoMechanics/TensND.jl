@@ -61,6 +61,10 @@ end
 # written in. Such a tensor is inverted on the symmetric tensors, as it would
 # be had it been stored symmetric.
 _inv_array(A) = inv(A)
+# A plain array, in dimension 4 and above: the inverse of its Kelvin-Mandel
+# matrix, of the symmetric form or of the form without symmetry as its
+# components have the minor symmetries or not.
+_inv_array(A::Array{T, 4}) where {T} = _from_mandel_array(inv(_mandel_array(A)); dim = size(A, 1))
 _inv_array(A::SymmetricTensor{4, dim, <:ForwardDiff.Dual}) where {dim} =
     frommandel(SymmetricTensor{4, dim}, _inv_matrix(tomandel(SMatrix, A)))
 # Components that do not compare (`Symbolics.Num`, `SymPy.Sym`): Tensors.jl

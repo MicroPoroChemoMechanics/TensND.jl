@@ -1503,7 +1503,7 @@ _ortho_general(t::TensOrtho{4, T, 9}) where {T} =
 # come from.  The identity above is asserted in
 # `test/test_tens_anisotropic.jl`, on a rotated frame — do not "simplify" the √2
 # bookkeeping without re-running it.
-const _KM_PAIR = ((1, 1), (2, 2), (3, 3), (3, 2), (3, 1), (2, 1))
+const _KM_PAIR = map(reverse, _mandel_pairs(Val(3)))      # ((1,1), (2,2), (3,3), (3,2), (3,1), (2,1))
 
 @inline function _km_entry(E, s2, I::Int, J::Int)
     (i, j) = _KM_PAIR[I]

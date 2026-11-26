@@ -18,7 +18,7 @@ using StaticArrays
 # Off-diagonal components are scaled by √2 so that the Frobenius norm is
 # preserved (‖A‖² = Aₖₘ Aₖₘ).  This differs from Voigt notation which
 # uses engineering shear (factor 2 instead of √2).
-const _KM_COUPLES = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
+const _KM_COUPLES = _mandel_pairs(Val(3))
 
 # ── ForwardDiff-compatible rotation helpers ──────────────────────────────────
 
