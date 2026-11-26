@@ -70,7 +70,7 @@ cub = cubic_from_constants(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄�
 | Class | Constructors |
 | :--- | :--- |
 | ISO | [`TensISO`](@ref), [`tens_Id2`](@ref), [`tens_Id4`](@ref), [`tens_J4`](@ref), [`tens_K4`](@ref), [`iso_projectors`](@ref) |
-| TI order 4 | [`TensTI`](@ref), [`ti_from_constants`](@ref), [`iso_to_ti`](@ref), [`tens_W1`](@ref)…[`tens_W8`](@ref), [`walpole_basis`](@ref), [`walpole_basis_sym`](@ref) |
+| TI order 4 | [`TensTI`](@ref), [`ti_from_constants`](@ref), [`hill_moduli`](@ref), [`iso_to_ti`](@ref), [`tens_W1`](@ref)…[`tens_W8`](@ref), [`walpole_basis`](@ref), [`walpole_basis_sym`](@ref) |
 | TI order 2 | [`TensTI`](@ref)`{2}(a, b, n)` and `(a, b, c, n)` |
 | CUBIC | [`TensCubic`](@ref), [`cubic_from_constants`](@ref), [`iso_to_cubic`](@ref) |
 | ORTHO order 4 | [`TensOrtho`](@ref)`{4}(C₁₁, …, C₆₆, frame)` (nine constants) and `(…, C₂₁, C₃₁, C₃₂, frame)` (twelve), `TensOrtho(KM, frame[, Val(12)])`, [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref), [`cubic_to_ortho`](@ref) |

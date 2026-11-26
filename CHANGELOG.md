@@ -1,5 +1,39 @@
 # Changelog
 
+## v0.16.3 — Hill's moduli of a transversely isotropic tensor
+
+A patch release: one form and one function added, nothing existing changes.
+
+### Added
+
+- **`form = :hill`: Hill's moduli `(k, l, m, n, p)`**, in `ti_from_constants`,
+  `ti_constants` and `radial_ti`, next to the components, the engineering
+  constants and Hoenig's parameters. With the axis along `𝐞₃`,
+  `k = (C₁₁₁₁ + C₁₁₂₂)/2`, `l = C₁₁₃₃`, `m = (C₁₁₁₁ − C₁₁₂₂)/2`, `n = C₃₃₃₃` and
+  `p = C₂₃₂₃`: the notation of fiber composites and of layered cylinders and
+  spheres, which was written by hand as `ti_from_constants(k + m, k - m, l, n,
+  p, axis)` wherever it was needed. The moduli are the Walpole coefficients up
+  to a factor (`ℓ₁ = n`, `ℓ₂ = 2k`, `ℓ₃ = √2 l`, `ℓ₅ = 2m`, `ℓ₆ = 2p`), so the
+  round trip is exact. Like the components, they are those of the tensor given:
+  `role` has no effect on them.
+- **`hill_moduli(t)`** reads them by name, `(; k, l, m, n, p)`, from a
+  transversely isotropic tensor, from an isotropic one (about any axis) and
+  from a field `ChartTens` (about the direction its frame carries: the radius
+  for a field of `radial_ti`). A tensor that is not major-symmetric is refused,
+  as in `ti_constants`.
+- Converting between the four forms is building with one and reading with
+  another, for instance
+  `ti_constants(ti_from_constants(k, l, m, n, p, axis; form = :hill); form = :engineering, role = :stiffness)`.
+  Numbers, dual numbers and symbols (SymPy, Symbolics).
+
+### Documentation
+
+- The page *Transversely isotropic parametrizations* gains the Hill form: the
+  law it writes, the loading each modulus measures, and its relations with the
+  Walpole coefficients, the components, the engineering constants, Hoenig's
+  parameters and the isotropic moduli, each one checked on symbols by the page.
+  The manual page *Parametrizations and conversions* shows the conversions.
+
 ## v0.16.2 — the usual notations of a transversely isotropic material for `radial_ti`
 
 A patch release: one keyword added, nothing existing changes.

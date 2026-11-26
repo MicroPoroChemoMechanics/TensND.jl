@@ -430,7 +430,7 @@ end
 # ── TI constants ─────────────────────────────────────────────────────────────
 
 """
-    ti_from_constants(c₁, c₂, c₃, c₄, c₅, n; form = :components) → TensTI{4, T, 5}
+    ti_from_constants(c₁, c₂, c₃, c₄, c₅, n; form = :components, role = :compliance) → TensTI{4, T, 5}
 
 The major-symmetric transversely isotropic tensor of axis `n` given by five
 constants, read according to `form`:
@@ -440,6 +440,13 @@ constants, read according to `form`:
   a stiffness or a compliance alike. Its Walpole coefficients are
   `ℓ₁ = C₃₃₃₃`, `ℓ₂ = C₁₁₁₁ + C₁₁₂₂`, `ℓ₃ = √2 C₁₁₃₃`, `ℓ₅ = C₁₁₁₁ − C₁₁₂₂`,
   `ℓ₆ = 2 C₂₃₂₃`.
+- `:hill`: Hill's moduli `(k, l, m, n, p)` [hill1964](@cite), which are sums and
+  differences of those components: `k = (C₁₁₁₁ + C₁₁₂₂)/2`, `l = C₁₁₃₃`,
+  `m = (C₁₁₁₁ − C₁₁₂₂)/2`, `n = C₃₃₃₃`, `p = C₂₃₂₃`, for a stiffness or a
+  compliance alike. For a stiffness, `k` is the plane-strain bulk modulus, `m`
+  the shear modulus in the plane of isotropy and `p` the shear modulus along the
+  axis. Its Walpole coefficients are `ℓ₁ = n`, `ℓ₂ = 2k`, `ℓ₃ = √2 l`,
+  `ℓ₅ = 2m`, `ℓ₆ = 2p`. [`hill_moduli`](@ref) reads them back by name.
 - `:engineering`: the **compliance** of the engineering constants
   `(E₁, E₃, ν₁₂, ν₃₁, G₃₁)`: the transverse and axial Young's moduli, the
   in-plane and axial-transverse Poisson's ratios (`ν₃₁/E₃ = ν₁₃/E₁`) and the
@@ -449,14 +456,15 @@ constants, read according to `form`:
   [hoenig1978](@cite): `S₁₁₁₁ = 1/E`, `S₁₁₂₂ = −ν₁/E`, `S₁₁₃₃ = −ν₂/E`,
   `S₃₃₃₃ = 1/(E H)`, `S₂₃₂₃ = (1 + ν₁)/(2 E Γ)`.
 
-With `role = :stiffness`, the last two build the **stiffness** of the same
+With `role = :stiffness`, `:engineering` and `:hoenig` build the **stiffness** of the same
 material instead, directly (never through an inverse): with
 ``\\Delta = E_3(1 - \\nu_{12}) - 2E_1\\nu_{31}^2``,
 `C₁₁₁₁ = E₁(E₃ − E₁ν₃₁²)/((1 + ν₁₂)Δ)`, `C₁₁₂₂ = E₁(E₁ν₃₁² + E₃ν₁₂)/((1 + ν₁₂)Δ)`,
 `C₁₁₃₃ = E₁E₃ν₃₁/Δ`, `C₃₃₃₃ = E₃²(1 − ν₁₂)/Δ`, `C₂₃₂₃ = G₃₁`, Hoenig's parameters
 being those of ``E_1 = E``, ``E_3 = EH``, ``\\nu_{12} = \\nu_1``, ``\\nu_{31} = H\\nu_2``,
 ``G_{31} = E\\Gamma/(2(1 + \\nu_1))``. `role` is `:compliance` by default, and has
-no effect on `form = :components`. [`ti_constants`](@ref) reads the constants back.
+no effect on `form = :components` and `form = :hill`. [`ti_constants`](@ref) reads the
+constants back.
 """
 function ti_from_constants end
 
@@ -464,28 +472,30 @@ Base.@constprop :aggressive function ti_from_constants(
         c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components, role::Symbol = :compliance
     )
     form === :components && return _ti_from_components(c₁, c₂, c₃, c₄, c₅, n)
+    form === :hill && return _ti_from_hill(c₁, c₂, c₃, c₄, c₅, n)
     form === :engineering && return _ti_from_components(_components(_role(role), Val(:engineering), c₁, c₂, c₃, c₄, c₅)..., n)
     form === :hoenig && return _ti_from_components(_components(_role(role), Val(:hoenig), c₁, c₂, c₃, c₄, c₅)..., n)
     throw(_unknown_ti_form(form))
 end
 
 """
-    ti_constants(t::TensTI{4}; form = :components) → NTuple{5}
+    ti_constants(t::TensTI{4}; form = :components, role = :compliance) → NTuple{5}
 
 The five constants of a transversely isotropic tensor, the reciprocal of
 [`ti_from_constants`](@ref) for the same `form`: its components
 `(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)` in its axis frame, read from the stored
 Walpole coefficients (`C₃₃₃₃ = ℓ₁`, `C₁₁₁₁ = (ℓ₂ + ℓ₅)/2`,
-`C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`, `C₁₁₃₃ = ℓ₃/√2`, `C₂₃₂₃ = ℓ₆/2`); with
-`form = :engineering`, `(E₁, E₃, ν₁₂, ν₃₁, G₃₁)` of the **compliance** `t`; with
+`C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`, `C₁₁₃₃ = ℓ₃/√2`, `C₂₃₂₃ = ℓ₆/2`); with `form = :hill`,
+Hill's moduli `(k, l, m, n, p)` (`k = ℓ₂/2`, `l = ℓ₃/√2`, `m = ℓ₅/2`, `n = ℓ₁`,
+`p = ℓ₆/2`; see [`hill_moduli`](@ref)); with `form = :engineering`, `(E₁, E₃, ν₁₂, ν₃₁, G₃₁)` of the **compliance** `t`; with
 `form = :hoenig`, `(E, ν₁, ν₂, H, Γ)` of the **compliance** `t`. With
-`role = :stiffness`, those two forms read the constants of the material whose
+`role = :stiffness`, the last two forms read the constants of the material whose
 **stiffness** is `t`, directly (never through an inverse): with
 ``D = C_{1111}C_{3333} - C_{1133}^2``, `E₁ = (C₁₁₁₁ − C₁₁₂₂)(C₁₁₁₁C₃₃₃₃ + C₁₁₂₂C₃₃₃₃ − 2C₁₁₃₃²)/D`,
 `E₃ = C₃₃₃₃ − 2C₁₁₃₃²/(C₁₁₁₁ + C₁₁₂₂)`, `ν₁₂ = (C₁₁₂₂C₃₃₃₃ − C₁₁₃₃²)/D`,
 `ν₃₁ = C₁₁₃₃/(C₁₁₁₁ + C₁₁₂₂)`, `G₃₁ = C₂₃₂₃`, and Hoenig's ``\\nu_2 = E_1\\nu_{31}/E_3``,
 ``H = E_3/E_1``, ``\\Gamma = 2(1 + \\nu_{12})G_{31}/E_1``. `role` is `:compliance` by
-default, and has no effect on `form = :components`.
+default, and has no effect on `form = :components` and `form = :hill`.
 
 A six- or eight-parameter tensor (a product of TI tensors lands there) has
 these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
@@ -497,13 +507,14 @@ function ti_constants end
 
 Base.@constprop :aggressive function ti_constants(t::TensTI{4}; form::Symbol = :components, role::Symbol = :compliance)
     form === :components && return _ti_components(t)
+    form === :hill && return values(hill_moduli(t))
     form === :engineering && return _constants(_role(role), Val(:engineering), _ti_components(t)...)
     form === :hoenig && return _constants(_role(role), Val(:hoenig), _ti_components(t)...)
     throw(_unknown_ti_form(form))
 end
 
 _unknown_ti_form(form) =
-    ArgumentError("unknown form `:$form` of the TI constants; use `:components`, `:engineering` or `:hoenig`")
+    ArgumentError("unknown form `:$form` of the TI constants; use `:components`, `:hill`, `:engineering` or `:hoenig`")
 
 function _ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
     T = promote_type(
@@ -519,7 +530,10 @@ function _ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃�
     return TensTI{4}(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆, n)
 end
 
-function _ti_components(t::TensTI{4})
+# The five-coefficient tensor a major-symmetric TI tensor is, whatever the
+# number of coefficients it is stored on; a tensor that is not is refused.
+_major_symmetric_five(t::TensTI{4, T, 5}) where {T} = t
+function _major_symmetric_five(t::TensTI{4})
     ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = walpole_coeffs(t, Val(8))
     _major_symmetric_ti(ℓ₃ - ℓ₄, ℓ₇, ℓ₈, max(abs(ℓ₁), abs(ℓ₂), abs(ℓ₃), abs(ℓ₅), abs(ℓ₆))) || throw(
         ArgumentError(
@@ -528,8 +542,10 @@ function _ti_components(t::TensTI{4})
                 "symmetric part is meant"
         )
     )
-    return _ti_components(TensTI{4, eltype(t), 5}((ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆), axis(t)))
+    return TensTI{4, eltype(t), 5}((ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆), axis(t))
 end
+
+_ti_components(t::TensTI{4}) = _ti_components(_major_symmetric_five(t))
 
 function _ti_components(t::TensTI{4, T, 5}) where {T}
     ℓ₁, ℓ₂, ℓ₃, _, ℓ₅, ℓ₆ = walpole_coeffs(t)
@@ -540,6 +556,64 @@ function _ti_components(t::TensTI{4, T, 5}) where {T}
     C₁₁₃₃ = ℓ₃ / sq2
     C₂₃₂₃ = ℓ₆ / 2
     return (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
+end
+
+# Hill's moduli are the Walpole coefficients up to a factor: no sum, so that the
+# round trip is exact.
+function _ti_from_hill(k, l, m, n, p, axis)
+    T = promote_type(typeof(k), typeof(l), typeof(m), typeof(n), typeof(p))
+    return TensTI{4}(n, 2 * k, sqrt(convert(sqrt2_eltype(T), 2)) * l, 2 * m, 2 * p, axis)
+end
+
+"""
+    hill_moduli(t::TensTI{4}) → (; k, l, m, n, p)
+    hill_moduli(t::TensISO{4, 3}) → (; k, l, m, n, p)
+    hill_moduli(F::ChartTens) → (; k, l, m, n, p)
+
+Hill's moduli of a major-symmetric transversely isotropic tensor
+[hill1964](@cite), by name: with its components in a frame whose third axis is
+the axis of the tensor,
+
+```math
+k = \\frac{C_{1111} + C_{1122}}{2},\\quad l = C_{1133},\\quad
+m = \\frac{C_{1111} - C_{1122}}{2},\\quad n = C_{3333},\\quad p = C_{2323} ,
+```
+
+read from its Walpole coefficients (`k = ℓ₂/2`, `l = ℓ₃/√2`, `m = ℓ₅/2`,
+`n = ℓ₁`, `p = ℓ₆/2`). An isotropic tensor ``3\\kappa\\,\\mathbb{J} + 2\\mu\\,\\mathbb{K}``
+has ``k = \\kappa + \\mu/3``, ``l = \\kappa - 2\\mu/3``, ``m = p = \\mu`` and
+``n = \\kappa + 4\\mu/3``, about any axis. Of a field [`ChartTens`](@ref), the
+moduli are those of its pattern, about the axis the frame of the chart carries:
+the radial direction for a field built by [`radial_ti`](@ref).
+
+`ti_from_constants(k, l, m, n, p, axis; form = :hill)` builds the tensor back,
+and `ti_constants(t; form = :hill)` returns the same five values as a tuple. A
+tensor that is not major-symmetric is refused, as in [`ti_constants`](@ref).
+
+# Examples
+```jldoctest
+julia> ℂ = ti_from_constants(19.0, 5.0, 11.0, 12.0, 4.0, (0.0, 0.0, 1.0); form = :hill);
+
+julia> hill_moduli(ℂ)
+(k = 19.0, l = 5.0, m = 11.0, n = 12.0, p = 4.0)
+
+julia> ti_constants(ℂ; form = :components)        # (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)
+(30.0, 8.0, 5.0, 12.0, 4.0)
+
+julia> hill_moduli(iso_stiffness(10.0, 3.0))      # κ = 10, μ = 3
+(k = 11.0, l = 8.0, m = 3.0, n = 14.0, p = 3.0)
+```
+"""
+function hill_moduli end
+
+hill_moduli(t::TensTI{4}) = _hill_moduli(_major_symmetric_five(t))
+function _hill_moduli(t::TensTI{4, T, 5}) where {T}
+    ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆ = get_data(t)
+    return (k = ℓ₂ / 2, l = ℓ₃ / sqrt(T(2)), m = ℓ₅ / 2, n = ℓ₁, p = ℓ₆ / 2)
+end
+function hill_moduli(t::TensISO{4, 3})
+    κ, μ = bulk_shear(t)     # t = 3κ 𝕁 + 2μ 𝕂
+    return (k = κ + μ / 3, l = κ - 2 * μ / 3, m = μ, n = κ + 4 * μ / 3, p = μ)
 end
 
 # Whether the major-antisymmetric generators vanish: to rounding against the
@@ -2205,5 +2279,5 @@ export tens_W1, tens_W2, tens_W3, tens_W4, tens_W5, tens_W6, tens_W7, tens_W8
 export walpole_basis, walpole_basis_sym
 export walpole_coeffs, axis, frame, reference, symmetry
 export iso_to_ti, istransverselyisotropic, isorthotropic
-export ti_from_constants, ti_constants
+export ti_from_constants, ti_constants, hill_moduli
 export mandel_material

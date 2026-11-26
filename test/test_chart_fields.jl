@@ -74,6 +74,11 @@ using StaticArrays: SVector
             at(F) = canonical_components(tensor_at(F, x))
             # components: (C_tttt, C_ttt't', C_ttrr, C_rrrr, C_trtr)
             @test collect(get_data(radial_ti(chart, hill.k + hill.m, hill.k - hill.m, hill.l, hill.n, hill.p; form = :components).pattern)) ≈ collect(get_data(radial_ti(chart; hill...).pattern))
+            # Hill's moduli by position, in Hill's order (k, l, m, n, p), and read back
+            F = radial_ti(chart, hill.k, hill.l, hill.m, hill.n, hill.p; form = :hill)
+            @test F == radial_ti(chart; hill...)
+            @test hill_moduli(F) === (k = hill.k, l = hill.l, m = hill.m, n = hill.n, p = hill.p)
+            @test hill_moduli(radial_ti(chart, TensISO{3}(30.0, 6.0))) == hill_moduli(TensISO{3}(30.0, 6.0))
             # engineering constants: a compliance, read by contraction
             S = at(radial_ti(chart, Eₜ, Eᵣ, ν, νᵣₜ, G; form = :engineering))
             @test contraction(S, r, r, r, r) ≈ 1 / Eᵣ
@@ -113,6 +118,8 @@ using StaticArrays: SVector
         # Symbolic moduli stay exact: √2 is the symbolic one.
         n, l, k, m, p = symbols("n l k m p", positive = true)
         @test get_data(radial_ti(SphericalChart(); n, l, k, m, p).pattern) == (n, 2k, sqrt(Sym(2)) * l, 2m, 2p)
+        @test radial_ti(SphericalChart(), k, l, m, n, p; form = :hill) == radial_ti(SphericalChart(); n, l, k, m, p)
+        @test hill_moduli(radial_ti(CylindricalChart(); n, l, k, m, p)) == (; k, l, m, n, p)
         # Symbolic coefficients at a numeric point: the frame is made of numbers.
         K = canonical_components(tensor_at(radial_ti(SphericalChart(), a, b), (0.0, 2.0, 0.0)))
         @test Float64.(N.(subs.(K, a => 1, b => 5))) ≈ [1 0 0; 0 5 0; 0 0 1]

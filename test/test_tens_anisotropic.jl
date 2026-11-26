@@ -1,3 +1,4 @@
+import Symbolics
 # ─── helpers shared across sub-sections ───────────────────────────────────
 # The sections are top-level blocks rather than the body of one enclosing
 # `@testsection`: a top-level block holding loops is compiled as one function,
@@ -1145,4 +1146,109 @@ end
     @test dE3 ≈ 1    # E₃ = C₃₃₃₃ − …, and ℓ₁ = C₃₃₃₃
     stiff_eng(t) = ti_constants(t; form = :engineering, role = :stiffness)
     @test (@inferred stiff_eng(C0)) isa NTuple{5, Float64}
+end
+
+# ═══════════════════════════════════════════════════════════════════════════
+# Hill's moduli (k, l, m, n, p). References independent of the code under test:
+# the components read by contraction with a frame drawn about a random axis; the
+# compliance obtained by `inv`, whose components give the engineering constants;
+# the isotropic tensor.
+@testsection "Walpole & Ortho tensors: Hill's moduli" begin
+    rng = Xoshiro(20261126)
+    contraction(C, a, b, c, d) = sum(C[i, j, k, l] * a[i] * b[j] * c[k] * d[l] for i in 1:3, j in 1:3, k in 1:3, l in 1:3)
+    for _ in 1:20
+        e₃ = normalize(randn(rng, 3))
+        e₁ = normalize(cross(e₃, randn(rng, 3)))
+        e₂ = cross(e₃, e₁)
+        m, p = 0.1 + rand(rng), 0.1 + rand(rng)
+        k, n = 1 + rand(rng), 1 + rand(rng)
+        l = (2 * rand(rng) - 1) * sqrt(k * n) / 2          # k n > l²: positive definite
+        ℂ = ti_from_constants(k, l, m, n, p, e₃; form = :hill)
+        @test ℂ isa TensTI{4, Float64, 5}
+        C = canonical_components(ℂ)
+        @test (contraction(C, e₁, e₁, e₁, e₁) + contraction(C, e₁, e₁, e₂, e₂)) / 2 ≈ k
+        @test contraction(C, e₁, e₁, e₃, e₃) ≈ l
+        @test (contraction(C, e₁, e₁, e₁, e₁) - contraction(C, e₁, e₁, e₂, e₂)) / 2 ≈ m
+        @test contraction(C, e₁, e₂, e₁, e₂) ≈ m
+        @test contraction(C, e₃, e₃, e₃, e₃) ≈ n
+        @test contraction(C, e₂, e₃, e₂, e₃) ≈ p
+        # Read back: by name, as a tuple, to the last bit; `role` has no effect.
+        h = hill_moduli(ℂ)
+        @test keys(h) == (:k, :l, :m, :n, :p)
+        @test values(h) === ti_constants(ℂ; form = :hill) === ti_constants(ℂ; form = :hill, role = :stiffness)
+        @test h.k == k && h.m == m && h.n == n && h.p == p && h.l ≈ l
+        @test ti_from_constants(k, l, m, n, p, e₃; form = :hill, role = :stiffness) == ℂ
+        # The other forms of the same tensor.
+        @test collect(ti_constants(ℂ)) ≈ [k + m, k - m, l, n, p]
+        @test ti_from_constants(k + m, k - m, l, n, p, e₃) ≈ ℂ
+        # The engineering constants of the material whose stiffness is ℂ, from
+        # the components of its compliance.
+        S = canonical_components(inv(ℂ))
+        E₁, E₃, ν₁₂, ν₃₁, G₃₁ = ti_constants(ℂ; form = :engineering, role = :stiffness)
+        @test E₃ ≈ 1 / contraction(S, e₃, e₃, e₃, e₃) ≈ n - l^2 / k
+        @test E₁ ≈ 1 / contraction(S, e₁, e₁, e₁, e₁) ≈ 4 * m * (k * n - l^2) / ((k + m) * n - l^2)
+        @test ν₃₁ ≈ -E₃ * contraction(S, e₁, e₁, e₃, e₃) ≈ l / (2k)
+        @test ν₁₂ ≈ -E₁ * contraction(S, e₁, e₁, e₂, e₂) ≈ ((k - m) * n - l^2) / ((k + m) * n - l^2)
+        @test G₃₁ ≈ p
+        # … and back to Hill's moduli through each form and each role.
+        for form in (:engineering, :hoenig)
+            back = ti_from_constants(ti_constants(ℂ; form, role = :stiffness)..., e₃; form, role = :stiffness)
+            @test collect(values(hill_moduli(back))) ≈ [k, l, m, n, p]
+            𝕊 = ti_from_constants(ti_constants(ℂ; form, role = :stiffness)..., e₃; form)
+            @test collect(values(hill_moduli(inv(𝕊)))) ≈ [k, l, m, n, p]
+        end
+        # A product of TI tensors is stored on six coefficients: read when it is
+        # major-symmetric, refused otherwise.
+        @test collect(values(hill_moduli(ℂ ⊡ one(ℂ)))) ≈ [k, l, m, n, p]
+        @test_throws "not major-symmetric" hill_moduli(ℂ ⊡ ti_from_constants(n, l / 2, p, k, m, e₃; form = :hill))
+    end
+
+    # The isotropic tensor, about any axis.
+    κ, μ = 10.0, 3.0
+    iso = hill_moduli(iso_stiffness(κ, μ))
+    @test collect(values(iso)) ≈ [κ + μ / 3, κ - 2μ / 3, μ, κ + 4μ / 3, μ]
+    @test canonical_components(ti_from_constants(iso..., normalize([1.0, -2.0, 0.5]); form = :hill)) ≈ canonical_components(iso_stiffness(κ, μ))
+    @test collect(values(hill_moduli(iso_to_ti(iso_stiffness(κ, μ), _WO_N3)))) ≈ collect(values(iso))
+
+    # Inferred, for numbers and for dual numbers.
+    from_hill(k) = ti_from_constants(k, 5.0, 11.0, 12.0, 4.0, (0.0, 0.0, 1.0); form = :hill)
+    @test (@inferred from_hill(19.0)) isa TensTI{4, Float64, 5}
+    @test (@inferred hill_moduli(from_hill(19.0))) === (k = 19.0, l = 5.0, m = 11.0, n = 12.0, p = 4.0)
+    @test (@inferred hill_moduli(iso_stiffness(κ, μ))) isa NamedTuple{(:k, :l, :m, :n, :p), NTuple{5, Float64}}
+    # Integers keep an exact tensor: only `l` meets √2.
+    @test hill_moduli(ti_from_constants(19, 5, 11, 12, 4, (0, 0, 1); form = :hill)) == (k = 19.0, l = 5.0, m = 11.0, n = 12.0, p = 4.0)
+
+    # Derivatives, against the closed forms above: first order, then nested.
+    E₃(k, l, n) = ti_constants(ti_from_constants(k, l, 11.0, n, 4.0, (0.0, 0.0, 1.0); form = :hill); form = :engineering, role = :stiffness)[2]
+    @test ForwardDiff.gradient(x -> E₃(x...), [19.0, 5.0, 12.0]) ≈ [5.0^2 / 19.0^2, -2 * 5.0 / 19.0, 1.0]
+    @test ForwardDiff.derivative(l -> ForwardDiff.derivative(k -> E₃(k, l, 12.0), 19.0), 5.0) ≈ 2 * 5.0 / 19.0^2
+    @test ForwardDiff.derivative(k -> hill_moduli(inv(inv(from_hill(k)))).k, 19.0) ≈ 1
+    @test ForwardDiff.derivative(κ -> hill_moduli(iso_stiffness(κ, μ)).l, κ) ≈ 1
+
+    # Exactly, on SymPy symbols.
+    k, l, m, n, p = symbols("k l m n p", positive = true)
+    ℂ = ti_from_constants(k, l, m, n, p, _WO_N3S; form = :hill)
+    @test get_data(ℂ) == (n, 2k, sqrt(Sym(2)) * l, 2m, 2p)
+    @test all(iszero, simplify.(collect(values(hill_moduli(ℂ))) .- [k, l, m, n, p]))
+    @test all(iszero, simplify.(collect(ti_constants(ℂ)) .- [k + m, k - m, l, n, p]))
+    E₁, E₃ˢ, ν₁₂, ν₃₁, G₃₁ = ti_constants(ℂ; form = :engineering, role = :stiffness)
+    @test iszero(simplify(E₃ˢ - (n - l^2 / k))) && iszero(simplify(ν₃₁ - l / (2k))) && G₃₁ == p
+    @test iszero(simplify(E₁ - 4 * m * (k * n - l^2) / ((k + m) * n - l^2)))
+    @test iszero(simplify(ν₁₂ - ((k - m) * n - l^2) / ((k + m) * n - l^2)))
+    # The compliance has Hill's "moduli" too: those of its own components.
+    hS = hill_moduli(inv(ℂ))
+    @test iszero(simplify(hS.n - k / (k * n - l^2))) && iszero(simplify(hS.k - n / (4 * (k * n - l^2))))
+    @test iszero(simplify(hS.l + l / (2 * (k * n - l^2)))) && iszero(simplify(hS.m - 1 / (4m))) && iszero(simplify(hS.p - 1 / (4p)))
+    κˢ, μˢ = symbols("kappa mu", positive = true)
+    @test all(iszero, simplify.(collect(values(hill_moduli(iso_stiffness(κˢ, μˢ)))) .- [κˢ + μˢ / 3, κˢ - 2μˢ / 3, μˢ, κˢ + 4μˢ / 3, μˢ]))
+
+    # And on Symbolics' ones.
+    Symbolics.@variables kₛ lₛ mₛ nₛ pₛ
+    ℂₛ = ti_from_constants(kₛ, lₛ, mₛ, nₛ, pₛ, (0, 0, 1); form = :hill)
+    @test eltype(ℂₛ) === Symbolics.Num
+    at = Dict(kₛ => 19.0, lₛ => 5.0, mₛ => 11.0, nₛ => 12.0, pₛ => 4.0)
+    num(x) = Symbolics.value(Symbolics.substitute(x, at; fold = Val(true)))
+    @test collect(num.(values(hill_moduli(ℂₛ)))) ≈ [19.0, 5.0, 11.0, 12.0, 4.0]
+    @test collect(num.(ti_constants(ℂₛ; form = :hill))) ≈ [19.0, 5.0, 11.0, 12.0, 4.0]
+    @test collect(num.(ti_constants(ℂₛ))) ≈ [30.0, 8.0, 5.0, 12.0, 4.0]
 end
