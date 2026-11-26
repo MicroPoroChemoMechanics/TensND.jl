@@ -114,6 +114,7 @@ include("test_tens_distances.jl")
 include("test_tens_anisotropic.jl")
 include("test_tens_cubic.jl")
 include("test_plane_classes.jl")
+include("test_plane_projection.jl")
 include("test_coefficient_types.jl")
 # The twelve-constant orthotropic form, without major symmetry.
 include("test_ortho_general.jl")

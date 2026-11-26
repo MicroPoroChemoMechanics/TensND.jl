@@ -983,6 +983,7 @@ false
 ```
 """
 function istransverselyisotropic(A::AbstractArray, n; ε = 1.0e-6)
+    size(A, 1) == 2 && _no_plane_ti()
     _, _, drel = project(A, Val(:TI), n)
     return drel < ε
 end
@@ -997,6 +998,7 @@ eigendecomposition of `A` and check the residual.  With
 See also [`istransverselyisotropic(A, n)`](@ref), `_candidate_TI_axis`.
 """
 function istransverselyisotropic(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
+    size(A, 1) == 2 && _no_plane_ti()
     if optimize_angles
         _, _, drel = project(A, Val(:TI))
     else
@@ -1012,7 +1014,7 @@ end
 Return `true` when `A` is orthotropic in the given material frame up to
 relative tolerance `ε` (closed-form projection on the fixed frame).
 """
-function isorthotropic(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+function isorthotropic(A::AbstractArray, frame::OrthonormalBasis; ε = 1.0e-6)
     _, _, drel = project(A, Val(:ORTHO), frame)
     return drel < ε
 end
@@ -1025,7 +1027,8 @@ eigendecomposition and check the residual.  With `optimize_angles=true`,
 searches the frame (`project(A, :ORTHO)`).
 """
 function isorthotropic(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
-    if optimize_angles
+    # In the plane the best frame is exact and costs one projection.
+    if optimize_angles || size(A, 1) == 2
         _, _, drel = project(A, Val(:ORTHO))
     else
         frame = _candidate_ORTHO_frame(A)
@@ -1077,13 +1080,15 @@ _rotation_to_canon(ℬ::OrthonormalBasis) = Matrix(vecbasis(ℬ))
 
 # The frame vectors as the columns of a static matrix: read in hot loops
 # (`symmetry_basis`), so never a heap copy.
-_frame_matrix(::CanonicalBasis{dim, T}) where {dim, T} = SMatrix{dim, dim, T}(I)
+# `one(T) * I`, not `I`: the entries of `I` are booleans, which a symbolic type
+# converts to logical constants that no product accepts.
+_frame_matrix(::CanonicalBasis{dim, T}) where {dim, T} = SMatrix{dim, dim, T}(one(T) * I)
 _frame_matrix(ℬ::OrthonormalBasis{dim}) where {dim} = SMatrix{dim, dim}(vecbasis(ℬ, Val(:cov)))
 
 # A canonical axis or frame, in the frame of `Q`.
 _to_frame(::Nothing, x) = x
 _to_frame(Q::AbstractMatrix, n) = transpose(Q) * collect(_extract_vec(n))
-_to_frame(Q::AbstractMatrix, f::OrthonormalBasis{3}) =
+_to_frame(Q::AbstractMatrix, f::OrthonormalBasis) =
     RotatedBasis(transpose(Q) * _frame_matrix(f))
 
 # A projection computed in the frame of `Q`, with its axis or frame in canonical
@@ -1097,8 +1102,8 @@ function _from_frame(Q::AbstractMatrix, P::TensTI{order, T, N}) where {order, T,
 end
 _from_frame(Q::AbstractMatrix, P::TensOrtho) =
     _rebuild_frame(P, RotatedBasis(Q * _frame_matrix(frame(P))))
-_from_frame(Q::AbstractMatrix, P::TensCubic{3}) =
-    TensCubic{3, eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
+_from_frame(Q::AbstractMatrix, P::TensCubic{dim}) where {dim} =
+    TensCubic{dim, eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
 
 _from_frame(Q::AbstractMatrix, (P, d, drel)::Tuple) = (_from_frame(Q, P), d, drel)
 
@@ -1110,14 +1115,13 @@ end
 project(t::AbstractTens, v::Val{:ISO}) = project(first(_orthonormal_components(t)), v)
 project(t::AbstractTens{4, dim, T}, v::Val{:TI}, n) where {dim, T} = _proj_in_frame(v, t, n)
 project(t::AbstractTens{2, dim, T}, v::Val{:TI}, n) where {dim, T} = _proj_in_frame(v, t, n)
-project(t::AbstractTens{4, dim, T}, v::Val{:ORTHO}, frame::OrthonormalBasis{3}) where {dim, T} =
-    _proj_in_frame(v, t, frame)
-project(t::AbstractTens{2, dim, T}, v::Val{:ORTHO}, frame::OrthonormalBasis{3}) where {dim, T} =
-    _proj_in_frame(v, t, frame)
-project(t::AbstractTens{4, dim, T}, v::Val{:CUBIC}, frame::OrthonormalBasis{3}) where {dim, T} =
-    _proj_in_frame(v, t, frame)
-project(t::AbstractTens{2, dim, T}, v::Val{:CUBIC}, frame::OrthonormalBasis{3}) where {dim, T} =
-    _proj_in_frame(v, t, frame)
+# One method per dimension: the frame of the kernels is that of a given
+# dimension, and a dimension shared by a type variable would be less specific
+# than they are on that argument.
+for d in (2, 3), order in (2, 4), class in (:ORTHO, :CUBIC)
+    @eval project(t::AbstractTens{$order, $d}, v::Val{$(QuoteNode(class))}, frame::OrthonormalBasis{$d}) =
+        _proj_in_frame(v, t, frame)
+end
 # The searches, axis or frame free. Without these, `project(t, :TI)` reached
 # the array kernel with `t` itself, read in its own basis as if canonical. The
 # element-type bound matches the kernels', so each wrapper is strictly more
@@ -1140,7 +1144,7 @@ The **value-level** companion of the type-level `iscubic(::TensCubic)`, exactly
 as for [`isisotropic`](@ref), [`istransverselyisotropic`](@ref) and [`isorthotropic`](@ref): the first asks
 what the components say, the second what the container guarantees.
 """
-function iscubic(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+function iscubic(A::AbstractArray, frame::OrthonormalBasis; ε = 1.0e-6)
     _, _, drel = project(A, Val(:CUBIC), frame)
     return drel ≤ ε
 end
@@ -1177,14 +1181,14 @@ isorthotropic(t::AbstractTens, frame; kwargs...) =
 # taking an `OrthonormalBasis{3}` are each more specific on one argument and
 # less on the other. Unwrapping first is what the wrapper is for; saying it for
 # this combination resolves the pair.
-isorthotropic(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+isorthotropic(t::AbstractTens, frame::OrthonormalBasis; kwargs...) =
     _in_frame(t, (A, Q) -> isorthotropic(A, _to_frame(Q, frame); kwargs...))
 isorthotropic(t::AbstractTens; kwargs...) = isorthotropic(first(_orthonormal_components(t)); kwargs...)
 iscubic(t::AbstractTens, frame; kwargs...) =
     _in_frame(t, (A, Q) -> iscubic(A, _to_frame(Q, frame); kwargs...))
 # Same disambiguation as `isorthotropic` just above: `AbstractTens <: AbstractArray`,
 # so the wrapper and the worker are each more specific on one argument.
-iscubic(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+iscubic(t::AbstractTens, frame::OrthonormalBasis; kwargs...) =
     _in_frame(t, (A, Q) -> iscubic(A, _to_frame(Q, frame); kwargs...))
 iscubic(t::AbstractTens; kwargs...) = iscubic(first(_orthonormal_components(t)); kwargs...)
 
@@ -1313,8 +1317,8 @@ material `frame` — the projection component of [`project`](@ref)`(
 Val(:ORTHO), t, frame)`. Same caveat as [`best_fit_ti`](@ref): a fit, not an
 average.
 """
-best_fit_ortho(t::AbstractTens{4, 3}, frame) = project(t, Val(:ORTHO), frame)[1]
-best_fit_ortho(t::AbstractTens{2, 3}, frame) = project(t, Val(:ORTHO), frame)[1]
+best_fit_ortho(t::AbstractTens{4}, frame) = project(t, Val(:ORTHO), frame)[1]
+best_fit_ortho(t::AbstractTens{2}, frame) = project(t, Val(:ORTHO), frame)[1]
 
 """
     best_fit_cubic(t::AbstractTens{4,3}, frame) -> TensCubic
@@ -1331,8 +1335,8 @@ everything outside the class, and `project` reports how much.
 
 At order two it returns an isotropic tensor, the two classes coinciding there.
 """
-best_fit_cubic(t::AbstractTens{4, 3}, frame) = project(t, Val(:CUBIC), frame)[1]
-best_fit_cubic(t::AbstractTens{2, 3}, frame) = project(t, Val(:CUBIC), frame)[1]
+best_fit_cubic(t::AbstractTens{4}, frame) = project(t, Val(:CUBIC), frame)[1]
+best_fit_cubic(t::AbstractTens{2}, frame) = project(t, Val(:CUBIC), frame)[1]
 
 # ── Exports ──────────────────────────────────────────────────────────────────
 
