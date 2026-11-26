@@ -38,7 +38,7 @@ tutorials = ["tut-green-function", "tut-sphere-problems"]
 [[subject]]
 name = "Walpole basis and transverse isotropy"
 theory = ["th-walpole", "th-ti-parametrizations"]
-manual = ["man-structured", "man-parametrizations"]
+manual = ["man-structured", "man-parametrizations", "man-symbolic-materials"]
 tutorials = ["tut-walpole", "tut-hill-tensors"]
 
 [[subject]]
@@ -110,7 +110,7 @@ tutorials = ["tut-ad-interop", "tut-performance", "tut-symbolic-operators", "tut
 [[subject]]
 name = "Elastic moduli"
 theory = ["th-isotropic"]
-manual = ["man-elastic-moduli", "man-parametrizations"]
+manual = ["man-elastic-moduli", "man-parametrizations", "man-symbolic-materials"]
 tutorials = []
 
 [[subject]]

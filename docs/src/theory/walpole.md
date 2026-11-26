@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [Isotropic tensors](@ref th-isotropic)
 
-    **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations)
+    **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations) · [Symbolic tensors of a material symmetry](@ref man-symbolic-materials)
 
     **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [Elastic Green's functions](@ref tut-green-function) · [A two-point Green tensor between offset frames](@ref tut-cluster)
 

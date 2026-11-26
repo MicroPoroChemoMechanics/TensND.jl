@@ -26,7 +26,15 @@ A patch release: one form and one method added, nothing existing changes.
 ### Documentation
 
 - The pages on the transversely isotropic parametrizations list five forms, and
-  the manual says which of the three lengths of `walpole_coeffs` serves what.
+  the manual says which of the three lengths of `walpole_coeffs` serves what,
+  with warnings on the order of each form, on the factors the Walpole
+  coefficients carry and on five coefficients against six.
+- A manual page, *Symbolic tensors of a material symmetry*, builds an
+  isotropic, a cubic, a transversely isotropic and an orthotropic tensor with
+  symbols, in each notation, and shows each one as its Kelvin–Mandel matrix:
+  what a constructor takes, in which order, and whether it builds a stiffness
+  or a compliance (`role`), with a tensor read under the wrong role, a tilted
+  axis, and the passage to numbers and to derivatives.
 
 ## v0.16.3 — Hill's moduli of a transversely isotropic tensor
 

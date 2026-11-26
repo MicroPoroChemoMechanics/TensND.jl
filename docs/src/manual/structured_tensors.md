@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [Isotropic tensors](@ref th-isotropic) · [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [Orthotropy](@ref th-orthotropy) · [Cubic symmetry](@ref th-cubic)
 
-    **Manual**: [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations) · [Projection and symmetry detection](@ref man-projection)
+    **Manual**: [Elastic moduli](@ref man-elastic-moduli) · [Parametrizations and conversions](@ref man-parametrizations) · [Symbolic tensors of a material symmetry](@ref man-symbolic-materials) · [Projection and symmetry detection](@ref man-projection)
 
     **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [Projection and symmetry detection](@ref tut-projection) · [A two-point Green tensor between offset frames](@ref tut-cluster)
 

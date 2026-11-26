@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [The Walpole basis](@ref th-walpole)
 
-    **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations)
+    **Manual**: [Structured tensors](@ref man-structured) · [Parametrizations and conversions](@ref man-parametrizations) · [Symbolic tensors of a material symmetry](@ref man-symbolic-materials)
 
     **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors)
 

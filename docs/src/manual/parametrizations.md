@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [The Walpole basis](@ref th-walpole) · [Transversely isotropic parametrizations](@ref th-ti-parametrizations) · [The extended Walpole algebra](@ref th-walpole-extended) · [Isotropic tensors](@ref th-isotropic)
 
-    **Manual**: [Structured tensors](@ref man-structured) · [Elastic moduli](@ref man-elastic-moduli)
+    **Manual**: [Structured tensors](@ref man-structured) · [Symbolic tensors of a material symmetry](@ref man-symbolic-materials) · [Elastic moduli](@ref man-elastic-moduli)
 
     **Tutorials**: [The Walpole basis end to end](@ref tut-walpole) · [Acoustic and Hill tensors](@ref tut-hill-tensors) · [The eight-dimensional axially invariant space](@ref tut-walpole-extended)
 
@@ -171,7 +171,11 @@ are those of the tensor given, whatever it is.
 
 !!! warning "A role is the caller's to give"
     Nothing in a `TensTI` tells a stiffness from a compliance. Read with the
-    wrong `role`, a tensor gives the constants of another material.
+    wrong `role`, a tensor gives the constants of another material, and a
+    stiffness entered by its engineering constants without `role = :stiffness`
+    is built as a compliance, without any error.
+    [Symbolic tensors of a material symmetry](@ref man-symbolic-materials)
+    shows each case on symbols, with the matrix that is built.
 
 ## Walpole coefficients
 

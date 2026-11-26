@@ -3,7 +3,7 @@
 !!! tip "See also"
     **Theory**: [Isotropic tensors](@ref th-isotropic)
 
-    **Manual**: [Structured tensors](@ref man-structured) · [Symbolic and numeric](@ref man-symbolic-numeric) · [Parametrizations and conversions](@ref man-parametrizations)
+    **Manual**: [Structured tensors](@ref man-structured) · [Symbolic and numeric](@ref man-symbolic-numeric) · [Parametrizations and conversions](@ref man-parametrizations) · [Symbolic tensors of a material symmetry](@ref man-symbolic-materials)
 
     **Tutorials**: [Elastic Green's functions](@ref tut-green-function) · [The elastic sphere, solved symbolically](@ref tut-sphere-problems) · [Differentiation and interoperability](@ref tut-ad-interop) · [Performance of the structured types](@ref tut-performance) · [Differential operators, symbolically](@ref tut-symbolic-operators)
 

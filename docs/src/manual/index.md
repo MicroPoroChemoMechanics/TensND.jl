@@ -12,7 +12,7 @@ The Manual says how to call the package, one kind of object per page, on the sma
 
 ## Material symmetries
 
-[Structured tensors](@ref man-structured) stores isotropic, transversely isotropic, cubic and orthotropic tensors with their few constants and computes their products and inverses. [Parametrizations and conversions](@ref man-parametrizations) moves between components, engineering constants and ratios for one symmetry class. [Elastic moduli](@ref man-elastic-moduli) builds an isotropic stiffness or compliance from any pair of moduli and reads any modulus from either tensor, in three and two dimensions. [Projection and symmetry detection](@ref man-projection) finds the closest tensor of a given symmetry class, with the orientation given or optimized, and detects the class of a tensor.
+[Structured tensors](@ref man-structured) stores isotropic, transversely isotropic, cubic and orthotropic tensors with their few constants and computes their products and inverses. [Parametrizations and conversions](@ref man-parametrizations) moves between components, engineering constants and ratios for one symmetry class. [Elastic moduli](@ref man-elastic-moduli) builds an isotropic stiffness or compliance from any pair of moduli and reads any modulus from either tensor, in three and two dimensions. [Projection and symmetry detection](@ref man-projection) finds the closest tensor of a given symmetry class, with the orientation given or optimized, and detects the class of a tensor. [Symbolic tensors of a material symmetry](@ref man-symbolic-materials) builds a tensor of each class with symbols, in each notation, and shows it as its matrix: what a constructor takes, in which order, and whether it builds a stiffness or a compliance.
 
 ## Coordinate systems
 
