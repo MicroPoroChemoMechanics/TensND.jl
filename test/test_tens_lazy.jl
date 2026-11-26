@@ -92,7 +92,7 @@ _lz_id4f(d) = [_lz_δ(i, k) * _lz_δ(j, l) for i in 1:d, j in 1:d, k in 1:d, l i
     @testsection "Products and contractions of the zero tensor" begin
         partners = (
             A, C, v, TensISO{3}(2.0), TensISO{3}(2.0, 1.0), rand(rng, TensTI{2}), rand(rng, TensTI{4}),
-            rand(rng, TensOrtho{2}), rand(rng, TensOrtho{4}), rand(rng, TensCubic),
+            rand(rng, TensOrtho{2, 3}), rand(rng, TensOrtho{4, 3}), rand(rng, TensCubic),
         )
         for (op, n) in ((dot, 1), (dcontract, 2), (qcontract, 4), (otimes, 0), (Tensors.otimesu, 0), (TensND.otimesul, 0), (TensND.sotimes, 0))
             for B in partners, Z in (TensZero{get_order(B), 3, Float64}(), TensZero{4, 3, Float64}())
@@ -115,7 +115,7 @@ _lz_id4f(d) = [_lz_δ(i, k) * _lz_δ(j, l) for i in 1:d, j in 1:d, k in 1:d, l i
     @testsection "Contractions of the identities" begin
         λ₂, λ₄ = 𝟏.λ, 𝕀.λ
         # λ 𝟏 ⋅ 𝐁 = λ 𝐁, on either side, whatever the order of 𝐁
-        for B in (v, A, C, TensISO{3}(2.0), rand(rng, TensTI{2}), rand(rng, TensOrtho{2}), TensISO{3}(2.0, 1.0), rand(rng, TensTI{4}), rand(rng, TensOrtho{4}), rand(rng, TensCubic))
+        for B in (v, A, C, TensISO{3}(2.0), rand(rng, TensTI{2}), rand(rng, TensOrtho{2, 3}), TensISO{3}(2.0, 1.0), rand(rng, TensTI{4}), rand(rng, TensOrtho{4, 3}), rand(rng, TensCubic))
             @test _lz_full(dot(𝟏, B)) ≈ λ₂ * _lz_full(B)
             @test _lz_full(dot(B, 𝟏)) ≈ λ₂ * _lz_full(B)
         end
@@ -133,7 +133,7 @@ _lz_id4f(d) = [_lz_δ(i, k) * _lz_δ(j, l) for i in 1:d, j in 1:d, k in 1:d, l i
         @test _lz_full(dcontract(𝕀, C)) ≈ λ₄ * (c + permutedims(c, (2, 1, 3, 4))) / 2
         @test _lz_full(dcontract(C, 𝕀)) ≈ λ₄ * (c + permutedims(c, (1, 2, 4, 3))) / 2
         # a tensor symmetric by its type comes back multiplied, not formed
-        for B in (S, TensISO{3}(2.0), TensISO{3}(2.0, 1.0), rand(rng, TensTI{2}), rand(rng, TensTI{4}), rand(rng, TensOrtho{2}), rand(rng, TensOrtho{4}), rand(rng, TensCubic))
+        for B in (S, TensISO{3}(2.0), TensISO{3}(2.0, 1.0), rand(rng, TensTI{2}), rand(rng, TensTI{4}), rand(rng, TensOrtho{2, 3}), rand(rng, TensOrtho{4, 3}), rand(rng, TensCubic))
             @test dcontract(𝕀, B) ≈ λ₄ * B
             @test dcontract(B, 𝕀) ≈ λ₄ * B
             @test _lz_full(dcontract(𝟏, B)) ≈ λ₂ * (get_order(B) == 2 ? tr(_lz_full(B)) : _lz_full(dcontract(TensISO{3}(1.0), B)))
@@ -207,7 +207,7 @@ _lz_id4f(d) = [_lz_δ(i, k) * _lz_δ(j, l) for i in 1:d, j in 1:d, k in 1:d, l i
         @test _lz_full(dcontract(A, 𝕀ᶠ)) ≈ λ * _lz_full(A)
         @test _lz_full(dcontract(𝕀ᶠ, C)) ≈ λ * _lz_full(C)
         @test _lz_full(dcontract(C, 𝕀ᶠ)) ≈ λ * _lz_full(C)
-        for B in (TensISO{3}(2.0, 1.0), rand(rng, TensTI{4}), rand(rng, TensOrtho{4}), rand(rng, TensCubic))
+        for B in (TensISO{3}(2.0, 1.0), rand(rng, TensTI{4}), rand(rng, TensOrtho{4, 3}), rand(rng, TensCubic))
             @test dcontract(𝕀ᶠ, B) ≈ λ * B && dcontract(B, 𝕀ᶠ) ≈ λ * B
         end
         # products of identities, against their components

@@ -27,8 +27,8 @@ import Symbolics
         "TI order 4" => ti6,
         "TI order 4, symmetric" => () -> TensTI{4}(3 + rand(rng), 2 + rand(rng), rand(rng), 1 + rand(rng), 1 + rand(rng), axis),
         "TI order 2" => () -> TensTI{2}(1 + rand(rng), 2 + rand(rng), axis),
-        "ortho order 4" => () -> TensOrtho{4, Float64}(ortho9(), frame),
-        "ortho order 2" => () -> TensOrtho{2, Float64}((1 + rand(rng), 2 + rand(rng), 3 + rand(rng)), frame),
+        "ortho order 4" => () -> TensOrtho{4, 3, Float64}(ortho9(), frame),
+        "ortho order 2" => () -> TensOrtho{2, 3, Float64}((1 + rand(rng), 2 + rand(rng), 3 + rand(rng)), frame),
     ]
     dense(X) = canonical_components(generic_tens(X))
     matrix(X) = get_order(X) == 4 ? mandel(generic_tens(X)) : Matrix(dense(X))
@@ -57,7 +57,7 @@ import Symbolics
     end
     # A matrix outside the class has a residual off the blocks.
     ti = TensTI{4}(4.0, 3.0, 1.0, 2.0, 5.0, axis)
-    M = matrix(TensOrtho{4, Float64}(ortho9(), frame))
+    M = matrix(TensOrtho{4, 3, Float64}(ortho9(), frame))
     @test !isapprox(symmetry_matrix(ti, symmetry_blocks(ti, M)), M; rtol = 1.0e-3)
     @test_throws DimensionMismatch symmetry_blocks(ti, zeros(3, 3))
 end
@@ -83,8 +83,8 @@ end
     @test isequal(Symbolics.simplify(bm[1][1] - α; expand = true), 0)
     @test isequal(Symbolics.simplify(bm[2][1] - β; expand = true), 0)
     # Duals through the matrix of components, in a rotated frame.
-    f = TensOrtho{2, Float64}((1.0, 2.0, 3.0), random_basis(Xoshiro(7)))
-    fx(x) = symmetry_blocks(TensOrtho{2, typeof(x)}((x, x^2, 2.0), f.frame))
+    f = TensOrtho{2, 3, Float64}((1.0, 2.0, 3.0), random_basis(Xoshiro(7)))
+    fx(x) = symmetry_blocks(TensOrtho{2, 3, typeof(x)}((x, x^2, 2.0), f.frame))
     dm = ForwardDiff.derivative(x -> symmetry_blocks(f, symmetry_matrix(f, fx(x)))[2][1], 3.0)
     @test dm ≈ 6.0
 end

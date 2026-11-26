@@ -226,9 +226,14 @@ end
 #
 # A cubic tensor is therefore isotropic on average whatever its anisotropy —
 # `cubic_anisotropy` measures precisely what this discards.
-function isotropify(t::TensCubic)
+function isotropify(t::TensCubic{3})
     α, β, γ = get_data(t)
     return TensISO{3}(α, (2β + 3γ) / 5)
+end
+# In the plane 𝔼 and 𝕋 have trace 1 each, 𝕂 trace 2.
+function isotropify(t::TensCubic{2})
+    α, β, γ = get_data(t)
+    return TensISO{2}(α, (β + γ) / 2)
 end
 
 isotropify(t::TensISO{4, 3}) = t

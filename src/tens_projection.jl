@@ -687,10 +687,10 @@ end
 # ── project : ORTHO, order 4, fixed frame ──────────────────────────────────
 
 """
-    project(A::AbstractArray{T,4}, ::Val{:ORTHO}, frame::OrthonormalBasis{3}) → (TensOrtho{4,T,9}, d, drel)
+    project(A::AbstractArray{T,4}, ::Val{:ORTHO}, frame::OrthonormalBasis{3}) → (TensOrtho{4, 3,T,9}, d, drel)
 
 Project a 4th-order tensor `A` (3×3×3×3) onto the orthotropic subspace with
-fixed material frame `frame`. Returns a `TensOrtho{4,T,9}`.
+fixed material frame `frame`. Returns a `TensOrtho{4, 3,T,9}`.
 
 # Examples
 ```jldoctest
@@ -730,7 +730,7 @@ end
 # ── project : CUBIC, order 4, fixed cube frame ─────────────────────────────
 
 """
-    project(A::AbstractArray{T,4}, ::Val{:CUBIC}, frame::OrthonormalBasis{3}) → (TensCubic{T}, d, drel)
+    project(A::AbstractArray{T,4}, ::Val{:CUBIC}, frame::OrthonormalBasis{3}) → (TensCubic{3, T}, d, drel)
 
 Project a 4th-order tensor onto the cubic subspace with cube axes `frame`.
 
@@ -759,7 +759,7 @@ function project(A::AbstractArray{T, 4}, ::Val{:CUBIC}, frame::OrthonormalBasis{
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
-        return TensCubic{T}((z, z, z), frame), z, z
+        return TensCubic{3, T}((z, z, z), frame), z, z
     end
     # The material frame by its 6×6 congruence, as for the ORTHO projection.
     C_rot = _km_in_frame_of(_KM_of_array(A), Matrix(vecbasis(frame, :cov)))
@@ -787,11 +787,11 @@ project(A::AbstractArray{T, 2}, ::Val{:CUBIC}, ::OrthonormalBasis{3}) where {T} 
 # ── project : ORTHO, order 2, fixed frame ──────────────────────────────────
 
 """
-    project(A::AbstractArray{T,2}, ::Val{:ORTHO}, frame::OrthonormalBasis{3}) → (TensOrtho{2,T,3}, d, drel)
+    project(A::AbstractArray{T,2}, ::Val{:ORTHO}, frame::OrthonormalBasis{3}) → (TensOrtho{2, 3,T,3}, d, drel)
 
 Project a 2nd-order tensor `A` (3×3) onto the orthotropic subspace with
 fixed material frame `frame`. The projection is `diag(M₁₁, M₂₂, M₃₃)` in the
-material frame, returned as a `TensOrtho{2}` on that frame (as the TI projection
+material frame, returned as a `TensOrtho{2, 3}` on that frame (as the TI projection
 returns a `TensTI{2}`).
 
 # Examples
@@ -1077,8 +1077,8 @@ _rotation_to_canon(ℬ::OrthonormalBasis) = Matrix(vecbasis(ℬ))
 
 # The frame vectors as the columns of a static matrix: read in hot loops
 # (`symmetry_basis`), so never a heap copy.
-_frame_matrix(::CanonicalBasis{3, T}) where {T} = SMatrix{3, 3, T}(I)
-_frame_matrix(ℬ::OrthonormalBasis{3}) = SMatrix{3, 3}(vecbasis(ℬ, Val(:cov)))
+_frame_matrix(::CanonicalBasis{dim, T}) where {dim, T} = SMatrix{dim, dim, T}(I)
+_frame_matrix(ℬ::OrthonormalBasis{dim}) where {dim} = SMatrix{dim, dim}(vecbasis(ℬ, Val(:cov)))
 
 # A canonical axis or frame, in the frame of `Q`.
 _to_frame(::Nothing, x) = x
@@ -1097,8 +1097,8 @@ function _from_frame(Q::AbstractMatrix, P::TensTI{order, T, N}) where {order, T,
 end
 _from_frame(Q::AbstractMatrix, P::TensOrtho) =
     _rebuild_frame(P, RotatedBasis(Q * _frame_matrix(frame(P))))
-_from_frame(Q::AbstractMatrix, P::TensCubic) =
-    TensCubic{eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
+_from_frame(Q::AbstractMatrix, P::TensCubic{3}) =
+    TensCubic{3, eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
 
 _from_frame(Q::AbstractMatrix, (P, d, drel)::Tuple) = (_from_frame(Q, P), d, drel)
 
@@ -1306,7 +1306,7 @@ best_fit_ti(t::AbstractTens{2, 3}, axis) = project(t, Val(:TI), axis)[1]
 
 """
     best_fit_ortho(t::AbstractTens{4,3}, frame) -> TensOrtho
-    best_fit_ortho(t::AbstractTens{2,3}, frame) -> TensOrtho{2}
+    best_fit_ortho(t::AbstractTens{2,3}, frame) -> TensOrtho{2, 3}
 
 Orthogonal (Frobenius) projection of `t` onto the orthotropic span in the given
 material `frame` — the projection component of [`project`](@ref)`(

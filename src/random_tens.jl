@@ -146,9 +146,9 @@ full for another shape or element type:
 | `TensISO{4, dim}`, `TensISO{2, dim}` | isotropic | none |
 | `TensTI{4}` (`N = 5`), `TensTI{4, T, N}` (`N = 5, 6, 8`) | transversely isotropic | `axis = random_axis(rng, T)`, or `frame` |
 | `TensTI{2}` (`N = 2`), `TensTI{2, T, N}` (`N = 2, 3`) | transversely isotropic | `axis = random_axis(rng, T)`, or `frame` |
-| `TensOrtho{4}` (`N = 9`), `TensOrtho{4, T, N}` (`N = 9, 12`) | orthotropic | `frame = random_basis(rng, T)` |
-| `TensOrtho{2}`, `TensOrtho{2, T}` | orthotropic | `frame = random_basis(rng, T)` |
-| `TensCubic`, `TensCubic{T}` | cubic | `frame = random_basis(rng, T)` |
+| `TensOrtho{4, 3}` (`N = 9`), `TensOrtho{4, 3, T, N}` (`N = 9, 12`) | orthotropic | `frame = random_basis(rng, T)` |
+| `TensOrtho{2, 3}`, `TensOrtho{2, 3, T}` | orthotropic | `frame = random_basis(rng, T)` |
+| `TensCubic`, `TensCubic{3, T}` | cubic | `frame = random_basis(rng, T)` |
 | `Tens{order, dim}`, `Tens{order, dim, T}` (`order = 2, 4`) | generic | none: its law is invariant |
 
 Passing `axis` or `frame` fixes the direction and leaves only the coefficients
@@ -232,25 +232,28 @@ end
 
 # Orthotropic: the 3×3 normal block and the three shear eigenvalues, 2C₄₄,
 # 2C₅₅, 2C₆₆ in the Kelvin–Mandel matrix.
-Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4}}; kwargs...) = rand(rng, TensOrtho{4, Float64, 9}; kwargs...)
-function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, T, 9}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
+# The dimension left out is 3, as the element type left out is `Float64`.
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{order}}; kwargs...) where {order} = rand(rng, TensOrtho{order, 3}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, 3}}; kwargs...) = rand(rng, TensOrtho{4, 3, Float64, 9}; kwargs...)
+function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, 3, T, 9}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
     B = _random_symmetric(rng, T, Val(3), definite)
     s = ntuple(_ -> _random_eigenvalue(rng, T, definite) / 2, Val(3))
     return TensOrtho{4}(B[1, 1], B[2, 2], B[3, 3], B[1, 2], B[1, 3], B[2, 3], s..., frame)
 end
-function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, T, 12}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
-    _refuse_definite(definite, "a TensOrtho{4} of 12 coefficients")
+function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, 3, T, 12}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
+    _refuse_definite(definite, "a TensOrtho{4, 3} of 12 coefficients")
     B = _random_general(rng, T, Val(3))
     s = ntuple(_ -> randn(rng, T) / 2, Val(3))
     return TensOrtho{4}(B[1, 1], B[2, 2], B[3, 3], B[1, 2], B[1, 3], B[2, 3], s..., B[2, 1], B[3, 1], B[3, 2], frame)
 end
-Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2}}; kwargs...) = rand(rng, TensOrtho{2, Float64}; kwargs...)
-Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2, T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2, 3}}; kwargs...) = rand(rng, TensOrtho{2, 3, Float64}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2, 3, T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
     TensOrtho{2}(ntuple(_ -> _random_eigenvalue(rng, T, definite), Val(3))..., frame)
 
 # Cubic: the three eigenvalues, on 𝕁, 𝔼 and 𝕋.
-Random.rand(rng::AbstractRNG, ::Type{TensCubic}; kwargs...) = rand(rng, TensCubic{Float64}; kwargs...)
-Random.rand(rng::AbstractRNG, ::Type{TensCubic{T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
+Random.rand(rng::AbstractRNG, ::Type{TensCubic}; kwargs...) = rand(rng, TensCubic{3}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensCubic{dim}}; kwargs...) where {dim} = rand(rng, TensCubic{dim, Float64}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensCubic{3, T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
     TensCubic(ntuple(_ -> _random_eigenvalue(rng, T, definite), Val(3))..., frame)
 
 # Generic: the whole Kelvin–Mandel matrix, or the whole array.

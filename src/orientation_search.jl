@@ -283,7 +283,7 @@ function _proj_tens_opt(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: Abstr
     sqnorm_C = sum(x -> x^2, C_KM)
     if sqnorm_C ≈ zero(T)
         z = zero(T)
-        return TensCubic{T}((z, z, z), CanonicalBasis{3, T}()), z, z
+        return TensCubic{3, T}((z, z, z), CanonicalBasis{3, T}()), z, z
     end
     x = _optimize_angles(x -> _obj_CUBIC4(x, C_KM, sqnorm_C), _cubic_starts(A), _FRAME_GRID, _FRAME_SCREENED)
     return project(A, Val(:CUBIC), RotatedBasis(x[1], x[2], x[3]))

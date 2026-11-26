@@ -268,7 +268,7 @@ end
     C12, C13, C23 = 3.0, 4.0, 2.5
     C44, C55, C66 = 2.0, 3.0, 1.5
     t = TensOrtho(C11, C22, C33, C12, C13, C23, C44, C55, C66, frame3)
-    @test t isa TensOrtho{4, Float64}
+    @test t isa TensOrtho{4, 3, Float64}
     @test size(t) == (3, 3, 3, 3)
     @test get_basis(t) isa CanonicalBasis{3, Float64}
     @test get_var(t) == (:cont, :cont, :cont, :cont)
@@ -329,7 +329,7 @@ end
     C44, C55, C66 = 2.0, 3.0, 1.5
     t = TensOrtho(C11, C22, C33, C12, C13, C23, C44, C55, C66, frame3)
     ti = inv(t)
-    @test ti isa TensOrtho{4, Float64}
+    @test ti isa TensOrtho{4, 3, Float64}
     𝕀 = tens_Id4(Val(3), Val(Float64))
     A = Tensor{4, 3}(get_array(t))
     Ai = Tensor{4, 3}(get_array(ti))
@@ -600,18 +600,18 @@ end
     O = TensOrtho(10.0, 8.0, 12.0, 3.0, 2.5, 1.5, 2.0, 3.0, 3.5, frame)
 
     # ── + / − between ISO and Ortho ────────────────────────────────────
-    @test I4 + O isa TensOrtho{4, Float64}
-    @test O + I4 isa TensOrtho{4, Float64}
-    @test I4 - O isa TensOrtho{4, Float64}
-    @test O - I4 isa TensOrtho{4, Float64}
+    @test I4 + O isa TensOrtho{4, 3, Float64}
+    @test O + I4 isa TensOrtho{4, 3, Float64}
+    @test I4 - O isa TensOrtho{4, 3, Float64}
+    @test O - I4 isa TensOrtho{4, 3, Float64}
 
     # Numerical agreement with generic array arithmetic
     @test opequal(get_array(I4 + O), get_array(I4) + get_array(O))
     @test opequal(get_array(O - I4), get_array(O) - get_array(I4))
 
     # ── + / − between Walpole(N=5) and Ortho (aligned axis) ─────────────
-    @test W + O isa TensOrtho{4, Float64}
-    @test O - W isa TensOrtho{4, Float64}
+    @test W + O isa TensOrtho{4, 3, Float64}
+    @test O - W isa TensOrtho{4, 3, Float64}
     @test opequal(get_array(W + O), get_array(W) + get_array(O))
     @test opequal(get_array(O - W), get_array(O) - get_array(W))
 
@@ -714,7 +714,7 @@ end
     # ── iso_to_ortho: ISO tensor rebuilt as TensOrtho yields identical array
     I4 = TensISO{3}(2.5, 4.0)
     O_from_iso = iso_to_ortho(I4, frame)
-    @test O_from_iso isa TensOrtho{4, Float64}
+    @test O_from_iso isa TensOrtho{4, 3, Float64}
     @test opequal(get_array(I4), get_array(O_from_iso))
 
     # ── walpole_to_ortho (aligned axis)
@@ -723,7 +723,7 @@ end
     k = TensND._axis_on_frame_index(n, frame)
     @test k == 3
     O_from_w = walpole_to_ortho(W, frame, k)
-    @test O_from_w isa TensOrtho{4, Float64}
+    @test O_from_w isa TensOrtho{4, 3, Float64}
     @test opequal(get_array(W), get_array(O_from_w))
 
     # Axis along e₁
@@ -909,7 +909,7 @@ end
     # erasing it to the abstract `OrthonormalBasis{3}` — an abstract field
     # boxes every access and defeats inference.
     @test isconcretetype(fieldtype(typeof(O), :frame))
-    @test typeof(O) === TensOrtho{4, Float64, 9, CanonicalBasis{3, Float64}}
+    @test typeof(O) === TensOrtho{4, 3, Float64, 9, CanonicalBasis{3, Float64}}
 
     # get_array/getindex must not allocate wildly more than the necessary
     # 81-Float64 array (~650 B). The boxed-frame regression allocated
@@ -981,7 +981,7 @@ end
     A = TensOrtho(160.0, 120.0, 95.0, 55.0, 48.0, 42.0, 33.0, 29.0, 27.0, ℬ)
     B = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, ℬ)
     P = A ⊡ B
-    @test P isa TensOrtho{4, Float64, 12}
+    @test P isa TensOrtho{4, 3, Float64, 12}
     p = get_array(P)
     @test maximum(abs, p - permutedims(p, (3, 4, 1, 2))) > 1.0
     @test Tensors.isminorsymmetric(P)
