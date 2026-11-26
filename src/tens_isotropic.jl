@@ -548,7 +548,7 @@ Tensors.dotdot(a1::AbstractTens{2}, S::TensISO{4, dim}, a2::AbstractTens{2}) whe
 # `𝕁 ⊙ 𝕁 = 1` and `𝕂 ⊙ 𝕂 = d(d+1)/2 − 1`, the dimension of the space of the
 # symmetric deviators: 5 in space, 2 in the plane.
 qcontract(A::TensISO{4, dim}, B::TensISO{4, dim}) where {dim} =
-    get_data(A)[1] * get_data(B)[1] + (_mandel_length(dim) - 1) * get_data(A)[2] * get_data(B)[2]
+    get_data(A)[1] * get_data(B)[1] + (mandel_length(dim) - 1) * get_data(A)[2] * get_data(B)[2]
 
 function qcontract(A::TensISO{4, dim, T}, B::AllTensOrthogonal{order, dim}) where {order, dim, T}
     nB = TensOrthonormal(B)

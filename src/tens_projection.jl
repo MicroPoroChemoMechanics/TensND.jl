@@ -18,7 +18,7 @@ using StaticArrays
 # Off-diagonal components are scaled by √2 so that the Frobenius norm is
 # preserved (‖A‖² = Aₖₘ Aₖₘ).  This differs from Voigt notation which
 # uses engineering shear (factor 2 instead of √2).
-const _KM_COUPLES = _mandel_pairs(Val(3))
+const _KM_COUPLES = mandel_pairs(Val(3))
 
 # ── ForwardDiff-compatible rotation helpers ──────────────────────────────────
 
@@ -99,10 +99,10 @@ export mandel_rotation
 
 mandel_rotation(R::AbstractMatrix) = mandel_rotation(R, Val(3))
 mandel_rotation(R::Union{StaticMatrix{d, d}, Tensors.Tensor{2, d}}) where {d} =
-    _mandel_rotation(R, Val(d), Val(_mandel_length(d)))
+    _mandel_rotation(R, Val(d), Val(mandel_length(d)))
 function mandel_rotation(R::AbstractMatrix, ::Val{d}) where {d}
     size(R) == (d, d) || _throw_mandel_rotation_size(d, size(R))
-    return _mandel_rotation(R, Val(d), Val(_mandel_length(d)))
+    return _mandel_rotation(R, Val(d), Val(mandel_length(d)))
 end
 # Apart, so that the message is not built on the path of a valid call.
 @noinline _throw_mandel_rotation_size(d, sz) =
@@ -116,8 +116,8 @@ function _mandel_rotation(R::AbstractMatrix{T}, ::Val{d}, ::Val{n}) where {T, d,
             # here, not captured: they are then constants of the compiled code.
             I = mod1(m, n)
             J = (m - 1) ÷ n + 1
-            i, j = _mandel_pairs(Val(d))[I]
-            k, l = _mandel_pairs(Val(d))[J]
+            i, j = mandel_pairs(Val(d))[I]
+            k, l = mandel_pairs(Val(d))[J]
             @inbounds if I ≤ d && J ≤ d
                 R[i, k]^2                                   # normal-normal
             elseif I ≤ d
@@ -1343,5 +1343,29 @@ best_fit_cubic(t::AbstractTens{2}, frame) = project(t, Val(:CUBIC), frame)[1]
 export project
 export ti_params_from_mandel, mandel_from_ti_params, ortho_params_from_mandel, mandel_from_ortho_params, ti2_params_from_matrix
 export cubic_params_from_mandel, mandel_from_cubic_params
-export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic
+"""
+    project_exact(t::AbstractTens, class, args...; rtol = 1.0e-10)
+
+The tensor `t` written in the symmetry class `class` (`:ISO`, `:TI`, `:ORTHO`,
+`:CUBIC`, or their `Val`), with the axis or the frame the class needs, **when it
+belongs to it**: the projection of [`project`](@ref) if its relative distance
+to `t` is at most `rtol`, `nothing` otherwise. Where [`best_fit_iso`](@ref) and
+its companions return the closest tensor of the class whatever the distance,
+this one changes only how a tensor is stored.
+
+A distance between symbolic tensors cannot be compared with a tolerance: of a
+symbolic tensor only an isotropic one, which every class contains, is written
+in the class; any other gives `nothing`.
+"""
+project_exact(t::AbstractTens, class::Symbol, args...; kwargs...) = project_exact(t, Val(class), args...; kwargs...)
+project_exact(t::AbstractTens, class::Val, args...; rtol = 1.0e-10) =
+    _project_exact(Val(is_hard_numeric(eltype(t))), t, class, rtol, args...)
+function _project_exact(::Val{true}, t, class, rtol, args...)
+    B, d, drel = project(t, class, args...)
+    return iszero(d) || drel ≤ rtol ? B : nothing
+end
+_project_exact(::Val{false}, t::TensISO, class, rtol, args...) = first(project(t, class, args...))
+_project_exact(::Val{false}, t, class, rtol, args...) = nothing
+
+export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic, project_exact
 export iscubic

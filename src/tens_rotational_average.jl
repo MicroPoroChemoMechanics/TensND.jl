@@ -394,13 +394,45 @@ The order-2 counterpart of [`ti_average_mandel`](@ref).
 ti_average_matrix(M::AbstractMatrix, n) = Array(get_array(transverse_isotropify(Tens(Matrix(M)), n)))
 
 """
-    iso_average_mandel(M::AbstractMatrix{T}) → (α, β)
+    iso_average_mandel(M::AbstractMatrix) → (α, β)
 
-Exact SO(3) average of the minor-symmetric tensor whose Kelvin-Mandel matrix is
-`M`: `α = (1/3)Σ_{i,j≤3} M[i,j]`, `β = (tr M − α)/5`.  Returns the `(α, β)`
-coefficients of `α𝕁 + β𝕂`.
+Exact isotropic average of the minor-symmetric tensor whose Kelvin-Mandel matrix
+is the `n×n` matrix `M`, in any dimension `d`, read from the size
+`n = d(d+1)/2` ([`mandel_dimension`](@ref)): the orthogonal projection of `M`
+onto the matrices of `𝕁` and `𝕂`,
+
+    α = (1/d) Σ_{i,j≤d} M[i,j],    β = (tr M − α)/(n − 1),
+
+since the matrix of `𝕁` is `𝐢 𝐢ᵀ/d`, `𝐢` the Kelvin-Mandel vector of `𝟏`, and
+`𝕂` is the projector of trace `n − 1`. Returns the `(α, β)` coefficients of
+`α𝕁 + β𝕂` (`TensISO{d}(α, β)`): `α = (1/3)Σ_{i,j≤3} M[i,j]`, `β = (tr M − α)/5`
+in space.
+
+It is the average over the rotations of dimension `d ≥ 3`, with or without
+major symmetry. In the plane, the rotations alone also keep a skew coupling of
+the two deviatoric components, which vanishes for a major-symmetric `M`; `(α, β)`
+is then the average over the rotations and the reflections. A matrix of size
+`1×1` (dimension 1) has no deviatoric part, and `β` is not defined.
 """
-function iso_average_mandel(M::AbstractMatrix{T}) where {T}
+iso_average_mandel(M::StaticMatrix{6, 6}) = _iso_average_mandel_space(M)
+iso_average_mandel(M::StaticMatrix{n, n}) where {n} = _iso_average_mandel(M, mandel_dimension(n))
+# A plain matrix knows its size at run time only.
+function iso_average_mandel(M::AbstractMatrix)
+    n = LinearAlgebra.checksquare(M)
+    n == 6 && return _iso_average_mandel_space(M)
+    return _iso_average_mandel(M, mandel_dimension(n))
+end
+
+function _iso_average_mandel(M::AbstractMatrix, d::Integer)
+    n = size(M, 1)
+    n > 1 || throw(ArgumentError("iso_average_mandel: in dimension 1 a tensor has no deviatoric part, β is not defined"))
+    α = sum(M[i, j] for i in 1:d, j in 1:d) / d
+    β = (tr(M) - α) / (n - 1)
+    return (α, β)
+end
+
+# Space, written out: the sums in this order are the reference results.
+function _iso_average_mandel_space(M::AbstractMatrix{T}) where {T}
     α = (
         M[1, 1] + M[1, 2] + M[1, 3] + M[2, 1] + M[2, 2] +
             M[2, 3] + M[3, 1] + M[3, 2] + M[3, 3]

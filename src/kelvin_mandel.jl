@@ -17,12 +17,18 @@
 # ── Index pairs and weights of a dimension ───────────────────────────────────
 
 """
-    _mandel_pairs(Val(d)) -> NTuple{d(d+1)/2, NTuple{2, Int}}
+    mandel_pairs(Val(d)) -> NTuple{d(d+1)/2, NTuple{2, Int}}
+    mandel_pairs(d::Integer) -> Vector{NTuple{2, Int}}
 
 The pair of indices of each Kelvin-Mandel slot in dimension `d`, in the order
-of Tensors.jl: `((1,1), (2,2), (3,3), (2,3), (1,3), (1,2))` for `d = 3`.
+of Tensors.jl: the diagonal, then the off-diagonal pairs from the last column
+back, `((1,1), (2,2), (3,3), (2,3), (1,3), (1,2))` for `d = 3` and
+`((1,1), (2,2), (1,2))` for `d = 2`. With `Val(d)` the result is a tuple, a
+constant of the compiled code; with an integer, a vector.
+
+See also [`mandel_length`](@ref), [`mandel_weights`](@ref), [`mandel_dimension`](@ref).
 """
-@generated function _mandel_pairs(::Val{d}) where {d}
+@generated function mandel_pairs(::Val{d}) where {d}
     pairs = Tuple{Int, Int}[(i, i) for i in 1:d]
     append!(pairs, (i, j) for j in d:-1:2 for i in (j - 1):-1:1)
     return Tuple(pairs)
@@ -31,13 +37,41 @@ end
 # The same pairs for a dimension known at run time (dimension 4 and above,
 # where the components are a plain array): a vector, so that what is built
 # from it is inferred.
-function _mandel_pairs(d::Integer)
+function mandel_pairs(d::Integer)
     pairs = [(i, i) for i in 1:d]
     return append!(pairs, (i, j) for j in d:-1:2 for i in (j - 1):-1:1)
 end
 
-"The number of Kelvin-Mandel slots of a dimension."
-_mandel_length(d::Integer) = d * (d + 1) ÷ 2
+"""
+    mandel_length(d::Integer) -> Int
+
+The number ``d(d+1)/2`` of Kelvin-Mandel components of a symmetric tensor of
+order 2 in dimension `d`, the size of the Kelvin-Mandel matrix of a tensor of
+order 4: 3 in the plane, 6 in space. [`mandel_dimension`](@ref) is its inverse.
+"""
+mandel_length(d::Integer) = d * (d + 1) ÷ 2
+
+"""
+    mandel_dimension(n::Integer) -> Int
+
+The dimension `d` whose Kelvin-Mandel size is `n = d(d+1)/2`: the inverse of
+[`mandel_length`](@ref). A size that is that of no dimension is refused.
+"""
+function mandel_dimension(n::Integer)
+    d = (isqrt(8 * n + 1) - 1) ÷ 2
+    mandel_length(d) == n || throw(DimensionMismatch("$n is the Kelvin-Mandel size d(d+1)/2 of no dimension d"))
+    return d
+end
+
+"""
+    mandel_weights(Val(d), T = Float64) -> NTuple{d(d+1)/2, T}
+
+The weight of each Kelvin-Mandel slot in dimension `d`, in the order of
+[`mandel_pairs`](@ref): `1` on a diagonal pair, `√2` on an off-diagonal one, so
+that the Euclidean norm of the components is that of the tensor.
+"""
+mandel_weights(::Val{d}, ::Type{T} = Float64) where {d, T} = map(p -> _mandel_weight(T, p), mandel_pairs(Val(d)))
+
 
 # ── The minor-symmetric part, read on any component array ────────────────────
 #
@@ -54,9 +88,9 @@ _minor_part(A, i, j) = (A[i, j] + A[j, i]) / 2
 # branch returns the same array type, so that the result is inferred.
 function _mandel_minor(A::AbstractArray)
     d = size(A, 1)
-    d == 3 && return _mandel_minor(A, _mandel_pairs(Val(3)))
-    d == 2 && return _mandel_minor(A, _mandel_pairs(Val(2)))
-    return _mandel_minor(A, _mandel_pairs(d))
+    d == 3 && return _mandel_minor(A, mandel_pairs(Val(3)))
+    d == 2 && return _mandel_minor(A, mandel_pairs(Val(2)))
+    return _mandel_minor(A, mandel_pairs(d))
 end
 
 # The weight of a slot: one on a diagonal pair, √2 on another.
@@ -98,7 +132,7 @@ _minor_gap(A::AbstractArray{T, 2}) where {T} = maximum(abs(A[i, j] - A[j, i]) fo
 # The pairs of the form without symmetry: those of the symmetric one, then
 # their transposes off the diagonal.
 function _full_pairs(d::Integer)
-    P = _mandel_pairs(d)
+    P = mandel_pairs(d)
     return append!(P, map(reverse, P[(d + 1):end]))
 end
 
@@ -114,7 +148,7 @@ the form without symmetry otherwise.
 """
 function _mandel_array(A::AbstractArray)
     d = size(A, 1)
-    return _minor_symmetric(A) ? _mandel_minor(A, _mandel_pairs(d)) : _mandel_full(A, _full_pairs(d))
+    return _minor_symmetric(A) ? _mandel_minor(A, mandel_pairs(d)) : _mandel_full(A, _full_pairs(d))
 end
 
 # The dimension of a Kelvin-Mandel size `n`, and whether it is that of the
@@ -123,11 +157,11 @@ end
 function _mandel_dimension(n::Integer, dim::Union{Nothing, Integer})
     if dim === nothing
         d = (isqrt(8 * n + 1) - 1) ÷ 2
-        _mandel_length(d) == n && return d, true
+        mandel_length(d) == n && return d, true
         d = isqrt(n)
         d^2 == n && return d, false
     else
-        _mandel_length(dim) == n && return Int(dim), true
+        mandel_length(dim) == n && return Int(dim), true
         dim^2 == n && return Int(dim), false
     end
     throw(DimensionMismatch("no Kelvin-Mandel tensor of $(dim === nothing ? "any dimension" : "dimension $dim") has $n components"))
@@ -144,7 +178,7 @@ function _from_mandel_array(v::AbstractVector{T}; dim = nothing) where {T}
     S = symmetric ? sqrt2_eltype(T) : T
     A = Array{S, 2}(undef, d, d)
     if symmetric
-        for (I, p) in enumerate(_mandel_pairs(d))
+        for (I, p) in enumerate(mandel_pairs(d))
             A[p[1], p[2]] = A[p[2], p[1]] = v[I] / _mandel_weight(S, p)
         end
     else
@@ -161,7 +195,7 @@ function _from_mandel_array(M::AbstractMatrix{T}; dim = nothing) where {T}
     S = symmetric ? sqrt2_eltype(T) : T
     A = Array{S, 4}(undef, d, d, d, d)
     if symmetric
-        P = _mandel_pairs(d)
+        P = mandel_pairs(d)
         for (J, q) in enumerate(P), (I, p) in enumerate(P)
             (i, j), (k, l) = p, q
             x = M[I, J] / (_mandel_weight(S, p) * _mandel_weight(S, q))
@@ -318,4 +352,4 @@ function from_mandel(v::AbstractVector, b::AbstractBasis...; kwargs...)
 end
 
 
-export mandel, from_mandel
+export mandel, from_mandel, mandel_pairs, mandel_length, mandel_dimension, mandel_weights

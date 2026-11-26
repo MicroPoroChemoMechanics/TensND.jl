@@ -37,6 +37,16 @@ The second-order identity ``\\boldsymbol{1}``, in Kelvin–Mandel components.
 identity_mandel(::Type{T} = Float64) where {T} = Mandel{T}(one(T), one(T), one(T), zero(T), zero(T), zero(T))
 
 """
+    identity_mandel(Val(d), T = Float64) -> SVector{d(d+1)/2, T}
+
+The Kelvin-Mandel components of the identity of order 2 in dimension `d`: `1`
+on the `d` diagonal slots, `0` on the others. `identity_mandel(T)` is the
+three-dimensional one.
+"""
+identity_mandel(::Val{d}, ::Type{T} = Float64) where {d, T} =
+    SVector{mandel_length(d), T}(map(p -> p[1] == p[2] ? one(T) : zero(T), mandel_pairs(Val(d))))
+
+"""
     trace_mandel(v::Mandel)
 
 The trace ``\\operatorname{tr}\\boldsymbol{v} = \\boldsymbol{v} : \\boldsymbol{1}``.

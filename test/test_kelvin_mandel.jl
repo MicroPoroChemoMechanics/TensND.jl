@@ -16,18 +16,18 @@ km_minor_symmetric(rng, d) = km_minor_symmetric_part(randn(rng, d, d, d, d))
 km_minor_form(A) = mandel(A; symmetrize = true)        # the keyword written at the call, so that it is propagated
 
 @testsection "Kelvin-Mandel: the index pairs of a dimension" begin
-    @test TensND._mandel_pairs(Val(2)) === ((1, 1), (2, 2), (1, 2))
-    @test TensND._mandel_pairs(Val(3)) === ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
-    @test TensND._mandel_pairs(Val(4)) === ((1, 1), (2, 2), (3, 3), (4, 4), (3, 4), (2, 4), (1, 4), (2, 3), (1, 3), (1, 2))
+    @test mandel_pairs(Val(2)) === ((1, 1), (2, 2), (1, 2))
+    @test mandel_pairs(Val(3)) === ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
+    @test mandel_pairs(Val(4)) === ((1, 1), (2, 2), (3, 3), (4, 4), (3, 4), (2, 4), (1, 4), (2, 3), (1, 3), (1, 2))
     for d in 1:6
-        P = @inferred TensND._mandel_pairs(Val(d))
-        @test length(P) == TensND._mandel_length(d) == d * (d + 1) ÷ 2
+        P = @inferred mandel_pairs(Val(d))
+        @test length(P) == mandel_length(d) == d * (d + 1) ÷ 2
         @test allunique(P) && all(p -> 1 <= p[1] <= p[2] <= d, P)
-        @test TensND._mandel_pairs(d) == collect(P)                # the run-time form, as a vector
+        @test mandel_pairs(d) == collect(P)                # the run-time form, as a vector
         @test [TensND._mandel_weight(Float64, p) for p in P] == [p[1] == p[2] ? 1.0 : sqrt(2.0) for p in P]
     end
     # The tables of the 3-D kernels are these, read once.
-    @test TensND._KM_COUPLES === TensND._mandel_pairs(Val(3))
+    @test TensND._KM_COUPLES === mandel_pairs(Val(3))
     @test TensND._KM_PAIR === ((1, 1), (2, 2), (3, 3), (3, 2), (3, 1), (2, 1))
 end
 
@@ -134,4 +134,31 @@ end
     @test iszero(simplify(sum(x -> x^2, v) - sum(x -> x^2, s)))
     a = [symbols("a$i$j", real = true) for i in 1:d, j in 1:d]                # no symmetry
     @test length(mandel(Tens(a))) == 16 && get_array(from_mandel(mandel(Tens(a)); dim = 4)) == a
+    @testsection "sizes, pairs and weights of a dimension" begin
+        for d in 1:6
+            n = mandel_length(d)
+            @test n == d * (d + 1) ÷ 2 == length(mandel_pairs(Val(d))) == length(mandel_pairs(d))
+            @test mandel_dimension(n) == d
+            @test collect(mandel_pairs(Val(d))) == mandel_pairs(d)
+            @test mandel_pairs(Val(d))[1:d] == ntuple(i -> (i, i), d)
+            w = mandel_weights(Val(d))
+            @test w == ntuple(I -> I ≤ d ? 1.0 : sqrt(2.0), n)
+            @test mandel_weights(Val(d), Float32) isa NTuple{n, Float32}
+            # The weights make the components those of a vector of the same norm.
+            ε = randn(d, d); ε = (ε + ε') / 2
+            @test [w[I] * ε[p...] for (I, p) in enumerate(mandel_pairs(Val(d)))] ≈ mandel(Tens(ε))
+            𝟏 = identity_mandel(Val(d))
+            @test 𝟏 == mandel(Tens(Matrix{Float64}(I, d, d)))
+            @test identity_mandel(Val(d), Float32) isa TensND.StaticArrays.SVector{n, Float32}
+        end
+        @test mandel_pairs(Val(3)) == ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
+        @test mandel_pairs(Val(2)) == ((1, 1), (2, 2), (1, 2))
+        @test identity_mandel(Val(3)) == identity_mandel()
+        @test_throws DimensionMismatch mandel_dimension(5)
+        @test (@inferred mandel_weights(Val(3))) isa NTuple{6, Float64}
+        @test (@inferred identity_mandel(Val(2))) == [1.0, 1.0, 0.0]
+        s = symbols("s", positive = true)
+        @test mandel_weights(Val(2), typeof(s)) == (1, 1, sqrt(Sym(2)))
+    end
+
 end

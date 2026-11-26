@@ -506,8 +506,37 @@ reads the constants back.
     factors `ℓ₂ = 2k`, `ℓ₃ = √2 l`, `ℓ₅ = 2m`, `ℓ₆ = 2p`; `:hill` is
     `(k, l, m, n, p)`. `:engineering` and `:hoenig` build a compliance unless
     `role = :stiffness` is given.
+
+With **six** constants the tensor has no major symmetry, ``C_{3311} \\neq C_{1133}``
+(a concentration tensor, a product of two stiffnesses), in three of the forms:
+`(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₁₁, C₃₃₃₃, C₂₃₂₃)` for `:components`,
+`(k, l, m, n, p, lt)` for `:hill` with ``l = C_{1133}`` and ``l_t = C_{3311}``
+([`hill_moduli`](@ref)`(t, Val(6))` reads them back), and the six Walpole
+coefficients for `:walpole`.
 """
 function ti_from_constants end
+
+# Six constants: a tensor without the major symmetry, `C₃₃₁₁ ≠ C₁₁₃₃`. In the
+# Walpole basis ℓ₃ = √2 C₃₃₁₁ and ℓ₄ = √2 C₁₁₃₃.
+Base.@constprop :aggressive function ti_from_constants(c₁, c₂, c₃, c₄, c₅, c₆, n; form::Symbol = :components)
+    form === :walpole && return TensTI{4}(c₁, c₂, c₃, c₄, c₅, c₆, n)
+    form === :hill && return _ti_from_hill(c₁, c₂, c₃, c₄, c₅, c₆, n)
+    form === :components && return _ti_from_components(c₁, c₂, c₃, c₄, c₅, c₆, n)
+    throw(
+        ArgumentError(
+            "ti_from_constants: six constants are those of a tensor without the major symmetry, in the " *
+                "forms `:components`, `:hill` or `:walpole`; got `form = :$form`"
+        )
+    )
+end
+function _ti_from_hill(k, l, m, n, p, lt, axis)
+    T = promote_type(typeof(k), typeof(l), typeof(m), typeof(n), typeof(p), typeof(lt))
+    s = sqrt(convert(sqrt2_eltype(T), 2))
+    return TensTI{4}(n, 2 * k, s * lt, s * l, 2 * m, 2 * p, axis)
+end
+# (C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₁₁, C₃₃₃₃, C₂₃₂₃)
+_ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₁₁, C₃₃₃₃, C₂₃₂₃, axis) =
+    _ti_from_hill((C₁₁₁₁ + C₁₁₂₂) / 2, C₁₁₃₃, (C₁₁₁₁ - C₁₁₂₂) / 2, C₃₃₃₃, C₂₃₂₃, C₃₃₁₁, axis)
 
 Base.@constprop :aggressive function ti_from_constants(
         c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components, role::Symbol = :compliance
@@ -658,6 +687,41 @@ end
 function hill_moduli(t::TensISO{4, 3})
     κ, μ = bulk_shear(t)     # t = 3κ 𝕁 + 2μ 𝕂
     return (k = κ + μ / 3, l = κ - 2 * μ / 3, m = μ, n = κ + 4 * μ / 3, p = μ)
+end
+
+"""
+    hill_moduli(t::TensTI{4}, Val(6)) → (; k, l, m, n, p, lt)
+    hill_moduli(t::TensISO{4, 3}, Val(6)) → (; k, l, m, n, p, lt)
+
+Hill's moduli of a transversely isotropic tensor **without the major symmetry**
+(a concentration tensor, a product of two stiffnesses): the five of
+[`hill_moduli`](@ref)`(t)`, where ``l = C_{1133}``, and a sixth one,
+``l_t = C_{3311}``, which equals ``l`` when the tensor is major-symmetric.
+They are read from the six Walpole coefficients, `l = ℓ₄/√2` and
+`lt = ℓ₃/√2`, and `ti_from_constants(k, l, m, n, p, lt, axis; form = :hill)`
+builds the tensor back. A tensor that carries the couplings `ℓ₇`, `ℓ₈` of the
+rotations alone is refused: it has no such moduli.
+"""
+function hill_moduli(t::TensTI{4}, ::Val{6})
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆ = _mirror_invariant_six(t)
+    s = sqrt(convert(sqrt2_eltype(typeof(ℓ₁)), 2))
+    return (k = ℓ₂ / 2, l = ℓ₄ / s, m = ℓ₅ / 2, n = ℓ₁, p = ℓ₆ / 2, lt = ℓ₃ / s)
+end
+hill_moduli(t::TensISO{4, 3}, ::Val{6}) = (h = hill_moduli(t); (; h..., lt = h.l))
+
+# The six Walpole coefficients of a tensor invariant under the mirrors through
+# its axis, whatever the number of coefficients it is stored on.
+_mirror_invariant_six(t::TensTI{4, T, 5}) where {T} = (d = get_data(t); (d[1], d[2], d[3], d[3], d[4], d[5]))
+_mirror_invariant_six(t::TensTI{4, T, 6}) where {T} = get_data(t)
+function _mirror_invariant_six(t::TensTI{4, T, 8}) where {T}
+    ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆, ℓ₇, ℓ₈ = get_data(t)
+    _major_symmetric_ti(zero(T), ℓ₇, ℓ₈, max(abs(ℓ₁), abs(ℓ₂), abs(ℓ₃), abs(ℓ₄), abs(ℓ₅), abs(ℓ₆))) || throw(
+        ArgumentError(
+            "hill_moduli: the tensor carries the couplings ℓ₇, ℓ₈ of the rotations about its axis alone; " *
+                "it is not invariant under the mirrors through the axis and has no Hill moduli"
+        )
+    )
+    return (ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆)
 end
 
 # Whether the major-antisymmetric generators vanish: to rounding against the
@@ -1527,7 +1591,7 @@ _ortho_general(t::TensOrtho{4, 3, T, 9}) where {T} =
 # come from.  The identity above is asserted in
 # `test/test_tens_anisotropic.jl`, on a rotated frame — do not "simplify" the √2
 # bookkeeping without re-running it.
-const _KM_PAIR = map(reverse, _mandel_pairs(Val(3)))      # ((1,1), (2,2), (3,3), (3,2), (3,1), (2,1))
+const _KM_PAIR = map(reverse, mandel_pairs(Val(3)))      # ((1,1), (2,2), (3,3), (3,2), (3,1), (2,1))
 
 @inline function _km_entry(E, s2, I::Int, J::Int)
     (i, j) = _KM_PAIR[I]

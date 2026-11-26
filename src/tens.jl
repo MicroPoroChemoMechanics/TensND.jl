@@ -365,5 +365,25 @@ get_var(t::TensVar) = t.var
 get_var(t::TensVar, i::Integer) = t.var[i]
 
 
-export AbstractTens, Tens
+"""
+    static_tens(a::AbstractArray, ℬ::AbstractBasis) -> Tens
+    symmetric_tens(a::AbstractArray, ℬ::AbstractBasis) -> Tens
+
+The tensor of components `a` in the basis `ℬ`, as `Tens(a, ℬ)`, with its order
+read on the type of the array and its dimension on that of the basis: the
+result is inferred, where `Tens(a, ℬ)` reads the dimension on the size of `a`
+at run time.
+
+`static_tens` decides the storage as `Tens` does, on the values: symmetric
+storage when the components are symmetric to rounding, so that its type is one
+of two. `symmetric_tens` is for an array symmetric by construction (the
+transpose at order 2, the two minor symmetries at order 4): it stores the mean
+over these symmetries, and its type is known before the values.
+"""
+@inline static_tens(a::AbstractArray{T, order}, ℬ::AbstractBasis{dim}) where {T, order, dim} =
+    Tens(_static_tensor(a, Val(dim), Val(order)), ℬ)
+@inline symmetric_tens(a::AbstractArray{T, order}, ℬ::AbstractBasis{dim}) where {T, order, dim} =
+    Tens(Tensors.symmetric(Tensor{order, dim, T}(a)), ℬ)
+
+export AbstractTens, Tens, static_tens, symmetric_tens
 export get_order, get_data, get_array, get_basis, get_var

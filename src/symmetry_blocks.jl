@@ -162,7 +162,7 @@ end
 # normal deviators `(1, …, 1, −m, 0, …)/√(m(m+1))`, `m = 1, …, d − 1`, then the
 # shears. In the plane and in space it is the two bases above.
 function _iso_mandel_basis(::Type{T}, ::Val{d}) where {T, d}
-    n = _mandel_length(d)
+    n = mandel_length(d)
     return SMatrix{n, n, T}(
         ntuple(Val(n * n)) do p
             # column-major: entry p is (row i, column c)
@@ -228,7 +228,7 @@ symmetry_layout(::TensOrtho{4, 3}) = ((SVector(1, 2, 3),), (SVector(4),), (SVect
 symmetry_layout(::TensOrtho{4, 2}) = ((SVector(1, 2),), (SVector(3),))
 symmetry_layout(::TensISO{4, 2}) = ((SVector(1),), (SVector(2), SVector(3)))
 symmetry_layout(::TensISO{4, dim}) where {dim} =
-    ((SVector(1),), ntuple(i -> SVector(i + 1), Val(_mandel_length(dim) - 1)))
+    ((SVector(1),), ntuple(i -> SVector(i + 1), Val(mandel_length(dim) - 1)))
 symmetry_layout(::TensISO{2, dim}) where {dim} = (ntuple(SVector, Val(dim)),)
 symmetry_layout(::TensTI{2, <:Any, 2}) = ((SVector(1), SVector(2)), (SVector(3),))
 symmetry_layout(::TensOrtho{2, 3}) = ((SVector(1),), (SVector(2),), (SVector(3),))
