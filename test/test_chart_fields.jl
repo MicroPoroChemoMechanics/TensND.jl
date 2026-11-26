@@ -79,6 +79,9 @@ using StaticArrays: SVector
             @test F == radial_ti(chart; hill...)
             @test hill_moduli(F) === (k = hill.k, l = hill.l, m = hill.m, n = hill.n, p = hill.p)
             @test hill_moduli(radial_ti(chart, TensISO{3}(30.0, 6.0))) == hill_moduli(TensISO{3}(30.0, 6.0))
+            # the Walpole coefficients, with the keyword or by default
+            @test radial_ti(chart, hill.n, 2 * hill.k, √2 * hill.l, 2 * hill.m, 2 * hill.p; form = :walpole) == radial_ti(chart, hill.n, 2 * hill.k, √2 * hill.l, 2 * hill.m, 2 * hill.p)
+            @test collect(ti_constants(F.pattern; form = :walpole)) ≈ [hill.n, 2 * hill.k, √2 * hill.l, 2 * hill.m, 2 * hill.p]
             # engineering constants: a compliance, read by contraction
             S = at(radial_ti(chart, Eₜ, Eᵣ, ν, νᵣₜ, G; form = :engineering))
             @test contraction(S, r, r, r, r) ≈ 1 / Eᵣ

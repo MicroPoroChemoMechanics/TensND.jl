@@ -9,8 +9,8 @@
 
 A transversely isotropic tensor with major symmetry has five degrees of freedom.
 Which five numbers one uses is a matter of discipline, not of mathematics, and
-`TensND` supports four conventions: the components, Hill's moduli, the
-engineering constants and Hoenig's parameters. All of them build a
+`TensND` supports five conventions: the Walpole coefficients, the components,
+Hill's moduli, the engineering constants and Hoenig's parameters. All of them build a
 `TensTI{4,T,5}` and all are interconvertible through the Walpole coefficients
 ``\ell_i`` of [The Walpole basis](@ref th-walpole).
 
@@ -25,15 +25,39 @@ Every matrix below is the Kelvin–Mandel matrix in the frame where
 
 | `form` | Parameters | They are those of |
 | :----- | :--------- | :---------------- |
+| `:walpole` | ``\ell_1,\ell_2,\ell_3,\ell_5,\ell_6`` | the tensor given, stiffness or compliance |
 | `:components` | ``C_{1111},C_{1122},C_{1133},C_{3333},C_{2323}`` | the tensor given, stiffness or compliance |
 | `:hill` | ``k,l,m,n,p`` | the tensor given, stiffness or compliance |
 | `:engineering` | ``E_1,E_3,\nu_{12},\nu_{31},G_{31}`` | the material: its compliance, or its stiffness with `role = :stiffness` |
 | `:hoenig` | ``E,\nu_1,\nu_2,H,\Gamma`` | the material: its compliance, or its stiffness with `role = :stiffness` |
 
-The first two forms are linear in the components: they describe a tensor,
+The first three forms are linear in the components: they describe a tensor,
 whatever it stands for. The last two are constants of a material, which its
 compliance shows directly and its stiffness through closed forms, never through
-an inverse. [`hill_moduli`](@ref) reads Hill's moduli by name.
+an inverse. [`hill_moduli`](@ref) reads Hill's moduli by name, and
+[`walpole_coeffs`](@ref) the Walpole coefficients: five with `Val(5)`, those of
+`form = :walpole`, or six by default, which also describe a tensor without
+major symmetry ([The Walpole basis](@ref th-walpole)).
+
+!!! warning "What to check before giving or reading five constants"
+    - **The order of each form is its own.** Hill's moduli are
+      ``(k, l, m, n, p)``, the components
+      ``(C_{1111}, C_{1122}, C_{1133}, C_{3333}, C_{2323})`` and the Walpole
+      coefficients ``(\ell_1, \ell_2, \ell_3, \ell_5, \ell_6)``, which start
+      with the axial one: ``\ell_1 = n = C_{3333}``. Five numbers given in the
+      order of another form build a valid tensor, of another material, without
+      any error.
+    - **The Walpole coefficients carry factors**:
+      ``\ell_2 = 2k``, ``\ell_3 = \sqrt2\,l``, ``\ell_5 = 2m``, ``\ell_6 = 2p``.
+    - **Five Walpole coefficients, not six.** `walpole_coeffs(t)` returns six,
+      ``\ell_4 = \ell_3`` included; `form = :walpole` takes and returns five,
+      without ``\ell_4``.
+    - **`role` matters for two forms only.** The engineering constants and
+      Hoenig's parameters build a *compliance* unless `role = :stiffness` is
+      given; the Walpole coefficients, the components and Hill's moduli are
+      those of the tensor given, and ignore `role`.
+    - **A tensor without major symmetry has no five constants**, in any form:
+      it is refused.
 
 ## Component form
 
@@ -291,13 +315,14 @@ non-randomly cracked body.
 
 | Use | `form` |
 | :-- | :----- |
+| products, inverses and contractions written on the coefficients of the class | `:walpole` |
 | a stiffness known by its components, or symbolic work | `:components` |
 | fiber composites, layered cylinders and spheres, plane-strain problems | `:hill` |
 | material data sheets | `:engineering` |
 | anisotropy ratios, crack and inclusion problems | `:hoenig` |
 
 Conversion between any two is a round trip through the tensor itself: build with
-one form, read with another. Since all four produce the same
+one form, read with another. Since all five produce the same
 `TensTI{4,T,5}`, the conversion is exact rather than fitted — unlike the
 *projection* of a general tensor onto the class, which is the subject of
 [Projection onto a symmetry class](@ref th-projection).

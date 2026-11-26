@@ -81,8 +81,9 @@ cub = cubic_from_constants(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄�
 | Function | Applies to | Returns |
 | :--- | :--- | :--- |
 | [`get_data`](@ref) | all | the stored coefficient tuple |
-| [`walpole_coeffs`](@ref) | `TensTI{4}` | the six classical Walpole coefficients |
-| [`walpole_coeffs`](@ref) | `TensTI{4}` | all eight, zero-padded |
+| [`walpole_coeffs`](@ref)`(t)` | `TensTI{4}` | the six classical Walpole coefficients |
+| `walpole_coeffs(t, Val(5))` | `TensTI{4}`, major-symmetric | the five independent ones, ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` |
+| `walpole_coeffs(t, Val(8))` | `TensTI{4}` | all eight, zero-padded |
 | [`axis`](@ref) | `TensTI` | the symmetry axis |
 | [`frame`](@ref) | `TensOrtho`, `TensCubic` | the material or cube frame |
 | [`reference`](@ref) | `TensTI`, `TensOrtho`, `TensCubic` | axis or frame, whichever applies |

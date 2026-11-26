@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.16.4 — the Walpole coefficients as a form of the five constants
+
+A patch release: one form and one method added, nothing existing changes.
+
+### Added
+
+- **`form = :walpole`** in `ti_from_constants` and `ti_constants`: the five
+  coefficients `(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)` of a major-symmetric transversely
+  isotropic tensor on the Walpole basis. The four other forms (components,
+  Hill's moduli, engineering constants, Hoenig's parameters) went through these
+  two functions, and the Walpole coefficients did not: they were given to the
+  constructor `TensTI{4}` and read by `walpole_coeffs`, which returns six of
+  them. A conversion to or from the Walpole coefficients is now written as
+  every other one. `radial_ti`, whose default was already `form = :walpole`,
+  reads its constants through `ti_from_constants` for every form.
+- **`walpole_coeffs(t, Val(5))`** returns those five coefficients, next to the
+  six of `walpole_coeffs(t)` and the eight of `walpole_coeffs(t, Val(8))`. The
+  length asked for does not depend on the number of coefficients the tensor is
+  stored on: a product of two tensors, stored on six, has five when it is
+  major-symmetric, and is refused otherwise, as in `ti_constants`.
+  `walpole_coeffs(t)` keeps its six coefficients: they are those on which the
+  products of the class are written, where `ℓ₃ ≠ ℓ₄` in general.
+
+### Documentation
+
+- The pages on the transversely isotropic parametrizations list five forms, and
+  the manual says which of the three lengths of `walpole_coeffs` serves what.
+
 ## v0.16.3 — Hill's moduli of a transversely isotropic tensor
 
 A patch release: one form and one function added, nothing existing changes.

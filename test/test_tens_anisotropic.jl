@@ -1252,3 +1252,65 @@ end
     @test collect(num.(ti_constants(ℂₛ; form = :hill))) ≈ [19.0, 5.0, 11.0, 12.0, 4.0]
     @test collect(num.(ti_constants(ℂₛ))) ≈ [30.0, 8.0, 5.0, 12.0, 4.0]
 end
+
+# ═══════════════════════════════════════════════════════════════════════════
+# The Walpole coefficients as a form of the five constants. References: the
+# coefficients the tensor was built with; its components by contraction; a
+# product of TI tensors, stored on six, whose symmetric part is known.
+@testsection "Walpole & Ortho tensors: the Walpole form" begin
+    rng = Xoshiro(20261127)
+    contraction(C, a, b, c, d) = sum(C[i, j, k, l] * a[i] * b[j] * c[k] * d[l] for i in 1:3, j in 1:3, k in 1:3, l in 1:3)
+    for _ in 1:20
+        e₃ = normalize(randn(rng, 3))
+        e₁ = normalize(cross(e₃, randn(rng, 3)))
+        ℓ = (1 + rand(rng), 2 + rand(rng), rand(rng) - 0.5, 0.1 + rand(rng), 0.1 + rand(rng))
+        ℂ = ti_from_constants(ℓ..., e₃; form = :walpole)
+        @test ℂ isa TensTI{4, Float64, 5} && ℂ == TensTI{4}(ℓ..., e₃)
+        C = canonical_components(ℂ)
+        @test contraction(C, e₃, e₃, e₃, e₃) ≈ ℓ[1]                 # ℓ₁ = C₃₃₃₃
+        @test contraction(C, e₁, e₁, e₃, e₃) ≈ ℓ[3] / √2            # ℓ₃ = √2 C₁₁₃₃
+        # Read back in the three lengths, to the last bit; `role` has no effect.
+        @test ti_constants(ℂ; form = :walpole) === walpole_coeffs(ℂ, Val(5)) === ℓ
+        @test ti_constants(ℂ; form = :walpole, role = :stiffness) === ℓ
+        @test ti_from_constants(ℓ..., e₃; form = :walpole, role = :stiffness) == ℂ
+        @test walpole_coeffs(ℂ) === (ℓ[1], ℓ[2], ℓ[3], ℓ[3], ℓ[4], ℓ[5])
+        @test walpole_coeffs(ℂ, Val(8)) === (ℓ[1], ℓ[2], ℓ[3], ℓ[3], ℓ[4], ℓ[5], 0.0, 0.0)
+        # The other forms of the same tensor.
+        h = hill_moduli(ℂ)
+        @test collect(ℓ) ≈ [h.n, 2h.k, √2 * h.l, 2h.m, 2h.p]
+        @test ti_from_constants(ti_constants(ℂ)..., e₃) ≈ ℂ
+        # A tensor stored on six or eight coefficients: five when it is
+        # major-symmetric, refused otherwise.
+        six = ℂ ⊡ one(ℂ)
+        @test six isa TensTI{4, Float64, 6} && collect(walpole_coeffs(six, Val(5))) ≈ collect(ℓ)
+        skew = ℂ ⊡ ti_from_constants(ℓ[2], ℓ[1], ℓ[3] / 2, ℓ[5], ℓ[4], e₃; form = :walpole)
+        @test_throws "not major-symmetric" walpole_coeffs(skew, Val(5))
+        @test_throws "not major-symmetric" ti_constants(skew; form = :walpole)
+        @test length(walpole_coeffs(skew)) == 6 && !(walpole_coeffs(skew)[3] ≈ walpole_coeffs(skew)[4])
+    end
+
+    from_walpole(ℓ₁) = ti_from_constants(ℓ₁, 38.0, 7.0, 22.0, 8.0, (0.0, 0.0, 1.0); form = :walpole)
+    @test (@inferred from_walpole(12.0)) isa TensTI{4, Float64, 5}
+    five(t) = walpole_coeffs(t, Val(5))
+    @test (@inferred five(from_walpole(12.0))) === (12.0, 38.0, 7.0, 22.0, 8.0)
+    @test (@inferred five(from_walpole(12.0) ⊡ one(from_walpole(12.0)))) isa NTuple{5, Float64}
+
+    # Derivatives: ℓ₁ is read back as given, and E₃ = ℓ₁ − ℓ₃²/ℓ₂ of a stiffness.
+    @test ForwardDiff.derivative(x -> ti_constants(from_walpole(x); form = :walpole)[1], 12.0) == 1
+    E₃(ℓ₁, ℓ₃) = ti_constants(ti_from_constants(ℓ₁, 38.0, ℓ₃, 22.0, 8.0, (0.0, 0.0, 1.0); form = :walpole); form = :engineering, role = :stiffness)[2]
+    @test ForwardDiff.gradient(x -> E₃(x...), [12.0, 7.0]) ≈ [1, -2 * 7.0 / 38.0]
+    @test ForwardDiff.derivative(a -> ForwardDiff.derivative(b -> E₃(a, b), 7.0), 12.0) == 0
+    @test ForwardDiff.derivative(b -> ForwardDiff.derivative(c -> E₃(12.0, c), b), 7.0) ≈ -2 / 38.0
+
+    # Exactly, on SymPy symbols and on Symbolics' ones.
+    ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆ = symbols("l1 l2 l3 l5 l6", positive = true)
+    ℂ = ti_from_constants(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆, _WO_N3S; form = :walpole)
+    @test ti_constants(ℂ; form = :walpole) == (ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)
+    h = hill_moduli(ℂ)
+    @test all(iszero, simplify.([h.n - ℓ₁, 2h.k - ℓ₂, sqrt(Sym(2)) * h.l - ℓ₃, 2h.m - ℓ₅, 2h.p - ℓ₆]))
+    @test all(iszero, simplify.(collect(walpole_coeffs(inv(inv(ℂ)), Val(5))) .- [ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆]))
+    Symbolics.@variables a₁ a₂ a₃ a₅ a₆
+    ℂₛ = ti_from_constants(a₁, a₂, a₃, a₅, a₆, (0, 0, 1); form = :walpole)
+    @test eltype(ℂₛ) === Symbolics.Num
+    @test all(isequal.(ti_constants(ℂₛ; form = :walpole), (a₁, a₂, a₃, a₅, a₆)))
+end

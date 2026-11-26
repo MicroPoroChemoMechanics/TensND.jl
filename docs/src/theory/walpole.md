@@ -244,6 +244,33 @@ tensors is generally **not** major-symmetric, because ``L\,M\neq{}^{t}(L\,M)``
 unless ``L`` and ``M`` commute. `TensTI{4,T,5} ⊡ TensTI{4,T,5}` therefore
 returns an `N=6` container.
 
+The coefficients are read in a length that is asked for, not in that of the
+storage:
+
+| Call | Coefficients | Accepts |
+| :--- | :----------- | :------ |
+| [`walpole_coeffs`](@ref)`(t, Val(5))`, [`ti_constants`](@ref)`(t; form = :walpole)` | ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)`` | a major-symmetric tensor, whatever its storage |
+| `walpole_coeffs(t)` | ``(\ell_1,\ldots,\ell_6)`` | any tensor of the class |
+| `walpole_coeffs(t, Val(8))` | ``(\ell_1,\ldots,\ell_8)`` | any tensor of the class |
+
+!!! warning "Five coefficients are not six without the fourth"
+    - **`walpole_coeffs(t)` always returns six coefficients**, with
+      ``\ell_4 = \ell_3`` repeated for a major-symmetric tensor. The five
+      constants of `form = :walpole` are ``(\ell_1,\ell_2,\ell_3,\ell_5,\ell_6)``:
+      ``\ell_4`` is left out, so that the fourth of the five is ``\ell_5``. Do
+      not pass the six where five are expected: take `walpole_coeffs(t, Val(5))`.
+    - **Five are refused when the tensor is not major-symmetric**
+      (``\ell_3 \neq \ell_4``, or ``\ell_7, \ell_8 \neq 0``): the product of two
+      stiffnesses is such a tensor. Dropping ``\ell_4`` silently would describe
+      another tensor; take `Tensors.majorsymmetric(t)` first if its symmetric
+      part is meant.
+    - **The coefficients are not moduli.** They carry the factors of the
+      normalized basis: ``\ell_1 = C_{3333}``, ``\ell_2 = C_{1111} + C_{1122}``,
+      ``\ell_3 = \sqrt2\,C_{1133}``, ``\ell_5 = C_{1111} - C_{1122}``,
+      ``\ell_6 = 2\,C_{2323}``, the axial coefficient coming first.
+      [Transversely isotropic parametrizations](@ref th-ti-parametrizations)
+      gives the other notations of the same five numbers.
+
 The symmetrized basis sometimes met in the literature merges the pair,
 ``\mathbb{W}^s_3=\mathbb{W}_3+\mathbb{W}_4``, and relabels
 ``\mathbb{W}^s_4=\mathbb{W}_5``, ``\mathbb{W}^s_5=\mathbb{W}_6``; it spans

@@ -134,10 +134,40 @@ _ti_eltype(::Val, ::Type{T}) where {T} = T
 # ── 4th-order TI accessors ───────────────────────────────────────────────────
 
 """
-    walpole_coeffs(t::TensTI{4,T,N}) → NTuple{6,T}
+    walpole_coeffs(t::TensTI{4}) → NTuple{6}
+    walpole_coeffs(t::TensTI{4}, Val(5)) → NTuple{5}
+    walpole_coeffs(t::TensTI{4}, Val(8)) → NTuple{8}
 
-Always returns a 6-tuple `(ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆)` of Walpole coefficients.
-For `N=5` (major-symmetric), `ℓ₃ = ℓ₄` is stored once and duplicated on read.
+The coefficients of a transversely isotropic tensor on the Walpole basis about
+its axis, in one of three lengths that do not depend on how `t` is stored:
+
+- six, `(ℓ₁, ℓ₂, ℓ₃, ℓ₄, ℓ₅, ℓ₆)`, the default: the coefficients on which the
+  products and the contractions of the class are written, for a tensor with or
+  without major symmetry. A major-symmetric tensor has `ℓ₃ = ℓ₄`; the two
+  couplings `ℓ₇`, `ℓ₈` of a tensor stored on eight are dropped;
+- five, `(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)`, with `Val(5)`: the independent coefficients of a
+  **major-symmetric** tensor, a stiffness or a compliance. A tensor that is not
+  major-symmetric is refused, as in [`ti_constants`](@ref), of which this is
+  the form `:walpole`;
+- eight, with `Val(8)`: those of the full axially invariant basis, `ℓ₇ = ℓ₈ = 0`
+  for a tensor stored on five or six.
+
+!!! warning
+    The six of the default are not the five constants of `form = :walpole`
+    followed by one more: `ℓ₄` sits in fourth place. To build a tensor back
+    with [`ti_from_constants`](@ref) or [`radial_ti`](@ref), read five with
+    `Val(5)`.
+
+# Examples
+```jldoctest
+julia> ℂ = TensTI{4}(12.0, 38.0, 7.0, 22.0, 8.0, (0.0, 0.0, 1.0));     # ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆
+
+julia> walpole_coeffs(ℂ)
+(12.0, 38.0, 7.0, 7.0, 22.0, 8.0)
+
+julia> walpole_coeffs(ℂ, Val(5)) == ti_constants(ℂ; form = :walpole) == (12.0, 38.0, 7.0, 22.0, 8.0)
+true
+```
 """
 walpole_coeffs(t::TensTI{4, T, 5}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[3], t.data[4], t.data[5])
@@ -435,6 +465,9 @@ end
 The major-symmetric transversely isotropic tensor of axis `n` given by five
 constants, read according to `form`:
 
+- `:walpole`: its coefficients `(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)` on the Walpole basis
+  about `n`, for a stiffness or a compliance alike, as `TensTI{4}(ℓ₁, ℓ₂, ℓ₃,
+  ℓ₅, ℓ₆, n)` takes them; [`walpole_coeffs`](@ref)`(t, Val(5))` reads them back.
 - `:components` (the default): its components
   `(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)` in a frame whose third axis is `n`, for
   a stiffness or a compliance alike. Its Walpole coefficients are
@@ -463,8 +496,16 @@ material instead, directly (never through an inverse): with
 `C₁₁₃₃ = E₁E₃ν₃₁/Δ`, `C₃₃₃₃ = E₃²(1 − ν₁₂)/Δ`, `C₂₃₂₃ = G₃₁`, Hoenig's parameters
 being those of ``E_1 = E``, ``E_3 = EH``, ``\\nu_{12} = \\nu_1``, ``\\nu_{31} = H\\nu_2``,
 ``G_{31} = E\\Gamma/(2(1 + \\nu_1))``. `role` is `:compliance` by default, and has
-no effect on `form = :components` and `form = :hill`. [`ti_constants`](@ref) reads the
-constants back.
+no effect on `form = :walpole`, `:components` and `:hill`. [`ti_constants`](@ref)
+reads the constants back.
+
+!!! warning
+    Each form has its own order, and five numbers given in the order of
+    another form build the tensor of another material without any error:
+    `:walpole` starts with the axial coefficient `ℓ₁ = C₃₃₃₃` and carries the
+    factors `ℓ₂ = 2k`, `ℓ₃ = √2 l`, `ℓ₅ = 2m`, `ℓ₆ = 2p`; `:hill` is
+    `(k, l, m, n, p)`. `:engineering` and `:hoenig` build a compliance unless
+    `role = :stiffness` is given.
 """
 function ti_from_constants end
 
@@ -473,6 +514,7 @@ Base.@constprop :aggressive function ti_from_constants(
     )
     form === :components && return _ti_from_components(c₁, c₂, c₃, c₄, c₅, n)
     form === :hill && return _ti_from_hill(c₁, c₂, c₃, c₄, c₅, n)
+    form === :walpole && return TensTI{4}(c₁, c₂, c₃, c₄, c₅, n)
     form === :engineering && return _ti_from_components(_components(_role(role), Val(:engineering), c₁, c₂, c₃, c₄, c₅)..., n)
     form === :hoenig && return _ti_from_components(_components(_role(role), Val(:hoenig), c₁, c₂, c₃, c₄, c₅)..., n)
     throw(_unknown_ti_form(form))
@@ -485,7 +527,8 @@ The five constants of a transversely isotropic tensor, the reciprocal of
 [`ti_from_constants`](@ref) for the same `form`: its components
 `(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃)` in its axis frame, read from the stored
 Walpole coefficients (`C₃₃₃₃ = ℓ₁`, `C₁₁₁₁ = (ℓ₂ + ℓ₅)/2`,
-`C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`, `C₁₁₃₃ = ℓ₃/√2`, `C₂₃₂₃ = ℓ₆/2`); with `form = :hill`,
+`C₁₁₂₂ = (ℓ₂ − ℓ₅)/2`, `C₁₁₃₃ = ℓ₃/√2`, `C₂₃₂₃ = ℓ₆/2`); with `form = :walpole`,
+those coefficients themselves, `(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)`; with `form = :hill`,
 Hill's moduli `(k, l, m, n, p)` (`k = ℓ₂/2`, `l = ℓ₃/√2`, `m = ℓ₅/2`, `n = ℓ₁`,
 `p = ℓ₆/2`; see [`hill_moduli`](@ref)); with `form = :engineering`, `(E₁, E₃, ν₁₂, ν₃₁, G₃₁)` of the **compliance** `t`; with
 `form = :hoenig`, `(E, ν₁, ν₂, H, Γ)` of the **compliance** `t`. With
@@ -495,7 +538,7 @@ Hill's moduli `(k, l, m, n, p)` (`k = ℓ₂/2`, `l = ℓ₃/√2`, `m = ℓ₅/
 `E₃ = C₃₃₃₃ − 2C₁₁₃₃²/(C₁₁₁₁ + C₁₁₂₂)`, `ν₁₂ = (C₁₁₂₂C₃₃₃₃ − C₁₁₃₃²)/D`,
 `ν₃₁ = C₁₁₃₃/(C₁₁₁₁ + C₁₁₂₂)`, `G₃₁ = C₂₃₂₃`, and Hoenig's ``\\nu_2 = E_1\\nu_{31}/E_3``,
 ``H = E_3/E_1``, ``\\Gamma = 2(1 + \\nu_{12})G_{31}/E_1``. `role` is `:compliance` by
-default, and has no effect on `form = :components` and `form = :hill`.
+default, and has no effect on `form = :walpole`, `:components` and `:hill`.
 
 A six- or eight-parameter tensor (a product of TI tensors lands there) has
 these five constants only when it is major-symmetric, ``\\ell_3 = \\ell_4`` and
@@ -508,13 +551,14 @@ function ti_constants end
 Base.@constprop :aggressive function ti_constants(t::TensTI{4}; form::Symbol = :components, role::Symbol = :compliance)
     form === :components && return _ti_components(t)
     form === :hill && return values(hill_moduli(t))
+    form === :walpole && return walpole_coeffs(t, Val(5))
     form === :engineering && return _constants(_role(role), Val(:engineering), _ti_components(t)...)
     form === :hoenig && return _constants(_role(role), Val(:hoenig), _ti_components(t)...)
     throw(_unknown_ti_form(form))
 end
 
 _unknown_ti_form(form) =
-    ArgumentError("unknown form `:$form` of the TI constants; use `:components`, `:hill`, `:engineering` or `:hoenig`")
+    ArgumentError("unknown form `:$form` of the TI constants; use `:walpole`, `:components`, `:hill`, `:engineering` or `:hoenig`")
 
 function _ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
     T = promote_type(
@@ -1934,20 +1978,17 @@ tens_W8(n) = TensTI{4}(
 
 # ── Accessors ────────────────────────────────────────────────────────────────
 
-# For N=8, `walpole_coeffs` returns the six Walpole coefficients (dropping ℓ₇, ℓ₈).
+# For N=8, `walpole_coeffs(t)` returns the six Walpole coefficients (dropping ℓ₇, ℓ₈).
 # This keeps every ℓ₁..ℓ₄-based 4th⊡2nd contraction rule valid (W₅..W₈
 # annihilate symmetric 2nd-order tensors); use `walpole_coeffs(t, Val(8))` when the
 # antisymmetric couplings matter.
 walpole_coeffs(t::TensTI{4, T, 8}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[4], t.data[5], t.data[6])
 
-"""
-    walpole_coeffs(t::TensTI{4,T,N}, ::Val{8}) → NTuple{8,T}
+walpole_coeffs(t::TensTI{4}, ::Val{5}) = get_data(_major_symmetric_five(t))
 
-Always returns the 8-tuple `(ℓ₁, …, ℓ₆, ℓ₇, ℓ₈)` of coefficients in the full
-axially-invariant basis `{W₁,…,W₈}`.  For `N=5`/`N=6` the antisymmetric
-couplings `ℓ₇ = ℓ₈ = 0`.
-"""
+# The eight coefficients on the full axially invariant basis {W₁, …, W₈}: the
+# couplings ℓ₇ and ℓ₈ vanish for a tensor stored on five or six.
 walpole_coeffs(t::TensTI{4, T, 5}, ::Val{8}) where {T} =
     (t.data[1], t.data[2], t.data[3], t.data[3], t.data[4], t.data[5], zero(T), zero(T))
 walpole_coeffs(t::TensTI{4, T, 6}, ::Val{8}) where {T} =
