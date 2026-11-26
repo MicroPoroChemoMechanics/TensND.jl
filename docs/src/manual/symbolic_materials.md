@@ -189,11 +189,13 @@ show_matrix(𝕊ₑ)
 ```
 
 The stiffness of the same material is written in closed form, without an
-inverse; the two tensors are inverse of each other:
+inverse. Its matrix has the pattern of the component form above; its five
+components, read by `ti_constants`, are listed one per line. The two tensors
+are inverse of each other:
 
 ```@example symmat
 ℂₑ = ti_from_constants(E₁, E₃, ν₁₂, ν₃₁, G₃₁, e₃; form = :engineering, role = :stiffness)
-show_matrix(ℂₑ)
+collect(simplify.(ti_constants(ℂₑ)))          # C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, one per line
 ```
 
 ```@example symmat
@@ -269,17 +271,62 @@ Its nine constants are those it stores:
 get_data(ortho)
 ```
 
+## In two dimensions
+
+The isotropic builders take `Val(2)` as a first argument and return a tensor
+of the plane, whose Kelvin–Mandel matrix is ``3\times3``: the stiffness in plane
+strain, with the in-plane bulk modulus ``k = \lambda + \mu``.
+
+```@example symmat
+k₂, μ₂ = symbols("k mu", positive = true)
+plane = iso_stiffness(Val(2), k₂, μ₂)
+mandel(plane)
+```
+
+```@example symmat
+bulk_shear(plane), simplify.(young_poisson(plane))        # read back; E and ν of the 3-D material
+```
+
+Its compliance, and the stiffness entered by ``(E, \nu)`` and read back:
+
+```@example symmat
+simplify.(mandel(iso_compliance(Val(2), k₂, μ₂)))
+```
+
+```@example symmat
+simplify.(young_poisson(iso_stiffness_young_poisson(Val(2), E, ν)))
+```
+
+The plane has no transversely isotropic, cubic or orthotropic class: an
+anisotropic tensor of the plane is entered by its matrix
+([Two dimensions, and any dimension](@ref man-dimensions)).
+
 ## Another axis, another frame
 
 The matrices above are simple because the axis is ``\underline{e}_3`` and the
 frame the canonical one. A test should not rely on it: the same constants
 about another axis give a full matrix, and an identity that holds for the first
-must hold for the second.
+must hold for the second. Below, the axis is tilted by the angle ``\theta`` in
+the plane ``(\underline{e}_2, \underline{e}_3)``; the entries of the matrix are
+long, so that six of them are listed one per line: ``C_{1111}``, ``C_{1122}``,
+``C_{1133}``, ``C_{2222}``, ``C_{2233}`` and ``C_{3333}``.
 
 ```@example symmat
 θ = symbols("theta", real = true)
 tilted = ti_from_constants(k, l, m, n, p, (0, sin(θ), cos(θ)); form = :hill)
-show_matrix(tilted)[1:3, 1:3]
+M = show_matrix(tilted)
+[M[1, 1], M[1, 2], M[1, 3], M[2, 2], M[2, 3], M[3, 3]]
+```
+
+At ``\theta = 0`` they are those of the axis ``\underline{e}_3``, and at
+``\theta = \pi/2`` the axis is ``\underline{e}_2``:
+
+```@example symmat
+subs.(M[1:3, 1:3], θ => 0)
+```
+
+```@example symmat
+simplify.(subs.(M[1:3, 1:3], θ => PI / 2))
 ```
 
 The constants are read about the axis the tensor carries, so that they do not

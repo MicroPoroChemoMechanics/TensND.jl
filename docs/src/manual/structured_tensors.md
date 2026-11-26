@@ -76,6 +76,21 @@ cub = cubic_from_constants(10.0, 4.0, 2.0, ℬ)      # (C₁₁, C₁₂, C₄�
 | ORTHO order 4 | [`TensOrtho`](@ref)`{4}(C₁₁, …, C₆₆, frame)` (nine constants) and `(…, C₂₁, C₃₁, C₃₂, frame)` (twelve), `TensOrtho(KM, frame[, Val(12)])`, [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref), [`cubic_to_ortho`](@ref) |
 | ORTHO order 2 | [`TensOrtho`](@ref)`{2}(a₁, a₂, a₃, frame)`, [`iso_to_ortho`](@ref), [`walpole_to_ortho`](@ref) |
 
+## In two dimensions
+
+Of the classes of this page, only the isotropic one exists in the plane:
+`TensISO{2}(α, β)` is ``\alpha\,\mathbb{J} + \beta\,\mathbb{K}`` on the projectors of
+dimension 2, with the same products and inverse as in dimension 3. The
+transversely isotropic, cubic and orthotropic classes are those of dimension 3;
+an anisotropic tensor of the plane is a general `Tens`, entered by its
+``3\times3`` Kelvin–Mandel matrix with `from_mandel`.
+
+```@example struct
+TensISO{2}(6.0, 2.0) ⊡ TensISO{2}(0.5, 0.25)
+```
+
+See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of what is built in the plane.
+
 ## Accessors
 
 | Function | Applies to | Returns |

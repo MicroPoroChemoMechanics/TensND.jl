@@ -29,6 +29,21 @@ using TensND, LinearAlgebra
 bulk_shear(ℂ), young_poisson(ℂ)
 ```
 
+## In two dimensions
+
+Every builder and every reader of the isotropic moduli takes the dimension as
+a first argument `Val(2)`: the tensor is then the stiffness, or the compliance,
+of the material in plane strain.
+
+```@example par
+ℂ₂ = iso_stiffness_young_poisson(Val(2), 70.0, 0.33)
+bulk_shear(ℂ₂), young_poisson(ℂ₂)        # in-plane bulk modulus k = λ + μ; E and ν of the 3-D material
+```
+
+The conventions of a transversely isotropic material that follow are those of
+dimension 3; its stiffness in its plane of isotropy is a plane isotropic tensor
+([Elastic moduli](@ref man-moduli-2d)). See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of what is built in the plane.
+
 ## The five TI conventions
 
 | `form` | Parameters | Builds |

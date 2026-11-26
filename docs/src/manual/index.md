@@ -8,7 +8,7 @@ The Manual says how to call the package, one kind of object per page, on the sma
 
 ## Tensors and bases
 
-[Bases](@ref man-bases) constructs canonical, rotated, orthogonal and general bases and reads their dual basis and metric. [Tensors](@ref man-tensors) creates tensors of any order on a basis, converts their components between covariant and contravariant forms, and applies the products and contractions. [Random tensors](@ref man-random-tensors) draws random tensors of any symmetry class, with uniformly distributed orientations, for tests and sampling.
+[Bases](@ref man-bases) constructs canonical, rotated, orthogonal and general bases and reads their dual basis and metric. [Tensors](@ref man-tensors) creates tensors of any order on a basis, converts their components between covariant and contravariant forms, and applies the products and contractions. [Random tensors](@ref man-random-tensors) draws random tensors of any symmetry class, with uniformly distributed orientations, for tests and sampling. [Two dimensions, and any dimension](@ref man-dimensions) says what is built in the plane and in dimension 4 and above, call by call, and what exists in dimension 3 only.
 
 ## Material symmetries
 

@@ -45,6 +45,18 @@ An orthonormal basis is detected automatically and gets the cheaper type:
 typeof(Basis(θ, ϕ, ψ))
 ```
 
+## In two dimensions
+
+The constructors take the dimension from their arguments: `CanonicalBasis{2, T}()`
+is the canonical basis of the plane, `Basis(θ)` the basis rotated by the angle
+`θ`, and `Basis(M)` with a ``2\times2`` matrix a general basis of the plane.
+
+```@example bases
+Basis(π / 6)
+```
+
+See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of what is built in the plane.
+
 ## Accessors
 
 | Function | Returns |

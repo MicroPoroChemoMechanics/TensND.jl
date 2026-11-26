@@ -160,7 +160,7 @@ using ForwardDiff
 ForwardDiff.derivative(ν -> shear_modulus(iso_stiffness_young_poisson(70.0, ν)), 0.33)
 ```
 
-## Two dimensions
+## [In two dimensions](@id man-moduli-2d)
 
 A `TensISO{4,2}` is the in-plane stiffness of a 3-D material under plane
 strain, ``\mathbb{C} = 2(\lambda + \mu)\,\mathbb{J} + 2\mu\,\mathbb{K}``. Its ``E``,

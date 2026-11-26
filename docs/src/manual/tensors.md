@@ -38,6 +38,20 @@ typeof(Tens(get_array(T), ℬ, (:cov, :cov)))
 Data may come from a plain `Array`, or from a `Tensors.jl` container
 (`Tensor`, `SymmetricTensor`, `Vec`), in which case the symmetry is preserved.
 
+## In two dimensions
+
+A tensor has the dimension of its array of components: a vector of two
+components, a ``2\times2`` matrix or a ``2\times2\times2\times2`` array is a
+tensor of the plane, of order 1, 2 or 4, and every operation of this page
+applies to it.
+
+```@example tens
+ε₂ = Tens([1.0 0.2; 0.2 -0.5])
+get_order(ε₂), get_dim(ε₂), tr(ε₂)
+```
+
+See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of what is built in the plane.
+
 ## Components
 
 | Call | Returns |

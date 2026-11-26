@@ -44,6 +44,13 @@ table is built from its position vector, see [Custom systems](@ref) below.
     ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the
     canonical basis in the canonical order.
 
+## In two dimensions
+
+Two of the predefined systems are those of the plane: the Cartesian one with
+two coordinates, `coorsys_cartesian(symbols("x y", real = true))`, and the
+polar one, `coorsys_polar()`, used in the examples of the next section. Their
+fields are tensors of dimension 2. See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of what is built in the plane.
+
 ## The operators
 
 ```@example cs

@@ -76,6 +76,7 @@ pages = [
         "Tensors and bases" => [
             "manual/bases.md",
             "manual/tensors.md",
+            "manual/dimensions.md",
             "manual/random_tensors.md",
         ],
         "Material symmetries" => [
