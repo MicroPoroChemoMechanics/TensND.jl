@@ -1,5 +1,18 @@
 # Changelog
 
+## v0.18.1
+
+### Fixed
+
+- The sum or difference of two transversely isotropic tensors of complex
+  components (a viscoelastic or a frequency-domain stiffness) whose axes are
+  orthogonal or opposite threw a `MethodError`: the frame of the result was
+  built in the complex type in which the axis is stored, and its angles were
+  sought by comparing complex numbers. The axis, a direction, is now read on its
+  real part, a nonzero imaginary part being refused. Results on real numbers are
+  unchanged to the bit. This is what a Mori-Tanaka estimate meets with two
+  families of complex moduli on orthogonal axes.
+
 ## v0.18.0 — elastic waves
 
 A stiffness and a density define the waves of a medium; TensND had the
