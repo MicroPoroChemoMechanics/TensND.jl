@@ -77,7 +77,7 @@ nothing #hide
 
 # Along the meridian ``\phi = 0`` (the plane of ``\underline{e}_1`` and
 # ``\underline{e}_3``) and around the vertical axis in the horizontal plane
-# ``\theta = 90°``:
+# ``\theta = 90^\circ``:
 
 θs = range(0, π; length = 121)
 ϕs = range(0, 2π; length = 121)

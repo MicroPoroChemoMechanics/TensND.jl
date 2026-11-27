@@ -109,9 +109,11 @@ polarized along ``\underline{e}_2`` has
 ``e = -p/(3K)``,
 
 ```math
+\begin{gathered}
 \rho_0 v_P^2 = \lambda + 2\mu - \frac{p}{3K}\,(6l + 4m + 7\lambda + 10\mu),
-\qquad
+ \\
 \rho_0 v_S^2 = \mu - \frac{p}{3K}\,\Bigl(3m - \frac{n}{2} + 3\lambda + 6\mu\Bigr),
+\end{gathered}
 ```
 
 the formulas of [hughes1953](@citet).
@@ -177,7 +179,7 @@ a_P = \frac{2\lambda + 5\mu + 2m}{2\mu\,(\lambda + 2\mu)},\qquad
 b_S = \frac{4\mu + n}{8\mu^2} ,
 ```
 
-read on the slopes at ``\theta = 90°``. In rocks, where the third-order
+read on the slopes at ``\theta = 90^\circ``. In rocks, where the third-order
 constants are larger than the second-order ones by orders of magnitude
 (cracks closing under stress), ``a_P`` and ``b_S`` are large and negative: the
 velocities are highest along the compression.

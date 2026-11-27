@@ -35,7 +35,7 @@ iso(α, β, ρ) = iso_stiffness(ρ * (α^2 - 4β^2 / 3), ρ * β^2)       # bulk
 ℂ₁, ρ₁ = iso(2.9, 1.4, 2.3), 2.3
 ℂ₂, ρ₂ = iso(3.5, 2.1, 2.4), 2.4
 ν = [0.0, 0.0, 1.0]
-p = sind(30) / 2.9                     # tangential slowness of a P wave at 30° in the medium 1
+p = sind(30) / 2.9                     # tangential slowness of a P wave at 30^\circ in the medium 1
 forward, backward = interface_waves(ℂ₁, ρ₁, ν, [p, 0.0, 0.0])
 nothing # hide
 ```

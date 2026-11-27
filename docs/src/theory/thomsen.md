@@ -33,9 +33,13 @@ axis. The definitions are exact: they hold for any strength of the
 anisotropy, and they are inverted by
 
 ```math
-C_{33} = \rho V_{P0}^2,\quad C_{44} = \rho V_{S0}^2,\quad
-C_{11} = C_{33}(1 + 2\varepsilon),\quad C_{66} = C_{44}(1 + 2\gamma),\quad
+\begin{gathered}
+C_{33} = \rho V_{P0}^2, \\
+C_{44} = \rho V_{S0}^2, \\
+C_{11} = C_{33}(1 + 2\varepsilon), \\
+C_{66} = C_{44}(1 + 2\gamma), \\
 (C_{13} + C_{44})^2 = (C_{33} - C_{44})\,\bigl[C_{33}(1 + 2\delta) - C_{44}\bigr] .
+\end{gathered}
 ```
 
 The last relation fixes ``C_{13} + C_{44}`` up to its sign, which the
@@ -50,9 +54,9 @@ Across the axis, the exact velocities of
 [the transversely isotropic medium](@ref th-plane-waves) are
 
 ```math
-V_P(90°) = V_{P0}\sqrt{1 + 2\varepsilon},\qquad
-V_{SH}(90°) = V_{S0}\sqrt{1 + 2\gamma},\qquad
-V_{SV}(90°) = V_{S0} :
+V_P(90^\circ) = V_{P0}\sqrt{1 + 2\varepsilon},\qquad
+V_{SH}(90^\circ) = V_{S0}\sqrt{1 + 2\gamma},\qquad
+V_{SV}(90^\circ) = V_{S0} :
 ```
 
 ``\varepsilon`` and ``\gamma`` measure the difference between the horizontal
@@ -66,8 +70,10 @@ and the vertical velocities of the P and SH waves, for a vertical axis.
 is
 
 ```math
-\frac{D}{C_{33}^2} = \bigl[f\,(s^2 - c^2) + 2\varepsilon s^2\bigr]^2 + 4f\,(f + 2\delta)\,s^2c^2
-= f^2 + 8f\,\delta\,s^2c^2 + 4f\,\varepsilon\,s^2(s^2 - c^2) + 4\varepsilon^2 s^4 ,
+\begin{aligned}
+\frac{D}{C_{33}^2} &= \bigl[f\,(s^2 - c^2) + 2\varepsilon s^2\bigr]^2 + 4f\,(f + 2\delta)\,s^2c^2\\
+&= f^2 + 8f\,\delta\,s^2c^2 + 4f\,\varepsilon\,s^2(s^2 - c^2) + 4\varepsilon^2 s^4 ,
+\end{aligned}
 ```
 
 an exact expression (``f^2(s^2 - c^2)^2 + 4f^2s^2c^2 = f^2``). Near the axis,
@@ -176,9 +182,11 @@ The expansions of section 2 give ``v_2`` exactly, ``2\delta`` for P,
 ``2(V_{P0}/V_{S0})^2(\varepsilon - \delta)`` for SV and ``2\gamma`` for SH:
 
 ```math
-\bigl(V_{\mathrm{nmo}}^{P}\bigr)^2 = V_{P0}^2\,(1 + 2\delta),\qquad
-\bigl(V_{\mathrm{nmo}}^{SV}\bigr)^2 = V_{S0}^2 + 2V_{P0}^2\,(\varepsilon - \delta),\qquad
+\begin{gathered}
+\bigl(V_{\mathrm{nmo}}^{P}\bigr)^2 = V_{P0}^2\,(1 + 2\delta), \\
+\bigl(V_{\mathrm{nmo}}^{SV}\bigr)^2 = V_{S0}^2 + 2V_{P0}^2\,(\varepsilon - \delta), \\
 \bigl(V_{\mathrm{nmo}}^{SH}\bigr)^2 = V_{S0}^2\,(1 + 2\gamma) ,
+\end{gathered}
 ```
 
 with no assumption on the strength of the anisotropy

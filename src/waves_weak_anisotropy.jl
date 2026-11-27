@@ -67,18 +67,22 @@ two-index notation of the canonical components
 waves, ``M = C_{33}`` for P and ``C_{44}``, ``C_{55}`` for the two S:
 
 ```math
-\\varepsilon_x = \\frac{C_{22} - M}{2M},\\quad
-\\varepsilon_y = \\frac{C_{11} - M}{2M},\\quad
-\\delta_x = \\frac{C_{23} + 2C_{44} - M}{M},\\quad
-\\delta_y = \\frac{C_{13} + 2C_{55} - M}{M},\\quad
+\\begin{gathered}
+\\varepsilon_x = \\frac{C_{22} - M}{2M}, \\\\
+\\varepsilon_y = \\frac{C_{11} - M}{2M}, \\\\
+\\delta_x = \\frac{C_{23} + 2C_{44} - M}{M}, \\\\
+\\delta_y = \\frac{C_{13} + 2C_{55} - M}{M}, \\\\
 \\delta_z = \\frac{C_{12} + 2C_{66} - M}{M},
+\\end{gathered}
 ```
 
 ```math
-\\chi_x = \\frac{C_{14} + 2C_{56}}{M},\\quad
-\\chi_y = \\frac{C_{25} + 2C_{46}}{M},\\quad
-\\chi_z = \\frac{C_{36} + 2C_{45}}{M},\\quad
+\\begin{gathered}
+\\chi_x = \\frac{C_{14} + 2C_{56}}{M}, \\\\
+\\chi_y = \\frac{C_{25} + 2C_{46}}{M}, \\\\
+\\chi_z = \\frac{C_{36} + 2C_{45}}{M}, \\\\
 \\varepsilon_{IJ} = \\frac{C_{IJ}}{M}\\ \\ (IJ = 15, 16, 24, 26, 34, 35),
+\\end{gathered}
 ```
 
 ```math

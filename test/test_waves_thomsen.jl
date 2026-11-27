@@ -214,8 +214,8 @@ end
         # the clayshale: the qSV square is negative, and still the curvature of the exact velocity
         t₂, ρ₂ = wth_ti(WTH_CLAYSHALE), WTH_RHO_CLAYSHALE
         m₂ = squared_moveout_velocities(t₂, ρ₂)
-        V(θ) = wth_velocity(t₂, ρ₂, 2, θ)
+        V₂(θ) = wth_velocity(t₂, ρ₂, 2, θ)
         @test m₂.qSV < 0
-        @test isapprox(V(0.0)^2 + V(0.0) * ForwardDiff.derivative(θ -> ForwardDiff.derivative(V, θ), 0.0), m₂.qSV; rtol = 1.0e-10)
+        @test isapprox(V₂(0.0)^2 + V₂(0.0) * ForwardDiff.derivative(θ -> ForwardDiff.derivative(V₂, θ), 0.0), m₂.qSV; rtol = 1.0e-10)
     end
 end

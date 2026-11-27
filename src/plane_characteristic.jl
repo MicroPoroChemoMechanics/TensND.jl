@@ -44,9 +44,11 @@ The compliances of the stiffness `ℂ` of the plane in the engineering form, in
 the canonical axes:
 
 ```math
-\\varepsilon_{11} = a_{11}\\sigma_{11} + a_{12}\\sigma_{22} + a_{16}\\sigma_{12},\\quad
-\\varepsilon_{22} = a_{12}\\sigma_{11} + a_{22}\\sigma_{22} + a_{26}\\sigma_{12},\\quad
+\\begin{gathered}
+\\varepsilon_{11} = a_{11}\\sigma_{11} + a_{12}\\sigma_{22} + a_{16}\\sigma_{12}, \\\\
+\\varepsilon_{22} = a_{12}\\sigma_{11} + a_{22}\\sigma_{22} + a_{26}\\sigma_{12}, \\\\
 2\\varepsilon_{12} = a_{16}\\sigma_{11} + a_{26}\\sigma_{22} + a_{66}\\sigma_{12} .
+\\end{gathered}
 ```
 """
 engineering_compliances(ℂ::AbstractTens{4, 2}) = _engineering_compliances(mandel(inv(ℂ), CanonicalBasis{2, eltype(ℂ)}()))

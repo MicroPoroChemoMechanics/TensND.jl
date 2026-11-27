@@ -89,11 +89,13 @@ The phase velocities of the three modes along `n` to first order in Thomsen's
 parameters,
 
 ```math
+\\begin{gathered}
 V_{P} \\approx V_{P0}\\,(1 + \\delta\\sin^2\\theta\\cos^2\\theta + \\varepsilon\\sin^4\\theta),
-\\quad
+ \\\\
 V_{SV} \\approx V_{S0}\\Bigl[1 + \\frac{V_{P0}^2}{V_{S0}^2}(\\varepsilon - \\delta)\\sin^2\\theta\\cos^2\\theta\\Bigr],
-\\quad
+ \\\\
 V_{SH} \\approx V_{S0}\\,(1 + \\gamma\\sin^2\\theta) ,
+\\end{gathered}
 ```
 
 ``\\theta`` being the angle between `n` and the axis. [`wave_modes`](@ref)

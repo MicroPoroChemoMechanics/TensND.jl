@@ -200,9 +200,11 @@ between ``\\underline{n}`` and ``\\underline{a}`` and the components
 the axis 3:
 
 ```math
+\\begin{gathered}
 \\rho V_{SH}^2 = C_{66}\\sin^2\\theta + C_{44}\\cos^2\\theta ,
-\\qquad
+ \\\\
 2\\rho V_{qP,\\,qSV}^2 = C_{11}\\sin^2\\theta + C_{33}\\cos^2\\theta + C_{44} \\pm \\sqrt{D} ,
+\\end{gathered}
 ```
 
 ```math

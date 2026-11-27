@@ -233,11 +233,13 @@ A displacement of the plane
 medium of stiffness ``\mathbb{C}`` when
 
 ```math
+\begin{gathered}
 \bigl[\boldsymbol{Q} + \mu\,(\boldsymbol{R} + \boldsymbol{R}^{\mathsf T}) + \mu^2\,\boldsymbol{T}\bigr]\cdot\underline{U} = \underline{0},
-\qquad
-\boldsymbol{Q} = \underline{e}_1\cdot\mathbb{C}\cdot\underline{e}_1,\quad
-\boldsymbol{R} = \underline{e}_1\cdot\mathbb{C}\cdot\underline{e}_2,\quad
+ \\
+\boldsymbol{Q} = \underline{e}_1\cdot\mathbb{C}\cdot\underline{e}_1, \\
+\boldsymbol{R} = \underline{e}_1\cdot\mathbb{C}\cdot\underline{e}_2, \\
 \boldsymbol{T} = \underline{e}_2\cdot\mathbb{C}\cdot\underline{e}_2 ,
+\end{gathered}
 ```
 
 the problem of section 2 with ``\rho = 0``, ``\underline{s}_t = \underline{e}_1``
@@ -253,9 +255,11 @@ conjugates.
 With the compliances of the plane in the engineering form,
 
 ```math
-\varepsilon_{11} = a_{11}\sigma_{11} + a_{12}\sigma_{22} + a_{16}\sigma_{12},\quad
-\varepsilon_{22} = a_{12}\sigma_{11} + a_{22}\sigma_{22} + a_{26}\sigma_{12},\quad
+\begin{gathered}
+\varepsilon_{11} = a_{11}\sigma_{11} + a_{12}\sigma_{22} + a_{16}\sigma_{12}, \\
+\varepsilon_{22} = a_{12}\sigma_{11} + a_{22}\sigma_{22} + a_{26}\sigma_{12}, \\
 2\varepsilon_{12} = a_{16}\sigma_{11} + a_{26}\sigma_{22} + a_{66}\sigma_{12} ,
+\end{gathered}
 ```
 
 the polynomial is, up to a factor, that of [lekhnitskii1981](@citet),

@@ -99,10 +99,12 @@ parameters* of [mensch1997](@citet):
 ```
 
 ```math
-\chi_x = \frac{C_{14} + 2C_{56}}{M},\quad
-\chi_y = \frac{C_{25} + 2C_{46}}{M},\quad
-\chi_z = \frac{C_{36} + 2C_{45}}{M},\qquad
+\begin{gathered}
+\chi_x = \frac{C_{14} + 2C_{56}}{M}, \\
+\chi_y = \frac{C_{25} + 2C_{46}}{M}, \\
+\chi_z = \frac{C_{36} + 2C_{45}}{M}, \\
 \varepsilon_{IJ} = \frac{C_{IJ}}{M}\ \ (IJ = 15, 16, 24, 26, 34, 35) .
+\end{gathered}
 ```
 
 The index ``x``, ``y`` or ``z`` names the plane normal to that axis. Of the

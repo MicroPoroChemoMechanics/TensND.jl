@@ -60,6 +60,37 @@ function golden_cases()
     push!(cases, "order2/sotimes" => () -> _canon(sotimes(S, S)))
     push!(cases, "order2/inv" => () -> _canon(inv(S)))
     push!(cases, "order2/rotated" => () -> _vals(express(S, _R)))
+    # Elastic waves: the velocities, polarizations and group velocities of each
+    # class along an oblique direction, the first-order and generalized
+    # parameters, an interface and a prestressed solid.
+    n = [0.3, -0.5, 0.8]
+    for (name, t) in pairs(T)
+        name === :gen_rot && continue
+        push!(cases, "waves/$name/plane_waves" => () -> (w = plane_waves(t, 2.5, n); vcat(_vals(w.velocity), _vals(abs.(w.polarization)), _vals(w.group))))
+        push!(cases, "waves/$name/weak" => () -> (w = weak_plane_waves(t, 2.5, n); Float64[w.qP[1], w.qS1[1], w.qS2[1]]))
+        push!(cases, "waves/$name/generalized" => () -> _vals(collect(values(generalized_thomsen_parameters(t)))))
+    end
+    push!(cases, "waves/ti/thomsen" => () -> _vals(collect(values(thomsen_parameters(T.ti, 2.5)))))
+    push!(
+        cases, "waves/interface" => () -> begin
+            f, _ = interface_waves(T.ortho, 2.5, _N, [0.05, 0.02, 0.0])
+            r = reflection_transmission(T.ortho, 2.5, T.iso, 2.0, _N, f[1])
+            vcat(_vals(abs.(r.R)), _vals(abs.(r.T)), _vals(collect(r.energy[1])), _vals(collect(r.energy[2])))
+        end
+    )
+    push!(
+        cases, "waves/third_order" => () -> begin
+            s3 = ThirdOrderIsotropic(8.3, 11.9, -3.4e3, -6.8e3, -6.7e3)
+            F = [1.001 0.0002 0.0; 0.0 0.9995 0.0003; 0.0001 0.0 1.0004]
+            vcat(_vals(prestressed_waves(s3, 2.3, F, n).velocity), _vals(collect(values(acoustoelastic_coefficients(s3)))))
+        end
+    )
+    push!(
+        cases, "plane/characteristic_pair" => () -> begin
+            s2, p2 = characteristic_pair(from_mandel([30.0 4.0 3.0; 4.0 9.0 -2.0; 3.0 -2.0 7.0]))
+            Float64[real(s2), imag(s2), real(p2), imag(p2)]
+        end
+    )
     return cases
 end
 
