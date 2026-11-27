@@ -161,4 +161,15 @@ end
         @test mandel_weights(Val(2), typeof(s)) == (1, 1, sqrt(Sym(2)))
     end
 
+    @testset "exact element types beyond dimension 3" begin
+        # The minor symmetries of an exact array are decided structurally, not to a tolerance.
+        d = 4
+        P = [(i + 2j + 3k + 5l) // 7 for i in 1:d, j in 1:d, k in 1:d, l in 1:d]
+        S = [P[i, j, k, l] + P[j, i, k, l] + P[i, j, l, k] + P[j, i, l, k] for i in 1:d, j in 1:d, k in 1:d, l in 1:d]
+        @test TensND._minor_symmetric(S) && !TensND._minor_symmetric(P)
+        @test size(TensND._mandel_array(S)) == (10, 10) && size(TensND._mandel_array(P)) == (16, 16)
+        @test TensND._mandel_array(S) ≈ TensND._mandel_array(float.(S))
+        @test TensND._mandel_array(P) ≈ TensND._mandel_array(float.(P))
+    end
+
 end

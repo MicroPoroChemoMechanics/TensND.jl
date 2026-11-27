@@ -70,7 +70,10 @@ and its projections. Results in dimension 3 are unchanged, to the last bit.
   With the frame free there is no search: the frame of the closest square
   tensor is in closed form, that of the closest orthotropic one a root of a
   quartic, an exact global minimum. `transverse_isotropify` of a tensor of the
-  plane is its average over the rotations of the plane.
+  plane is its average over the rotations of the plane. The plane has no
+  transversely isotropic class: `project(t, :TI)` and
+  `istransverselyisotropic` of a tensor of the plane throw an `ArgumentError`
+  that names the classes of the plane.
 
 ### Added: utilities shared with client packages
 

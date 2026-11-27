@@ -167,6 +167,9 @@ _no_plane_ti() = throw(
     )
 )
 
+# The wrappers of `tens_projection.jl` for this class are those of space.
+project(::AbstractTens{order, 2}, ::Val{:TI}, args...) where {order} = _no_plane_ti()
+
 for order in (2, 4)
     @eval begin
         # In the plane the best frame of each class is exact and costs one

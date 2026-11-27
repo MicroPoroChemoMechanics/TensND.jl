@@ -617,6 +617,7 @@ false
 ```
 """
 function project(A::AbstractArray{T, 4}, ::Val{:TI}, n) where {T}
+    size(A, 1) == 2 && _no_plane_ti()
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
@@ -666,6 +667,7 @@ julia> B.data
 ```
 """
 function project(A::AbstractArray{T, 2}, ::Val{:TI}, n) where {T}
+    size(A, 1) == 2 && _no_plane_ti()
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
@@ -862,7 +864,7 @@ random step, so a call is repeatable to the bit.
 See also [`project(A, ::Val{:TI}, n)`](@ref) for fixed-axis projection.
 """
 project(A::AbstractArray{T, 4}, ::Val{:TI}) where {T <: AbstractFloat} =
-    _proj_tens_opt(Val(:TI), A)
+    size(A, 1) == 2 ? _no_plane_ti() : _proj_tens_opt(Val(:TI), A)
 
 """
     project(A::AbstractArray{T,2}, ::Val{:TI}) where {T<:AbstractFloat}
@@ -873,7 +875,7 @@ largest eigenvalue of the symmetric part of `A`, whichever gives the closer
 tensor.
 """
 project(A::AbstractArray{T, 2}, ::Val{:TI}) where {T <: AbstractFloat} =
-    _proj_tens_opt(Val(:TI), A)
+    size(A, 1) == 2 ? _no_plane_ti() : _proj_tens_opt(Val(:TI), A)
 
 """
     project(A::AbstractArray{T,4}, ::Val{:ORTHO}) where {T<:AbstractFloat}
@@ -1113,8 +1115,8 @@ function _proj_in_frame(v::Val, t::AbstractTens, args...)
 end
 
 project(t::AbstractTens, v::Val{:ISO}) = project(first(_orthonormal_components(t)), v)
-project(t::AbstractTens{4, dim, T}, v::Val{:TI}, n) where {dim, T} = _proj_in_frame(v, t, n)
-project(t::AbstractTens{2, dim, T}, v::Val{:TI}, n) where {dim, T} = _proj_in_frame(v, t, n)
+project(t::AbstractTens{4, 3}, v::Val{:TI}, n) = _proj_in_frame(v, t, n)
+project(t::AbstractTens{2, 3}, v::Val{:TI}, n) = _proj_in_frame(v, t, n)
 # One method per dimension: the frame of the kernels is that of a given
 # dimension, and a dimension shared by a type variable would be less specific
 # than they are on that argument.
@@ -1126,8 +1128,8 @@ end
 # the array kernel with `t` itself, read in its own basis as if canonical. The
 # element-type bound matches the kernels', so each wrapper is strictly more
 # specific than the kernel it unwraps for.
-project(t::AbstractTens{4, dim, T}, v::Val{:TI}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
-project(t::AbstractTens{2, dim, T}, v::Val{:TI}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
+project(t::AbstractTens{4, 3, T}, v::Val{:TI}) where {T <: AbstractFloat} = _proj_in_frame(v, t)
+project(t::AbstractTens{2, 3, T}, v::Val{:TI}) where {T <: AbstractFloat} = _proj_in_frame(v, t)
 project(t::AbstractTens{4, dim, T}, v::Val{:ORTHO}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
 project(t::AbstractTens{2, dim, T}, v::Val{:ORTHO}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
 project(t::AbstractTens{4, dim, T}, v::Val{:CUBIC}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
