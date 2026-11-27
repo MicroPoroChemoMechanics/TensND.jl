@@ -465,6 +465,18 @@ angles(v::AbstractVector{T}, ::Val{3}) where {T} =
     (θ = atan(√(v[1]^2 + v[2]^2), v[3]), ϕ = atan(v[2], v[1]))
 angles(v::AbstractVector{T}) where {T} = angles(v, Val(size(v, 1)))
 
+"""
+    direction_from_angles(θ, ϕ) → SVector{3}
+    direction_from_angles(θ) → SVector{2}
+
+The unit vector of angles `(θ, ϕ)`, the converse of [`angles`](@ref) on a
+vector: ``(\\sin\\theta\\cos\\phi,\\ \\sin\\theta\\sin\\phi,\\ \\cos\\theta)`` in space, with
+``\\theta`` the angle to ``\\underline{e}_3`` and ``\\phi`` the azimuth about it, and
+``(\\cos\\theta, \\sin\\theta)`` in the plane. Numbers, dual numbers and symbols.
+"""
+direction_from_angles(θ, ϕ) = ((sθ, cθ) = (sin(θ), cos(θ)); SVector(sθ * cos(ϕ), sθ * sin(ϕ), cθ))
+direction_from_angles(θ) = SVector(cos(θ), sin(θ))
+
 
 invvar(::Val{:cov}) = :cont
 invvar(::Val{:cont}) = :cov
@@ -736,4 +748,4 @@ function permute_basis(ℬ::AbstractBasis{dim, T}, σ::NTuple{dim, Int}; negate:
 end
 
 export Basis, CanonicalBasis, RotatedBasis, CylindricalBasis, SphericalBasis, OrthogonalBasis, AllOrthogonalBasis
-export get_dim, vecbasis, metric, angles, isorthogonal, isorthonormal, permute_basis, euler_basis, canonical_eltype
+export get_dim, vecbasis, metric, angles, direction_from_angles, isorthogonal, isorthonormal, permute_basis, euler_basis, canonical_eltype

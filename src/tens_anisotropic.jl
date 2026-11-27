@@ -460,7 +460,7 @@ end
 # ── TI constants ─────────────────────────────────────────────────────────────
 
 """
-    ti_from_constants(c₁, c₂, c₃, c₄, c₅, n; form = :components, role = :compliance) → TensTI{4, T, 5}
+    ti_from_constants(c₁, c₂, c₃, c₄, c₅, n; form = :components, role = :compliance, density = nothing) → TensTI{4, T, 5}
 
 The major-symmetric transversely isotropic tensor of axis `n` given by five
 constants, read according to `form`:
@@ -488,6 +488,12 @@ constants, read according to `form`:
 - `:hoenig`: the **compliance** of Hoenig's parameters `(E, ν₁, ν₂, H, Γ)`
   [hoenig1978](@cite): `S₁₁₁₁ = 1/E`, `S₁₁₂₂ = −ν₁/E`, `S₁₁₃₃ = −ν₂/E`,
   `S₃₃₃₃ = 1/(E H)`, `S₂₃₂₃ = (1 + ν₁)/(2 E Γ)`.
+- `:thomsen`: the **stiffness** of Thomsen's parameters
+  `(V_P0, V_S0, ε, δ, γ)` [thomsen1986](@cite), with the mass density given as
+  the keyword `density`: `C₃₃₃₃ = ρV_P0²`, `C₂₃₂₃ = ρV_S0²`,
+  `C₁₁₁₁ = C₃₃₃₃(1 + 2ε)`, `C₁₁₁₁ − C₁₁₂₂ = 2C₂₃₂₃(1 + 2γ)` and
+  `(C₁₁₃₃ + C₂₃₂₃)² = (C₃₃₃₃ − C₂₃₂₃)[C₃₃₃₃(1 + 2δ) − C₂₃₂₃]`, the positive
+  root being kept ([`thomsen_parameters`](@ref)). `role` has no effect on it.
 
 With `role = :stiffness`, `:engineering` and `:hoenig` build the **stiffness** of the same
 material instead, directly (never through an inverse): with
@@ -539,8 +545,9 @@ _ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₁₁, 
     _ti_from_hill((C₁₁₁₁ + C₁₁₂₂) / 2, C₁₁₃₃, (C₁₁₁₁ - C₁₁₂₂) / 2, C₃₃₃₃, C₂₃₂₃, C₃₃₁₁, axis)
 
 Base.@constprop :aggressive function ti_from_constants(
-        c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components, role::Symbol = :compliance
+        c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components, role::Symbol = :compliance, density = nothing
     )
+    form === :thomsen && return _ti_from_components(_components_of_thomsen(c₁, c₂, c₃, c₄, c₅, _thomsen_density(density))..., n)
     form === :components && return _ti_from_components(c₁, c₂, c₃, c₄, c₅, n)
     form === :hill && return _ti_from_hill(c₁, c₂, c₃, c₄, c₅, n)
     form === :walpole && return TensTI{4}(c₁, c₂, c₃, c₄, c₅, n)
@@ -550,7 +557,7 @@ Base.@constprop :aggressive function ti_from_constants(
 end
 
 """
-    ti_constants(t::TensTI{4}; form = :components, role = :compliance) → NTuple{5}
+    ti_constants(t::TensTI{4}; form = :components, role = :compliance, density = nothing) → NTuple{5}
 
 The five constants of a transversely isotropic tensor, the reciprocal of
 [`ti_from_constants`](@ref) for the same `form`: its components
@@ -560,7 +567,9 @@ Walpole coefficients (`C₃₃₃₃ = ℓ₁`, `C₁₁₁₁ = (ℓ₂ + ℓ�
 those coefficients themselves, `(ℓ₁, ℓ₂, ℓ₃, ℓ₅, ℓ₆)`; with `form = :hill`,
 Hill's moduli `(k, l, m, n, p)` (`k = ℓ₂/2`, `l = ℓ₃/√2`, `m = ℓ₅/2`, `n = ℓ₁`,
 `p = ℓ₆/2`; see [`hill_moduli`](@ref)); with `form = :engineering`, `(E₁, E₃, ν₁₂, ν₃₁, G₃₁)` of the **compliance** `t`; with
-`form = :hoenig`, `(E, ν₁, ν₂, H, Γ)` of the **compliance** `t`. With
+`form = :hoenig`, `(E, ν₁, ν₂, H, Γ)` of the **compliance** `t`; with
+`form = :thomsen` and the keyword `density = ρ`, Thomsen's parameters
+`(V_P0, V_S0, ε, δ, γ)` of the **stiffness** `t` ([`thomsen_parameters`](@ref)). With
 `role = :stiffness`, the last two forms read the constants of the material whose
 **stiffness** is `t`, directly (never through an inverse): with
 ``D = C_{1111}C_{3333} - C_{1133}^2``, `E₁ = (C₁₁₁₁ − C₁₁₂₂)(C₁₁₁₁C₃₃₃₃ + C₁₁₂₂C₃₃₃₃ − 2C₁₁₃₃²)/D`,
@@ -577,7 +586,10 @@ not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant
 """
 function ti_constants end
 
-Base.@constprop :aggressive function ti_constants(t::TensTI{4}; form::Symbol = :components, role::Symbol = :compliance)
+Base.@constprop :aggressive function ti_constants(
+        t::TensTI{4}; form::Symbol = :components, role::Symbol = :compliance, density = nothing
+    )
+    form === :thomsen && return _thomsen_of_components(_ti_components(t)..., _thomsen_density(density))
     form === :components && return _ti_components(t)
     form === :hill && return values(hill_moduli(t))
     form === :walpole && return walpole_coeffs(t, Val(5))
@@ -587,7 +599,7 @@ Base.@constprop :aggressive function ti_constants(t::TensTI{4}; form::Symbol = :
 end
 
 _unknown_ti_form(form) =
-    ArgumentError("unknown form `:$form` of the TI constants; use `:walpole`, `:components`, `:hill`, `:engineering` or `:hoenig`")
+    ArgumentError("unknown form `:$form` of the TI constants; use `:walpole`, `:components`, `:hill`, `:engineering`, `:hoenig` or `:thomsen`")
 
 function _ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
     T = promote_type(

@@ -7,7 +7,7 @@
 #  References, independent of the code under test:
 #  - the sub-arrays of a component array on the plane indices, taken with index
 #    vectors, and the canonical components of a tensor written in a rotated
-#    basis by explicit index sums (OMEinsum);
+#    basis by explicit index sums (`reference_contractions.jl`);
 #  - the plane-stress stiffness as the inverse of the in-plane block of the
 #    inverse of the 6×6 Kelvin-Mandel matrix, the slots written out below;
 #  - the structured reductions `plane_strain_stiffness` and
@@ -50,7 +50,7 @@ pls_minor(A) = [((A[i, j, k, l] + A[j, i, k, l]) + (A[i, j, l, k] + A[j, i, l, k
 pls_spd(rng, n) = (G = randn(rng, n, n); G * transpose(G) + n * I)
 
 "Canonical components of the tensor whose components in the basis of columns `R` are `A`."
-pls_canonical(A::AbstractArray{<:Any, 4}, R) = ein"ia,jb,kc,ld,abcd->ijkl"(R, R, R, R, A)
+pls_canonical(A::AbstractArray{<:Any, 4}, R) = ref_rotate(R, A)
 pls_canonical(A::AbstractMatrix, R) = R * A * transpose(R)
 
 pls_iszero(M) = all(x -> iszero(simplify(x)), M)
@@ -214,7 +214,7 @@ pls_inferred_acoustic(C, ζ) = @inferred acoustic_components(C, ζ)
         C = pls_array2(pls_spd(rng, 3))
         A = randn(rng, 2, 2, 2, 2)                         # no symmetry
         for X in (C, A)
-            K = ein"k,kijl,l->ij"(ζ, X, ζ)
+            K = ref_acoustic(ζ, X, ζ)
             ref = (K[1, 1], K[2, 2], K[1, 2])
             @test all(acoustic_components(X, ζ, Val(2)) .≈ ref)
             @test all(acoustic_components(SArray{Tuple{2, 2, 2, 2}}(X), ζ) .≈ ref)
@@ -224,7 +224,7 @@ pls_inferred_acoustic(C, ζ) = @inferred acoustic_components(C, ζ)
         # Space keeps its method.
         ζ3 = randn(rng, 3)
         C3 = pls_array(pls_spd(rng, 6))
-        K3 = ein"k,kijl,l->ij"(ζ3, C3, ζ3)
+        K3 = ref_acoustic(ζ3, C3, ζ3)
         @test all(acoustic_components(C3, ζ3) .≈ (K3[1, 1], K3[2, 2], K3[3, 3], K3[1, 2], K3[1, 3], K3[2, 3]))
         # Inverses and adjugate.
         K2 = pls_spd(rng, 2)

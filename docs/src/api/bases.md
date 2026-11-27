@@ -19,6 +19,7 @@ AllOrthogonalBasis
 vecbasis
 metric
 angles
+direction_from_angles
 isorthogonal
 isorthonormal
 get_dim

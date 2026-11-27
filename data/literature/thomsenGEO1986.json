@@ -1,0 +1,177 @@
+{
+ "schema": "tensnd-literature/1",
+ "source": {
+  "key": "thomsen1986",
+  "doi": "10.1190/1.1442051",
+  "citation": "Thomsen, L. (1986). Weak elastic anisotropy. Geophysics 51(10), 1954-1966.",
+  "location": "Table 1, pp. 1958-1960 (measured anisotropy in sedimentary rocks and related materials)"
+ },
+ "transcription": {
+  "from": "the PDF of the article, read on the images of the three pages of Table 1 rendered at 200 dpi (the text layer of the scan is unreliable)",
+  "checked_against_source": true,
+  "note": "A selection of fourteen rows: sandstones, shales and mudshales, a siltstone and five crystals. Velocities in m/s, the second of the two lines of each velocity cell (the first is in ft/s); epsilon, delta_star, delta and gamma dimensionless; density in g/cm3. Values as printed, rounded as printed; none is corrected. The rows Mesaverde (6455.1) immature sandstone and Mesaverde (5501) clayshale are the two transversely isotropic media of Mensch and Rasolofosaon (1997), section 4.1, with the same printed values."
+ },
+ "quantities": {},
+ "tables": {
+  "table_1": [
+   {
+    "sample": "Taylor sandstone",
+    "conditions": "Peff = 0 MPa, saturated",
+    "V_P0 (m/s)": 3368,
+    "V_S0 (m/s)": 1829,
+    "epsilon": 0.110,
+    "delta_star": -0.127,
+    "delta": -0.035,
+    "gamma": 0.255,
+    "rho (g/cm3)": 2.500
+   },
+   {
+    "sample": "Mesaverde (4903) mudshale",
+    "conditions": "Peff = 27.58 MPa, satd, undrnd",
+    "V_P0 (m/s)": 4529,
+    "V_S0 (m/s)": 2703,
+    "epsilon": 0.034,
+    "delta_star": 0.250,
+    "delta": 0.211,
+    "gamma": 0.046,
+    "rho (g/cm3)": 2.520
+   },
+   {
+    "sample": "Mesaverde (5501) clayshale",
+    "conditions": "Peff = 27.58 MPa, satd, undrnd",
+    "V_P0 (m/s)": 3928,
+    "V_S0 (m/s)": 2055,
+    "epsilon": 0.334,
+    "delta_star": 0.818,
+    "delta": 0.730,
+    "gamma": 0.575,
+    "rho (g/cm3)": 2.590
+   },
+   {
+    "sample": "Mesaverde (5566.3) laminated siltstone",
+    "conditions": "Peff = 27.58 MPa, satd, undrnd",
+    "V_P0 (m/s)": 4449,
+    "V_S0 (m/s)": 2585,
+    "epsilon": 0.091,
+    "delta_star": 0.688,
+    "delta": 0.565,
+    "gamma": 0.046,
+    "rho (g/cm3)": 2.570
+   },
+   {
+    "sample": "Mesaverde (6455.1) immature sandstone",
+    "conditions": "Peff = 27.58 MPa, satd, undrnd",
+    "V_P0 (m/s)": 4418,
+    "V_S0 (m/s)": 2587,
+    "epsilon": 0.053,
+    "delta_star": 0.173,
+    "delta": 0.158,
+    "gamma": 0.133,
+    "rho (g/cm3)": 2.450
+   },
+   {
+    "sample": "Dog Creek shale",
+    "conditions": "in situ, z = 143.3 m",
+    "V_P0 (m/s)": 1875,
+    "V_S0 (m/s)": 826,
+    "epsilon": 0.225,
+    "delta_star": -0.020,
+    "delta": 0.100,
+    "gamma": 0.345,
+    "rho (g/cm3)": 2.000
+   },
+   {
+    "sample": "Cotton Valley shale",
+    "conditions": "Peff = 111.70 MPa, satd, undrnd",
+    "V_P0 (m/s)": 4721,
+    "V_S0 (m/s)": 2890,
+    "epsilon": 0.135,
+    "delta_star": 0.172,
+    "delta": 0.205,
+    "gamma": 0.180,
+    "rho (g/cm3)": 2.640
+   },
+   {
+    "sample": "Berea sandstone",
+    "conditions": "Peff = 68.95 MPa, saturated",
+    "V_P0 (m/s)": 4206,
+    "V_S0 (m/s)": 2664,
+    "epsilon": 0.002,
+    "delta_star": 0.023,
+    "delta": 0.020,
+    "gamma": 0.005,
+    "rho (g/cm3)": 2.140
+   },
+   {
+    "sample": "Green River shale",
+    "conditions": "Pc = 202.71 MPa, air dry",
+    "V_P0 (m/s)": 3292,
+    "V_S0 (m/s)": 1768,
+    "epsilon": 0.195,
+    "delta_star": -0.45,
+    "delta": -0.220,
+    "gamma": 0.180,
+    "rho (g/cm3)": 2.075
+   },
+   {
+    "sample": "Muscovite crystal",
+    "conditions": "Pc = 0",
+    "V_P0 (m/s)": 4420,
+    "V_S0 (m/s)": 2091,
+    "epsilon": 1.12,
+    "delta_star": -1.23,
+    "delta": -0.235,
+    "gamma": 2.28,
+    "rho (g/cm3)": 2.79
+   },
+   {
+    "sample": "Quartz crystal (hexagonal approximation)",
+    "conditions": "Peff = 0",
+    "V_P0 (m/s)": 6096,
+    "V_S0 (m/s)": 4481,
+    "epsilon": -0.096,
+    "delta_star": 0.169,
+    "delta": 0.273,
+    "gamma": -0.159,
+    "rho (g/cm3)": 2.65
+   },
+   {
+    "sample": "Calcite crystal (hexagonal approximation)",
+    "conditions": "Peff = 0",
+    "V_P0 (m/s)": 5334,
+    "V_S0 (m/s)": 3353,
+    "epsilon": 0.369,
+    "delta_star": 0.127,
+    "delta": 0.579,
+    "gamma": 0.169,
+    "rho (g/cm3)": 2.71
+   },
+   {
+    "sample": "Biotite crystal",
+    "conditions": "Peff = 0",
+    "V_P0 (m/s)": 4054,
+    "V_S0 (m/s)": 1341,
+    "epsilon": 1.222,
+    "delta_star": -1.437,
+    "delta": -0.388,
+    "gamma": 6.12,
+    "rho (g/cm3)": 3.05
+   },
+   {
+    "sample": "Ice I crystal",
+    "conditions": "Peff = 0, 4 °F",
+    "V_P0 (m/s)": 3627,
+    "V_S0 (m/s)": 1676,
+    "epsilon": -0.038,
+    "delta_star": -0.10,
+    "delta": -0.164,
+    "gamma": 0.031,
+    "rho (g/cm3)": 1.064
+   }
+  ]
+ },
+ "notes": [
+  "The article defines delta_star and delta from the same five moduli, so that delta_star = (1 - V_S0^2/V_P0^2)(2 delta - epsilon) holds exactly. For the four crystals quartz, calcite, biotite and ice of this selection the printed delta_star and delta do not satisfy this relation to the printed digits; the values are kept as printed.",
+  "The densities of the Pierre shale rows are printed with a question mark and the row 'shale (5000)' is struck through on the scan; neither is transcribed."
+ ]
+}

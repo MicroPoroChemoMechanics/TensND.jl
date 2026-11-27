@@ -1,0 +1,134 @@
+{
+ "schema": "tensnd-literature/1",
+ "source": {
+  "key": "prioul2004",
+  "doi": "10.1190/1.1707061",
+  "citation": "Prioul, R., Bakulin, A., Bakulin, V. (2004). Nonlinear rock physics model for estimation of 3D subsurface stress in anisotropic formations: Theory and laboratory verification. Geophysics 69(2), 415-425.",
+  "location": "Tables 1 and 2, p. 417; equation (1), p. 416"
+ },
+ "transcription": {
+  "from": "the PDF of the article, read on the image of page 417 (Table 1) and on its text layer (Table 2)",
+  "checked_against_source": true,
+  "note": "Table 1: transversely isotropic stiffness components of a Jurassic North Sea shale (axis vertical) under confining pressure Pc and pore pressure Pp, in GPa; c13 is not given for Pp = 20 MPa (null). Table 2: the three isotropic third-order constants c111, c112, c123 fitted in two intervals of hydrostatic effective stress, with their 99 per cent confidence half-widths, in GPa. The effective stress is Pc - Pp (equation (7)); compressive stress is negative in the article."
+ },
+ "quantities": {},
+ "tables": {
+  "table_1": [
+   {
+    "Pc (MPa)": 5,
+    "Pp (MPa)": 0,
+    "c11 (GPa)": 33.9,
+    "c33 (GPa)": 22.8,
+    "c13 (GPa)": 15.0,
+    "c66 (GPa)": 9.7,
+    "c44 (GPa)": 5.1
+   },
+   {
+    "Pc (MPa)": 10,
+    "Pp (MPa)": 0,
+    "c11 (GPa)": 36.5,
+    "c33 (GPa)": 24.6,
+    "c13 (GPa)": 15.7,
+    "c66 (GPa)": 10.8,
+    "c44 (GPa)": 5.9
+   },
+   {
+    "Pc (MPa)": 20,
+    "Pp (MPa)": 0,
+    "c11 (GPa)": 39.9,
+    "c33 (GPa)": 27.4,
+    "c13 (GPa)": 16.6,
+    "c66 (GPa)": 12.1,
+    "c44 (GPa)": 7.0
+   },
+   {
+    "Pc (MPa)": 40,
+    "Pp (MPa)": 0,
+    "c11 (GPa)": 44.0,
+    "c33 (GPa)": 30.1,
+    "c13 (GPa)": 17.4,
+    "c66 (GPa)": 13.5,
+    "c44 (GPa)": 7.9
+   },
+   {
+    "Pc (MPa)": 60,
+    "Pp (MPa)": 0,
+    "c11 (GPa)": 45.8,
+    "c33 (GPa)": 32.1,
+    "c13 (GPa)": 18.2,
+    "c66 (GPa)": 14.2,
+    "c44 (GPa)": 8.5
+   },
+   {
+    "Pc (MPa)": 80,
+    "Pp (MPa)": 0,
+    "c11 (GPa)": 46.7,
+    "c33 (GPa)": 33.4,
+    "c13 (GPa)": 18.7,
+    "c66 (GPa)": 14.5,
+    "c44 (GPa)": 9.0
+   },
+   {
+    "Pc (MPa)": 35,
+    "Pp (MPa)": 20,
+    "c11 (GPa)": 39.2,
+    "c33 (GPa)": 27.1,
+    "c13 (GPa)": null,
+    "c66 (GPa)": 11.8,
+    "c44 (GPa)": 6.6
+   },
+   {
+    "Pc (MPa)": 70,
+    "Pp (MPa)": 20,
+    "c11 (GPa)": 44.3,
+    "c33 (GPa)": 31.5,
+    "c13 (GPa)": null,
+    "c66 (GPa)": 13.7,
+    "c44 (GPa)": 8.2
+   },
+   {
+    "Pc (MPa)": 90,
+    "Pp (MPa)": 20,
+    "c11 (GPa)": 45.7,
+    "c33 (GPa)": 33.0,
+    "c13 (GPa)": null,
+    "c66 (GPa)": 14.2,
+    "c44 (GPa)": 8.8
+   },
+   {
+    "Pc (MPa)": 110,
+    "Pp (MPa)": 20,
+    "c11 (GPa)": 46.7,
+    "c33 (GPa)": 34.3,
+    "c13 (GPa)": null,
+    "c66 (GPa)": 14.5,
+    "c44 (GPa)": 9.2
+   }
+  ],
+  "table_2": [
+   {
+    "effective stress interval (MPa)": "5-30",
+    "reference state (MPa)": 10,
+    "c111 (GPa)": -11300,
+    "dc111 (GPa)": 2900,
+    "c112 (GPa)": -4800,
+    "dc112 (GPa)": 2500,
+    "c123 (GPa)": 5800,
+    "dc123 (GPa)": 4000
+   },
+   {
+    "effective stress interval (MPa)": "30-100",
+    "reference state (MPa)": 40,
+    "c111 (GPa)": -3100,
+    "dc111 (GPa)": 600,
+    "c112 (GPa)": -800,
+    "dc112 (GPa)": 500,
+    "c123 (GPa)": 40,
+    "dc123 (GPa)": 800
+   }
+  ]
+ },
+ "notes": [
+  "The reference states of the two intervals, 10 and 40 MPa, are stated in the text, p. 417."
+ ]
+}

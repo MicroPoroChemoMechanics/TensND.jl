@@ -1,0 +1,309 @@
+# # [Stress-induced anisotropy](@id tut-stress-anisotropy)
+#
+# !!! tip "See also"
+#     **Theory**: [Third-order elasticity](@ref th-third-order) · [Plane waves](@ref th-plane-waves)
+#
+#     **Manual**: [Plane waves](@ref man-plane-waves)
+#
+#     **Tutorials**: [Thomsen's parameters and weak anisotropy](@ref tut-thomsen) · [Weak anisotropy of any symmetry](@ref tut-generalized-thomsen)
+#
+# An isotropic rock under a uniaxial stress carries waves whose velocities
+# depend on their direction: the stress makes it anisotropic. The effect is
+# governed by the third-order elastic constants, which in rocks are hundreds
+# or thousands of times larger than the second-order ones
+# [johnson1996](@cite). This tutorial computes, for the materials of their
+# Table 1, the first-order coefficients of the anisotropy, then the velocities
+# of Barre granite under a uniaxial compression, and checks with symbols the
+# slopes of Eqs. (18)–(20) of [johnson1996](@citet), after
+# [hughes1953](@citet), and the two coefficients of the anisotropy.
+
+import Pkg                                                          #jl
+Pkg.activate(joinpath(@__DIR__, "..", "docs"); io = devnull)        #jl
+
+using TensND
+using LinearAlgebra
+using ForwardDiff
+using JSON
+using Printf
+using Plots
+using SymPyPythonCall: symbols
+gr()
+nothing #hide
+
+# ## A solid isotropic at orders two and three
+#
+# The strain energy per unit reference volume of an isotropic solid, cut at
+# the third order in the Green–Lagrange strain
+# ``\boldsymbol{E} = \tfrac12(\boldsymbol{F}^{\mathsf T}\cdot\boldsymbol{F} - \boldsymbol{1})``,
+# has Lamé's constants ``\lambda``, ``\mu`` and Murnaghan's ``l``, ``m``, ``n``:
+#
+# ```math
+# W = \tfrac12\lambda\,(\operatorname{tr}\boldsymbol{E})^2 + \mu\operatorname{tr}\boldsymbol{E}^2
+#   + \tfrac13(l - m)\,(\operatorname{tr}\boldsymbol{E})^3 + m\operatorname{tr}\boldsymbol{E}\operatorname{tr}\boldsymbol{E}^2 + n\det\boldsymbol{E}
+# ```
+#
+# ([Third-order elasticity](@ref th-third-order)). Table 1 of
+# [johnson1996](@citet) gives, for metals, a glass and rocks, the bulk modulus
+# ``K = \lambda + 2\mu/3``, the shear modulus ``\mu`` and ``l``, ``m``, ``n``,
+# in GPa. It is stored with its source under `data/literature`.
+
+data = JSON.parsefile(joinpath(pkgdir(TensND), "data", "literature", "johnsonJGR1996.json"))
+table = data["tables"]["table_1"]
+function solid(r)
+    K, μ = r["K (GPa)"], r["mu (GPa)"]
+    return ThirdOrderIsotropic(K - 2μ / 3, μ, r["l (GPa)"], r["m (GPa)"], r["n (GPa)"])
+end
+row(name) = only(filter(r -> r["material"] == name, table))
+barre = solid(row("Barre granite"))
+
+#md Main.show_literature("johnsonJGR1996") # hide
+
+# The same constants in the two other usual notations, the components
+# ``C_{111}``, ``C_{112}``, ``C_{123}`` and Landau's ``A``, ``B``, ``C``:
+
+third_order_constants(barre)
+
+# ## The coefficients of the induced anisotropy
+#
+# Under a uniaxial compression ``\sigma`` (positive in compression), at the
+# angle ``\theta`` between propagation and stress, the P velocity and the
+# splitting of the two S waves follow, to first order in ``\sigma``,
+#
+# ```math
+# \frac{v_{P}(0) - v_P(\theta)}{v_{P}(0)} \simeq -\sigma\,a_P\sin^2\theta,
+# \qquad
+# \frac{v_{S_1}(\theta) - v_{S_2}(\theta)}{v_{S_1}(\theta)} \simeq -\sigma\,b_S\sin^2\theta ,
+# ```
+#
+# ``S_1`` being polarized in the plane of the stress and of the propagation.
+# `acoustoelastic_coefficients` gives ``a_P``, ``b_S`` and the slopes of
+# Eqs. (18)–(20) of the article, after [hughes1953](@citet). They are computed here from the constants of each row,
+# next to the values predicted in the table, in GPa⁻¹, with their relative
+# gap:
+
+@printf "%-40s %8s %8s %7s %8s %8s %7s\n" "material" "b_S" "table" "gap" "a_P" "table" "gap"
+for r in table
+    c = acoustoelastic_coefficients(solid(r))
+    b, a = r["b_S predicted (1/GPa)"], r["a_P predicted (1/GPa)"]
+    @printf "%-40s %8.3g %8.3g %6.1f%% %8.3g %8.3g %6.1f%%\n" r["material"] c.b_S b 100 * (c.b_S / b - 1) c.a_P a 100 * (c.a_P / a - 1)
+end
+
+# The rows agree within the rounding of the printed moduli, except that of the
+# water-saturated, thermally cracked sandstone: there the closed forms,
+# applied to the shear modulus ``\mu`` printed in the same row, give the
+# values of the columns `b_S` and `a_P`, which differ from the predictions
+# printed next to them. The measured ``b_S`` of that row, for reference:
+
+row("Water-saturated F32, thermally cracked")["b_S measured (1/GPa)"]
+
+# ## Natural and true velocities
+#
+# A wave of reference direction ``\underline{N}`` in a solid deformed by the
+# gradient ``\boldsymbol{F}`` has a natural velocity ``W``, the reference
+# length of a path over its travel time, which `prestressed_waves` computes
+# from the tensor ``A_{ijkl} = \partial^2 W/\partial F_{ij}\partial F_{kl}``.
+# A segment of reference direction ``\underline{N}`` is stretched by
+# ``|\boldsymbol{F}\cdot\underline{N}|``, so that the true velocity, the deformed
+# length over the same time, is ``v = |\boldsymbol{F}\cdot\underline{N}|\,W``.
+#
+# ## Barre granite under a uniaxial compression
+#
+# To first order the compression ``\sigma`` along ``\underline{e}_3`` strains
+# the solid by Hooke's law,
+# ``\boldsymbol{F} = \boldsymbol{1} + \mathbb{S} : (-\sigma\,\underline{e}_3\otimes\underline{e}_3)``,
+# that is ``F_{33} = 1 - \sigma/E`` and ``F_{11} = F_{22} = 1 + \nu\sigma/E``
+# with Young's modulus ``E`` and Poisson's ratio ``\nu``:
+
+young_poisson(λ, μ) = (μ * (3λ + 2μ) / (λ + μ), λ / (2 * (λ + μ)))
+function uniaxial_gradient(σ, E, ν)
+    stretch = (1 + ν * σ / E, 1 + ν * σ / E, 1 - σ / E)
+    return [i == j ? stretch[i] : zero(stretch[i]) for i in 1:3, j in 1:3]
+end
+E, ν = young_poisson(barre.λ, barre.μ)
+F(σ) = uniaxial_gradient(σ, E, ν)
+cauchy_stress(barre, F(0.01))
+
+# At ``\sigma`` = 10 MPa = 0.01 GPa the Cauchy stress is the uniaxial
+# compression, up to terms of second order. The true velocities against the
+# stress, for four angles between propagation and stress (density in g/cm³,
+# velocities in km/s):
+
+ρ₀ = row("Barre granite")["rho (kg/m3)"] / 1000
+function true_velocities(σ, θ)
+    N = direction_from_angles(θ, 0.0)
+    return norm(F(σ) * N) .* prestressed_waves(barre, ρ₀, F(σ), N).velocity
+end
+σs = range(0, 0.02; length = 41)
+angles = (0, 30, 60, 90)
+p = plot(; xlabel = "uniaxial compression σ (MPa)", ylabel = "true P velocity (km/s)", legend = :topleft, size = (640, 380), left_margin = 4Plots.mm, bottom_margin = 4Plots.mm)
+for θ in angles
+    plot!(p, 1000 .* σs, [true_velocities(σ, deg2rad(θ))[1] for σ in σs]; lw = 2, label = "θ = $(θ)°")
+end
+p
+
+# The P anisotropy and the S splitting against the angle, at two stresses,
+# next to the ``\sin^2\theta`` laws (dashed). The splitting compares two
+# velocities of the same direction, where the factor
+# ``|\boldsymbol{F}\cdot\underline{N}|`` cancels; the P anisotropy compares two
+# directions, where it does not.
+
+c = acoustoelastic_coefficients(barre)
+θs = range(0, π / 2; length = 46)
+pP = plot(; xlabel = "θ (°)", ylabel = "(v_P(0) − v_P(θ)) / v_P(0)", xticks = 0:15:90, legend = :topleft)
+pS = plot(; xlabel = "θ (°)", ylabel = "(v_S1 − v_S2) / v_S1", xticks = 0:15:90, legend = :topleft)
+for (i, σ) in enumerate((0.005, 0.02))
+    v₀ = true_velocities(σ, 0.0)[1]
+    v = [true_velocities(σ, θ) for θ in θs]
+    label = "σ = $(round(Int, 1000σ)) MPa"
+    plot!(pP, rad2deg.(θs), [(v₀ - w[1]) / v₀ for w in v]; lw = 2, color = i, label)
+    plot!(pP, rad2deg.(θs), -σ * c.a_P .* sin.(θs) .^ 2; lw = 2, ls = :dash, color = i, label = "")
+    plot!(pS, rad2deg.(θs), [(w[2] - w[3]) / w[2] for w in v]; lw = 2, color = i, label)
+    plot!(pS, rad2deg.(θs), -σ * c.b_S .* sin.(θs) .^ 2; lw = 2, ls = :dash, color = i, label = "")
+end
+plot(pP, pS; layout = (1, 2), size = (980, 380), left_margin = 4Plots.mm, bottom_margin = 4Plots.mm)
+
+# The first-order laws hold while the stress is small against the scales
+# ``\mu(\lambda + \mu)/|m|`` and ``\mu^2/|n|`` set by the third-order
+# constants, a few tens of MPa for this granite (values in GPa):
+
+(scale_P = barre.μ * (barre.λ + barre.μ) / abs(barre.m), scale_S = barre.μ^2 / abs(barre.n))
+
+# At 20 MPa the exact anisotropies already depart from them.
+
+# ## A wider table, with natural velocities
+#
+# [rasolofosaon1998](@citet) gathers in his Table 1 the constants of 23
+# materials and rocks, with the P anisotropy ``A_p`` and the S birefringence
+# ``B_s`` per unit of uniaxial compression, counted positive when the velocity is
+# higher along the stress. They are those of the natural velocities ``W``: the
+# derivatives at zero stress of ``(W_{\parallel} - W_{\perp})/W_{\parallel}`` for the P
+# waves and of ``(W_{S_1} - W_{S_2})/W_{S_1}`` for the S waves across the stress,
+# which `prestressed_waves` gives directly:
+
+data98 = JSON.parsefile(joinpath(pkgdir(TensND), "data", "literature", "rasolofosaonOGST1998.json"))
+table98 = data98["tables"]["table_1"]
+nothing # hide
+
+#md Main.show_literature("rasolofosaonOGST1998") # hide
+
+#-
+function natural_coefficients(K, G, l, m, n)
+    s = ThirdOrderIsotropic(K - 2G / 3, G, l, m, n)
+    E, ν = young_poisson(s.λ, s.μ)
+    W(σ, N) = prestressed_waves(s, 1.0, uniaxial_gradient(σ, E, ν), N).velocity
+    A(σ) = (W(σ, [0.0, 0.0, 1.0])[1] - W(σ, [1.0, 0.0, 0.0])[1]) / W(σ, [0.0, 0.0, 1.0])[1]
+    B(σ) = (w = W(σ, [1.0, 0.0, 0.0]); (w[2] - w[3]) / w[2])
+    return ForwardDiff.derivative(A, 0.0), ForwardDiff.derivative(B, 0.0)
+end
+@printf "%-22s %10s %10s %10s %10s\n" "material" "A_p" "table" "B_s" "table"
+for r in table98
+    A, B = natural_coefficients(r["K (GPa)"], r["mu (GPa)"], r["l (GPa)"], r["m (GPa)"], r["n (GPa)"])
+    @printf "%-22s %10.4g %10.4g %10.4g %10.4g\n" r["material"] A r["A_p (1/GPa)"] B r["B_s (1/GPa)"]
+end
+
+# The values recomputed from the constants of each row agree with the printed
+# ones to the printed digits, except two: for Juvite the printed ``A_p`` is not
+# that of the constants printed in its row (it would be with
+# ``m = 7.5\times10^6`` GPa instead of the printed ``9.3\times10^6``), and for
+# Rischorrite the two have the same magnitude and opposite signs.
+#
+# The splitting compares the two S waves of one direction: it is the same with
+# natural and true velocities. The P anisotropy compares two directions, and
+# the two kinds of velocity differ by the stretch ``|\boldsymbol{F}\cdot\underline{N}|``:
+# for the Barre granite the true one is ``-a_P`` of the table of Johnson and
+# Rasolofosaon,
+
+-acoustoelastic_coefficients(barre).a_P
+
+# ## A shale anisotropic at rest
+#
+# A shale is transversely isotropic at rest, and its stiffness changes with the
+# stress through isotropic third-order constants ([Third-order elasticity](@ref th-third-order),
+# section 5). [prioul2004](@citet) measure the five constants of a North Sea
+# shale at several effective pressures and fit ``C_{111}``, ``C_{112}``, ``C_{123}``
+# in two intervals of pressure, each about a reference state (GPa):
+
+data04 = JSON.parsefile(joinpath(pkgdir(TensND), "data", "literature", "prioulGEO2004.json"))
+stiffnesses, constants = data04["tables"]["table_1"], data04["tables"]["table_2"]
+nothing # hide
+
+#md Main.show_literature("prioulGEO2004") # hide
+
+# The stiffness at a reference pressure, from its five components (axis
+# ``\underline{e}_3``, ``C_{12} = C_{11} - 2C_{66}``), and its prediction at another
+# effective pressure ``P``: the strain of the hydrostatic change
+# ``-(P - P_{\mathrm{ref}})\,\boldsymbol{1}`` (compression negative, MPa to GPa) through
+# the compliance at the reference, then `strain_stiffening`:
+
+function measured(P)
+    r = only(filter(r -> r["Pc (MPa)"] - r["Pp (MPa)"] == P && r["Pp (MPa)"] == 0, stiffnesses))
+    C11, C33, C66, C44 = r["c11 (GPa)"], r["c33 (GPa)"], r["c66 (GPa)"], r["c44 (GPa)"]
+    return ti_from_constants(C11, C11 - 2C66, r["c13 (GPa)"], C33, C44, [0.0, 0.0, 1.0]; form = :components, role = :stiffness)
+end
+function predicted(ℂʳ, Pʳ, c, P)
+    s = third_order_from_constants(0.0, 0.0, c["c111 (GPa)"], c["c112 (GPa)"], c["c123 (GPa)"])
+    E = canonical_components(inv(ℂʳ) ⊡ Tens(-(P - Pʳ) / 1000 * Matrix(1.0I, 3, 3)))
+    return ℂʳ + strain_stiffening(s, Array(E))
+end
+components(ℂ) = (V = voigt_stiffness(ℂ); (C11 = V[1, 1], C33 = V[3, 3], C13 = V[1, 3], C66 = V[6, 6], C44 = V[4, 4]))
+nothing # hide
+
+# The two intervals, their reference states and the effective pressures of the
+# table that fall in them (Pc − Pp, the confining minus the pore pressure):
+
+intervals = [(c = constants[1], Pʳ = 10.0, P = 5:1.0:30), (c = constants[2], Pʳ = 40.0, P = 30:2.0:100)]
+p = plot(; xlabel = "effective pressure (MPa)", ylabel = "stiffness (GPa)", legend = :outerright, size = (720, 400), left_margin = 4Plots.mm, bottom_margin = 4Plots.mm)
+for (j, (name, key)) in enumerate(((:C11, "c11 (GPa)"), (:C33, "c33 (GPa)"), (:C13, "c13 (GPa)"), (:C66, "c66 (GPa)"), (:C44, "c44 (GPa)")))
+    for (i, iv) in enumerate(intervals)
+        ℂʳ = measured(iv.Pʳ)
+        plot!(p, collect(iv.P), [components(predicted(ℂʳ, iv.Pʳ, iv.c, P))[name] for P in iv.P]; color = j, lw = 2, label = i == 1 ? string(name) : "")
+    end
+    points = [(r["Pc (MPa)"] - r["Pp (MPa)"], r[key]) for r in stiffnesses if r[key] !== nothing]
+    scatter!(p, first.(points), last.(points); color = j, label = "")
+end
+p
+
+# The lines are the predictions of each interval from its reference state, the
+# points the measured components, those at a pore pressure of 20 MPa included.
+# The component ``C_{13}`` is not used in the fit of the third-order constants;
+# its prediction and the measures at the pressures of the first interval:
+
+[(P, components(predicted(measured(10.0), 10.0, constants[1], P)).C13, measured(P) |> components |> c -> c.C13) for P in (5.0, 20.0)]
+
+# ## The slopes and the coefficients with symbols
+#
+# The same functions take SymPy symbols. The true P modulus
+# ``\rho_0 v^2`` along the stress is the component ``A_{3333}`` times
+# ``|\boldsymbol{F}\cdot\underline{e}_3|^2``; its derivative at
+# ``\sigma = 0``, from `acoustoelastic_tensor`, is the slope `P_parallel` of
+# `acoustoelastic_coefficients`:
+
+λₛ, μₛ, lₛ, mₛ, nₛ, σₛ = symbols("λ μ l m n σ", real = true)
+sₛ = ThirdOrderIsotropic(λₛ, μₛ, lₛ, mₛ, nₛ)
+Fₛ = uniaxial_gradient(σₛ, young_poisson(λₛ, μₛ)...)
+A = canonical_components(acoustoelastic_tensor(sₛ, Fₛ))
+rate(x) = tsimplify(tsubs(tdiff(x, σₛ), σₛ => 0))         # d/dσ at σ = 0
+slope = rate(A[3, 3, 3, 3] * Fₛ[3, 3]^2)
+
+# and the difference with the closed form reduces to zero:
+
+tsimplify(slope - acoustoelastic_coefficients(sₛ).P_parallel)
+
+# The two coefficients of the anisotropy, as `acoustoelastic_coefficients`
+# writes them:
+
+cₛ = acoustoelastic_coefficients(sₛ)
+cₛ.a_P, cₛ.b_S
+
+# They follow from the waves normal to the stress, along ``\underline{e}_1``:
+# the acoustic tensor ``\Gamma_{ik} = A_{i1k1}``, stretched by
+# ``|\boldsymbol{F}\cdot\underline{e}_1|^2 = F_{11}^2``, gives the slopes of the P
+# wave and of the S waves polarized along the stress (``\underline{e}_3``) and
+# normal to it (``\underline{e}_2``). At ``\theta = \pi/2`` the laws above read
+# ``a_P = (\dot M_{P\perp} - \dot M_{P\parallel})/(2(\lambda + 2\mu))`` and
+# ``b_S = (\dot M_{S\perp\perp} - \dot M_{S\perp\parallel})/(2\mu)``, a dot
+# denoting the slope of a modulus ``\rho_0 v^2``; both differences reduce to
+# zero:
+
+P_perp, S_perp_par, S_perp_perp = (rate(A[i, 1, i, 1] * Fₛ[1, 1]^2) for i in (1, 3, 2))
+tsimplify(cₛ.a_P - (P_perp - slope) / (2 * (λₛ + 2μₛ))), tsimplify(cₛ.b_S - (S_perp_perp - S_perp_par) / (2μₛ))

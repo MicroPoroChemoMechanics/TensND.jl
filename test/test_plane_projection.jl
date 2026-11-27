@@ -29,7 +29,7 @@ function plp_array(M, R)
             A[a, b, c, d] = M[I, J] / (w(I) * w(J))
         end
     end
-    return ein"ia,jb,kc,ld,abcd->ijkl"(R, R, R, R, A)
+    return ref_rotate(R, A)
 end
 
 "A basis of the major-symmetric orthotropic tensors of the frame, then the two more of the general ones (as Kelvin-Mandel unit matrices)."

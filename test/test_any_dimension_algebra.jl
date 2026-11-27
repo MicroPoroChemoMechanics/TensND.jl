@@ -5,7 +5,7 @@
 #  Cartesian coordinate systems.
 #
 #  Tensors.jl stops at dimension 3: beyond, the components are held by plain
-#  arrays. The references are explicit sums over the indices (OMEinsum),
+#  arrays. The references are explicit sums over the indices (`reference_contractions.jl`),
 #  Tensors.jl itself in dimensions 2 and 3, where the array kernels must give
 #  what it gives, and derivatives taken by SymPy.
 # =============================================================================
@@ -84,16 +84,16 @@ ada_inferred_layout(L) = @inferred symmetry_layout(L)
             # Order 2: a tensor comes back, not a bare matrix.
             @test L ⊡ Tens(a) isa AbstractTens{2, d}
             @test Tens(a) ⊡ L isa AbstractTens{2, d}
-            @test get_array(L ⊡ Tens(a)) ≈ ein"ijkl,kl->ij"(Lfull, a)
-            @test get_array(Tens(a) ⊡ L) ≈ ein"ij,ijkl->kl"(a, Lfull)
+            @test get_array(L ⊡ Tens(a)) ≈ ref_dc(Lfull, a)
+            @test get_array(Tens(a) ⊡ L) ≈ ref_dc(a, Lfull)
             ℬ = random_basis(rng, Val(d))
             @test L ⊡ Tens(a, ℬ) isa AbstractTens{2, d}
-            @test get_array(L ⊡ Tens(a, ℬ)) ≈ ein"ijkl,kl->ij"(Lfull, a)
+            @test get_array(L ⊡ Tens(a, ℬ)) ≈ ref_dc(Lfull, a)
             # Order 4.
-            @test get_array(L ⊡ Tens(A)) ≈ ein"ijkl,klmn->ijmn"(Lfull, A)
-            @test get_array(Tens(A) ⊡ L) ≈ ein"ijkl,klmn->ijmn"(A, Lfull)
-            @test (L ⊙ Tens(A)) ≈ ein"ijkl,ijkl->"(Lfull, A)[]
-            @test (Tens(A) ⊙ L) ≈ ein"ijkl,ijkl->"(A, Lfull)[]
+            @test get_array(L ⊡ Tens(A)) ≈ ref_dc(Lfull, A)
+            @test get_array(Tens(A) ⊡ L) ≈ ref_dc(A, Lfull)
+            @test (L ⊙ Tens(A)) ≈ ref_full(Lfull, A)
+            @test (Tens(A) ⊙ L) ≈ ref_full(A, Lfull)
             # Sum, inverse, Kelvin-Mandel matrix.
             @test get_array(L + Tens(A)) ≈ Lfull + A
             @test Array(inv(L)) ≈ ada_iso_array(1 / α, 1 / β, d)
@@ -102,7 +102,7 @@ ada_inferred_layout(L) = @inferred symmetry_layout(L)
         # The full contraction of two isotropic tensors, in closed form.
         for d in 2:5
             A, B = TensISO{d}(1.3, 0.7), TensISO{d}(-0.4, 2.1)
-            @test (@inferred A ⊙ B) ≈ ein"ijkl,ijkl->"(ada_iso_array(1.3, 0.7, d), ada_iso_array(-0.4, 2.1, d))[]
+            @test (@inferred A ⊙ B) ≈ ref_full(ada_iso_array(1.3, 0.7, d), ada_iso_array(-0.4, 2.1, d))
             @test ForwardDiff.gradient(x -> TensISO{d}(x[1], x[2]) ⊙ B, [1.3, 0.7]) ≈ [-0.4, (d * (d + 1) ÷ 2 - 1) * 2.1]
         end
         # Derivatives with respect to the moduli, first and second order.

@@ -3,7 +3,7 @@
 #  the Kelvin-Mandel rotation matrix in dimensions 2 to 5.
 #
 #  References, independent of the code under test: the components of a tensor
-#  in a rotated frame computed by explicit sums over the indices (OMEinsum),
+#  in a rotated frame computed by explicit sums over the indices (`reference_contractions.jl`),
 #  the closed form of the Kelvin-Mandel rotation of the plane, and the moments
 #  of the Haar measure of SO(d).
 # =============================================================================
@@ -13,8 +13,8 @@ using StaticArrays: SMatrix
 const RAD_SEED = 20261126
 
 "Components of an array of order 2 or 4 in the frame whose vectors are the columns of `R`."
-rad_in_frame(A::AbstractMatrix, R) = ein"ia,jb,ij->ab"(R, R, A)
-rad_in_frame(A::AbstractArray{<:Any, 4}, R) = ein"ia,jb,kc,ld,ijkl->abcd"(R, R, R, R, A)
+rad_in_frame(A::AbstractMatrix, R) = ref_rotate_back(R, A)
+rad_in_frame(A::AbstractArray{<:Any, 4}, R) = ref_rotate_back(R, A)
 
 "An array of order 4 with the two minor symmetries."
 function rad_minor_symmetric(rng, d)

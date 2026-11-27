@@ -291,6 +291,41 @@ structured tensor written about a non-canonical axis: `mandel` of a `Dual`-value
     return maximum(abs, t - Tensor{order, dim}(Tensors.symmetric(t))) <= 16 * _approx_eps(T) * scale
 end
 
+# A dual number compares by its value only (`==`, `<=`), so the test above
+# would keep in symmetric form a tensor that is symmetric in value and not in
+# its derivatives (the tangent of a prestressed solid at the unstressed state),
+# and the derivatives would be symmetrized without a word. The value is decided
+# as a tensor of numbers; the derivatives, of every order for nested duals, are
+# judged together against the largest of them: a derivative that vanishes in
+# exact arithmetic carries the round-off of the others, which another order of
+# the floating-point operations (another processor) makes nonzero.
+@inline function _store_symmetric(
+        t::Tensors.AbstractTensor{order, dim, T}
+    ) where {order, dim, T <: ForwardDiff.Dual}
+    _store_symmetric(Tensor{order, dim}((i...) -> _dual_primal(t[i...]))) || return false
+    asymmetry = maximum(_dual_derivative_size, t - Tensor{order, dim}(Tensors.symmetric(t)))
+    return asymmetry <= _symmetry_round_off(_dual_primal_type(T)) * maximum(_dual_derivative_size, t)
+end
+
+# The primal number of a (nested) dual number, and its type.
+@inline _dual_primal(x) = x
+@inline _dual_primal(x::ForwardDiff.Dual) = _dual_primal(ForwardDiff.value(x))
+_dual_primal_type(::Type{T}) where {T} = T
+_dual_primal_type(::Type{ForwardDiff.Dual{G, V, N}}) where {G, V, N} = _dual_primal_type(V)
+
+# The largest modulus among the numbers a (nested) dual number carries:
+# all of them, or its derivatives only.
+@inline _dual_size(x) = abs(x)
+@inline _dual_size(x::ForwardDiff.Dual) = max(_dual_size(ForwardDiff.value(x)), _dual_derivative_size(x))
+@inline _dual_derivative_size(x) = zero(abs(x))
+@inline _dual_derivative_size(x::ForwardDiff.Dual) = mapreduce(
+    _dual_size, max, ForwardDiff.partials(x).values; init = _dual_derivative_size(ForwardDiff.value(x))
+)
+
+# Relative round-off tolerated in a symmetry: none for exact numbers.
+_symmetry_round_off(::Type{T}) where {T <: ApproxType} = 16 * _approx_eps(T)
+_symmetry_round_off(::Type) = false
+
 """
     _approx_eps(::Type{T}) -> AbstractFloat
 

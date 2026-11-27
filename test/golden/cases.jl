@@ -60,8 +60,54 @@ function golden_cases()
     push!(cases, "order2/sotimes" => () -> _canon(sotimes(S, S)))
     push!(cases, "order2/inv" => () -> _canon(inv(S)))
     push!(cases, "order2/rotated" => () -> _vals(express(S, _R)))
+    # Elastic waves: the velocities, polarizations and group velocities of each
+    # class along an oblique direction, the first-order and generalized
+    # parameters, an interface and a prestressed solid. Only what the problem
+    # defines is recorded: two waves of the same velocity (the shear waves of an
+    # isotropic medium) have polarizations that are any orthonormal pair of
+    # their plane, set by the eigensolver of the machine, so neither their
+    # polarizations nor their separate amplitudes enter the record.
+    n = [0.3, -0.5, 0.8]
+    for (name, t) in pairs(T)
+        name === :gen_rot && continue
+        push!(cases, "waves/$name/plane_waves" => () -> (w = plane_waves(t, 2.5, n); vcat(_vals(w.velocity), _vals(w.group))))
+        name === :iso || push!(cases, "waves/$name/polarizations" => () -> _vals(abs.(plane_waves(t, 2.5, n).polarization)))
+        push!(cases, "waves/$name/weak" => () -> (w = weak_plane_waves(t, 2.5, n); Float64[w.qP[1], w.qS1[1], w.qS2[1]]))
+        push!(cases, "waves/$name/generalized" => () -> _vals(collect(values(generalized_thomsen_parameters(t)))))
+    end
+    push!(cases, "waves/ti/thomsen" => () -> _vals(collect(values(thomsen_parameters(T.ti, 2.5)))))
+    push!(
+        cases, "waves/interface" => () -> begin
+            f, _ = interface_waves(T.ortho, 2.5, _N, [0.05, 0.02, 0.0])
+            r = reflection_transmission(T.ortho, 2.5, T.iso, 2.0, _N, f[1])
+            # the medium 2 is isotropic: its two shear waves count together
+            vcat(_vals(abs.(r.R)), _vals(collect(r.energy[1])), Float64[abs(r.T[1]), r.energy[2][1], r.energy[2][2] + r.energy[2][3]])
+        end
+    )
+    push!(
+        cases, "waves/third_order" => () -> begin
+            s3 = ThirdOrderIsotropic(8.3, 11.9, -3.4e3, -6.8e3, -6.7e3)
+            F = [1.001 0.0002 0.0; 0.0 0.9995 0.0003; 0.0001 0.0 1.0004]
+            vcat(_vals(prestressed_waves(s3, 2.3, F, n).velocity), _vals(collect(values(acoustoelastic_coefficients(s3)))))
+        end
+    )
+    push!(
+        cases, "plane/characteristic_pair" => () -> begin
+            s2, p2 = characteristic_pair(from_mandel([30.0 4.0 3.0; 4.0 9.0 -2.0; 3.0 -2.0 7.0]))
+            Float64[real(s2), imag(s2), real(p2), imag(p2)]
+        end
+    )
     return cases
 end
+
+# Tolerance of a case, in ulps of its largest component, where it is not equal
+# to the bit (see `test_golden.jl`). The waves at an interface come from the
+# eigenvectors of a non-symmetric 6×6 matrix (LAPACK's `geev`) and from a 6×6
+# solve: their last bits follow the processor's kernels, and differ between
+# Linux and Windows by 2.6e-14 relative to a component (about 120 ulps of the
+# scale of the case). 1024 ulps keep a margin and still catch any change of
+# the algorithm.
+golden_ulps(name) = name == "waves/interface" ? 1024 : 8
 
 # The values of a case as hex strings, or the name of the exception it throws.
 function golden_record(f)

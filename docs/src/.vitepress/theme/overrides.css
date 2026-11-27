@@ -239,10 +239,11 @@ mjx-container[data-nomen] {
   cursor: help;
 }
 
-/* ── Interactive figures (components/FrameFigure.vue) ──────────────────────
+/* ── Interactive figures (components/FrameFigure.vue, and the Plotly scenes of
+ * the tutorials drawn by plotly-figures.ts) ─────────────────────────────────
  * Drawn on a transparent background, so their colors are tokens, one value per
- * scheme; components/figures/kit.ts reads them each time a figure is drawn and
- * draws it again when the scheme is toggled. `q1`-`q3` belong to the first,
+ * scheme, read each time a figure is drawn; the figure is drawn again when the
+ * scheme is toggled. `q1`-`q3` belong to the first,
  * second and third coordinate (or Euler angle), in the order of the chart: its
  * slider, the angle or length it measures, the surface on which it is
  * constant and the unit vector crossing that surface. Surfaces are drawn

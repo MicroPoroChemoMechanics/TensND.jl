@@ -246,6 +246,53 @@ are those of the tensor given, whatever it is.
     [Symbolic tensors of a material symmetry](@ref man-symbolic-materials)
     shows each case on symbols, with the matrix that is built.
 
+## Orthotropic engineering constants
+
+In its material frame ``(\underline{e}_1, \underline{e}_2, \underline{e}_3)`` an
+orthotropic material is given by Young's moduli ``E_i``, Poisson's ratios
+``\nu_{ij}`` (the contraction along ``\underline{e}_j`` under a tension along
+``\underline{e}_i``, so that ``\nu_{ij}/E_i = \nu_{ji}/E_j``) and shear moduli
+``G_{ij}``: nine constants in space, four in the plane. They are the
+components of its compliance,
+
+```math
+S_{iiii} = \frac{1}{E_i},\qquad S_{iijj} = -\frac{\nu_{ij}}{E_i},\qquad S_{ijij} = \frac{1}{4G_{ij}}\quad(i \ne j) .
+```
+
+[`ortho_from_constants`](@ref) takes them in the order
+``(E_1, E_2, E_3, \nu_{12}, \nu_{13}, \nu_{23}, G_{23}, G_{13}, G_{12})``, then the
+frame, and returns the compliance, a `TensOrtho`; with `role = :stiffness`, the
+stiffness of the same material. The matrix of the compliance in the two-index
+notation ([`voigt_compliance`](@ref)) shows the constants:
+
+```@example orthoc
+using TensND, LinearAlgebra
+
+constants = (12.0, 8.0, 4.0, 0.3, 0.25, 0.35, 1.5, 2.0, 3.0)      # GPa for the moduli
+𝕊 = ortho_from_constants(constants..., CanonicalBasis{3, Float64}())
+voigt_compliance(𝕊)
+```
+
+[`ortho_constants`](@ref) reads them back, from the compliance by default, from
+the stiffness with `role = :stiffness`; a frame other than the canonical one
+is carried by the tensor:
+
+```@example orthoc
+ℂ = ortho_from_constants(constants..., RotatedBasis(0.3, 0.7, 1.1); role = :stiffness)
+ortho_constants(𝕊), ortho_constants(ℂ; role = :stiffness)
+```
+
+In the plane the constants are ``(E_1, E_2, \nu_{12}, G_{12})`` and the frame a
+basis of the plane:
+
+```@example orthoc
+ℂ₂ = ortho_from_constants(12.0, 8.0, 0.3, 3.0, Basis(π / 6); role = :stiffness)
+ortho_constants(ℂ₂; role = :stiffness)
+```
+
+A tensor read with the wrong role gives the constants of another material:
+nothing in a `TensOrtho` tells a stiffness from a compliance.
+
 ## Walpole coefficients
 
 A major-symmetric tensor has five independent Walpole coefficients,
