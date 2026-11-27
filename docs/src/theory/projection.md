@@ -57,8 +57,8 @@ performs one is that **in the bases it uses, the Gram matrix is diagonal**.
 ### Transverse isotropy
 
 The major-symmetric TI subspace is spanned by the symmetrized Walpole basis
-``\mathbb{W}^s=(\mathbb{W}_1,\ \mathbb{W}_2,\ \mathbb{W}_3+\mathbb{W}_4,\
-\mathbb{W}_5,\ \mathbb{W}_6)``, whose Gram matrix is
+``\mathbb{W}^s=(\mathbb{W}_1,\ \mathbb{W}_2,\ \mathbb{W}_3+\mathbb{W}_4,\ \mathbb{W}_5,\ \mathbb{W}_6)``,
+whose Gram matrix is
 ([The Walpole basis](@ref th-walpole))
 
 ```math
@@ -139,10 +139,13 @@ a 24-fold degenerate minimum.
 
 ### Isotropy
 
-The two-dimensional case, already given in [Isotropic tensors](@ref th-isotropic):
+The isotropic class is a subspace of dimension two, spanned by ``\mathbb{J}``
+and ``\mathbb{K}``, and its projection was given in
+[Isotropic tensors](@ref th-isotropic):
 ``\mathrm{ISO}(\mathbb{T})=(\mathbb{T}::\mathbb{J})\,\mathbb{J}
-+\tfrac15(\mathbb{T}::\mathbb{K})\,\mathbb{K}``. No orientation is involved, so
-this case is complete on its own.
++\tfrac15(\mathbb{T}::\mathbb{K})\,\mathbb{K}`` in space, where
+``\mathbb{K}::\mathbb{K}=5``. No orientation is involved, so this case is
+complete on its own.
 
 ## Free orientation
 
@@ -292,6 +295,21 @@ average preserves the ``\ell_3\neq\ell_4`` split and the couplings ``\ell_7``,
 ``\ell_8`` of [The extended Walpole algebra](@ref th-walpole-extended), whereas
 the best fit forces ``\ell_3=\ell_4`` and drops ``\ell_7,\ell_8``. Reporting one
 where the other is meant silently deletes physical content.
+
+## In two dimensions
+
+The plane has three classes, isotropic, square and orthotropic, and no
+transversely isotropic one: an axis in the plane carries the two mirror lines
+of the orthotropic class, and the normal to the plane gives all the rotations
+of the plane, the isotropic class. With the frame given, the projections are
+those of this page, the Kelvin–Mandel matrix being ``3\times3``. With the frame
+free, there is no search: the constants of a tensor of the plane split into two
+invariants and two harmonics that turn by ``2\theta`` and ``4\theta`` with the
+frame, and the best frame is known in closed form, an exact global minimum, for
+the square class and for the orthotropic one
+([Projections in the plane](@ref th-projection-plane)). The average over the
+rotations of the plane alone is not the isotropic projection for a tensor
+without the major symmetry: it keeps a quarter turn of the deviators.
 
 ## The choice of distance
 

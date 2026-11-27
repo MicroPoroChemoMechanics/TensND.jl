@@ -99,7 +99,7 @@
     @inferred Union{typeof(G), typeof(GR)} express(G, ℬr)
     # Two orthotropic tensors on the same frame multiply in the twelve-constant
     # form, on different frames by the generic route.
-    @inferred Union{TensOrtho{4, Float64, 12, typeof(ℬr)}, TensND.TensCanonical{4, 3, Float64, SymmetricTensor{4, 3, Float64, 36}}} ORr ⊡ ORr
+    @inferred Union{TensOrtho{4, 3, Float64, 12, typeof(ℬr)}, TensND.TensCanonical{4, 3, Float64, SymmetricTensor{4, 3, Float64, 36}}} ORr ⊡ ORr
     # The product is inlined: a caller splits the union and allocates nothing
     # (only the union itself, returned from a non-inlined call, is boxed).
     @test _allocs((a, b) -> get_data(a ⊡ b), ORr, ORr) == 0

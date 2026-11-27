@@ -17,6 +17,7 @@ MeanFieldHomogenization.jl, so that the two packages look alike.
 | :--- | :--- |
 | `src/style.jl` | — the palette by role, the sheet and its white panel, `label` and `smart_label`, the primitives |
 | `src/coordinates.jl` | `coordinates/`: the meridian plane of the prolate and oblate systems, the three sections of the ellipsoidal chart, the domain of convergence of the re-expansion of exterior spheroidal harmonics, the meridian plane of the toroidal system |
+| `src/symmetries.jl` | `symmetries/`: the four symmetry classes of the tensors of the plane, each with a shape that has its symmetries, its mirror lines and its frame |
 
 ## Regenerating
 
@@ -26,7 +27,7 @@ julia --project=docs/assets_src docs/assets_src/make.jl                 # every 
 julia --project=docs/assets_src docs/assets_src/make.jl coordinates     # one family
 ```
 
-Families: `coordinates`.
+Families: `coordinates`, `symmetries`.
 
 Then **look at the result**: `rsvg-convert -z 2 -o out.png in.svg` renders a
 sheet at readable size. Overlapping text is the failure mode of drawings like

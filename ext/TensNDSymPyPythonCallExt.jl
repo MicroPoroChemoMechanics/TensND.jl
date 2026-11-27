@@ -39,6 +39,8 @@ texpand_trig(x::T, args...; kwargs...) where {T <: Sym} = sympy.expand_trig(x, a
 
 _cartesian_symbols(::Val{3}) = symbols("x y z", real = true)
 _cartesian_symbols(::Val{2}) = symbols("x y", real = true)
+_cartesian_symbols(::Val{dim}) where {dim} = ntuple(i -> symbols("x$i", real = true), Val(dim))
+TensND._default_cartesian_coords(dim::Val, ::Type{<:Sym}) = _cartesian_symbols(dim)
 _polar_system_symbols() = (symbols("r", positive = true), symbols("θ", real = true))
 _cylindrical_symbols() = (symbols("r", positive = true), symbols("θ", real = true), symbols("z", real = true))
 _spherical_symbols() = (symbols("θ", real = true), symbols("ϕ", real = true), symbols("r", positive = true))
@@ -55,6 +57,7 @@ _toroidal_focal() = symbols("a", positive = true)
 _toroidal_auxiliary() = (symbols("d̄", positive = true),)
 
 coorsys_cartesian() = coorsys_cartesian(_cartesian_symbols(Val(3)))
+coorsys_cartesian(dim::Val) = coorsys_cartesian(_cartesian_symbols(dim))
 coorsys_cartesian(v::Val{<:Sym}) = coorsys_cartesian(v, _cartesian_symbols(Val(3)))
 coorsys_polar(; canonical = false) = coorsys_polar(_polar_system_symbols(); canonical)
 coorsys_polar(v::Val{<:Sym}; canonical = false) = coorsys_polar(v, _polar_system_symbols(); canonical)
@@ -80,7 +83,6 @@ coorsys_toroidal(v::Val{<:Sym}, coords = _toroidal_symbols(), a = _toroidal_foca
     coorsys_toroidal(v, coords, a, _toroidal_auxiliary())
 
 init_cartesian() = init_cartesian(_cartesian_symbols(Val(3)))
-init_cartesian(v::Union{Val{2}, Val{3}}) = init_cartesian(_cartesian_symbols(v))
 init_polar(; canonical = false) = init_polar(symbols("r θ", real = true); canonical)
 init_cylindrical(; canonical = false) = init_cylindrical((symbols("r", positive = true), symbols("θ z", real = true)...); canonical)
 init_spherical(; canonical = false) = init_spherical((symbols("θ ϕ", real = true)..., symbols("r", positive = true)); canonical)

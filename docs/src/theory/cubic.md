@@ -179,7 +179,7 @@ of a cubic tensor throws away.
 
 | Storage | Coefficients | Case |
 | :------ | :----------- | :--- |
-| `TensCubic{T,B}` | ``(\alpha,\beta,\gamma)`` | ``\alpha\mathbb{J}+\beta\mathbb{E}+\gamma\mathbb{T}`` on the cube frame |
+| `TensCubic{3,T,B}` | ``(\alpha,\beta,\gamma)`` | ``\alpha\mathbb{J}+\beta\mathbb{E}+\gamma\mathbb{T}`` on the cube frame |
 
 One shape: the product of two cubic tensors on a cube is cubic and
 major-symmetric (above), the inverse too, so the class needs no general shape,
@@ -244,3 +244,26 @@ an arbitrary frame, measured at a relative residual of ``0.099`` against
 grid alone, and a *rotated* cubic tensor handed over as a bare array cannot be
 recognized without it: `best_sym_tens` needs `optimize_angles = true`, or the
 frame.
+
+## In two dimensions
+
+The counterpart of the cubic class in the plane is the class of the square,
+invariant under the rotations by a quarter turn and the four mirror lines of
+the square: the orthotropic tensors of the plane with ``C_{11} = C_{22}``, the
+restriction of a cubic tensor to a face of its cube. It is spanned by three
+orthogonal projectors of trace 1, written on the Kelvin–Mandel components
+``(11, 22, \sqrt2\,12)`` of the square frame,
+
+```math
+\mathbb{J} = \tfrac12\,\underline{v}\otimes\underline{v} ,\quad
+\mathbb{E} = \tfrac12\,\underline{w}\otimes\underline{w} ,\quad
+\mathbb{T} = \underline{t}\otimes\underline{t} ,
+\qquad \underline{v} = (1, 1, 0) ,\ \underline{w} = (1, -1, 0) ,\ \underline{t} = (0, 0, 1) ,
+```
+
+so that ``\mathbb{C} = \alpha\,\mathbb{J} + \beta\,\mathbb{E} + \gamma\,\mathbb{T}``
+with ``\alpha = C_{11} + C_{12}``, ``\beta = C_{11} - C_{12}`` and
+``\gamma = 2C_{44}``, ``C_{44} = C_{1212}``. Sums, products and inverses act on
+``(\alpha, \beta, \gamma)`` term by term, as in space, and the isotropic class
+is ``\beta = \gamma``. The class is stored as `TensCubic{2}`
+([Tensors of the plane, of space and of any dimension](@ref th-dimensions)).

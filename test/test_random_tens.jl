@@ -32,9 +32,9 @@ _rt_ks_bound(n) = 1.95 / sqrt(n)
             (TensTI{4}, TensTI{4, Float64, 5}), (TensTI{4, Float64, 6}, TensTI{4, Float64, 6}),
             (TensTI{4, Float64, 8}, TensTI{4, Float64, 8}), (TensTI{4, Float32, 5}, TensTI{4, Float32, 5}),
             (TensTI{2}, TensTI{2, Float64, 2}), (TensTI{2, Float64, 3}, TensTI{2, Float64, 3}),
-            (TensOrtho{4}, TensOrtho{4, Float64, 9}), (TensOrtho{4, Float64, 12}, TensOrtho{4, Float64, 12}),
-            (TensOrtho{2}, TensOrtho{2, Float64, 3}), (TensCubic, TensCubic{Float64}),
-            (TensCubic{Float32}, TensCubic{Float32}),
+            (TensOrtho{4, 3}, TensOrtho{4, 3, Float64, 9}), (TensOrtho{4, 3, Float64, 12}, TensOrtho{4, 3, Float64, 12}),
+            (TensOrtho{2, 3}, TensOrtho{2, 3, Float64, 3}), (TensCubic, TensCubic{3, Float64}),
+            (TensCubic{3, Float32}, TensCubic{3, Float32}),
             (Tens{4, 3}, TensND.AbstractTens{4, 3, Float64}), (Tens{4, 2}, TensND.AbstractTens{4, 2, Float64}),
             (Tens{2, 3}, TensND.AbstractTens{2, 3, Float64}), (Tens{2, 3, Float32}, TensND.AbstractTens{2, 3, Float32}),
         )
@@ -46,8 +46,8 @@ _rt_ks_bound(n) = 1.95 / sqrt(n)
     # in the package: the union of the two.
     @test @inferred(TensND.AbstractTens{4, 3, Float64}, rand(_rt_rng, Tens{4, 3}; symmetry = Val(:none))) isa TensND.AbstractTens{4, 3, Float64}
     @test @inferred(TensND.AbstractTens{2, 3, Float64}, rand(_rt_rng, Tens{2, 3}; symmetry = Val(:none))) isa TensND.AbstractTens{2, 3, Float64}
-    @test rand(TensCubic) isa TensCubic{Float64}      # the default generator
-    @test rand(TensCubic; definite = true) isa TensCubic{Float64}
+    @test rand(TensCubic) isa TensCubic{3, Float64}      # the default generator
+    @test rand(TensCubic; definite = true) isa TensCubic{3, Float64}
     # The array forms of `rand`, with the default law: the draws of the scalar
     # form, one per entry, from the same stream.
     v = rand(Xoshiro(3), TensTI{4}, 4)
@@ -64,7 +64,7 @@ _rt_ks_bound(n) = 1.95 / sqrt(n)
     @test @inferred(random_basis(_rt_rng)) isa RotatedBasis{3, Float64}
     @test random_rotation() isa TensND.StaticArrays.SMatrix && random_axis() isa NTuple{3} && random_basis() isa RotatedBasis
     # The same seed, the same tensor.
-    @test canonical_components(rand(Xoshiro(7), TensOrtho{4})) == canonical_components(rand(Xoshiro(7), TensOrtho{4}))
+    @test canonical_components(rand(Xoshiro(7), TensOrtho{4, 3})) == canonical_components(rand(Xoshiro(7), TensOrtho{4, 3}))
 end
 
 @testset "symmetries of the generic draws" begin
@@ -80,15 +80,15 @@ end
 
 @testset "positive definite draws, and the refusals" begin
     spectrum(t) = eigvals(Symmetric(Matrix(mandel(t))))
-    for class in (TensISO{4, 3}, TensTI{4}, TensOrtho{4}, TensCubic, Tens{4, 3}), _ in 1:50
+    for class in (TensISO{4, 3}, TensTI{4}, TensOrtho{4, 3}, TensCubic, Tens{4, 3}), _ in 1:50
         @test minimum(spectrum(rand(_rt_rng, class; definite = true))) > 0
     end
-    for class in (TensISO{2, 3}, TensTI{2}, TensOrtho{2}, Tens{2, 3}), _ in 1:50
+    for class in (TensISO{2, 3}, TensTI{2}, TensOrtho{2, 3}, Tens{2, 3}), _ in 1:50
         @test minimum(eigvals(Symmetric(Array(canonical_components(rand(_rt_rng, class; definite = true)))))) > 0
     end
     # Without the request, indefinite tensors come too.
-    @test any(minimum(spectrum(rand(_rt_rng, TensOrtho{4}))) < 0 for _ in 1:50)
-    for class in (TensTI{4, Float64, 6}, TensTI{4, Float64, 8}, TensTI{2, Float64, 3}, TensOrtho{4, Float64, 12})
+    @test any(minimum(spectrum(rand(_rt_rng, TensOrtho{4, 3}))) < 0 for _ in 1:50)
+    for class in (TensTI{4, Float64, 6}, TensTI{4, Float64, 8}, TensTI{2, Float64, 3}, TensOrtho{4, 3, Float64, 12})
         @test_throws ArgumentError rand(_rt_rng, class; definite = true)
     end
     @test_throws ArgumentError rand(_rt_rng, Tens{4, 3}; symmetry = Val(:minor), definite = true)
@@ -106,7 +106,7 @@ end
         @test collect(axis(rand(_rt_rng, class; frame = ℬ))) ≈ TensND.vecbasis(ℬ, :cov)[:, 3]
         @test_throws ArgumentError rand(_rt_rng, class; axis = n, frame = ℬ)
     end
-    for class in (TensOrtho{4}, TensOrtho{4, Float64, 12}, TensOrtho{2}, TensCubic)
+    for class in (TensOrtho{4, 3}, TensOrtho{4, 3, Float64, 12}, TensOrtho{2, 3}, TensCubic)
         @test frame(rand(_rt_rng, class; frame = ℬ)) == ℬ
     end
     @test frame(rand(_rt_rng, TensCubic; frame = CanonicalBasis{3, Float64}())) isa CanonicalBasis

@@ -256,7 +256,8 @@ function _proj_tens_opt(::Val{:TI}, A::AbstractArray{T, 2}) where {T <: Abstract
     return project(A, Val(:TI), _best_TI2_axis(A))
 end
 
-function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+function _proj_tens_opt(v::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+    size(A, 1) == 2 && return _proj_plane_opt(v, A)        # the plane: in closed form
     C_KM = _KM_of_array(A)
     sqnorm_C = sum(x -> x^2, C_KM)
     if sqnorm_C ≈ zero(T)
@@ -267,7 +268,8 @@ function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 4}) where {T <: Abstr
     return project(A, Val(:ORTHO), RotatedBasis(x[1], x[2], x[3]))
 end
 
-function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
+function _proj_tens_opt(v::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: AbstractFloat}
+    size(A, 1) == 2 && return _proj_plane_opt(v, A)        # the plane: in closed form
     sqnorm_A = sum(x -> x^2, A)
     if sqnorm_A ≈ zero(T)
         z = zero(T)
@@ -278,12 +280,13 @@ function _proj_tens_opt(::Val{:ORTHO}, A::AbstractArray{T, 2}) where {T <: Abstr
     return project(A, Val(:ORTHO), _candidate_ORTHO_frame(A))
 end
 
-function _proj_tens_opt(::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+function _proj_tens_opt(v::Val{:CUBIC}, A::AbstractArray{T, 4}) where {T <: AbstractFloat}
+    size(A, 1) == 2 && return _proj_plane_opt(v, A)        # the plane: in closed form
     C_KM = _KM_of_array(A)
     sqnorm_C = sum(x -> x^2, C_KM)
     if sqnorm_C ≈ zero(T)
         z = zero(T)
-        return TensCubic{T}((z, z, z), CanonicalBasis{3, T}()), z, z
+        return TensCubic{3, T}((z, z, z), CanonicalBasis{3, T}()), z, z
     end
     x = _optimize_angles(x -> _obj_CUBIC4(x, C_KM, sqnorm_C), _cubic_starts(A), _FRAME_GRID, _FRAME_SCREENED)
     return project(A, Val(:CUBIC), RotatedBasis(x[1], x[2], x[3]))

@@ -1,5 +1,111 @@
 # Changelog
 
+## v0.17.0 — the plane and any dimension
+
+TensND is written for tensors of any dimension, and most of it worked in
+dimension 3 only. This release says what holds where and fills the gaps: the
+algebra, the Kelvin–Mandel notation, the isotropic class and the Cartesian
+system hold in any dimension; the plane has its symmetry classes, its moduli
+and its projections. Results in dimension 3 are unchanged, to the last bit.
+
+### Breaking
+
+- **`TensOrtho{order, dim, T, N, B}` and `TensCubic{dim, T, B}` carry their
+  dimension** as a type parameter, the second of `TensOrtho` and the first of
+  `TensCubic`, as `TensISO{order, dim, T, N}` does. Code that names these
+  parameters changes: `TensOrtho{4, T, 9}` becomes `TensOrtho{4, 3, T, 9}`,
+  `TensCubic{T}` becomes `TensCubic{3, T}`. `TensOrtho{4}`, `TensOrtho{2}` and
+  `TensCubic` alone now cover both dimensions: a method written for space takes
+  `TensOrtho{4, 3}` and `TensCubic{3}`. The constructors called with their
+  coefficients and a frame are unchanged, and `rand(TensOrtho{4})`,
+  `rand(TensCubic)` keep drawing in dimension 3.
+- `mandel_rotation(R)` refuses a plain matrix that is not 3×3, where it read it
+  out of bounds; the dimension of a static matrix is read on its type, and
+  `mandel_rotation(R, Val(d))` gives it for a plain one.
+
+### Added: any dimension
+
+- **Kelvin–Mandel notation**: `mandel` and `from_mandel` for every dimension
+  (they were limited to 2 and 3), with the inverse of a tensor of order 4, its
+  display and the functions of a tensor that rest on them. `mandel_pairs`,
+  `mandel_length`, `mandel_dimension`, `mandel_weights` and
+  `identity_mandel(Val(d))` give the bookkeeping of a dimension;
+  `mandel_rotation` the rotation matrix of the notation in dimension `d`, from
+  one angle in the plane.
+- **Bases and rotations**: a rotated basis from an orthogonal matrix of any
+  size; `random_rotation`, `random_axis` and `random_basis` with `Val(d)`, the
+  Haar measure of SO(d).
+- **Algebra beyond dimension 3**, where plain arrays hold the components:
+  transposes of order 2 and 4, products with an isotropic tensor (a product
+  `TensISO ⊡ Tens` of order 2 returned a bare matrix in dimension 4), the
+  isotropic symmetry basis, random generic tensors, the vectors of the
+  canonical basis, `init_cartesian(d)`, and the Cartesian coordinate system,
+  symbolic (`coorsys_cartesian(Val(d))`) and pointwise
+  (`coorsys_cartesian(PointwiseGeometry, Val(d))`), the plane included.
+- **Isotropic moduli** with `Val(d)` in every builder and reader:
+  ``\mathbb{C} = d\,k\,\mathbb{J} + 2\mu\,\mathbb{K}``, with Young's modulus
+  and Poisson's ratio of the medium of dimension ``d``.
+
+### Added: the plane
+
+- **Two conventions for the moduli of a tensor of the plane**, by the keyword
+  `convention`: `:plane_strain`, the default and the behavior so far, the
+  moduli of the 3-D material in plane strain; `:intrinsic`, those of the plane
+  medium, ``E_2 = 4k\mu/(k+\mu)`` and ``\nu_2 = (k-\mu)/(k+\mu)``.
+- **The orthotropic and the square classes**: `TensOrtho` with four constants
+  (five without the major symmetry) and two at order 2, `TensCubic` with three,
+  built by the existing constructors with a frame of the plane (`Basis(θ)`).
+  Every operation of the classes holds in the plane: components, Kelvin–Mandel
+  matrices, inverses, sums and products on a shared frame, on frames equal up
+  to a quarter turn and on unrelated ones, promotions from the isotropic
+  class, symmetry blocks, random draws, symbols and dual numbers.
+- **From space to the plane and back**: `plane_strain_stiffness` and
+  `plane_stress_stiffness` of an orthotropic tensor in one of its planes of
+  symmetry, of a cubic one in a face of its cube, of a transversely isotropic
+  one in a plane that contains its axis (`Val(:axial)`); `plane_block` and
+  `plane_stress_block` for any tensor and any coordinate plane;
+  `space_embedding`, the tensor of space of a tensor of the plane.
+- **Projections**: `project`, `best_fit_ortho`, `best_fit_cubic`,
+  `best_sym_tens`, `isorthotropic` and `iscubic` take tensors of the plane.
+  With the frame free there is no search: the frame of the closest square
+  tensor is in closed form, that of the closest orthotropic one a root of a
+  quartic, an exact global minimum. `transverse_isotropify` of a tensor of the
+  plane is its average over the rotations of the plane. The plane has no
+  transversely isotropic class: `project(t, :TI)` and
+  `istransverselyisotropic` of a tensor of the plane throw an `ArgumentError`
+  that names the classes of the plane.
+
+### Added: utilities shared with client packages
+
+Helpers that MeanFieldHomogenization wrote for itself, some of them several
+times, have one definition here: `operator_matrix` and `from_operator_matrix`
+(the matrix of the linear map a tensor is), `definiteness`, `major_asymmetry`,
+`iso_average_mandel` in any dimension, `static_tens` and `symmetric_tens`
+(constructors whose type is known from their arguments), `project_exact` (a
+tensor written in a class when it belongs to it), `hill_moduli(t, Val(6))` and
+the six-constant forms of `ti_from_constants` for a transversely isotropic
+tensor without the major symmetry, the acoustic tensor of the plane,
+`sym2_inv` and `sym3_adj`.
+
+### Documentation
+
+- The presentation of the package, the home page and the first steps say at
+  once what is supported in which dimension, with a table.
+- A Theory page, *Tensors of the plane, of space and of any dimension*: the
+  Kelvin–Mandel notation and the isotropic moduli in dimension ``d``, the two
+  conventions of the plane, the symmetry classes of the plane and why it has
+  no transversely isotropic one, the restriction of a tensor of space to a
+  plane, the projections in closed form and the average over the rotations.
+- The Manual page *Two dimensions, and any dimension* gives every call, and
+  each page of the Manual and of the Theory concerned has a section *In two
+  dimensions*.
+- The tutorial on the elastic Green functions checks the equilibrium of the
+  Kelvin solution and recovers the unit force, in the plane and in space, and
+  adds the Green functions of conduction and an orthotropic plane. A new
+  tutorial, *The symmetry classes of a plane section*, cuts a measured
+  stiffness by its coordinate planes and finds the class and the frame of each
+  section.
+
 ## v0.16.4 — the Walpole coefficients as a form of the five constants
 
 A patch release: one form and one method added, nothing existing changes.

@@ -33,44 +33,6 @@
 #      m=2 doublet {(11−22)/√2, 12}    → aI + bG → (ℓ₅, ℓ₈)
 # =============================================================================
 
-# ── Kelvin-Mandel helpers (minor-symmetric, Tensors.jl index convention) ─────
-
-const _MANDEL_IDX = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
-const _MANDEL_IDX_2D = ((1, 1), (2, 2), (1, 2))
-
-# The Kelvin-Mandel components of the minor-symmetric part of a component array,
-# read as it is, with no assumption of major symmetry (a concentration tensor
-# has none), for `mandel(A; symmetrize = true)`. The four entries of a pair are
-# summed two by two, so that on a minor-symmetric array the average is exact:
-# `((a + a) + (a + a)) / 4 == a` to the last bit.
-_minor_part(A, i, j, k, l) = ((A[i, j, k, l] + A[j, i, k, l]) + (A[i, j, l, k] + A[j, i, l, k])) / 4
-_minor_part(A, i, j) = (A[i, j] + A[j, i]) / 2
-
-_mandel_pairs(::Val{3}) = _MANDEL_IDX
-_mandel_pairs(::Val{2}) = _MANDEL_IDX_2D
-
-# The dimension is read from the size, and each branch names its `Val`, so that
-# the result is inferred.
-function _mandel_minor(A::AbstractArray)
-    d = size(A, 1)
-    d == 3 && return _mandel_minor(A, Val(3))
-    d == 2 && return _mandel_minor(A, Val(2))
-    throw(DimensionMismatch("no Kelvin-Mandel form for a component array of size $(size(A))"))
-end
-
-function _mandel_minor(A::AbstractArray{T, 4}, v::Val{dim}) where {T, dim}
-    w = _mandel_weights(T, v)
-    P = _mandel_pairs(v)
-    return [w[I] * w[J] * _minor_part(A, P[I]..., P[J]...) for I in eachindex(P), J in eachindex(P)]
-end
-
-_mandel_minor(A::AbstractArray{T, 2}, v::Val) where {T} =
-    [w * _minor_part(A, P...) for (w, P) in zip(_mandel_weights(T, v), _mandel_pairs(v))]
-
-# The weights of the Kelvin-Mandel slots: one on the normal pairs, √2 on the shear ones.
-_mandel_weights(::Type{T}, ::Val{3}) where {T} = (one(T), one(T), one(T), sqrt(T(2)), sqrt(T(2)), sqrt(T(2)))
-_mandel_weights(::Type{T}, ::Val{2}) where {T} = (one(T), one(T), sqrt(T(2)))
-
 """
     _axis_frame(n) → (R, n̂)
 
@@ -264,9 +226,14 @@ end
 #
 # A cubic tensor is therefore isotropic on average whatever its anisotropy —
 # `cubic_anisotropy` measures precisely what this discards.
-function isotropify(t::TensCubic)
+function isotropify(t::TensCubic{3})
     α, β, γ = get_data(t)
     return TensISO{3}(α, (2β + 3γ) / 5)
+end
+# In the plane 𝔼 and 𝕋 have trace 1 each, 𝕂 trace 2.
+function isotropify(t::TensCubic{2})
+    α, β, γ = get_data(t)
+    return TensISO{2}(α, (β + γ) / 2)
 end
 
 isotropify(t::TensISO{4, 3}) = t
@@ -427,13 +394,45 @@ The order-2 counterpart of [`ti_average_mandel`](@ref).
 ti_average_matrix(M::AbstractMatrix, n) = Array(get_array(transverse_isotropify(Tens(Matrix(M)), n)))
 
 """
-    iso_average_mandel(M::AbstractMatrix{T}) → (α, β)
+    iso_average_mandel(M::AbstractMatrix) → (α, β)
 
-Exact SO(3) average of the minor-symmetric tensor whose Kelvin-Mandel matrix is
-`M`: `α = (1/3)Σ_{i,j≤3} M[i,j]`, `β = (tr M − α)/5`.  Returns the `(α, β)`
-coefficients of `α𝕁 + β𝕂`.
+Exact isotropic average of the minor-symmetric tensor whose Kelvin-Mandel matrix
+is the `n×n` matrix `M`, in any dimension `d`, read from the size
+`n = d(d+1)/2` ([`mandel_dimension`](@ref)): the orthogonal projection of `M`
+onto the matrices of `𝕁` and `𝕂`,
+
+    α = (1/d) Σ_{i,j≤d} M[i,j],    β = (tr M − α)/(n − 1),
+
+since the matrix of `𝕁` is `𝐢 𝐢ᵀ/d`, `𝐢` the Kelvin-Mandel vector of `𝟏`, and
+`𝕂` is the projector of trace `n − 1`. Returns the `(α, β)` coefficients of
+`α𝕁 + β𝕂` (`TensISO{d}(α, β)`): `α = (1/3)Σ_{i,j≤3} M[i,j]`, `β = (tr M − α)/5`
+in space.
+
+It is the average over the rotations of dimension `d ≥ 3`, with or without
+major symmetry. In the plane, the rotations alone also keep a skew coupling of
+the two deviatoric components, which vanishes for a major-symmetric `M`; `(α, β)`
+is then the average over the rotations and the reflections. A matrix of size
+`1×1` (dimension 1) has no deviatoric part, and `β` is not defined.
 """
-function iso_average_mandel(M::AbstractMatrix{T}) where {T}
+iso_average_mandel(M::StaticMatrix{6, 6}) = _iso_average_mandel_space(M)
+iso_average_mandel(M::StaticMatrix{n, n}) where {n} = _iso_average_mandel(M, mandel_dimension(n))
+# A plain matrix knows its size at run time only.
+function iso_average_mandel(M::AbstractMatrix)
+    n = LinearAlgebra.checksquare(M)
+    n == 6 && return _iso_average_mandel_space(M)
+    return _iso_average_mandel(M, mandel_dimension(n))
+end
+
+function _iso_average_mandel(M::AbstractMatrix, d::Integer)
+    n = size(M, 1)
+    n > 1 || throw(ArgumentError("iso_average_mandel: in dimension 1 a tensor has no deviatoric part, β is not defined"))
+    α = sum(M[i, j] for i in 1:d, j in 1:d) / d
+    β = (tr(M) - α) / (n - 1)
+    return (α, β)
+end
+
+# Space, written out: the sums in this order are the reference results.
+function _iso_average_mandel_space(M::AbstractMatrix{T}) where {T}
     α = (
         M[1, 1] + M[1, 2] + M[1, 3] + M[2, 1] + M[2, 2] +
             M[2, 3] + M[3, 1] + M[3, 2] + M[3, 3]

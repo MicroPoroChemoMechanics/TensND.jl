@@ -36,9 +36,10 @@
 # ─────────────────────────────────────────────────────────────────────────────
 
 """
-    TensCubic{T, B<:OrthonormalBasis{3}} <: AbstractTens{4,3,T}
+    TensCubic{dim, T, B<:OrthonormalBasis{dim}} <: AbstractTens{4,dim,T}
 
-Cubic 4th-order tensor with cube axes `frame` and **three** independent
+Cubic 4th-order tensor with cube axes `frame`, in dimension `dim`, 3 or 2 (the
+square class of the plane, below), and **three** independent
 coefficients `(α, β, γ)` on the three orthogonal projectors of the octahedral
 group:
 
@@ -76,7 +77,16 @@ cubic tensor discards is measured by [`cubic_anisotropy`](@ref).
 
 | Parametrization    | Role                | Invariance group | Stored coefficients                  |
 |--------------------|---------------------|------------------|--------------------------------------|
-| `TensCubic{T, B}`  | 4th-order cubic     | `Oₕ`             | `data = (α, β, γ)`, `frame::B`       |
+| `TensCubic{3, T, B}`  | 4th-order cubic     | `Oₕ`             | `data = (α, β, γ)`, `frame::B`       |
+
+**In the plane** the class is that of the square, with the same three
+constants and the same algebra: in the frame of the square, the Kelvin-Mandel
+matrix is `[[C₁₁, C₁₂, 0], [C₁₂, C₁₁, 0], [0, 0, 2C₄₄]]`, `C₄₄ = C₁₂₁₂`, and
+`α = C₁₁ + C₁₂ = 2k`, `β = C₁₁ - C₁₂`, `γ = 2C₄₄` on the projectors of traces
+`1, 1, 1`; in dimension `d`, `α = C₁₁ + (d-1)C₁₂`. It is built by the same
+constructors with a frame of the plane, `Basis(θ)` or `CanonicalBasis{2, T}()`,
+and it is the restriction of a cubic tensor to a face of its cube
+([`plane_strain_stiffness`](@ref)).
 
 One shape only, so the type carries neither order nor length: at order 2 a
 cubic tensor is isotropic (a `TensISO{2}`), and the product of two cubic
@@ -102,10 +112,11 @@ julia> cubic_constants(inv(C) ⊡ C)          # the identity, exactly
 See also [`cubic_from_constants`](@ref), [`cubic_constants`](@ref),
 [`cubic_anisotropy`](@ref), [`iso_to_cubic`](@ref), [`cubic_to_ortho`](@ref).
 """
-struct TensCubic{T, B <: OrthonormalBasis{3}} <: AbstractTens{4, 3, T}
+struct TensCubic{dim, T, B <: OrthonormalBasis{dim}} <: AbstractTens{4, dim, T}
     data::NTuple{3, T}     # (α, β, γ) on (𝕁, 𝔼, 𝕋)
-    frame::B               # cube axes (e₁, e₂, e₃)
-    function TensCubic{T, B}(data::NTuple{3}, frame::B) where {T, B <: OrthonormalBasis{3}}
+    frame::B               # cube axes (e₁, e₂, e₃), or those of the square (e₁, e₂)
+    function TensCubic{dim, T, B}(data::NTuple{3}, frame::B) where {dim, T, B <: OrthonormalBasis{dim}}
+        dim in (2, 3) || throw(ArgumentError("the cubic class is written for dimensions 2 and 3; got $dim"))
         T === halves_eltype(T) || throw(
             ArgumentError(
                 "a TensCubic stores its coefficients in the type of its components, which " *
@@ -113,29 +124,29 @@ struct TensCubic{T, B <: OrthonormalBasis{3}} <: AbstractTens{4, 3, T}
                     "`TensCubic(α, β, γ, frame)` chooses"
             )
         )
-        return new{T, B}(map(x -> convert(T, x), data), frame)
+        return new{dim, T, B}(map(x -> convert(T, x), data), frame)
     end
 end
 
-# Outer constructor preserving the `TensCubic{T}(data, frame)` call form used by
+# Outer constructor preserving the `TensCubic{dim, T}(data, frame)` call form used by
 # `_rebuild` and the constructors below — infers `B` from the frame.
-TensCubic{T}(data::NTuple{3}, frame::B) where {T, B <: OrthonormalBasis{3}} =
-    TensCubic{T, B}(data, frame)
+TensCubic{dim, T}(data::NTuple{3}, frame::B) where {dim, T, B <: OrthonormalBasis{dim}} =
+    TensCubic{dim, T, B}(data, frame)
 
 # ── Traits ───────────────────────────────────────────────────────────────────
 
-Base.eltype(::Type{TensCubic{T}}) where {T} = T
-Base.length(::TensCubic) = 81
-Base.size(::TensCubic) = (3, 3, 3, 3)
+Base.eltype(::Type{<:TensCubic{dim, T}}) where {dim, T} = T
+Base.length(::TensCubic{dim}) where {dim} = dim^4
+Base.size(::TensCubic{dim}) where {dim} = (dim, dim, dim, dim)
 
-get_basis(::TensCubic{T}) where {T} = CanonicalBasis{3, T}()
+get_basis(::TensCubic{dim, T}) where {dim, T} = CanonicalBasis{dim, T}()
 get_var(::TensCubic) = (:cont, :cont, :cont, :cont)
 get_var(::TensCubic, ::Integer) = :cont
 get_data(t::TensCubic) = t.data
 frame(t::TensCubic) = t.frame
 
 # ── Rebuild helper (used by the symbolic ops) ────────────────────────────────
-_rebuild(t::TensCubic, new_data) = TensCubic{halves_eltype(eltype(new_data))}(new_data, frame(t))
+_rebuild(t::TensCubic{dim}, new_data) where {dim} = TensCubic{dim, halves_eltype(eltype(new_data))}(new_data, frame(t))
 
 # ── Constructors ─────────────────────────────────────────────────────────────
 
@@ -145,9 +156,9 @@ _rebuild(t::TensCubic, new_data) = TensCubic{halves_eltype(eltype(new_data))}(ne
 Cubic tensor from its three **projector** coefficients on `(𝕁, 𝔼, 𝕋)`. For the
 engineering constants use [`cubic_from_constants`](@ref).
 """
-function TensCubic(α, β, γ, frame::OrthonormalBasis{3})
+function TensCubic(α, β, γ, frame::OrthonormalBasis{dim}) where {dim}
     T = halves_eltype(promote_type(typeof(α), typeof(β), typeof(γ), eltype(frame)))
-    return TensCubic{T}((T(α), T(β), T(γ)), frame)
+    return TensCubic{dim, T}((T(α), T(β), T(γ)), frame)
 end
 
 """
@@ -164,8 +175,8 @@ Cubic tensor from the three elastic constants, `C₄₄ = C₂₃₂₃`:
 remembering, since the departure from it is what [`cubic_anisotropy`](@ref)
 measures.
 """
-cubic_from_constants(C₁₁, C₁₂, C₄₄, frame::OrthonormalBasis{3}) =
-    TensCubic(C₁₁ + 2C₁₂, C₁₁ - C₁₂, 2C₄₄, frame)
+cubic_from_constants(C₁₁, C₁₂, C₄₄, frame::OrthonormalBasis{dim}) where {dim} =
+    TensCubic(C₁₁ + (dim - 1) * C₁₂, C₁₁ - C₁₂, 2C₄₄, frame)
 
 """
     TensCubic(KMmat::AbstractMatrix, frame)
@@ -176,17 +187,17 @@ to have the cubic structure, and anything else in it is discarded silently. To
 project a general tensor onto the class instead, and to learn how far it was,
 use [`best_fit_cubic`](@ref) or `project(A, Val(:CUBIC), …)`.
 """
-TensCubic(KMmat::AbstractMatrix, frame::OrthonormalBasis{3}) =
-    cubic_from_constants(KMmat[1, 1], KMmat[1, 2], KMmat[4, 4] / 2, frame)
+TensCubic(KMmat::AbstractMatrix, frame::OrthonormalBasis{dim}) where {dim} =
+    cubic_from_constants(KMmat[1, 1], KMmat[1, 2], KMmat[dim + 1, dim + 1] / 2, frame)
 
 """
     cubic_constants(t::TensCubic) -> (C₁₁, C₁₂, C₄₄)
 
 The three elastic constants, the inverse of [`cubic_from_constants`](@ref).
 """
-function cubic_constants(t::TensCubic)
+function cubic_constants(t::TensCubic{dim}) where {dim}
     α, β, γ = get_data(t)
-    return (α / 3 + 2β / 3, α / 3 - β / 3, γ / 2)
+    return (α / dim + (dim - 1) * β / dim, α / dim - β / dim, γ / 2)
 end
 
 """
@@ -199,16 +210,16 @@ Exactly zero when `β = γ`, which is exactly when the tensor is isotropic. It i
 precisely the quantity a two-constant approximation of a cubic tensor throws
 away.
 """
-function cubic_anisotropy(t::TensCubic)
+function cubic_anisotropy(t::TensCubic{dim}) where {dim}
     α, β, γ = get_data(t)
-    C₁₁ = α / 3 + 2β / 3
+    C₁₁ = α / dim + (dim - 1) * β / dim
     return (β - γ) / C₁₁
 end
 
 # ── get_array and getindex ───────────────────────────────────────────────────
 
 """
-    get_array(t::TensCubic{T}) -> Array{T,4}
+    get_array(t::TensCubic{3, T}) -> Array{T,4}
 
 The 3×3×3×3 component array in the canonical frame.
 
@@ -228,10 +239,7 @@ do not each pay for materializing all 81.
 Base.@propagate_inbounds function Base.getindex(
         t::TensCubic, i::Integer, j::Integer, k::Integer, l::Integer
     )
-    C₁₁, C₁₂, C₄₄ = cubic_constants(t)
-    return _ortho_entry(
-        vecbasis(t.frame, :cov), C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄, i, j, k, l
-    )
+    return _ortho_entry(vecbasis(t.frame, :cov), _ortho_coefficients(t)..., i, j, k, l)
 end
 
 Base.IndexStyle(::Type{<:TensCubic}) = IndexCartesian()
@@ -252,7 +260,7 @@ _mandel(t::TensCubic) = Matrix(_km_in_frame(t))
 The 6×6 Kelvin-Mandel matrix in the cube frame, where a cubic tensor has only
 three distinct entries.
 """
-function mandel_material(t::TensCubic{T}) where {T}
+function mandel_material(t::TensCubic{3, T}) where {T}
     C₁₁, C₁₂, C₄₄ = cubic_constants(t)
     z = zero(T)
     return @SMatrix [
@@ -285,7 +293,7 @@ On an element type where a comparison does not return a genuine `Bool` — a
 symbolic frame — the test is not attempted and plain equality is required
 instead.
 """
-@inline _same_cube_frame(A::TensCubic, B::TensCubic) = frame(A) == frame(B) || _permuted_frames(frame(A), frame(B))
+@inline _same_cube_frame(A::TensCubic{dim}, B::TensCubic{dim}) where {dim} = frame(A) == frame(B) || _permuted_frames(frame(A), frame(B))
 @noinline _permuted_frames(FA, FB) = _frame_permutation(FA, FB) !== nothing
 
 """
@@ -297,12 +305,12 @@ up to its sign, when `Fᴬᵀ Fᴮ` is a signed permutation matrix (within `1e-1
 symmetry. On an element type whose comparisons do not return a genuine `Bool`, a
 symbolic frame, only equal frames are recognized, with the identity.
 """
-function _frame_permutation(FA::OrthonormalBasis{3}, FB::OrthonormalBasis{3})
+function _frame_permutation(FA::OrthonormalBasis{dim}, FB::OrthonormalBasis{dim}) where {dim}
     EA, EB = vecbasis(FA, :cov), vecbasis(FB, :cov)
     is_hard_numeric(real(promote_type(eltype(EA), eltype(EB)))) ||
-        return FA == FB ? (1, 2, 3) : nothing
+        return FA == FB ? ntuple(identity, Val(dim)) : nothing
     M = transpose(EA) * EB
-    π = ntuple(j -> _matched_axis(M, j), Val(3))
+    π = ntuple(j -> _matched_axis(M, j), Val(dim))
     return all(>(0), π) && isperm(π) ? π : nothing
 end
 
@@ -310,7 +318,7 @@ end
 # others holding zero (within 1e-10); 0 when the column is not of that form.
 @noinline function _matched_axis(M, j)
     i₀ = 0
-    for i in 1:3
+    for i in axes(M, 1)
         a = abs(M[i, j])
         if a > 0.5
             i₀ == 0 && isapprox(a, one(a); atol = 1.0e-10) || return 0
@@ -327,11 +335,11 @@ end
 # cubic tensors on the same cube add coefficient by coefficient; on different
 # cubes the sum is generally fully anisotropic, and takes the generic route.
 
-@inline function Base.:+(A::TensCubic, B::TensCubic)
+@inline function Base.:+(A::TensCubic{dim}, B::TensCubic{dim}) where {dim}
     _same_cube_frame(A, B) || return _structured_sum(+, A, B)
     return _same_frame_binary(+, A, B)
 end
-@inline function Base.:-(A::TensCubic, B::TensCubic)
+@inline function Base.:-(A::TensCubic{dim}, B::TensCubic{dim}) where {dim}
     _same_cube_frame(A, B) || return _structured_sum(-, A, B)
     return _same_frame_binary(-, A, B)
 end
@@ -352,7 +360,7 @@ Base.inv(t::TensCubic) = _rebuild(t, map(inv, get_data(t)))
 
 The 4th-order symmetric identity `𝕀 = 𝕁 + 𝔼 + 𝕋`, cubic on the same frame.
 """
-Base.one(t::TensCubic{T}) where {T} = _rebuild(t, (one(T), one(T), one(T)))
+Base.one(t::TensCubic{dim, T}) where {dim, T} = _rebuild(t, (one(T), one(T), one(T)))
 
 """
     zero(t::TensCubic)
@@ -361,7 +369,7 @@ The zero tensor, kept **in the class and on the same frame** rather than
 narrowed to a `TensISO`. Narrowing would silently change the type of an
 accumulator initialized with `zero`, which has caught this package out before.
 """
-Base.zero(t::TensCubic{T}) where {T} = _rebuild(t, (zero(T), zero(T), zero(T)))
+Base.zero(t::TensCubic{dim, T}) where {dim, T} = _rebuild(t, (zero(T), zero(T), zero(T)))
 
 @inline Base.literal_pow(::typeof(^), A::TensCubic, ::Val{-1}) = inv(A)
 @inline Base.literal_pow(::typeof(^), A::TensCubic, ::Val{0}) = one(A)
@@ -391,7 +399,7 @@ is cubic and still major-symmetric.
 If the two frames do not describe the same cube the product is generally fully
 anisotropic and the generic method is taken.
 """
-function Tensors.dcontract(A::TensCubic, B::TensCubic)
+function Tensors.dcontract(A::TensCubic{dim}, B::TensCubic{dim}) where {dim}
     _same_cube_frame(A, B) ||
         return Tensors.dcontract(generic_tens(A), generic_tens(B))
     return _rebuild(A, get_data(A) .* get_data(B))
@@ -437,23 +445,21 @@ reference(t::TensCubic) = frame(t)
 # `_ortho_entry` gives its components there, exact for every element type,
 # without the 81 canonical ones rotated index by index. A left-handed ℬ needs no
 # care: each frame vector enters the formula an even number of times.
-function express(t::Union{TensOrtho{4, T}, TensCubic{T}}, ℬ::OrthonormalBasis{3, T}) where {T}
+function express(t::Union{TensOrtho{4, dim, T}, TensCubic{dim, T}}, ℬ::OrthonormalBasis{dim, T}) where {dim, T}
     F = vecbasis(frame(t), :cov)
     Tf = promote_type(T, eltype(F))
-    E = transpose(SMatrix{3, 3, Tf}(vecbasis(ℬ, :cov))) * SMatrix{3, 3, Tf}(F)
+    E = transpose(SMatrix{dim, dim, Tf}(vecbasis(ℬ, :cov))) * SMatrix{dim, dim, Tf}(F)
     C = _ortho_coefficients(t)
-    S = SymmetricTensor{4, 3}((i, j, k, l) -> @inbounds _ortho_entry(E, C..., i, j, k, l))
+    S = SymmetricTensor{4, dim}((i, j, k, l) -> @inbounds _ortho_entry(E, C..., i, j, k, l))
     return Tens(S, ℬ, get_var(t))
 end
 
 # The nine orthotropic coefficients, a cubic tensor being an orthotropic one
 # with C₁₁ = C₂₂ = C₃₃, C₁₂ = C₁₃ = C₂₃ and C₄₄ = C₅₅ = C₆₆.
 _ortho_coefficients(t::TensOrtho{4}) = get_data(t)
-function _ortho_coefficients(t::TensCubic)
-    C₁₁, C₁₂, C₄₄ = cubic_constants(t)
-    return (C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄)
-end
-components(t::TensCubic{T}, ℬ::OrthonormalBasis{3, T}, v::NTuple{4, Symbol}) where {T} =
+_ortho_coefficients(t::TensCubic{3}) =
+    ((C₁₁, C₁₂, C₄₄) = cubic_constants(t); (C₁₁, C₁₁, C₁₁, C₁₂, C₁₂, C₁₂, C₄₄, C₄₄, C₄₄))
+components(t::TensCubic{dim, T}, ℬ::OrthonormalBasis{dim, T}, v::NTuple{4, Symbol}) where {dim, T} =
     components(_as_canonical_tens(t), ℬ, v)
 components(t::TensCubic) = get_array(t)
 components(t::TensCubic, ::NTuple{4, Symbol}) = get_array(t)

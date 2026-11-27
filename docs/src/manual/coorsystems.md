@@ -44,6 +44,25 @@ table is built from its position vector, see [Custom systems](@ref) below.
     ``(r,\theta,\varphi)``, so that ``\theta=\varphi=0`` reproduces the
     canonical basis in the canonical order.
 
+## In two dimensions
+
+Two of the predefined systems are those of the plane: the Cartesian one,
+`coorsys_cartesian(Val(2))` with the coordinates ``(x, y)``, and the polar
+one, `coorsys_polar()`, used in the examples of the next section. Their fields
+are tensors of dimension 2. `coorsys_cartesian(Val(d))` is the Cartesian
+system of any dimension ``d``, of coordinates ``x_1, \dots, x_d`` beyond
+dimension 3.
+
+```@example cs
+using TensND, SymPyPythonCall
+Plane = coorsys_cartesian(Val(2))
+x, y = get_coords(Plane)
+laplacian(x^3 * y^2, Plane), get_array(grad(x^3 * y^2, Plane))
+```
+
+See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of
+what is built in the plane and beyond.
+
 ## The operators
 
 ```@example cs

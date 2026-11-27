@@ -50,7 +50,7 @@
     @test first(init_cylindrical()) == (r, symbols("θ z", real = true)...)
     @test first(init_spherical()) == (symbols("θ ϕ", real = true)..., r)
     @test first(init_rotated()) == symbols("θ ϕ ψ", real = true)
-    @test_throws ArgumentError init_cartesian(4)
+    @test first(init_cartesian(4)) == symbols("x1 x2 x3 x4", real = true)   # beyond dimension 3
 
     # Loaded, the extension adds nothing to a `MethodError`.
     @test sprint(TensND._sympy_defaults_hint, MethodError(coorsys_polar, ()), Any[], Any[]) == ""

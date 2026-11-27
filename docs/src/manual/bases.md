@@ -45,6 +45,24 @@ An orthonormal basis is detected automatically and gets the cheaper type:
 typeof(Basis(θ, ϕ, ψ))
 ```
 
+## In two dimensions
+
+The constructors take the dimension from their arguments: `CanonicalBasis{2, T}()`
+is the canonical basis of the plane, `Basis(θ)` the basis rotated by the angle
+`θ`, `Basis(M)` with a ``2\times2`` matrix a general basis of the plane, and
+`random_basis(Val(2))` a basis of random orientation. `angles` returns the
+single angle of a rotated basis of the plane.
+
+```@example bases
+ℬ₂ = Basis(π / 6)
+vecbasis(ℬ₂, :cov), angles(ℬ₂)
+```
+
+In any dimension ``d``, `Basis(Q)` with an orthogonal ``d\times d`` matrix is a
+rotated basis, whose `angles` are empty beyond dimension 3. See
+[Two dimensions, and any dimension](@ref man-dimensions) for the whole of what
+is built in the plane and beyond.
+
 ## Accessors
 
 | Function | Returns |
@@ -53,7 +71,7 @@ typeof(Basis(θ, ϕ, ψ))
 | [`vecbasis`](@ref)`(ℬ, :cont)` | matrix of the dual ``\underline{e}^i`` |
 | [`metric`](@ref)`(ℬ, :cov)` | ``[g_{ij}]`` |
 | [`metric`](@ref)`(ℬ, :cont)` | ``[g^{ij}]`` |
-| [`angles`](@ref)`(ℬ)` | Euler angles of a rotated basis |
+| [`angles`](@ref)`(ℬ)` | the angle (plane) or the Euler angles (space) of a rotated basis |
 | [`get_dim`](@ref)`(ℬ)` | the dimension |
 | [`isorthogonal`](@ref), [`isorthonormal`](@ref) | predicates |
 

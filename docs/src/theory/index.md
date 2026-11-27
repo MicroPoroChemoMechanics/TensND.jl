@@ -84,6 +84,7 @@ describes an embedded surface rather than the whole space.
 | [Bases and variance](bases_variance.md) | dual basis, metric, covariant/contravariant components, and the basis-type hierarchy that fixes the cost of everything else |
 | [Kelvin–Mandel representation](kelvin_mandel.md) | the isometry onto ``6\times6`` matrices, and why its rotation matrix being orthogonal is what matters |
 | [Rotations and Euler angles](rotations.md) | the Z–Y–Z convention as implemented, ``R\stackrel{s}{\boxtimes}R``, and the degeneracies of any three-angle parametrization |
+| [Tensors of the plane, of space and of any dimension](dimensions.md) | what depends on the dimension ``d``: the Kelvin–Mandel notation, the isotropic moduli, the classes of the plane, the restriction of a tensor of space to a plane, and the projections in the plane in closed form |
 
 ### Material symmetries
 

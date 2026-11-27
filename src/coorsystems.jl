@@ -20,15 +20,15 @@ function _build_basis_vectors(normalized_basis::AbstractBasis{dim, T}, χᵢ::NT
     # is invisible until someone builds a skew chart, and then it silently
     # returns the dual frame and every differential operator is wrong.
     eᵢ = ntuple(
-        i -> Tens(Vec{dim}(j -> j == i ? one(T) : zero(T)), normalized_basis, (:cont,)),
+        i -> Tens(_vector_storage(j -> j == i ? one(T) : zero(T), Val(dim), T), normalized_basis, (:cont,)),
         dim,
     )
     aᵢ = ntuple(
-        i -> Tens(Vec{dim}(j -> j == i ? χᵢ[i] : zero(T)), normalized_basis, (:cont,)),
+        i -> Tens(_vector_storage(j -> j == i ? χᵢ[i] : zero(T), Val(dim), T), normalized_basis, (:cont,)),
         dim,
     )
     aⁱ = ntuple(
-        i -> Tens(Vec{dim}(j -> j == i ? inv(χᵢ[i]) : zero(T)), normalized_basis, (:cov,)),
+        i -> Tens(_vector_storage(j -> j == i ? inv(χᵢ[i]) : zero(T), Val(dim), T), normalized_basis, (:cov,)),
         dim,
     )
     return eᵢ, aᵢ, aⁱ
@@ -612,9 +612,12 @@ hess(t::SymType, CS::AbstractCoorSystem) = grad(grad(t, CS), CS)
 # `NTuple{dim, T}` accepts the empty tuple and leaves it bound by nothing.
 """
     coorsys_cartesian(coords = symbols("x y z", real = true))
+    coorsys_cartesian(Val(dim))
 
 Return the cartesian coordinate system, in which the natural and normalized
 bases both coincide with the canonical one and all Christoffel symbols vanish.
+Its dimension is the number of coordinates, whatever it is; `Val(dim)` takes
+the default SymPy coordinates of [`init_cartesian`](@ref)`(dim)`.
 
 # Examples
 

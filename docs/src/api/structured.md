@@ -87,8 +87,6 @@ lame_pwave
 shear_poisson
 shear_pwave
 poisson_pwave
-plane_strain_stiffness
-plane_stress_stiffness
 plane_stress_to_plane_strain
 plane_strain_to_plane_stress
 iso_from_plane_strain
@@ -98,3 +96,18 @@ iso_from_plane_stress
 `isotropify` is the exact rotation-group average, not a form of compact
 storage, so it is documented with the other averages under
 [Exact rotation-group averages](@ref api-projection).
+
+## A tensor of space in one of its planes
+
+The stiffness of a material of space in plane strain and in plane stress, for
+the structured classes and for any tensor, and the tensor of space whose
+restriction to a plane is given. Usage:
+[Two dimensions, and any dimension](@ref man-dimensions).
+
+```@docs
+plane_strain_stiffness
+plane_stress_stiffness
+plane_block
+plane_stress_block
+space_embedding
+```

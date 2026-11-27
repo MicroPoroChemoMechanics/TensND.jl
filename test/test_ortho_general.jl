@@ -1,6 +1,6 @@
-# The orthotropic shapes beyond `TensOrtho{4, T, 9}`: `TensOrtho{4, T, 12}`, an
+# The orthotropic shapes beyond `TensOrtho{4, 3, T, 9}`: `TensOrtho{4, 3, T, 12}`, an
 # orthotropic tensor without major symmetry (a normal Kelvin-Mandel block of any
-# 3×3 and three shear moduli), and `TensOrtho{2, T, 3}`, diagonal in its frame;
+# 3×3 and three shear moduli), and `TensOrtho{2, 3, T, 3}`, diagonal in its frame;
 # with them the transpose of the TI shapes. Every operation is checked against an independent
 # reference: the material-frame Kelvin-Mandel matrix turned into components by
 # `from_mandel` and rotated to the canonical frame index by index, or the generic
@@ -33,7 +33,7 @@ _og_tens(N, s, ℬ) = TensOrtho(
         for angles in ((0.0, 0.0, 0.0), (0.7, -0.4, 1.1), (-1.3, 2.2, 0.35))
             ℬ = RotatedBasis(angles...)
             A = _og_tens(_OG_N, _OG_S, ℬ)
-            @test A isa TensOrtho{4, Float64, 12, typeof(ℬ)}
+            @test A isa TensOrtho{4, 3, Float64, 12, typeof(ℬ)}
             R = _og_ref(_og_km(_OG_N, _OG_S), _og_frame(ℬ))
             @test _og_rel(_og_dense(A), R) < 1.0e-14
             @test _og_rel(get_array(A), R) < 1.0e-14
@@ -51,21 +51,21 @@ _og_tens(N, s, ℬ) = TensOrtho(
         end
         # The nine-constant form keeps its type, now with its length.
         O = TensOrtho(1.0, 2.0, 3.0, 0.1, 0.2, 0.3, 4.0, 5.0, 6.0, CanonicalBasis{3, Float64}())
-        @test typeof(O) === TensOrtho{4, Float64, 9, CanonicalBasis{3, Float64}}
-        @test TensOrtho{4, Float64, 9}(get_data(O), CanonicalBasis{3, Float64}()) === O
-        @test_throws "a TensOrtho of order 2 stores 3 coefficients and one of order 4 stores 9 or 12; got order 4 with 10" TensOrtho{4, Float64}(
+        @test typeof(O) === TensOrtho{4, 3, Float64, 9, CanonicalBasis{3, Float64}}
+        @test TensOrtho{4, 3, Float64, 9}(get_data(O), CanonicalBasis{3, Float64}()) === O
+        @test_throws "a TensOrtho of order 2 stores 3 coefficients and one of order 4 stores 9 or 12 in dimension 3; got order 4 with 10" TensOrtho{4, 3, Float64}(
             ntuple(Float64, 10), CanonicalBasis{3, Float64}()
         )
         # A twelve-constant tensor with a symmetric block is the nine-constant one.
         Os = TensND._ortho_general(O)
-        @test Os isa TensOrtho{4, Float64, 12}
+        @test Os isa TensOrtho{4, 3, Float64, 12}
         @test _og_dense(Os) == _og_dense(O)
         @test issymmetric(Os) && Tensors.ismajorsymmetric(Os)
         @test !issymmetric(_og_tens(_OG_N, _OG_S, CanonicalBasis{3, Float64}()))
         @test !Tensors.ismajorsymmetric(_og_tens(_OG_N, _OG_S, CanonicalBasis{3, Float64}()))
         @test Tensors.isminorsymmetric(_og_tens(_OG_N, _OG_S, CanonicalBasis{3, Float64}()))
         # `rebuild` with twelve coefficients gives the general form.
-        @test rebuild(O, (get_data(O)..., 0.4, 0.5, 0.6)) isa TensOrtho{4, Float64, 12}
+        @test rebuild(O, (get_data(O)..., 0.4, 0.5, 0.6)) isa TensOrtho{4, 3, Float64, 12}
         @test length(param_norms(Os)) == 12
         @test norm(Os) ≈ norm(param_norms(Os) .* get_data(Os))
     end
@@ -77,17 +77,17 @@ _og_tens(N, s, ℬ) = TensOrtho(
         B = _og_tens(N2, (4.0, 3.5, 2.5), ℬ)
         O = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, ℬ)
         I4 = TensISO{3}(3.0, 2.0)
-        Cℬ = TensCubic{Float64}((30.0, 10.0, 8.0), ℬ)
+        Cℬ = TensCubic{3, Float64}((30.0, 10.0, 8.0), ℬ)
         for (l, r) in ((A, B), (A, O), (O, A), (I4, A), (A, I4), (Cℬ, A), (A, Cℬ))
-            @test l + r isa TensOrtho{4, Float64, 12}
+            @test l + r isa TensOrtho{4, 3, Float64, 12}
             @test _og_rel(_og_dense(l + r), _og_dense(l) + _og_dense(r)) < 1.0e-14
             @test _og_rel(_og_dense(l - r), _og_dense(l) - _og_dense(r)) < 1.0e-14
         end
         @test _og_dense(2 * A) == 2 * _og_dense(A)
         @test _og_dense(A / 2) ≈ _og_dense(A) / 2
         @test _og_dense(-A) == -_og_dense(A)
-        @test (A + B) isa TensOrtho{4, Float64, 12}
-        @test (O + O) isa TensOrtho{4, Float64, 9}
+        @test (A + B) isa TensOrtho{4, 3, Float64, 12}
+        @test (O + O) isa TensOrtho{4, 3, Float64, 9}
         Ar = _og_tens(N2, (4.0, 3.5, 2.5), RotatedBasis(0.1, 0.2, 0.3))
         @test !((A + Ar) isa TensOrtho) && canonical_components(A + Ar) ≈ canonical_components(A) + canonical_components(Ar)
         # The frames are compared at run time: inferred as a small union of
@@ -103,12 +103,12 @@ _og_tens(N, s, ℬ) = TensOrtho(
             A = _og_tens(_OG_N, _OG_S, ℬ)
             O = TensOrtho(11.0, 7.0, 5.0, 3.0, 2.0, 1.5, 4.0, 3.5, 2.5, ℬ)
             I4 = TensISO{3}(3.0, 2.0)
-            Cℬ = TensCubic{Float64}((30.0, 10.0, 8.0), ℬ)
+            Cℬ = TensCubic{3, Float64}((30.0, 10.0, 8.0), ℬ)
             for (l, r) in ((A, A), (A, O), (O, A), (O, O), (I4, A), (A, I4), (I4, O), (Cℬ, O), (A, Cℬ))
                 P = l ⊡ r
                 # The product is orthotropic on the same frame, twelve constants:
                 # a `TensCanonical` before.
-                @test P isa TensOrtho{4, Float64, 12}
+                @test P isa TensOrtho{4, 3, Float64, 12}
                 @test TensND.frame(P) == ℬ
                 @test _og_rel(_og_dense(P), ref(l, r)) < 1.0e-13
             end
@@ -133,17 +133,17 @@ _og_tens(N, s, ℬ) = TensOrtho(
             ℬ = RotatedBasis(angles...)
             A = _og_tens(_OG_N, _OG_S, ℬ)
             Ai = inv(A)
-            @test Ai isa TensOrtho{4, Float64, 12}
+            @test Ai isa TensOrtho{4, 3, Float64, 12}
             @test TensND.mandel_material(Ai) ≈ inv(_og_km(_OG_N, _OG_S)) rtol = 1.0e-14
             @test _og_dense(A ⊡ Ai) ≈ _og_dense(TensISO{3}(1.0, 1.0)) atol = 1.0e-14
             @test A^-1 == Ai
             @test (@inferred inv(A)) isa TensOrtho
             At = transpose(A)
-            @test At isa TensOrtho{4, Float64, 12}
+            @test At isa TensOrtho{4, 3, Float64, 12}
             @test _og_dense(At) ≈ permutedims(_og_dense(A), (3, 4, 1, 2)) rtol = 1.0e-14
             @test transpose(At) == A
             S = Tensors.majorsymmetric(A)
-            @test S isa TensOrtho{4, Float64, 9}
+            @test S isa TensOrtho{4, 3, Float64, 9}
             @test _og_dense(S) ≈ (_og_dense(A) + permutedims(_og_dense(A), (3, 4, 1, 2))) / 2 rtol = 1.0e-14
             O = S
             @test transpose(O) === O
@@ -167,13 +167,13 @@ _og_tens(N, s, ℬ) = TensOrtho(
             n = E[:, k]
             for W in (TensTI{4}(31.0, 39.0, 11.0, 23.0, 21.0, n), TensTI{4}(31.0, 39.0, 11.0, 6.0, 23.0, 21.0, n))
                 Wo = TensND.walpole_to_ortho(W, ℬ, k)
-                @test Wo isa TensOrtho{4, Float64, length(get_data(W)) == 5 ? 9 : 12}
+                @test Wo isa TensOrtho{4, 3, Float64, length(get_data(W)) == 5 ? 9 : 12}
                 @test _og_rel(_og_dense(Wo), _og_dense(W)) < 1.0e-13
                 for (l, r) in ((W, A), (A, W))
-                    @test l + r isa TensOrtho{4, Float64, 12}
+                    @test l + r isa TensOrtho{4, 3, Float64, 12}
                     @test _og_rel(_og_dense(l + r), _og_dense(l) + _og_dense(r)) < 1.0e-13
                     @test _og_rel(_og_dense(l - r), _og_dense(l) - _og_dense(r)) < 1.0e-13
-                    @test l ⊡ r isa TensOrtho{4, Float64, 12}
+                    @test l ⊡ r isa TensOrtho{4, 3, Float64, 12}
                     @test _og_rel(_og_dense(l ⊡ r), ref(l, r)) < 1.0e-13
                 end
             end
@@ -290,19 +290,19 @@ _og_tens(N, s, ℬ) = TensOrtho(
             A = TensOrtho{2}(3.0, 5.0, 7.0, ℬ)
             B = TensOrtho{2}(2.0, -1.0, 0.5, ℬ)
             ref(a) = E * Diagonal(collect(a)) * transpose(E)
-            @test A isa TensOrtho{2, Float64, 3}
+            @test A isa TensOrtho{2, 3, Float64, 3}
             @test get_array(A) ≈ ref((3.0, 5.0, 7.0)) rtol = 1.0e-14
             @test _og_rel([A[i, j] for i in 1:3, j in 1:3], ref((3.0, 5.0, 7.0))) < 1.0e-14
             @test mandel(A) ≈ mandel(TensND.generic_tens(A))
             @test tr(A) == 15.0 && issymmetric(A) && transpose(A) === A && Tensors.symmetric(A) === A
             @test !isisotropic(A) && isisotropic(TensOrtho{2}(2.0, 2.0, 2.0, ℬ)) && isorthotropic(A) && symmetry(A) == :ORTHO
             # Algebra on a shared frame.
-            @test (A + B) isa TensOrtho{2, Float64, 3} && get_array(A + B) ≈ get_array(A) + get_array(B)
+            @test (A + B) isa TensOrtho{2, 3, Float64, 3} && get_array(A + B) ≈ get_array(A) + get_array(B)
             @test get_array(A - B) ≈ get_array(A) - get_array(B)
             @test get_array(2A) ≈ 2 * get_array(A) && get_array(-A) == -get_array(A)
-            @test inv(A) isa TensOrtho{2} && get_array(inv(A)) ≈ inv(get_array(A))
+            @test inv(A) isa TensOrtho{2, 3} && get_array(inv(A)) ≈ inv(get_array(A))
             @test A^-1 == inv(A)
-            @test (A ⋅ B) isa TensOrtho{2} && get_array(A ⋅ B) ≈ get_array(A) * get_array(B)
+            @test (A ⋅ B) isa TensOrtho{2, 3} && get_array(A ⋅ B) ≈ get_array(A) * get_array(B)
             @test Tensors.dcontract(A, B) ≈ sum(get_array(A) .* get_array(B))
             v = [1.0, -2.0, 0.5]
             @test collect(A ⋅ v) ≈ get_array(A) * v
@@ -310,17 +310,17 @@ _og_tens(N, s, ℬ) = TensOrtho(
             # Isotropic and coaxial TI operands.
             I2 = TensISO{3}(4.0)
             for (l, r) in ((I2, A), (A, I2))
-                @test l + r isa TensOrtho{2} && get_array(l + r) ≈ get_array(l) + get_array(r)
+                @test l + r isa TensOrtho{2, 3} && get_array(l + r) ≈ get_array(l) + get_array(r)
                 @test get_array(l - r) ≈ get_array(l) - get_array(r)
-                @test l ⋅ r isa TensOrtho{2} && get_array(l ⋅ r) ≈ get_array(l) * get_array(r)
+                @test l ⋅ r isa TensOrtho{2, 3} && get_array(l ⋅ r) ≈ get_array(l) * get_array(r)
             end
             for k in 1:3
                 W = TensTI{2}(1.5, 9.0, E[:, k])
                 @test get_array(TensND.walpole_to_ortho(W, ℬ, k)) ≈ get_array(W)
                 for (l, r) in ((W, A), (A, W))
-                    @test l + r isa TensOrtho{2} && get_array(l + r) ≈ get_array(l) + get_array(r)
+                    @test l + r isa TensOrtho{2, 3} && get_array(l + r) ≈ get_array(l) + get_array(r)
                     @test get_array(l - r) ≈ get_array(l) - get_array(r)
-                    @test l ⋅ r isa TensOrtho{2} && get_array(l ⋅ r) ≈ get_array(l) * get_array(r)
+                    @test l ⋅ r isa TensOrtho{2, 3} && get_array(l ⋅ r) ≈ get_array(l) * get_array(r)
                 end
             end
             Wo = TensTI{2}(1.5, 9.0, normalize([1.0, 2.0, 2.0]))
@@ -334,19 +334,19 @@ _og_tens(N, s, ℬ) = TensOrtho(
             C = _og_tens(_OG_N, _OG_S, ℬ)
             refd(X, Y) = get_array(Tensors.dcontract(TensND.generic_tens(X), TensND.generic_tens(Y)))
             I4 = TensISO{3}(3.0, 2.0)
-            Cu = TensCubic{Float64}((30.0, 10.0, 8.0), ℬ)
+            Cu = TensCubic{3, Float64}((30.0, 10.0, 8.0), ℬ)
             W4 = TensTI{4}(31.0, 39.0, 11.0, 6.0, 23.0, 21.0, E[:, 2])
             for X in (C, Tensors.majorsymmetric(C), I4, Cu, W4)
-                @test X ⊡ A isa TensOrtho{2} && _og_rel(get_array(X ⊡ A), refd(X, A)) < 1.0e-13
-                @test A ⊡ X isa TensOrtho{2} && _og_rel(get_array(A ⊡ X), refd(A, X)) < 1.0e-13
+                @test X ⊡ A isa TensOrtho{2, 3} && _og_rel(get_array(X ⊡ A), refd(X, A)) < 1.0e-13
+                @test A ⊡ X isa TensOrtho{2, 3} && _og_rel(get_array(A ⊡ X), refd(A, X)) < 1.0e-13
             end
-            @test I2 ⊡ C isa TensOrtho{2} && _og_rel(get_array(I2 ⊡ C), refd(I2, C)) < 1.0e-13
-            @test C ⊡ I2 isa TensOrtho{2} && _og_rel(get_array(C ⊡ I2), refd(C, I2)) < 1.0e-13
+            @test I2 ⊡ C isa TensOrtho{2, 3} && _og_rel(get_array(I2 ⊡ C), refd(I2, C)) < 1.0e-13
+            @test C ⊡ I2 isa TensOrtho{2, 3} && _og_rel(get_array(C ⊡ I2), refd(C, I2)) < 1.0e-13
             # Tensor products: self product major-symmetric, general otherwise.
-            @test Tensors.otimes(A) isa TensOrtho{4, Float64, 9}
+            @test Tensors.otimes(A) isa TensOrtho{4, 3, Float64, 9}
             @test _og_dense(Tensors.otimes(A)) ≈ _og_dense(A ⊗ A)
-            @test A ⊗ B isa TensOrtho{4, Float64, 12}
-            @test I2 ⊗ A isa TensOrtho{4, Float64, 12} && A ⊗ I2 isa TensOrtho{4, Float64, 12}
+            @test A ⊗ B isa TensOrtho{4, 3, Float64, 12}
+            @test I2 ⊗ A isa TensOrtho{4, 3, Float64, 12} && A ⊗ I2 isa TensOrtho{4, 3, Float64, 12}
             for (l, r) in ((A, A), (A, B), (I2, A), (A, I2))
                 @test _og_rel(_og_dense(l ⊗ r), get_array(Tensors.otimes(TensND.generic_tens(l), TensND.generic_tens(r)))) < 1.0e-14
             end
@@ -356,8 +356,8 @@ _og_tens(N, s, ℬ) = TensOrtho(
             @test components(A, ℬ2, (:cov, :cov)) ≈ get_array(express(TensND.generic_tens(A), ℬ2)) rtol = 1.0e-13
             # The order-2 projection returns the class.
             P, d, _ = project(get_array(A) + [0 1 0; 1 0 0; 0 0 0], Val(:ORTHO), ℬ)
-            @test P isa TensOrtho{2}
-            @test best_fit_ortho(A, ℬ) isa TensOrtho{2} && get_array(best_fit_ortho(A, ℬ)) ≈ get_array(A)
+            @test P isa TensOrtho{2, 3}
+            @test best_fit_ortho(A, ℬ) isa TensOrtho{2, 3} && get_array(best_fit_ortho(A, ℬ)) ≈ get_array(A)
         end
         # Different frames: the generic route.
         A = TensOrtho{2}(3.0, 5.0, 7.0, RotatedBasis(0.7, -0.4, 1.1))
@@ -369,13 +369,13 @@ _og_tens(N, s, ℬ) = TensOrtho(
         C = _og_tens(_OG_N, _OG_S, RotatedBasis(0.1, 0.2, 0.3))
         @test !(C ⊡ A isa TensOrtho) && !(A ⊡ C isa TensOrtho)
         @test occursin("(5.0) P₂", sprint(show, A))
-        @test_throws "a TensOrtho of order 2 stores 3 coefficients" TensOrtho{2, Float64}((1.0, 2.0), CanonicalBasis{3, Float64}())
+        @test_throws "a TensOrtho of order 2 stores 3 coefficients" TensOrtho{2, 3, Float64}((1.0, 2.0), CanonicalBasis{3, Float64}())
         # Derivatives and symbols.
         ℬ = RotatedBasis(0.7, -0.4, 1.1)
         f(x) = get_data(inv(TensOrtho{2}(x, 2x, 3.0, ℬ) ⋅ TensOrtho{2}(1.0, x^2, 2.0, ℬ)))
         @test ForwardDiff.derivative(x -> f(x)[1], 1.5) ≈ -1 / 1.5^2
         @test ForwardDiff.derivative(x -> f(x)[2], 1.5) ≈ -3 / (2 * 1.5^4)
-        @test (@inferred inv(TensOrtho{2}(ForwardDiff.Dual(1.0, 1.0), 2.0, 3.0, ℬ))) isa TensOrtho{2}
+        @test (@inferred inv(TensOrtho{2}(ForwardDiff.Dual(1.0, 1.0), 2.0, 3.0, ℬ))) isa TensOrtho{2, 3}
         x = SymPyPythonCall.symbols("x", real = true)
         As = TensOrtho{2}(x, 2.0, 3.0, CanonicalBasis{3, Float64}())
         @test Float64(get_data(inv(As))[1].subs(x, 0.5)) ≈ 2.0

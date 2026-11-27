@@ -304,6 +304,14 @@ bare `eps(T)`.
 @inline _approx_eps(::Type{T}) where {T <: Complex} = eps(real(T))
 @inline _approx_eps(::Type{T}) where {T} = eps(T)
 
+# Tensors.jl holds the components up to dimension 3, a plain array beyond.
+_in_tensors_jl(::Val{dim}) where {dim} = Val(dim ≤ 3)
+
+# The vector of the components `f(1), …, f(dim)`, in the storage of its dimension.
+_vector_storage(f, dim::Val, ::Type{T}) where {T} = _vector_storage(f, dim, T, _in_tensors_jl(dim))
+_vector_storage(f, ::Val{dim}, ::Type, ::Val{true}) where {dim} = Vec{dim}(f)
+_vector_storage(f, ::Val{dim}, ::Type{T}, ::Val{false}) where {dim, T} = T[f(j) for j in 1:dim]
+
 for order in (2, 4)
     @eval function tensor_or_array(tab::AbstractArray{T, $order}) where {T}
         dim = size(tab, 1)
@@ -357,5 +365,32 @@ get_var(t::TensVar) = t.var
 get_var(t::TensVar, i::Integer) = t.var[i]
 
 
-export AbstractTens, Tens
+"""
+    static_tens(a::AbstractArray, ℬ::AbstractBasis) -> Tens
+
+The tensor of components `a` in the basis `ℬ`, as `Tens(a, ℬ)`, with its order
+read on the type of the array and its dimension on that of the basis: the
+result is inferred, where `Tens(a, ℬ)` reads the dimension on the size of `a`
+at run time.
+
+The storage is decided as `Tens` does, on the values: symmetric storage when
+the components are symmetric to rounding, so that the type is one of two. For
+an array symmetric by construction, [`symmetric_tens`](@ref) has one type.
+"""
+@inline static_tens(a::AbstractArray{T, order}, ℬ::AbstractBasis{dim}) where {T, order, dim} =
+    Tens(_static_tensor(a, Val(dim), Val(order)), ℬ)
+
+"""
+    symmetric_tens(a::AbstractArray, ℬ::AbstractBasis) -> Tens
+
+The tensor of components `a` in the basis `ℬ` for an array symmetric by
+construction (the transpose at order 2, the two minor symmetries at order 4),
+in dimension 2 or 3: it stores the mean over these symmetries, in symmetric
+storage, and its type is known before the values, where that of
+[`static_tens`](@ref) depends on them.
+"""
+@inline symmetric_tens(a::AbstractArray{T, order}, ℬ::AbstractBasis{dim}) where {T, order, dim} =
+    Tens(Tensors.symmetric(Tensor{order, dim, T}(a)), ℬ)
+
+export AbstractTens, Tens, static_tens, symmetric_tens
 export get_order, get_data, get_array, get_basis, get_var

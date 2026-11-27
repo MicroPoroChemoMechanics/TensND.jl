@@ -200,6 +200,47 @@ six sums at once). [`acoustic_tensor`](@ref) is the same tensor as an object;
 end
 
 """
+    acoustic_components(C::Tensors.AbstractTensor{4,2}, ζ) → NTuple{3}
+    acoustic_components(C::StaticArray{Tuple{2,2,2,2}}, ζ) → NTuple{3}
+    acoustic_components(C::AbstractArray{T,4}, ζ, Val(2)) → NTuple{3}
+
+The plane counterpart of the method of space: the three independent entries
+``(K_{11}, K_{22}, K_{12})`` of the acoustic tensor
+``K_{ij} = \\zeta_k\\,C_{kijl}\\,\\zeta_l`` of a 2×2×2×2 array of canonical
+components `C`, along a 2-vector `ζ` of any length, in the order of space
+restricted to the plane (the diagonal, then the upper triangle). The method is
+selected by the static size of `C`, or by `Val(2)` for a plain array.
+[`sym2_inv`](@ref) inverts the tensor from these entries.
+"""
+@inline acoustic_components(C::Union{Tensors.AbstractTensor{4, 2}, StaticArray{Tuple{2, 2, 2, 2}}}, ζ) =
+    _acoustic_components_plane(C, ζ)
+@inline acoustic_components(C::AbstractArray{<:Any, 4}, ζ, ::Val{2}) = _acoustic_components_plane(C, ζ)
+
+# The sum over (k, l) written out, its two cross terms grouped: the element type
+# is that of the products, a dual or a symbol in `ζ` included.
+@inline function _acoustic_components_plane(C, ζ)
+    ζ₁, ζ₂ = ζ[1], ζ[2]
+    a, b, c = ζ₁ * ζ₁, ζ₁ * ζ₂, ζ₂ * ζ₂
+    K(i, j) = a * C[1, i, j, 1] + b * (C[1, i, j, 2] + C[2, i, j, 1]) + c * C[2, i, j, 2]
+    return K(1, 1), K(2, 2), K(1, 2)
+end
+
+"""
+    sym2_inv(K11, K22, K12) → NTuple{4}
+
+The inverse of a symmetric 2×2 matrix from its three entries, by its adjugate
+and determinant, flattened in column-major order (`iK[i + 2(j - 1)]` is
+``(K^{-1})_{ij}``): the plane counterpart of [`sym3_inv`](@ref), for the
+entries [`acoustic_components`](@ref) gives in the plane. Singular matrices are
+not detected.
+"""
+@inline function sym2_inv(K11, K22, K12)
+    inv_det = inv(K11 * K22 - K12 * K12)
+    iK12 = -K12 * inv_det
+    return (K22 * inv_det, iK12, iK12, K11 * inv_det)
+end
+
+"""
     sym3_inv(K11, K22, K33, K12, K13, K23) → NTuple{9}
 
 The inverse of a symmetric 3×3 matrix from its six entries, by its adjugate and
@@ -219,6 +260,28 @@ millions of times. Singular matrices are not detected.
     iK13 = (K12 * K23 - K22 * K13) * inv_det
     iK23 = (K12 * K13 - K11 * K23) * inv_det
     return (iK11, iK12, iK13, iK12, iK22, iK23, iK13, iK23, iK33)
+end
+
+"""
+    sym3_adj(K11, K22, K33, K12, K13, K23) → NTuple{6}
+
+The adjugate ``\\mathrm{adj}\\,\\boldsymbol{K} = (\\det\\boldsymbol{K})\\,\\boldsymbol{K}^{-1}``
+of a symmetric 3×3 matrix from its six entries, by its cofactors, returned as
+its six independent entries in the order of the arguments,
+``(A_{11}, A_{22}, A_{33}, A_{12}, A_{13}, A_{23})``: the cofactors of
+[`sym3_inv`](@ref) without the division by the determinant, for formulas in
+which that division cancels or is better left out (a matrix that may be
+singular, a symbolic result kept polynomial).
+"""
+@inline function sym3_adj(K11, K22, K33, K12, K13, K23)
+    return (
+        K22 * K33 - K23 * K23,
+        K11 * K33 - K13 * K13,
+        K11 * K22 - K12 * K12,
+        K13 * K23 - K33 * K12,
+        K12 * K23 - K22 * K13,
+        K12 * K13 - K11 * K23,
+    )
 end
 
 """
@@ -264,4 +327,4 @@ end
 
 export MANDEL_IP, MANDEL_OP, mandel_ip_block, mandel_op_block, mandel_ip_embed, mandel_op_embed, mandel_from_blocks
 export mandel_inv_schur, plane_pinv, plane_pinv2, acoustic_tensor, compliance_op_block, deviatoric_pinv
-export inv3, acoustic_components, sym3_inv
+export inv3, acoustic_components, sym3_inv, sym2_inv, sym3_adj

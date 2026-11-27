@@ -21,7 +21,8 @@ function inside another.
 | build a compliance from two moduli | `iso_compliance_<pair>(a, b)`, e.g. `iso_compliance_young_poisson(E, ν)` |
 | read one modulus | `young_modulus(ℂ)`, `poisson_ratio(ℂ)`, …, or `young_modulus(𝕊; role = :compliance)` |
 | read two moduli | `young_poisson(ℂ)` (`E_ν(ℂ)`), `lame_shear(ℂ)` (`λ_μ(ℂ)`), …, with the same `role` |
-| work in 2-D (plane strain) | the same builders with `Val(2)` first |
+| work in 2-D | the same builders with `Val(2)` first, and `convention = :plane_strain` (the default) or `:intrinsic` |
+| work in dimension ``d`` | the same builders with `Val(d)` first |
 | switch between plane strain and plane stress | `plane_strain_stiffness`, `plane_stress_stiffness`, `plane_stress_to_plane_strain`, `plane_strain_to_plane_stress` |
 | the same for a transversely isotropic material, in its plane of isotropy | `plane_strain_stiffness(ℂ::TensTI)`, `plane_stress_stiffness(ℂ::TensTI)` |
 | the 3-D isotropic material of a 2-D stiffness | `iso_from_plane_strain`, `iso_from_plane_stress` |
@@ -160,22 +161,49 @@ using ForwardDiff
 ForwardDiff.derivative(ν -> shear_modulus(iso_stiffness_young_poisson(70.0, ν)), 0.33)
 ```
 
-## Two dimensions
+## [In two dimensions](@id man-moduli-2d)
 
-A `TensISO{4,2}` is the in-plane stiffness of a 3-D material under plane
-strain, ``\mathbb{C} = 2(\lambda + \mu)\,\mathbb{J} + 2\mu\,\mathbb{K}``. Its ``E``,
-``\lambda``, ``\mu``, ``\nu`` and ``M`` are those of the 3-D material, while its bulk
-modulus is the in-plane one, ``k = \lambda + \mu``, the factor of ``\mathbb{J}``
+A `TensISO{4,2}` is ``\mathbb{C} = 2k\,\mathbb{J} + 2\mu\,\mathbb{K}``, with
+the in-plane bulk modulus ``k = \lambda + \mu``, the factor of ``\mathbb{J}``
 over the dimension, as for [`bulk_shear`](@ref). Every builder takes the
-dimension as a first argument `Val(2)` (`Val(3)` is the default):
+dimension as a first argument `Val(2)` (`Val(3)` is the default), and every
+builder and reader the keyword `convention`, which says what ``E`` and ``\nu``
+are:
+
+- `:plane_strain`, the default in the plane: the tensor is the in-plane
+  stiffness of a 3-D material under plane strain, and ``E``, ``\nu`` are those
+  of that material;
+- `:intrinsic`: the tensor is read as a material of the plane, whose Young's
+  modulus and Poisson's ratio are defined by a uniaxial stress in the plane,
+
+```math
+E_2 = \frac{4k\mu}{k + \mu} , \qquad \nu_2 = \frac{k - \mu}{k + \mu} .
+```
+
+The two pairs of the same tensor are related by
+
+```math
+E_2 = \frac{E}{1 - \nu^2} , \qquad \nu_2 = \frac{\nu}{1 - \nu} ,
+```
+
+the conversion [`plane_strain_to_plane_stress`](@ref). The moduli ``k``,
+``\lambda``, ``\mu`` and ``M`` do not depend on the convention
+([The two pairs of a tensor of the plane](@ref th-dimensions)).
 
 ```@example moduli
 ℂ₂ = iso_stiffness_young_poisson(Val(2), 70.0, 0.33)
-bulk_shear(ℂ₂), young_poisson(ℂ₂)
+bulk_shear(ℂ₂), young_poisson(ℂ₂), young_poisson(ℂ₂; convention = :intrinsic)
+```
+
+```@example moduli
+E₂, ν₂ = young_poisson(ℂ₂; convention = :intrinsic)
+(E₂, ν₂) .≈ plane_strain_to_plane_stress(70.0, 0.33), iso_stiffness_young_poisson(Val(2), E₂, ν₂; convention = :intrinsic) ≈ ℂ₂
 ```
 
 On a 2-D compliance ``\mathbb{S} = a\,\mathbb{J} + b\,\mathbb{K}``, with
-``a = 1/(2(\lambda + \mu))`` and ``b = 1/(2\mu)``, the readers use
+``a = 1/(2(\lambda + \mu))`` and ``b = 1/(2\mu)``, the intrinsic moduli are
+``E_2 = 2/(a + b)`` and ``\nu_2 = (b - a)/(a + b)``, and in plane strain the
+readers use
 
 ```math
 k = \frac{1}{2a}, \quad \mu = \frac{1}{2b}, \quad \lambda = \frac{b - a}{2ab}, \quad
@@ -194,6 +222,26 @@ The pairs with ``k`` then use the in-plane bulk modulus: ``\mu = k - \lambda``,
 ``\mu = (3k - \sqrt{9k^2 - 4Ek})/2``. That last quadratic has two roots of
 physical materials, of Poisson's ratios ``\nu`` and ``-1/2 - \nu``; the one kept
 is ``\nu \geq -1/4``.
+
+### In any dimension
+
+The builders and the readers take `Val(d)` in any dimension ``d``, for
+``\mathbb{C} = d\,k\,\mathbb{J} + 2\mu\,\mathbb{K}``. Beyond the plane a tensor
+has one pair ``(E, \nu)``, that of the medium of dimension ``d``, read on a
+uniaxial stress; on the compliance ``\mathbb{S} = a\,\mathbb{J} + b\,\mathbb{K}``,
+
+```math
+E_d = \frac{d}{a + (d - 1)\,b} , \qquad \nu_d = \frac{b - a}{a + (d - 1)\,b} ,
+```
+
+which are the formulas of the plane with `convention = :intrinsic` at
+``d = 2`` and the usual ones at ``d = 3``. `convention = :plane_strain` is
+refused outside the plane.
+
+```@example moduli
+ℂ₄ = iso_stiffness_young_poisson(Val(4), 70.0, 0.2)
+bulk_shear(ℂ₄), young_poisson(ℂ₄)
+```
 
 ## Plane strain and plane stress
 

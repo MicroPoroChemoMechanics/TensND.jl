@@ -29,6 +29,42 @@ using TensND, LinearAlgebra
 bulk_shear(ℂ), young_poisson(ℂ)
 ```
 
+## In two dimensions
+
+Every builder of the isotropic moduli takes the dimension as a first argument
+`Val(2)`, and every reader the keyword `convention`: `:plane_strain`, the
+default, reads ``(E, \nu)`` of the material of space in plane strain,
+`:intrinsic` the moduli ``(E_2, \nu_2)`` of the medium of the plane
+([Elastic moduli](@ref man-moduli-2d)).
+
+```@example par
+ℂ₂ = iso_stiffness_young_poisson(Val(2), 70.0, 0.33)
+bulk_shear(ℂ₂), young_poisson(ℂ₂), young_poisson(ℂ₂; convention = :intrinsic)
+```
+
+An orthotropic tensor of the plane is given by its four constants
+``(C_{11}, C_{22}, C_{12}, C_{66})`` in its frame, which `get_data` reads back,
+and its Kelvin–Mandel matrix in that frame by `mandel_material`; a square one
+by ``(C_{11}, C_{12}, C_{44})``, read back by `cubic_constants`:
+
+```@example par
+𝕆₂ = TensOrtho(10.0, 6.0, 3.0, 2.0, Basis(0.3))
+get_data(𝕆₂), cubic_constants(cubic_from_constants(10.0, 4.0, 2.0, Basis(0.3)))
+```
+
+The conventions of a transversely isotropic material that follow are those of
+dimension 3. In a plane that contains its axis, the material is orthotropic,
+of constants ``(n, k + m, l, p)`` in Hill's moduli
+([Hill's moduli](@ref man-hill-moduli)), the first axis of the plane being the
+axis of the material:
+
+```@example par
+get_data(plane_strain_stiffness(ti_from_constants(19.0, 5.0, 11.0, 12.0, 4.0, [0.0, 0.0, 1.0]; form = :hill), Val(:axial)))
+```
+
+See [Two dimensions, and any dimension](@ref man-dimensions) for the whole of
+what is built in the plane.
+
 ## The five TI conventions
 
 | `form` | Parameters | Builds |
@@ -119,6 +155,39 @@ ti_constants(ti_from_constants(k, l, m, nₕ, p, (0, 0, 1); form = :hill); form 
 
 A field transversely isotropic about the radius of a sphere or of a cylinder
 takes the same forms: see [A tensor that turns with the point](@ref man-chart-fields).
+
+### Six constants: without the major symmetry
+
+A transversely isotropic tensor without the major symmetry, a concentration
+tensor or a product of two stiffnesses, has a sixth constant, its two couplings
+``C_{1133}`` and ``C_{3311}`` being different. Three forms take six constants:
+
+| `form` | Parameters |
+| :--- | :--- |
+| `:hill` | ``k, l, m, n, p, l_t`` with ``l = C_{1133}`` and ``l_t = C_{3311}`` |
+| `:components` | ``C_{1111}, C_{1122}, C_{1133}, C_{3311}, C_{3333}, C_{2323}`` |
+| `:walpole` | ``\ell_1, \ldots, \ell_6``, with ``\ell_3 = \sqrt2\,C_{3311}`` and ``\ell_4 = \sqrt2\,C_{1133}`` |
+
+and `hill_moduli(t, Val(6))` reads the six Hill moduli back:
+
+```@example par
+ℙ = ℍ ⊡ ti_from_constants(8.0, 2.0, 3.0, 15.0, 6.0, n; form = :hill)     # a product of two stiffnesses
+h₆ = hill_moduli(ℙ, Val(6))
+```
+
+```@example par
+ti_from_constants(h₆..., n; form = :hill) ≈ ℙ
+```
+
+!!! warning "Which coupling is which"
+    A tensor has the major symmetry when ``C_{3311} = C_{1133}``, that is
+    ``l_t = l``: a stiffness or a compliance has it, a product of two of them
+    or a concentration tensor in general not. `hill_moduli(t)` returns the five
+    moduli of a major-symmetric tensor and refuses another one;
+    `hill_moduli(t, Val(6))` returns ``l = C_{1133}``, the transverse stress
+    due to an axial strain, and ``l_t = C_{3311}``, the axial stress due to a
+    transverse strain, in this order. Exchanging the two builds the transpose
+    of the tensor, without any error.
 
 ## Stiffness or compliance: `role`
 

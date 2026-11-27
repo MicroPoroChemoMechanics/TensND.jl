@@ -73,7 +73,7 @@ import Symbolics
         @test eltype(t) === Float64
         @test get_array(t) == get_array(TensCubic(5.0, 2.0, 1.0, can))
         @test eltype(TensCubic(5 // 1, 2 // 1, 1 // 1, CanonicalBasis{3, Rational{Int}}())) === Rational{Int}
-        @test_throws ArgumentError TensCubic{Int, typeof(frame_int)}((5, 2, 1), frame_int)
+        @test_throws ArgumentError TensCubic{3, Int, typeof(frame_int)}((5, 2, 1), frame_int)
     end
 
     @testsection "symbolic, dual and other floating types are kept" begin

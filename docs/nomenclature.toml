@@ -971,7 +971,7 @@ tex = '\mu'
 label = "μ"
 name = "shear modulus"
 unit = "Pa"
-pages = ["theory/isotropic.md", "theory/cubic.md", "tutorials/generated/ad_interop.md", "tutorials/generated/cluster.md", "tutorials/generated/green_function.md", "tutorials/generated/hill_tensors.md", "tutorials/generated/numerical_operators.md", "tutorials/generated/sphere_problems.md", "tutorials/generated/tensor_algebra.md"]
+pages = ["theory/isotropic.md", "theory/cubic.md", "tutorials/generated/ad_interop.md", "tutorials/generated/cluster.md", "tutorials/generated/green_function.md", "tutorials/generated/hill_tensors.md", "tutorials/generated/numerical_operators.md", "tutorials/generated/sphere_problems.md", "tutorials/generated/tensor_algebra.md", "theory/dimensions.md", "manual/dimensions.md", "manual/elastic_moduli.md"]
 
 [[symbol]]
 group = "Elastic moduli"
@@ -979,7 +979,7 @@ tex = '\nu'
 label = "ν"
 name = "isotropic Poisson's ratio"
 unit = "1"
-pages = ["tutorials/generated/cluster.md", "tutorials/generated/green_function.md"]
+pages = ["tutorials/generated/cluster.md", "tutorials/generated/green_function.md", "theory/dimensions.md", "manual/dimensions.md", "manual/elastic_moduli.md"]
 
 [[symbol]]
 group = "Elastic moduli"
@@ -1083,7 +1083,7 @@ tex = 'C_{11}'
 label = "C<sub>11</sub>"
 name = "constant C<sub>11</sub> = C<sub>1111</sub> of a cubic or orthotropic tensor"
 unit = "Pa"
-pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md"]
+pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md", "theory/dimensions.md", "manual/dimensions.md", "manual/projection.md", "manual/parametrizations.md", "manual/symbolic_materials.md"]
 
 [[symbol]]
 group = "Elastic moduli"
@@ -1091,7 +1091,7 @@ tex = 'C_{12}'
 label = "C<sub>12</sub>"
 name = "constant C<sub>12</sub> = C<sub>1122</sub> of a cubic or orthotropic tensor"
 unit = "Pa"
-pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md"]
+pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md", "theory/dimensions.md", "manual/dimensions.md", "manual/parametrizations.md", "manual/symbolic_materials.md"]
 
 [[symbol]]
 group = "Elastic moduli"
@@ -1099,7 +1099,7 @@ tex = 'C_{44}'
 label = "C<sub>44</sub>"
 name = "shear constant C<sub>44</sub> = C<sub>2323</sub> of a cubic or orthotropic tensor"
 unit = "Pa"
-pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md"]
+pages = ["theory/cubic.md", "theory/orthotropy.md", "manual/structured_tensors.md", "theory/dimensions.md", "manual/dimensions.md", "manual/parametrizations.md", "manual/symbolic_materials.md"]
 
 [[symbol]]
 group = "Elastic moduli"
@@ -2404,3 +2404,122 @@ label = "θ"
 name = "poloidal angle of a torus, measured in the meridian plane from the outer equator"
 unit = "rad"
 pages = ["theory/toroidal.md"]
+
+[[symbol]]
+group = "Bases and coordinates"
+tex = 'd'
+label = "d"
+name = "dimension of the space of a tensor (2 for the plane, 3 for space)"
+unit = "1"
+pages = ["index.md", "theory/index.md", "theory/dimensions.md", "theory/kelvin_mandel.md", "theory/isotropic.md", "theory/rotations.md", "manual/dimensions.md", "manual/bases.md", "manual/tensors.md", "manual/structured_tensors.md", "manual/elastic_moduli.md", "manual/coorsystems.md", "manual/coorsystems_num.md", "manual/random_tensors.md"]
+
+[[symbol]]
+group = "Products and operators"
+tex = 'n'
+label = "n"
+name = "number d(d + 1)/2 of Kelvin–Mandel components of a symmetric order-2 tensor in dimension d"
+unit = "1"
+pages = ["index.md", "theory/dimensions.md", "theory/kelvin_mandel.md", "manual/dimensions.md", "manual/tensors.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'd_{12}'
+label = "d<sub>12</sub>"
+name = "harmonic d<sub>12</sub> = C<sub>1112</sub> + C<sub>2212</sub> of a tensor of the plane, turning by 2θ"
+unit = ""
+pages = ["theory/dimensions.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = '\delta'
+label = "δ"
+name = "harmonic δ = (C<sub>1111</sub> − C<sub>2222</sub>)/2 of a tensor of the plane, turning by 2θ"
+unit = ""
+pages = ["theory/dimensions.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'a'
+label = "a"
+name = "harmonic a = C<sub>1112</sub> − C<sub>2212</sub> of a tensor of the plane, turning by 4θ"
+unit = ""
+pages = ["theory/dimensions.md"]
+
+[[symbol]]
+group = "Rotations and projection"
+tex = 'b'
+label = "b"
+name = "harmonic b = (C<sub>1111</sub> + C<sub>2222</sub> − 2C<sub>1122</sub> − 4C<sub>1212</sub>)/4 of a tensor of the plane, turning by 4θ"
+unit = ""
+pages = ["theory/dimensions.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'E'
+label = "E"
+name = "Young's modulus of an isotropic material"
+unit = "Pa"
+pages = ["theory/dimensions.md", "manual/dimensions.md", "manual/elastic_moduli.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'k'
+label = "k"
+name = "bulk modulus of an isotropic tensor, tr <b>σ</b> = d k tr <b>ε</b> in dimension d"
+unit = "Pa"
+pages = ["theory/dimensions.md", "theory/isotropic.md", "manual/dimensions.md", "manual/elastic_moduli.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'E_2'
+label = "E<sub>2</sub>"
+name = "Young's modulus of the medium of the plane, 4kμ/(k + μ)"
+unit = "Pa"
+pages = ["theory/dimensions.md", "theory/isotropic.md", "manual/dimensions.md", "manual/elastic_moduli.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = '\nu_2'
+label = "ν<sub>2</sub>"
+name = "Poisson's ratio of the medium of the plane, (k − μ)/(k + μ)"
+unit = "1"
+pages = ["theory/dimensions.md", "theory/isotropic.md", "manual/dimensions.md", "manual/elastic_moduli.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{22}'
+label = "C<sub>22</sub>"
+name = "constant C<sub>22</sub> = C<sub>2222</sub> of an orthotropic tensor"
+unit = ""
+pages = ["theory/orthotropy.md", "theory/dimensions.md", "manual/dimensions.md", "manual/structured_tensors.md", "manual/parametrizations.md", "manual/symbolic_materials.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{66}'
+label = "C<sub>66</sub>"
+name = "shear constant C<sub>66</sub> = C<sub>1212</sub> of an orthotropic tensor"
+unit = ""
+pages = ["theory/orthotropy.md", "theory/dimensions.md", "manual/dimensions.md", "manual/structured_tensors.md", "manual/parametrizations.md", "manual/symbolic_materials.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{21}'
+label = "C<sub>21</sub>"
+name = "constant C<sub>21</sub> = C<sub>2211</sub> of an orthotropic tensor without the major symmetry"
+unit = ""
+pages = ["theory/orthotropy.md", "manual/structured_tensors.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'l_t'
+label = "l<sub>t</sub>"
+name = "sixth Hill modulus l<sub>t</sub> = C<sub>3311</sub> of a transversely isotropic tensor without the major symmetry"
+unit = ""
+pages = ["manual/parametrizations.md"]
+
+[[symbol]]
+group = "Elastic moduli"
+tex = 'C_{3311}'
+label = "C<sub>3311</sub>"
+name = "transverse–axial coupling component of a TI tensor without the major symmetry"
+unit = ""

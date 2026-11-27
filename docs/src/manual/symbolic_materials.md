@@ -189,11 +189,13 @@ show_matrix(𝕊ₑ)
 ```
 
 The stiffness of the same material is written in closed form, without an
-inverse; the two tensors are inverse of each other:
+inverse. Its matrix has the pattern of the component form above; its five
+components, read by `ti_constants`, are listed one per line. The two tensors
+are inverse of each other:
 
 ```@example symmat
 ℂₑ = ti_from_constants(E₁, E₃, ν₁₂, ν₃₁, G₃₁, e₃; form = :engineering, role = :stiffness)
-show_matrix(ℂₑ)
+collect(simplify.(ti_constants(ℂₑ)))          # C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, one per line
 ```
 
 ```@example symmat
@@ -269,17 +271,94 @@ Its nine constants are those it stores:
 get_data(ortho)
 ```
 
+## In two dimensions
+
+The isotropic builders take `Val(2)` as a first argument and return a tensor
+of the plane, whose Kelvin–Mandel matrix is ``3\times3``,
+``\mathbb{C} = 2k\,\mathbb{J} + 2\mu\,\mathbb{K}`` with the in-plane bulk
+modulus ``k``:
+
+```@example symmat
+k₂, μ₂ = symbols("k mu", positive = true)
+plane = iso_stiffness(Val(2), k₂, μ₂)
+show_matrix(plane)
+```
+
+Read back, it gives ``(k, \mu)``, and two pairs ``(E, \nu)``: those of the
+material of space in plane strain (`convention = :plane_strain`, the default),
+and those of the medium of the plane (`convention = :intrinsic`):
+
+```@example symmat
+bulk_shear(plane), simplify.(young_poisson(plane)), simplify.(young_poisson(plane; convention = :intrinsic))
+```
+
+Its compliance, and the stiffness entered by ``(E, \nu)`` in each convention
+and read back in the same one:
+
+```@example symmat
+simplify.(mandel(iso_compliance(Val(2), k₂, μ₂)))
+```
+
+```@example symmat
+strain = iso_stiffness_young_poisson(Val(2), E, ν)                               # plane strain
+medium = iso_stiffness_young_poisson(Val(2), E, ν; convention = :intrinsic)      # medium of the plane
+simplify.(young_poisson(strain)), simplify.(young_poisson(medium; convention = :intrinsic))
+```
+
+An orthotropic tensor of the plane takes four constants
+``(C_{11}, C_{22}, C_{12}, C_{66})`` in its frame, here turned by the angle
+``\varphi``. Its canonical matrix is full; turned back by the Kelvin–Mandel
+rotation of the frame, it gives the four constants in their places:
+
+```@example symmat
+C₂₂, C₆₆ = symbols("C_22 C_66", positive = true)
+φ = symbols("phi", real = true)
+plane_ortho = TensOrtho(C₁₁, C₂₂, C₁₂, C₆₆, Basis(φ))
+Qφ = mandel_rotation(φ)
+simplify.(transpose(Qφ) * mandel(plane_ortho) * Qφ)
+```
+
+```@example symmat
+get_data(plane_ortho)
+```
+
+The square class, ``C_{11} = C_{22}``, takes the three constants of the cubic
+one, read back by `cubic_constants`:
+
+```@example symmat
+square = cubic_from_constants(C₁₁, C₁₂, C₄₄, Basis(φ))
+simplify.(cubic_constants(square)), simplify.(transpose(Qφ) * mandel(square) * Qφ)
+```
+
+The plane has no transversely isotropic class
+([Two dimensions, and any dimension](@ref man-dimensions)).
+
 ## Another axis, another frame
 
 The matrices above are simple because the axis is ``\underline{e}_3`` and the
 frame the canonical one. A test should not rely on it: the same constants
 about another axis give a full matrix, and an identity that holds for the first
-must hold for the second.
+must hold for the second. Below, the axis is tilted by the angle ``\theta`` in
+the plane ``(\underline{e}_2, \underline{e}_3)``; the entries of the matrix are
+long, so that six of them are listed one per line: ``C_{1111}``, ``C_{1122}``,
+``C_{1133}``, ``C_{2222}``, ``C_{2233}`` and ``C_{3333}``.
 
 ```@example symmat
 θ = symbols("theta", real = true)
 tilted = ti_from_constants(k, l, m, n, p, (0, sin(θ), cos(θ)); form = :hill)
-show_matrix(tilted)[1:3, 1:3]
+M = show_matrix(tilted)
+[M[1, 1], M[1, 2], M[1, 3], M[2, 2], M[2, 3], M[3, 3]]
+```
+
+At ``\theta = 0`` they are those of the axis ``\underline{e}_3``, and at
+``\theta = \pi/2`` the axis is ``\underline{e}_2``:
+
+```@example symmat
+subs.(M[1:3, 1:3], θ => 0)
+```
+
+```@example symmat
+simplify.(subs.(M[1:3, 1:3], θ => PI / 2))
 ```
 
 The constants are read about the axis the tensor carries, so that they do not
@@ -314,6 +393,8 @@ ForwardDiff.derivative(axial_young, 19.0), 5.0^2 / 19.0^2        # E₃ = n − 
 | cubic | `cubic_from_constants(C₁₁, C₁₂, C₄₄, frame)` | `inv` | `cubic_constants` |
 | transversely isotropic | `ti_from_constants(c…, n; form)`, with `role = :stiffness` for `:engineering` and `:hoenig` | the same with `role = :compliance`, or `inv` | `ti_constants(t; form, role)`, `hill_moduli`, `walpole_coeffs` |
 | orthotropic | `TensOrtho(C₁₁, …, C₆₆, frame)` | `inv` | `get_data` |
+| orthotropic, plane | `TensOrtho(C₁₁, C₂₂, C₁₂, C₆₆, frame)`, frame of the plane | `inv` | `get_data`, `mandel_material` |
+| square, plane | `cubic_from_constants(C₁₁, C₁₂, C₄₄, frame)`, frame of the plane | `inv` | `cubic_constants` |
 
 [Structured tensors](@ref man-structured) says what the products and the
 inverses of these tensors return, and

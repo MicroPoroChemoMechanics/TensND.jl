@@ -40,6 +40,7 @@ pages = [
             "theory/bases_variance.md",
             "theory/kelvin_mandel.md",
             "theory/rotations.md",
+            "theory/dimensions.md",
         ],
         "Material symmetries" => [
             "theory/isotropic.md",
@@ -76,6 +77,7 @@ pages = [
         "Tensors and bases" => [
             "manual/bases.md",
             "manual/tensors.md",
+            "manual/dimensions.md",
             "manual/random_tensors.md",
         ],
         "Material symmetries" => [
@@ -113,6 +115,7 @@ pages = [
             "tutorials/generated/walpole_extended.md",
             "tutorials/generated/projection.md",
             "tutorials/generated/closest_isotropic.md",
+            "tutorials/generated/plane_classes.md",
         ],
         "Coordinate systems" => [
             "tutorials/generated/symbolic_operators.md",

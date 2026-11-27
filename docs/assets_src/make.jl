@@ -5,15 +5,16 @@
 #      julia --project=docs/assets_src docs/assets_src/make.jl                 # all
 #      julia --project=docs/assets_src docs/assets_src/make.jl coordinates     # one family
 #
-#  Families: coordinates.
+#  Families: coordinates, symmetries.
 # =============================================================================
 
-for f in ("style.jl", "coordinates.jl")
+for f in ("style.jl", "coordinates.jl", "symmetries.jl")
     include(joinpath(@__DIR__, "src", f))
 end
 
 const FAMILIES = Dict{String, Function}(
     "coordinates" => coordinates_figures,
+    "symmetries" => symmetries_figures,
 )
 
 function main(args)

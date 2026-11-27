@@ -206,8 +206,9 @@ end
     @test mandel(B; symmetrize = true) ≈ tomandel(minorsymmetric(Tensor{4, 2}(B)))
     @test get_array(from_mandel(mandel(C2))) ≈ Array(get_array(C2))
     # No Kelvin-Mandel form in another dimension.
-    @test_throws DimensionMismatch mandel(randn(rng, 4, 4, 4, 4); symmetrize = true)
-    @test_throws DimensionMismatch mandel(randn(rng, 4, 4); symmetrize = true)
+    # Beyond dimension 3 the form is that of the dimension: 10 slots in dimension 4.
+    @test size(mandel(randn(rng, 4, 4, 4, 4); symmetrize = true)) == (10, 10)
+    @test length(mandel(randn(rng, 4, 4); symmetrize = true)) == 10
     # TI average of a 3×3 block, against the tensor-level average.
     n = random_axis(rng)
     @test ti_average_matrix(G, n) ≈ Array(get_array(transverse_isotropify(Tens(G), n)))

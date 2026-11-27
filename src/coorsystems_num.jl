@@ -349,7 +349,7 @@ function grad(f::Function, CS::_PointwiseSystem{dim}) where {dim}
 end
 
 # The gradient of a scalar field is a vector; of an order-n field, order n + 1.
-_grad_tens(::Number, G, ℬ::AbstractBasis{dim}) where {dim} = Tens(Vec{dim}(i -> G[i]), ℬ, (:cont,))
+_grad_tens(::Number, G, ℬ::AbstractBasis{dim}) where {dim} = Tens(_vector_storage(i -> G[i], Val(dim), eltype(G)), ℬ, (:cont,))
 _grad_tens(val::AbstractArray, G, ℬ) = Tens(G, ℬ, ntuple(_ -> :cont, ndims(val) + 1))
 
 """
@@ -418,11 +418,13 @@ end
 
 """
     coorsys_cartesian(PointwiseGeometry, T = Float64)
+    coorsys_cartesian(PointwiseGeometry, Val(dim), T = Float64)
 
-Numerical Cartesian coordinate system in 3D. Coordinates: (x, y, z).
+Numerical Cartesian coordinate system, of dimension 3 with the coordinates
+`(x, y, z)` unless a dimension is given: `Val(2)` for the plane, or any other.
 """
-function coorsys_cartesian(::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real}
-    dim = 3
+coorsys_cartesian(G::Type{PointwiseGeometry}, ::Type{T} = Float64) where {T <: Real} = coorsys_cartesian(G, Val(3), T)
+function coorsys_cartesian(::Type{PointwiseGeometry}, ::Val{dim}, ::Type{T} = Float64) where {dim, T <: Real}
     χ_func = x -> fill(one(x[1]), dim)
     R_func = x -> [i == j ? one(x[1]) : zero(x[1]) for i in 1:dim, j in 1:dim]
     Γ_func = x -> zeros(typeof(x[1]), dim, dim, dim)

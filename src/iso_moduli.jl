@@ -18,6 +18,20 @@
 # λ + μ, and E, λ, μ, ν and M are those of the 3-D material. The builders take
 # the dimension as a leading `Val(2)` (3 by default).
 #
+# In any dimension d, ℂ = d k 𝕁 + 2μ 𝕂 = λ 𝟏⊗𝟏 + 2μ 𝕀 with λ = k − 2μ/d and
+# M = λ + 2μ. Young's modulus and Poisson's ratio of the d-dimensional medium
+# are read on a uniaxial stress, E_d = 1/S₁₁₁₁ and ν_d = −S₁₁₂₂/S₁₁₁₁:
+#
+#     ν_d = λ / ((d−1)λ + 2μ) = (d k − 2μ) / (d(d−1) k + 2μ) ,  E_d = 2μ (1 + ν_d) .
+#
+# The keyword `convention` says which (E, ν) a tensor of the plane is built
+# from or read as: `:plane_strain` (the default in 2-D), those of the 3-D
+# material in plane strain, or `:intrinsic`, E₂ and ν₂ of the plane medium.
+# Both are the conversions of a material of dimension m to (λ, μ), with m = 3
+# for the first and m = d for the second: `_material_dim` gives m. In
+# dimension 3 the two coincide; beyond, only `:intrinsic` has a meaning. The
+# moduli k, λ, μ and M do not depend on the convention.
+#
 # No formula branches on a value, so that symbolic moduli go through, except
 # for the two pairs whose conversion solves a quadratic, which take the root of
 # the physical branch (see their docstrings).
@@ -36,17 +50,18 @@ end
     iso_stiffness(Val(dim), k, μ) → TensISO{4,dim}
 
 Isotropic stiffness ``\\mathbb{C} = d\\,k\\,\\mathbb{J} + 2\\mu\\,\\mathbb{K}`` from the bulk
-modulus `k` and the shear modulus `μ`, in dimension ``d`` (3 by default; in 2-D,
+modulus `k` and the shear modulus `μ`, in any dimension ``d`` (3 by default; in 2-D,
 `k` is the in-plane bulk modulus ``\\lambda + \\mu`` of the plane-strain stiffness); the
 reciprocal of [`bulk_shear`](@ref). The compliance is [`iso_compliance`](@ref)`(k, μ)`.
+The pair ``(k, \\mu)`` is the same in both conventions of the plane moduli
+(see [`iso_stiffness_young_poisson`](@ref)).
 
 `iso_stiffness_bulk_shear`, `iso_stiffness_k_mu` and `iso_stiffness_k_μ` are the
 same function. The stiffness from any other pair of moduli is
 `iso_stiffness_<pair>`: see [`iso_stiffness_young_poisson`](@ref).
 """
 iso_stiffness(k, μ) = TensISO{3}(3 * k, 2 * μ)
-iso_stiffness(::Val{3}, k, μ) = iso_stiffness(k, μ)
-iso_stiffness(::Val{2}, k, μ) = TensISO{2}(2 * k, 2 * μ)
+iso_stiffness(::Val{dim}, k, μ) where {dim} = TensISO{dim}(dim * k, 2 * μ)
 
 """
     iso_compliance(k, μ) → TensISO{4,3}
@@ -63,6 +78,27 @@ the same function. The compliance from any other pair of moduli is
 iso_compliance(k, μ) = iso_compliance(Val(3), k, μ)
 iso_compliance(::Val{dim}, k, μ) where {dim} = TensISO{dim}(inv(dim * k), inv(2 * μ))
 
+# The dimension of the material whose (E, ν) are meant, see the header: 3 for a
+# tensor of the plane in plane strain, that of the tensor otherwise. Propagated
+# as a constant, as the role is.
+_default_convention(::Val{2}) = :plane_strain
+_default_convention(::Val) = :intrinsic
+Base.@constprop :aggressive @inline function _material_dim(v::Val{dim}, convention::Symbol) where {dim}
+    convention === :intrinsic && return v
+    (convention === :plane_strain && dim == 2) || _throw_convention(dim, convention)
+    return Val(3)
+end
+# Apart, so that the messages are not built on the path of a valid call.
+@noinline function _throw_convention(dim, convention::Symbol)
+    convention === :plane_strain || throw(ArgumentError("unknown convention `:$convention`; use `:plane_strain` or `:intrinsic`"))
+    throw(
+        ArgumentError(
+            "`convention = :plane_strain` is that of a tensor of the plane; in dimension $dim the " *
+                "moduli are those of the medium, `convention = :intrinsic`"
+        )
+    )
+end
+
 # The stiffness and the compliance of the 3-D material (λ, μ), or of its
 # plane-strain restriction.
 _iso_lame_shear(::Val{dim}, λ, μ) where {dim} = TensISO{dim}(dim * λ + 2 * μ, 2 * μ)
@@ -70,12 +106,38 @@ _iso_compliance_lame_shear(::Val{dim}, λ, μ) where {dim} = TensISO{dim}(inv(di
 
 """
     iso_stiffness_young_poisson(E, ν) → TensISO{4,3}
-    iso_stiffness_young_poisson(Val(dim), E, ν) → TensISO{4,dim}
+    iso_stiffness_young_poisson(Val(dim), E, ν; convention) → TensISO{4,dim}
 
 Isotropic stiffness from Young's modulus and Poisson's ratio,
 ``k = E/(3(1 - 2\\nu))`` and ``\\mu = E/(2(1 + \\nu))``; the reciprocal of
 [`young_poisson`](@ref). With `Val(2)`, the plane-strain stiffness of that
 material.
+
+!!! warning "Which E and ν in the plane: the keyword `convention`"
+    A tensor of the plane has two pairs ``(E, \\nu)``, and the builders and the
+    readers take the keyword `convention` to say which one is meant:
+
+    - `convention = :plane_strain`, the default with `Val(2)`: ``E`` and
+      ``\\nu`` of the **3-D material** whose plane-strain stiffness the tensor is;
+    - `convention = :intrinsic`: ``E_2`` and ``\\nu_2`` of the **plane medium**,
+      read on a uniaxial stress in the plane,
+      ``E_2 = 4k\\mu/(k + \\mu)`` and ``\\nu_2 = (k - \\mu)/(k + \\mu)``.
+
+    With the same numbers the two conventions build different tensors. The
+    moduli ``k``, ``\\lambda``, ``\\mu`` and ``M`` are the same in both.
+
+In dimension ``d`` (`Val(d)`, any ``d``), the moduli are those of the medium of
+that dimension, ``\\mathbb{C} = d\\,k\\,\\mathbb{J} + 2\\mu\\,\\mathbb{K}``,
+``\\lambda = k - 2\\mu/d``, ``M = \\lambda + 2\\mu``,
+
+```math
+\\nu_d = \\frac{\\lambda}{(d-1)\\lambda + 2\\mu} = \\frac{d\\,k - 2\\mu}{d(d-1)\\,k + 2\\mu} ,
+\\qquad E_d = 2\\mu\\,(1 + \\nu_d) ,
+```
+
+which are the usual ones for ``d = 3``, where the keyword changes nothing, and
+the only ones beyond: `convention = :plane_strain` is refused outside
+dimension 2.
 
 The stiffness is built in the same way from any pair of the six moduli, named
 in the order bulk `k`, Young `E`, Lamé `λ`, shear `μ`, Poisson `ν`, P-wave `M`,
@@ -112,25 +174,38 @@ one with ``\\nu \\geq 0`` and one with ``\\nu \\leq 0``; the one kept is ``\\nu 
 ``\\lambda = (M - E + S)/4`` and ``\\mu = (3M + E - S)/8`` with
 ``S = \\sqrt{E^2 + 9M^2 - 10EM}``. In 2-D, ``(k, E)`` gives
 ``\\mu = (3k - \\sqrt{9k^2 - 4Ek})/2``, the root of ``\\nu \\geq -1/4``: the other,
-``-1/2 - \\nu``, has the same pair of moduli.
+``-1/2 - \\nu``, has the same pair of moduli. For the medium of dimension ``d``
+the same two pairs solve a quadratic, with the same choice of root:
+``\\mu = (E - d\\lambda + R_d)/4``, ``R_d = \\sqrt{(E - d\\lambda)^2 + 4(d-1)E\\lambda}``,
+and ``\\mu = (B - \\sqrt{B^2 - 4(d-1)^2EM})/(4(d-1))``, ``B = dM + (d-2)E``;
+``(k, E)`` is then rational, ``\\mu = d(d-1)kE/(2(d^2k - E))``.
 """
 iso_stiffness_young_poisson(E, ν) = iso_stiffness(E / (3 * (1 - 2 * ν)), E / (2 * (1 + ν)))
-iso_stiffness_young_poisson(::Val{3}, E, ν) = iso_stiffness_young_poisson(E, ν)
-iso_stiffness_young_poisson(v::Val{2}, E, ν) = _iso_lame_shear(v, _lame_shear(Val((:young, :poisson)), E, ν)...)
+Base.@constprop :aggressive @inline function iso_stiffness_young_poisson(v::Val{3}, E, ν; convention::Symbol = :intrinsic)
+    _material_dim(v, convention)
+    return iso_stiffness_young_poisson(E, ν)
+end
+Base.@constprop :aggressive @inline iso_stiffness_young_poisson(v::Val, E, ν; convention::Symbol = _default_convention(v)) =
+    _iso_lame_shear(v, _lame_shear(Val((:young, :poisson)), _material_dim(v, convention), E, ν)...)
 
 """
     iso_compliance_young_poisson(E, ν) → TensISO{4,3}
-    iso_compliance_young_poisson(Val(dim), E, ν) → TensISO{4,dim}
+    iso_compliance_young_poisson(Val(dim), E, ν; convention) → TensISO{4,dim}
 
 Isotropic compliance from Young's modulus and Poisson's ratio, written directly:
 ``\\mathbb{S} = (1 - 2\\nu)/E\\;\\mathbb{J} + (1 + \\nu)/E\\;\\mathbb{K}`` in 3-D; with
-`Val(2)`, the compliance of the plane-strain stiffness of that material. The
-inverse of [`iso_stiffness_young_poisson`](@ref), whose docstring gives the table
+`Val(2)`, the compliance of the plane-strain stiffness of that material, or
+of the plane medium with `convention = :intrinsic`; in any other dimension,
+that of the medium. The inverse of [`iso_stiffness_young_poisson`](@ref), whose docstring gives the table
 of every pair. `iso_compliance_E_nu` and `iso_compliance_E_ν` are the same function.
 """
 iso_compliance_young_poisson(E, ν) = iso_compliance_young_poisson(Val(3), E, ν)
-iso_compliance_young_poisson(::Val{3}, E, ν) = TensISO{3}((1 - 2 * ν) / E, (1 + ν) / E)
-iso_compliance_young_poisson(v::Val{2}, E, ν) = _iso_compliance_lame_shear(v, _lame_shear(Val((:young, :poisson)), E, ν)...)
+Base.@constprop :aggressive @inline function iso_compliance_young_poisson(v::Val{3}, E, ν; convention::Symbol = :intrinsic)
+    _material_dim(v, convention)
+    return TensISO{3}((1 - 2 * ν) / E, (1 + ν) / E)
+end
+Base.@constprop :aggressive @inline iso_compliance_young_poisson(v::Val, E, ν; convention::Symbol = _default_convention(v)) =
+    _iso_compliance_lame_shear(v, _lame_shear(Val((:young, :poisson)), _material_dim(v, convention), E, ν)...)
 
 # (λ, μ) of the 3-D material from a pair of moduli without `k`.
 function _lame_shear(::Val{(:young, :lame)}, E, λ)
@@ -150,6 +225,30 @@ _lame_shear(::Val{(:shear, :poisson)}, μ, ν) = 2 * μ * ν / (1 - 2 * ν), μ
 _lame_shear(::Val{(:shear, :pwave)}, μ, M) = M - 2 * μ, μ
 _lame_shear(::Val{(:poisson, :pwave)}, ν, M) = M * ν / (1 - ν), M * (1 - 2 * ν) / (2 * (1 - ν))
 
+# (λ, μ) from a pair of moduli of a material of dimension `m`: the formulas
+# above for m = 3, and their analogues in dimension d, from
+# ν_d = λ/((d−1)λ + 2μ) and E_d = 2μ(1 + ν_d). The pairs without E nor ν do not
+# see the dimension.
+_lame_shear(pair::Val, ::Val{3}, a, b) = _lame_shear(pair, a, b)
+_lame_shear(pair::Val, m::Val, a, b) = _lame_shear_d(pair, m, a, b)
+_lame_shear_d(pair::Val, ::Val, a, b) = _lame_shear(pair, a, b)
+function _lame_shear_d(::Val{(:young, :lame)}, ::Val{d}, E, λ) where {d}
+    R = sqrt((E - d * λ)^2 + 4 * (d - 1) * E * λ)
+    return λ, (E - d * λ + R) / 4
+end
+_lame_shear_d(::Val{(:young, :shear)}, ::Val{d}, E, μ) where {d} = 2 * μ * (E - 2 * μ) / (2 * d * μ - (d - 1) * E), μ
+_lame_shear_d(::Val{(:young, :poisson)}, ::Val{d}, E, ν) where {d} =
+    E * ν / ((1 + ν) * (1 - (d - 1) * ν)), E / (2 * (1 + ν))
+function _lame_shear_d(::Val{(:young, :pwave)}, ::Val{d}, E, M) where {d}
+    B = d * M + (d - 2) * E
+    μ = (B - sqrt(B^2 - 4 * (d - 1)^2 * E * M)) / (4 * (d - 1))
+    return M - 2 * μ, μ
+end
+_lame_shear_d(::Val{(:lame, :poisson)}, ::Val{d}, λ, ν) where {d} = λ, λ * (1 - (d - 1) * ν) / (2 * ν)
+_lame_shear_d(::Val{(:shear, :poisson)}, ::Val{d}, μ, ν) where {d} = 2 * μ * ν / (1 - (d - 1) * ν), μ
+_lame_shear_d(::Val{(:poisson, :pwave)}, ::Val{d}, ν, M) where {d} =
+    M * ν / (1 - (d - 2) * ν), M * (1 - (d - 1) * ν) / (2 * (1 - (d - 2) * ν))
+
 # μ from the bulk modulus `k` of the dimension (3-D, or in-plane λ + μ in 2-D)
 # and a second modulus.
 _shear_from_bulk(::Val{3}, ::Val{:young}, k, E) = 3 * k * E / (9 * k - E)
@@ -160,6 +259,17 @@ _shear_from_bulk(::Val{3}, ::Val{:poisson}, k, ν) = 3 * k * (1 - 2 * ν) / (2 *
 _shear_from_bulk(::Val{2}, ::Val{:poisson}, k, ν) = k * (1 - 2 * ν)
 _shear_from_bulk(::Val{3}, ::Val{:pwave}, k, M) = 3 * (M - k) / 4
 _shear_from_bulk(::Val{2}, ::Val{:pwave}, k, M) = M - k
+
+# The same with the dimension `m` of the material: the methods above for the
+# plane in plane strain and for space, and, for the medium of dimension d,
+# from k = λ + 2μ/d.
+_shear_from_bulk(v::Val{2}, ::Val{3}, q::Val, k, b) = _shear_from_bulk(v, q, k, b)
+_shear_from_bulk(v::Val{3}, ::Val{3}, q::Val, k, b) = _shear_from_bulk(v, q, k, b)
+_shear_from_bulk(v::Val{d}, ::Val{d}, q::Val, k, b) where {d} = _shear_from_bulk_d(v, q, k, b)
+_shear_from_bulk_d(::Val{d}, ::Val{:young}, k, E) where {d} = d * (d - 1) * k * E / (2 * (d^2 * k - E))
+_shear_from_bulk_d(::Val{d}, ::Val{:lame}, k, λ) where {d} = d * (k - λ) / 2
+_shear_from_bulk_d(::Val{d}, ::Val{:poisson}, k, ν) where {d} = d * k * (1 - (d - 1) * ν) / (2 * (1 + ν))
+_shear_from_bulk_d(::Val{d}, ::Val{:pwave}, k, M) where {d} = d * (M - k) / (2 * (d - 1))
 
 # The six moduli, in the order of the pairs, with their symbols in ASCII and
 # in Unicode; the P-wave modulus has none, see above.
@@ -176,17 +286,20 @@ for i in eachindex(_ISO_MODULI), j in (i + 1):length(_ISO_MODULI)
         f = Symbol(base, :_, p, :_, q)
         doc = "    $f(a, b) → TensISO{4,3}\n    $f(Val(dim), a, b) → TensISO{4,dim}\n\n" *
             "Isotropic $kind from its $(p) and $(q) moduli (Poisson's ratio for `poisson`, " *
-            "Lamé's first parameter for `lame`), in 3-D or, with `Val(2)`, in plane strain. " *
+            "Lamé's first parameter for `lame`), in 3-D or, with `Val(dim)`, in dimension `dim`: with " *
+            "`Val(2)`, in plane strain unless `convention = :intrinsic`. " *
             "See [`iso_stiffness_young_poisson`](@ref) for the table of the pairs and their conventions."
         if p === :bulk
             @eval begin
                 @doc $doc $f(a, b) = $f(Val(3), a, b)
-                $f(v::Val, k, b) = $base(v, k, _shear_from_bulk(v, Val($(QuoteNode(q))), k, b))
+                Base.@constprop :aggressive @inline $f(v::Val, k, b; convention::Symbol = _default_convention(v)) =
+                    $base(v, k, _shear_from_bulk(v, _material_dim(v, convention), Val($(QuoteNode(q))), k, b))
             end
         else
             @eval begin
                 @doc $doc $f(a, b) = $f(Val(3), a, b)
-                $f(v::Val, a, b) = $fromλμ(v, _lame_shear(Val(($(QuoteNode(p)), $(QuoteNode(q)))), a, b)...)
+                Base.@constprop :aggressive @inline $f(v::Val, a, b; convention::Symbol = _default_convention(v)) =
+                    $fromλμ(v, _lame_shear(Val(($(QuoteNode(p)), $(QuoteNode(q)))), _material_dim(v, convention), a, b)...)
             end
         end
     end
@@ -218,6 +331,24 @@ _poisson(::Val{:stiffness}, ::Val{2}, α, β) = (α - β) / (2 * α)
 _poisson(::Val{:compliance}, ::Val{3}, α, β) = (β - α) / (α + 2 * β)
 _poisson(::Val{:compliance}, ::Val{2}, α, β) = (β - α) / (2 * β)
 
+# The same with the dimension `m` of the material. Only E and ν see it: for the
+# medium of dimension d, on a stiffness `α = d k`, `β = 2μ`, and on a
+# compliance `S₁₁₁₁ = (α + (d−1)β)/d`, `S₁₁₂₂ = (α − β)/d`.
+for kernel in (:_bulk, :_shear, :_lame, :_pwave)
+    @eval $kernel(r::Val, v::Val, ::Val, α, β) = $kernel(r, v, α, β)
+end
+for (kernel, kernel_d) in ((:_young, :_young_d), (:_poisson, :_poisson_d))
+    @eval begin
+        $kernel(r::Val, v::Val{2}, ::Val{3}, α, β) = $kernel(r, v, α, β)
+        $kernel(r::Val, v::Val{3}, ::Val{3}, α, β) = $kernel(r, v, α, β)
+        $kernel(r::Val, v::Val{d}, ::Val{d}, α, β) where {d} = $kernel_d(r, v, α, β)
+    end
+end
+_young_d(::Val{:stiffness}, ::Val{d}, α, β) where {d} = d * α * β / ((d - 1) * α + β)
+_young_d(::Val{:compliance}, ::Val{d}, α, β) where {d} = d / (α + (d - 1) * β)
+_poisson_d(::Val{:stiffness}, ::Val{d}, α, β) where {d} = (α - β) / ((d - 1) * α + β)
+_poisson_d(::Val{:compliance}, ::Val{d}, α, β) where {d} = (β - α) / (α + (d - 1) * β)
+
 """
     poisson_ratio(k, μ) → ν
 
@@ -227,7 +358,7 @@ Poisson's ratio of a 3-D isotropic material from its bulk and shear moduli,
 poisson_ratio(k, μ) = (3 * k - 2 * μ) / (2 * (3 * k + μ))
 
 """
-    lame_lambda(t::TensISO{4,dim}; role = :stiffness)
+    lame_lambda(t::TensISO{4,dim}; role = :stiffness, convention)
 
 Lamé's first parameter ``\\lambda`` of an isotropic stiffness
 ``\\mathbb{C} = (d\\lambda + 2\\mu)\\,\\mathbb{J} + 2\\mu\\,\\mathbb{K}``, or, with
@@ -247,6 +378,13 @@ Each pair has one too, named as its builder without `iso_stiffness_` (`bulk_shea
 `E_nu`, `λ_μ`, …), the same `role` keyword, and the two moduli of its readers:
 the conversion of a pair of moduli to another is
 `young_shear(iso_stiffness_lame_poisson(λ, ν))`.
+
+The readers take any dimension. Those of ``E`` and ``\\nu`` take the keyword
+`convention` of the builders ([`iso_stiffness_young_poisson`](@ref)): on a
+tensor of the plane, `:plane_strain` (the default) reads the moduli of the 3-D
+material and `:intrinsic` those of the plane medium; in any other dimension
+the moduli are those of the medium. ``k``, ``\\lambda``, ``\\mu`` and ``M`` do
+not depend on it.
 """
 function lame_lambda end
 
@@ -263,9 +401,11 @@ for (reader, kernel) in (
         (:bulk_modulus, :_bulk), (:shear_modulus, :_shear), (:lame_lambda, :_lame),
         (:young_modulus, :_young), (:poisson_ratio, :_poisson), (:pwave_modulus, :_pwave),
     )
-    @eval Base.@constprop :aggressive function $reader(t::TensISO{4, dim}; role::Symbol = :stiffness) where {dim}
+    @eval Base.@constprop :aggressive @inline function $reader(
+            t::TensISO{4, dim}; role::Symbol = :stiffness, convention::Symbol = _default_convention(Val(dim))
+        ) where {dim}
         α, β = get_data(t)
-        return $kernel(_role(role), Val(dim), α, β)
+        return $kernel(_role(role), Val(dim), _material_dim(Val(dim), convention), α, β)
     end
 end
 
@@ -286,7 +426,7 @@ or [`best_fit_iso`](@ref) (the closest isotropic tensor).
 function bulk_shear end
 
 """
-    young_poisson(t::TensISO{4,dim}; role = :stiffness) → (E, ν)
+    young_poisson(t::TensISO{4,dim}; role = :stiffness, convention) → (E, ν)
 
 Young's modulus and Poisson's ratio of an isotropic **stiffness**, or of a
 **compliance** with `role = :compliance`. In 3-D, ``E = 9k\\mu/(3k + \\mu)`` and
@@ -294,7 +434,11 @@ Young's modulus and Poisson's ratio of an isotropic **stiffness**, or of a
 ``\\nu = (b - a)/(a + 2b)`` on a compliance ``a\\,\\mathbb{J} + b\\,\\mathbb{K}``. In 2-D,
 those of the 3-D material whose plane-strain stiffness (or compliance) is `t`:
 on ``\\mathbb{C} = \\alpha\\,\\mathbb{J} + \\beta\\,\\mathbb{K}``, ``\\nu = (\\alpha - \\beta)/(2\\alpha)``
-and ``E = 2\\mu(1 + \\nu)``, ``\\mu = \\beta/2``.
+and ``E = 2\\mu(1 + \\nu)``, ``\\mu = \\beta/2``. With `convention = :intrinsic`,
+and in any dimension ``d`` other than 2, those of the medium of that dimension:
+``\\nu_d = (\\alpha - \\beta)/((d-1)\\alpha + \\beta)`` and
+``E_d = d\\,\\alpha\\beta/((d-1)\\alpha + \\beta)`` on a stiffness,
+``\\nu_d = (b - a)/(a + (d-1)b)`` and ``E_d = d/(a + (d-1)b)`` on a compliance.
 
 See also [`bulk_shear`](@ref), [`shear_poisson`](@ref), [`iso_stiffness_young_poisson`](@ref),
 and [`lame_lambda`](@ref) for every other modulus and pair.
@@ -304,12 +448,13 @@ and [`lame_lambda`](@ref) for every other modulus and pair.
 function young_poisson end
 
 """
-    shear_poisson(t::TensISO{4,dim}; role = :stiffness) → (μ, ν)
+    shear_poisson(t::TensISO{4,dim}; role = :stiffness, convention) → (μ, ν)
 
 Shear modulus and Poisson's ratio of an isotropic **stiffness**, or of a
 **compliance** with `role = :compliance`, the pair the Kelvin and plane-strain
 Green functions are written with; in 2-D, ``\\nu`` is that of the 3-D material
-whose plane-strain stiffness is `t` (see [`young_poisson`](@ref)).
+whose plane-strain stiffness is `t`, unless `convention = :intrinsic`
+(see [`young_poisson`](@ref)).
 
 `mu_nu` and `μ_ν` are the same function, under the symbols of the moduli.
 """
@@ -323,7 +468,9 @@ const _ISO_READERS = Dict(
 for i in eachindex(_ISO_MODULI), j in (i + 1):length(_ISO_MODULI)
     p, q = first(_ISO_MODULI[i]), first(_ISO_MODULI[j])
     f, rp, rq = Symbol(p, :_, q), _ISO_READERS[p], _ISO_READERS[q]
-    @eval Base.@constprop :aggressive $f(t::TensISO{4}; role::Symbol = :stiffness) = ($rp(t; role), $rq(t; role))
+    @eval Base.@constprop :aggressive @inline $f(
+        t::TensISO{4, dim}; role::Symbol = :stiffness, convention::Symbol = _default_convention(Val(dim))
+    ) where {dim} = ($rp(t; role, convention), $rq(t; role, convention))
     (p, q) in ((:bulk, :shear), (:young, :poisson), (:shear, :poisson)) && continue
     doc = "    $f(t::TensISO{4}; role = :stiffness) → ($(p), $(q))\n\nThe $(p) and $(q) moduli of an " *
         "isotropic stiffness, or of a compliance with `role = :compliance` (`$rp(t; role)`, " *

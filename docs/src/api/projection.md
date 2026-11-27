@@ -22,6 +22,7 @@ best_fit_iso
 best_fit_ti
 best_fit_ortho
 best_fit_cubic
+project_exact
 ```
 
 

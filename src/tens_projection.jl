@@ -18,7 +18,7 @@ using StaticArrays
 # Off-diagonal components are scaled by √2 so that the Frobenius norm is
 # preserved (‖A‖² = Aₖₘ Aₖₘ).  This differs from Voigt notation which
 # uses engineering shear (factor 2 instead of √2).
-const _KM_COUPLES = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
+const _KM_COUPLES = mandel_pairs(Val(3))
 
 # ── ForwardDiff-compatible rotation helpers ──────────────────────────────────
 
@@ -53,14 +53,25 @@ end
 
 """
     mandel_rotation(θ, ϕ, ψ) → SMatrix{6,6}
+    mandel_rotation(θ) → SMatrix{3,3}
     mandel_rotation(R::AbstractMatrix) → SMatrix{6,6}
+    mandel_rotation(R::StaticMatrix{d,d}) → SMatrix{n,n}
+    mandel_rotation(R::AbstractMatrix, Val(d)) → SMatrix{n,n}
 
-6×6 Kelvin-Mandel (Bond) rotation matrix, from ZYZ Euler angles `(θ, ϕ, ψ)`
-or directly from a 3×3 rotation matrix `R` whose **columns** are the new
-basis vectors.
+Kelvin-Mandel (Bond) rotation matrix of a rotation `R` whose **columns** are
+the new basis vectors, of size `n = d(d+1)/2` in dimension `d`: 6×6 in
+dimension 3, from the ZYZ Euler angles `(θ, ϕ, ψ)` or from the matrix; 3×3 in
+the plane, from the angle `θ`. With the pairs `I = (i,j)`, `J = (k,l)` of the
+Kelvin-Mandel notation and their weights `w = 1` (`i = j`) or `√2`,
 
-Transforms a 6×6 KM matrix as `C' = Q' · C · Q` with `Q = mandel_rotation(…)`;
-`Q` is orthogonal.
+    Q[I, J] = w_I w_J (R[i,k] R[j,l] + R[i,l] R[j,k]) / 2 .
+
+It transforms the Kelvin-Mandel matrix of a tensor of order 4 as
+`C' = Q' · C · Q`; `Q` is orthogonal.
+
+A plain matrix is taken to be 3×3 and refused otherwise; the dimension of a
+static matrix or of a `Tensors.Tensor{2}` is read on its type, and `Val(d)`
+gives it for a plain matrix of another size.
 
 Built entirely with `SMatrix` / `ntuple`, so it is compatible with
 `ForwardDiff.Dual` **and** with non-`isbits` element types such as
@@ -73,26 +84,45 @@ julia> Q = mandel_rotation(0.3, 0.5, 0.0);
 
 julia> size(Q)
 (6, 6)
+
+julia> size(mandel_rotation(0.3))
+(3, 3)
 ```
 """
 mandel_rotation(θ, ϕ, ψ) = mandel_rotation(_rot3_raw(θ, ϕ, ψ))
+function mandel_rotation(θ::Number)
+    c, s = cos(θ), sin(θ)
+    return mandel_rotation(SMatrix{2, 2}(c, s, -s, c))
+end
 
 export mandel_rotation
 
-function mandel_rotation(R::AbstractMatrix{T}) where {T}
+mandel_rotation(R::AbstractMatrix) = mandel_rotation(R, Val(3))
+mandel_rotation(R::Union{StaticMatrix{d, d}, Tensors.Tensor{2, d}}) where {d} =
+    _mandel_rotation(R, Val(d), Val(mandel_length(d)))
+function mandel_rotation(R::AbstractMatrix, ::Val{d}) where {d}
+    size(R) == (d, d) || _throw_mandel_rotation_size(d, size(R))
+    return _mandel_rotation(R, Val(d), Val(mandel_length(d)))
+end
+# Apart, so that the message is not built on the path of a valid call.
+@noinline _throw_mandel_rotation_size(d, sz) =
+    throw(DimensionMismatch("mandel_rotation: a $(d)×$(d) matrix is needed, got $(sz); give the dimension as `Val(d)`"))
+
+function _mandel_rotation(R::AbstractMatrix{T}, ::Val{d}, ::Val{n}) where {T, d, n}
     sq2 = sqrt(2 * one(T))
-    return SMatrix{6, 6, T}(
-        ntuple(Val(36)) do n
-            # column-major: element n is (row I, column J)
-            I = mod1(n, 6)
-            J = (n - 1) ÷ 6 + 1
-            i, j = _KM_COUPLES[I]
-            k, l = _KM_COUPLES[J]
-            @inbounds if I ≤ 3 && J ≤ 3
+    return SMatrix{n, n, T}(
+        ntuple(Val(n * n)) do m
+            # column-major: element m is (row I, column J). The pairs are read
+            # here, not captured: they are then constants of the compiled code.
+            I = mod1(m, n)
+            J = (m - 1) ÷ n + 1
+            i, j = mandel_pairs(Val(d))[I]
+            k, l = mandel_pairs(Val(d))[J]
+            @inbounds if I ≤ d && J ≤ d
                 R[i, k]^2                                   # normal-normal
-            elseif I ≤ 3
+            elseif I ≤ d
                 sq2 * R[i, k] * R[i, l]                     # normal-shear
-            elseif J ≤ 3
+            elseif J ≤ d
                 sq2 * R[i, k] * R[j, k]                     # shear-normal
             else
                 R[i, k] * R[j, l] + R[i, l] * R[j, k]       # shear-shear
@@ -587,6 +617,7 @@ false
 ```
 """
 function project(A::AbstractArray{T, 4}, ::Val{:TI}, n) where {T}
+    size(A, 1) == 2 && _no_plane_ti()
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
@@ -636,6 +667,7 @@ julia> B.data
 ```
 """
 function project(A::AbstractArray{T, 2}, ::Val{:TI}, n) where {T}
+    size(A, 1) == 2 && _no_plane_ti()
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
@@ -657,10 +689,10 @@ end
 # ── project : ORTHO, order 4, fixed frame ──────────────────────────────────
 
 """
-    project(A::AbstractArray{T,4}, ::Val{:ORTHO}, frame::OrthonormalBasis{3}) → (TensOrtho{4,T,9}, d, drel)
+    project(A::AbstractArray{T,4}, ::Val{:ORTHO}, frame::OrthonormalBasis{3}) → (TensOrtho{4, 3,T,9}, d, drel)
 
 Project a 4th-order tensor `A` (3×3×3×3) onto the orthotropic subspace with
-fixed material frame `frame`. Returns a `TensOrtho{4,T,9}`.
+fixed material frame `frame`. Returns a `TensOrtho{4, 3,T,9}`.
 
 # Examples
 ```jldoctest
@@ -700,7 +732,7 @@ end
 # ── project : CUBIC, order 4, fixed cube frame ─────────────────────────────
 
 """
-    project(A::AbstractArray{T,4}, ::Val{:CUBIC}, frame::OrthonormalBasis{3}) → (TensCubic{T}, d, drel)
+    project(A::AbstractArray{T,4}, ::Val{:CUBIC}, frame::OrthonormalBasis{3}) → (TensCubic{3, T}, d, drel)
 
 Project a 4th-order tensor onto the cubic subspace with cube axes `frame`.
 
@@ -729,7 +761,7 @@ function project(A::AbstractArray{T, 4}, ::Val{:CUBIC}, frame::OrthonormalBasis{
     nA = _frobenius(A)
     if nA ≈ zero(T)
         z = zero(T)
-        return TensCubic{T}((z, z, z), frame), z, z
+        return TensCubic{3, T}((z, z, z), frame), z, z
     end
     # The material frame by its 6×6 congruence, as for the ORTHO projection.
     C_rot = _km_in_frame_of(_KM_of_array(A), Matrix(vecbasis(frame, :cov)))
@@ -757,11 +789,11 @@ project(A::AbstractArray{T, 2}, ::Val{:CUBIC}, ::OrthonormalBasis{3}) where {T} 
 # ── project : ORTHO, order 2, fixed frame ──────────────────────────────────
 
 """
-    project(A::AbstractArray{T,2}, ::Val{:ORTHO}, frame::OrthonormalBasis{3}) → (TensOrtho{2,T,3}, d, drel)
+    project(A::AbstractArray{T,2}, ::Val{:ORTHO}, frame::OrthonormalBasis{3}) → (TensOrtho{2, 3,T,3}, d, drel)
 
 Project a 2nd-order tensor `A` (3×3) onto the orthotropic subspace with
 fixed material frame `frame`. The projection is `diag(M₁₁, M₂₂, M₃₃)` in the
-material frame, returned as a `TensOrtho{2}` on that frame (as the TI projection
+material frame, returned as a `TensOrtho{2, 3}` on that frame (as the TI projection
 returns a `TensTI{2}`).
 
 # Examples
@@ -832,7 +864,7 @@ random step, so a call is repeatable to the bit.
 See also [`project(A, ::Val{:TI}, n)`](@ref) for fixed-axis projection.
 """
 project(A::AbstractArray{T, 4}, ::Val{:TI}) where {T <: AbstractFloat} =
-    _proj_tens_opt(Val(:TI), A)
+    size(A, 1) == 2 ? _no_plane_ti() : _proj_tens_opt(Val(:TI), A)
 
 """
     project(A::AbstractArray{T,2}, ::Val{:TI}) where {T<:AbstractFloat}
@@ -843,7 +875,7 @@ largest eigenvalue of the symmetric part of `A`, whichever gives the closer
 tensor.
 """
 project(A::AbstractArray{T, 2}, ::Val{:TI}) where {T <: AbstractFloat} =
-    _proj_tens_opt(Val(:TI), A)
+    size(A, 1) == 2 ? _no_plane_ti() : _proj_tens_opt(Val(:TI), A)
 
 """
     project(A::AbstractArray{T,4}, ::Val{:ORTHO}) where {T<:AbstractFloat}
@@ -953,6 +985,7 @@ false
 ```
 """
 function istransverselyisotropic(A::AbstractArray, n; ε = 1.0e-6)
+    size(A, 1) == 2 && _no_plane_ti()
     _, _, drel = project(A, Val(:TI), n)
     return drel < ε
 end
@@ -967,6 +1000,7 @@ eigendecomposition of `A` and check the residual.  With
 See also [`istransverselyisotropic(A, n)`](@ref), `_candidate_TI_axis`.
 """
 function istransverselyisotropic(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
+    size(A, 1) == 2 && _no_plane_ti()
     if optimize_angles
         _, _, drel = project(A, Val(:TI))
     else
@@ -982,7 +1016,7 @@ end
 Return `true` when `A` is orthotropic in the given material frame up to
 relative tolerance `ε` (closed-form projection on the fixed frame).
 """
-function isorthotropic(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+function isorthotropic(A::AbstractArray, frame::OrthonormalBasis; ε = 1.0e-6)
     _, _, drel = project(A, Val(:ORTHO), frame)
     return drel < ε
 end
@@ -995,7 +1029,8 @@ eigendecomposition and check the residual.  With `optimize_angles=true`,
 searches the frame (`project(A, :ORTHO)`).
 """
 function isorthotropic(A::AbstractArray; ε = 1.0e-6, optimize_angles::Bool = false)
-    if optimize_angles
+    # In the plane the best frame is exact and costs one projection.
+    if optimize_angles || size(A, 1) == 2
         _, _, drel = project(A, Val(:ORTHO))
     else
         frame = _candidate_ORTHO_frame(A)
@@ -1047,13 +1082,15 @@ _rotation_to_canon(ℬ::OrthonormalBasis) = Matrix(vecbasis(ℬ))
 
 # The frame vectors as the columns of a static matrix: read in hot loops
 # (`symmetry_basis`), so never a heap copy.
-_frame_matrix(::CanonicalBasis{3, T}) where {T} = SMatrix{3, 3, T}(I)
-_frame_matrix(ℬ::OrthonormalBasis{3}) = SMatrix{3, 3}(vecbasis(ℬ, Val(:cov)))
+# `one(T) * I`, not `I`: the entries of `I` are booleans, which a symbolic type
+# converts to logical constants that no product accepts.
+_frame_matrix(::CanonicalBasis{dim, T}) where {dim, T} = SMatrix{dim, dim, T}(one(T) * I)
+_frame_matrix(ℬ::OrthonormalBasis{dim}) where {dim} = SMatrix{dim, dim}(vecbasis(ℬ, Val(:cov)))
 
 # A canonical axis or frame, in the frame of `Q`.
 _to_frame(::Nothing, x) = x
 _to_frame(Q::AbstractMatrix, n) = transpose(Q) * collect(_extract_vec(n))
-_to_frame(Q::AbstractMatrix, f::OrthonormalBasis{3}) =
+_to_frame(Q::AbstractMatrix, f::OrthonormalBasis) =
     RotatedBasis(transpose(Q) * _frame_matrix(f))
 
 # A projection computed in the frame of `Q`, with its axis or frame in canonical
@@ -1067,8 +1104,8 @@ function _from_frame(Q::AbstractMatrix, P::TensTI{order, T, N}) where {order, T,
 end
 _from_frame(Q::AbstractMatrix, P::TensOrtho) =
     _rebuild_frame(P, RotatedBasis(Q * _frame_matrix(frame(P))))
-_from_frame(Q::AbstractMatrix, P::TensCubic) =
-    TensCubic{eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
+_from_frame(Q::AbstractMatrix, P::TensCubic{dim}) where {dim} =
+    TensCubic{dim, eltype(P)}(get_data(P), RotatedBasis(Q * _frame_matrix(frame(P))))
 
 _from_frame(Q::AbstractMatrix, (P, d, drel)::Tuple) = (_from_frame(Q, P), d, drel)
 
@@ -1078,22 +1115,21 @@ function _proj_in_frame(v::Val, t::AbstractTens, args...)
 end
 
 project(t::AbstractTens, v::Val{:ISO}) = project(first(_orthonormal_components(t)), v)
-project(t::AbstractTens{4, dim, T}, v::Val{:TI}, n) where {dim, T} = _proj_in_frame(v, t, n)
-project(t::AbstractTens{2, dim, T}, v::Val{:TI}, n) where {dim, T} = _proj_in_frame(v, t, n)
-project(t::AbstractTens{4, dim, T}, v::Val{:ORTHO}, frame::OrthonormalBasis{3}) where {dim, T} =
-    _proj_in_frame(v, t, frame)
-project(t::AbstractTens{2, dim, T}, v::Val{:ORTHO}, frame::OrthonormalBasis{3}) where {dim, T} =
-    _proj_in_frame(v, t, frame)
-project(t::AbstractTens{4, dim, T}, v::Val{:CUBIC}, frame::OrthonormalBasis{3}) where {dim, T} =
-    _proj_in_frame(v, t, frame)
-project(t::AbstractTens{2, dim, T}, v::Val{:CUBIC}, frame::OrthonormalBasis{3}) where {dim, T} =
-    _proj_in_frame(v, t, frame)
+project(t::AbstractTens{4, 3}, v::Val{:TI}, n) = _proj_in_frame(v, t, n)
+project(t::AbstractTens{2, 3}, v::Val{:TI}, n) = _proj_in_frame(v, t, n)
+# One method per dimension: the frame of the kernels is that of a given
+# dimension, and a dimension shared by a type variable would be less specific
+# than they are on that argument.
+for d in (2, 3), order in (2, 4), class in (:ORTHO, :CUBIC)
+    @eval project(t::AbstractTens{$order, $d}, v::Val{$(QuoteNode(class))}, frame::OrthonormalBasis{$d}) =
+        _proj_in_frame(v, t, frame)
+end
 # The searches, axis or frame free. Without these, `project(t, :TI)` reached
 # the array kernel with `t` itself, read in its own basis as if canonical. The
 # element-type bound matches the kernels', so each wrapper is strictly more
 # specific than the kernel it unwraps for.
-project(t::AbstractTens{4, dim, T}, v::Val{:TI}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
-project(t::AbstractTens{2, dim, T}, v::Val{:TI}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
+project(t::AbstractTens{4, 3, T}, v::Val{:TI}) where {T <: AbstractFloat} = _proj_in_frame(v, t)
+project(t::AbstractTens{2, 3, T}, v::Val{:TI}) where {T <: AbstractFloat} = _proj_in_frame(v, t)
 project(t::AbstractTens{4, dim, T}, v::Val{:ORTHO}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
 project(t::AbstractTens{2, dim, T}, v::Val{:ORTHO}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
 project(t::AbstractTens{4, dim, T}, v::Val{:CUBIC}) where {dim, T <: AbstractFloat} = _proj_in_frame(v, t)
@@ -1110,7 +1146,7 @@ The **value-level** companion of the type-level `iscubic(::TensCubic)`, exactly
 as for [`isisotropic`](@ref), [`istransverselyisotropic`](@ref) and [`isorthotropic`](@ref): the first asks
 what the components say, the second what the container guarantees.
 """
-function iscubic(A::AbstractArray, frame::OrthonormalBasis{3}; ε = 1.0e-6)
+function iscubic(A::AbstractArray, frame::OrthonormalBasis; ε = 1.0e-6)
     _, _, drel = project(A, Val(:CUBIC), frame)
     return drel ≤ ε
 end
@@ -1147,14 +1183,14 @@ isorthotropic(t::AbstractTens, frame; kwargs...) =
 # taking an `OrthonormalBasis{3}` are each more specific on one argument and
 # less on the other. Unwrapping first is what the wrapper is for; saying it for
 # this combination resolves the pair.
-isorthotropic(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+isorthotropic(t::AbstractTens, frame::OrthonormalBasis; kwargs...) =
     _in_frame(t, (A, Q) -> isorthotropic(A, _to_frame(Q, frame); kwargs...))
 isorthotropic(t::AbstractTens; kwargs...) = isorthotropic(first(_orthonormal_components(t)); kwargs...)
 iscubic(t::AbstractTens, frame; kwargs...) =
     _in_frame(t, (A, Q) -> iscubic(A, _to_frame(Q, frame); kwargs...))
 # Same disambiguation as `isorthotropic` just above: `AbstractTens <: AbstractArray`,
 # so the wrapper and the worker are each more specific on one argument.
-iscubic(t::AbstractTens, frame::OrthonormalBasis{3}; kwargs...) =
+iscubic(t::AbstractTens, frame::OrthonormalBasis; kwargs...) =
     _in_frame(t, (A, Q) -> iscubic(A, _to_frame(Q, frame); kwargs...))
 iscubic(t::AbstractTens; kwargs...) = iscubic(first(_orthonormal_components(t)); kwargs...)
 
@@ -1276,15 +1312,15 @@ best_fit_ti(t::AbstractTens{2, 3}, axis) = project(t, Val(:TI), axis)[1]
 
 """
     best_fit_ortho(t::AbstractTens{4,3}, frame) -> TensOrtho
-    best_fit_ortho(t::AbstractTens{2,3}, frame) -> TensOrtho{2}
+    best_fit_ortho(t::AbstractTens{2,3}, frame) -> TensOrtho{2, 3}
 
 Orthogonal (Frobenius) projection of `t` onto the orthotropic span in the given
 material `frame` — the projection component of [`project`](@ref)`(
 Val(:ORTHO), t, frame)`. Same caveat as [`best_fit_ti`](@ref): a fit, not an
 average.
 """
-best_fit_ortho(t::AbstractTens{4, 3}, frame) = project(t, Val(:ORTHO), frame)[1]
-best_fit_ortho(t::AbstractTens{2, 3}, frame) = project(t, Val(:ORTHO), frame)[1]
+best_fit_ortho(t::AbstractTens{4}, frame) = project(t, Val(:ORTHO), frame)[1]
+best_fit_ortho(t::AbstractTens{2}, frame) = project(t, Val(:ORTHO), frame)[1]
 
 """
     best_fit_cubic(t::AbstractTens{4,3}, frame) -> TensCubic
@@ -1301,13 +1337,37 @@ everything outside the class, and `project` reports how much.
 
 At order two it returns an isotropic tensor, the two classes coinciding there.
 """
-best_fit_cubic(t::AbstractTens{4, 3}, frame) = project(t, Val(:CUBIC), frame)[1]
-best_fit_cubic(t::AbstractTens{2, 3}, frame) = project(t, Val(:CUBIC), frame)[1]
+best_fit_cubic(t::AbstractTens{4}, frame) = project(t, Val(:CUBIC), frame)[1]
+best_fit_cubic(t::AbstractTens{2}, frame) = project(t, Val(:CUBIC), frame)[1]
 
 # ── Exports ──────────────────────────────────────────────────────────────────
 
 export project
 export ti_params_from_mandel, mandel_from_ti_params, ortho_params_from_mandel, mandel_from_ortho_params, ti2_params_from_matrix
 export cubic_params_from_mandel, mandel_from_cubic_params
-export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic
+"""
+    project_exact(t::AbstractTens, class, args...; rtol = 1.0e-10)
+
+The tensor `t` written in the symmetry class `class` (`:ISO`, `:TI`, `:ORTHO`,
+`:CUBIC`, or their `Val`), with the axis or the frame the class needs, **when it
+belongs to it**: the projection of [`project`](@ref) if its relative distance
+to `t` is at most `rtol`, `nothing` otherwise. Where [`best_fit_iso`](@ref) and
+its companions return the closest tensor of the class whatever the distance,
+this one changes only how a tensor is stored.
+
+A distance between symbolic tensors cannot be compared with a tolerance: of a
+symbolic tensor only an isotropic one, which every class contains, is written
+in the class; any other gives `nothing`.
+"""
+project_exact(t::AbstractTens, class::Symbol, args...; kwargs...) = project_exact(t, Val(class), args...; kwargs...)
+project_exact(t::AbstractTens, class::Val, args...; rtol = 1.0e-10) =
+    _project_exact(Val(is_hard_numeric(eltype(t))), t, class, rtol, args...)
+function _project_exact(::Val{true}, t, class, rtol, args...)
+    B, d, drel = project(t, class, args...)
+    return iszero(d) || drel ≤ rtol ? B : nothing
+end
+_project_exact(::Val{false}, t::TensISO, class, rtol, args...) = first(project(t, class, args...))
+_project_exact(::Val{false}, t, class, rtol, args...) = nothing
+
+export best_fit_iso, best_fit_ti, best_fit_ortho, best_fit_cubic, project_exact
 export iscubic

@@ -3,6 +3,15 @@
 A guided tour of the library in one page. Each step links to the manual chapter
 that develops it and to the theory behind it.
 
+The tour is in dimension 3, the reference dimension, where every type and every
+function exists. The plane is supported as well, with its tensors, bases,
+isotropic, square and orthotropic classes, elastic moduli, projections, and
+Cartesian and polar coordinates; the tensor algebra, the Kelvin–Mandel
+notation, the isotropic class and the Cartesian coordinate system hold in any
+dimension. The calls are in
+[Two dimensions, and any dimension](@ref man-dimensions), the theory in
+[Tensors of the plane, of space and of any dimension](@ref th-dimensions).
+
 ## The three objects
 
 `TensND` is built on three things, in this order:
@@ -103,6 +112,7 @@ dimensionless. See [Projection](@ref man-projection).
 | :--- | :--- |
 | understand what a basis and a variance are | [Bases](@ref man-bases), [Bases and variance](@ref th-bases-variance) |
 | build and manipulate tensors | [Tensors](@ref man-tensors) |
+| work in the plane, or in dimension 4 and above | [Two dimensions, and any dimension](@ref man-dimensions) |
 | use the compact symmetry-class types | [Structured tensors](@ref man-structured) |
 | convert between TI parametrizations | [Parametrizations](@ref man-parametrizations) |
 | find or impose a material symmetry | [Projection](@ref man-projection) |

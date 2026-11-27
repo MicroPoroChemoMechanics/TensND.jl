@@ -155,6 +155,58 @@ ISO ⊂ TI ⊂ ORTHO:
 
 Each accepts an optional axis or frame, and the `optimize_angles` keyword.
 
+## Exact membership: `project_exact`
+
+[`project_exact`](@ref)`(t, sym, n_or_frame...; rtol = 1e-10)` writes `t` in the
+storage of the class when it belongs to it, the projection of `project` if its
+relative distance is at most `rtol`, and returns `nothing` otherwise: it changes
+how a tensor is stored, never what it is.
+
+```@example proj
+project_exact(Tens(C), :TI, n)
+```
+
+```@example proj
+project_exact(Tens(C_tilt), :TI, n) === nothing
+```
+
+A distance between symbolic tensors cannot be compared with a tolerance: of a
+symbolic tensor, only an isotropic one, which every class contains, is written
+in the class.
+
+## In two dimensions
+
+The plane has three classes, `:ISO`, `:CUBIC` (the square class, a
+`TensCubic{2}`) and `:ORTHO` (a `TensOrtho{4,2}`), and no transversely isotropic
+one: `:TI` is refused. With the frame given, `Basis(θ)`, the projection is made
+in that frame; without it, the frame is found in closed form, with no search
+([Projections in the plane](@ref th-projection-plane)), up to a quarter turn
+that exchanges ``C_{11}`` and ``C_{22}``.
+
+```@example proj
+𝕋₂ = Tens(get_array(TensOrtho(10.0, 6.0, 3.0, 2.0, Basis(0.7))))    # orthotropic, its class forgotten
+B₂, d₂, drel₂ = project(𝕋₂, :ORTHO)
+get_data(B₂), drel₂
+```
+
+```@example proj
+get_data(best_fit_ortho(𝕋₂, Basis(0.7))), project(𝕋₂, :ORTHO, Basis(0.2))[3]
+```
+
+`best_sym_tens` tries `(:ISO, :CUBIC, :ORTHO)` in the plane:
+
+```@example proj
+ℚ₂ = Tens(get_array(cubic_from_constants(10.0, 4.0, 2.0, Basis(0.4))))
+best_sym_tens(𝕋₂)[4], best_sym_tens(ℚ₂)[4], (isorthotropic(ℚ₂), iscubic(ℚ₂), iscubic(𝕋₂))
+```
+
+`transverse_isotropify(t)` averages a tensor of the plane over the rotations of
+the plane; without the reflections, it keeps a part that has no major symmetry,
+which `isotropify` drops
+([Average over the rotations of the plane](@ref th-dimensions)). See
+[Two dimensions, and any dimension](@ref man-dimensions) for the whole of what
+is built in the plane.
+
 ## Two things worth stating in a report
 
 **Which tensor was projected.** The Euclidean distance is not invariant under

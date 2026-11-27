@@ -438,11 +438,16 @@ function angles(M::AbstractMatrix{T}, ::Val{3}) where {T}
     R = RotZYZ(M)
     return (θ = R.theta2, ϕ = R.theta1, ψ = R.theta3)
 end
+# A rotation of dimension `d` has `d(d-1)/2` parameters, which no convention of
+# the package names beyond dimension 3: the basis is then known by its vectors.
+angles(::AbstractMatrix, ::Val) = (;)
 
 """
     angles(M::AbstractMatrix{T})
 
-Determine the Euler angles corresponding to the input matrix supposed to be a rotation matrix or at least a similarity
+Determine the Euler angles corresponding to the input matrix supposed to be a rotation matrix or at least a similarity:
+one angle `θ` in dimension 2, the three angles `(θ, ϕ, ψ)` in dimension 3, and an empty `NamedTuple` in any
+other dimension, where a rotated basis is given by the matrix of its vectors.
 
 # Examples
 ```jldoctest

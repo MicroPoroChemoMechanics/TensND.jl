@@ -7,7 +7,7 @@
     # ═══════════════════════════════════════════════════════════════════════════
     @testsection "TensCubic — construction & traits" begin
         C = cubic_from_constants(10.0, 4.0, 2.0, can)
-        @test C isa TensCubic{Float64}
+        @test C isa TensCubic{3, Float64}
         @test size(C) == (3, 3, 3, 3)
         @test length(C) == 81
         @test get_basis(C) isa CanonicalBasis{3, Float64}
@@ -34,7 +34,7 @@
         @test cubic_constants(TensCubic(mandel_material(C), can)) == cubic_constants(C)
 
         # Element types promote, and the frame's is independent of the data's.
-        @test cubic_from_constants(10, 4, 2, can) isa TensCubic{Float64}
+        @test cubic_from_constants(10, 4, 2, can) isa TensCubic{3, Float64}
         d = ForwardDiff.Dual{:t}(10.0, 1.0)
         Cd = cubic_from_constants(d, 4.0, 2.0, can)
         @test eltype(Cd) <: ForwardDiff.Dual

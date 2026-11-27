@@ -38,6 +38,43 @@ typeof(Tens(get_array(T), ℬ, (:cov, :cov)))
 Data may come from a plain `Array`, or from a `Tensors.jl` container
 (`Tensor`, `SymmetricTensor`, `Vec`), in which case the symmetry is preserved.
 
+`Tens(a, ℬ)` reads the dimension on the size of `a`, at run time.
+[`static_tens`](@ref)`(a, ℬ)` builds the same tensor with the dimension read on
+the type of the basis, so that the result is inferred, and
+[`symmetric_tens`](@ref)`(a, ℬ)` stores the mean of `a` over its index
+symmetries (the transpose at order 2, the two minor symmetries at order 4), for
+an array symmetric by construction:
+
+```@example tens
+ℬ₂ = Basis(π / 6)
+a₂ = [1.0 2.0; 0.0 3.0]
+static_tens(a₂, ℬ₂) == Tens(a₂, ℬ₂), get_array(symmetric_tens(a₂, ℬ₂))
+```
+
+## In two dimensions
+
+A tensor has the dimension of its array of components: a vector of two
+components, a ``2\times2`` matrix or a ``2\times2\times2\times2`` array is a
+tensor of the plane, of order 1, 2 or 4, and every operation of this page
+applies to it.
+
+```@example tens
+ε₂ = Tens([1.0 0.2; 0.2 -0.5])
+get_order(ε₂), get_dim(ε₂), tr(ε₂)
+```
+
+Its Kelvin–Mandel vector has the three components ``(11, 22, \sqrt2\,12)``, and
+the matrix of a tensor of order 4 of the plane is ``3\times3``
+([Kelvin–Mandel](@ref man-tensors-km) below):
+
+```@example tens
+mandel(ε₂)
+```
+
+Beyond dimension 3 the components are held in a plain array, and the same
+operations apply. See [Two dimensions, and any dimension](@ref man-dimensions)
+for the whole of what is built in the plane and beyond.
+
 ## Components
 
 | Call | Returns |
@@ -153,16 +190,67 @@ laplacian(1 / get_coords(Spherical)[3], Spherical) |> pprint
 Structured types print in their compact algebraic form instead — see
 [Structured tensors](@ref man-structured).
 
-## Kelvin–Mandel
+## [Kelvin–Mandel](@id man-tensors-km)
 
-[`mandel`](@ref) maps a symmetric order-2 tensor to a 6-vector and a minor-symmetric
-order-4 tensor to a ``6\times6`` matrix; [`from_mandel`](@ref) inverts it. The
-convention and its consequences are on
+In dimension ``d``, [`mandel`](@ref) maps a symmetric order-2 tensor to a vector
+of ``n = d(d+1)/2`` components and a minor-symmetric order-4 tensor to an
+``n\times n`` matrix: 6 in space, 3 in the plane; [`from_mandel`](@ref) inverts
+it. The convention and its consequences are on
 [Kelvin–Mandel representation](@ref th-kelvin-mandel).
 
 ```@example tens2
 C = ti_from_constants(10.0, 3.0, 2.5, 12.0, 2.0, [0.0, 0.0, 1.0])
 mandel(C)
+```
+
+The bookkeeping of the notation is public: the size ``n`` of a dimension and
+back, the index pair of each slot, its weight, ``1`` on the diagonal and
+``\sqrt2`` off it, and the components of the identity.
+
+| Call | Returns |
+| :--- | :--- |
+| [`mandel_length`](@ref)`(d)` | ``n = d(d+1)/2`` |
+| [`mandel_dimension`](@ref)`(n)` | ``d``, refused for a size of no dimension |
+| [`mandel_pairs`](@ref)`(Val(d))` | the pair ``(i, j)`` of each slot, the diagonal first |
+| [`mandel_weights`](@ref)`(Val(d))` | the weight of each slot |
+| [`identity_mandel`](@ref)`(Val(d))` | the Kelvin–Mandel vector of ``\boldsymbol{1}`` |
+| [`mandel_rotation`](@ref)`(R)` | the ``n\times n`` matrix of the rotation of columns `R` |
+
+```@example tens2
+mandel_length(2), mandel_dimension(10), mandel_pairs(Val(3))
+```
+
+```@example tens2
+mandel_weights(Val(2)), identity_mandel(Val(2))
+```
+
+### The matrix of a linear map
+
+A tensor of order 4 with the minor symmetries maps a symmetric tensor of order
+2 onto another by double contraction; [`operator_matrix`](@ref) is the matrix of
+that map on the Kelvin–Mandel components, in the canonical basis or in a basis
+given (of the minor-symmetric part, whatever the storage), and
+[`from_operator_matrix`](@ref) builds the tensor back. At order 2 the matrix is
+that of the components.
+
+```@example tens2
+ℂ₂ = iso_stiffness(Val(2), 3.0, 1.0)
+M₂ = operator_matrix(ℂ₂)
+```
+
+```@example tens2
+mandel(from_operator_matrix(M₂, Val(4))) ≈ M₂
+```
+
+[`definiteness`](@ref) reads the sign of the quadratic form
+``\boldsymbol{\varepsilon}:\mathbb{C}:\boldsymbol{\varepsilon}`` on the
+eigenvalues of the symmetric part of that matrix, and
+[`major_asymmetry`](@ref) the relative norm of its skew part, zero for a
+major-symmetric tensor:
+
+```@example tens2
+𝔾₂ = TensOrtho(10.0, 6.0, 3.0, 2.0, 2.5, Basis(0.3))      # C₂₁ ≠ C₁₂
+definiteness(ℂ₂), definiteness(TensISO{2}(3.0, -1.0)), major_asymmetry(𝔾₂)
 ```
 
 ## Symmetry predicates

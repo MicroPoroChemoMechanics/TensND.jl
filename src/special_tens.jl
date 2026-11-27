@@ -45,12 +45,16 @@ TensND.TensCanonical{1, 3, Sym{PythonCall.Py}, Vec{3, Sym{PythonCall.Py}}}
 ``` 
 """
 𝐞(::Val{i}, ::Val{dim} = Val(3), ::Val{T} = Val(default_number_type())) where {i, dim, T <: Number} =
-    Tens(Vec{dim}(j -> j == i ? one(T) : zero(T)))
+    Tens(_vector_storage(j -> j == i ? one(T) : zero(T), Val(dim), T))
 
 """
     init_cartesian(coords = symbols("x y z", real = true))
+    init_cartesian(dim)
 
-Returns the coordinates, unit vectors and basis of the cartesian basis
+Returns the coordinates, unit vectors and basis of the cartesian basis, in the
+dimension of `coords`, whatever it is. With a dimension `dim` (an integer or a
+`Val`), the coordinates are the SymPy symbols `(x, y)`, `(x, y, z)`, or
+`(x1, …, xd)` beyond dimension 3.
 
 # Examples
 ```jldoctest
@@ -63,11 +67,12 @@ init_cartesian(coords) = Tuple(coords),
 
 init_cartesian(dim::Integer) = init_cartesian(Val(dim))
 # The default coordinates are SymPy symbols, defined by the extension that
-# SymPyPythonCall loads (`init_cartesian(::Val{2})`, `::Val{3}`).
-init_cartesian(::Val{dim}) where {dim} = throw(
+# SymPyPythonCall loads: `(x, y)`, `(x, y, z)`, and `(x1, …, xd)` beyond.
+init_cartesian(dim::Val) = init_cartesian(_default_cartesian_coords(dim, default_number_type()))
+_default_cartesian_coords(::Val{dim}, ::Type) where {dim} = throw(
     ArgumentError(
-        "init_cartesian($dim): the default coordinates are SymPy symbols, for dimensions 2 " *
-            "and 3; load SymPyPythonCall (`using SymPyPythonCall`), or pass the coordinates"
+        "init_cartesian($dim): the default coordinates are SymPy symbols; " *
+            "load SymPyPythonCall (`using SymPyPythonCall`), or pass the coordinates"
     )
 )
 

@@ -4,11 +4,15 @@
 #  where the class allows it.
 # =============================================================================
 
-Tensors.majorsymmetric(t::Union{TensISO{4}, TensCubic, TensOrtho{4, <:Any, 9}}) = t
+Tensors.majorsymmetric(t::Union{TensISO{4}, TensCubic, TensOrtho{4, 3, <:Any, 9}, TensOrtho{4, 2, <:Any, 4}}) = t
 # The symmetric part of the normal block, the nine-constant form on the same frame.
-function Tensors.majorsymmetric(t::TensOrtho{4, <:Any, 12})
+function Tensors.majorsymmetric(t::TensOrtho{4, 3, <:Any, 12})
     C11, C22, C33, C12, C13, C23, C44, C55, C66, C21, C31, C32 = get_data(t)
     return _rebuild(t, (C11, C22, C33, (C12 + C21) / 2, (C13 + C31) / 2, (C23 + C32) / 2, C44, C55, C66))
+end
+function Tensors.majorsymmetric(t::TensOrtho{4, 2, T, 5}) where {T}
+    C11, C22, C12, C66, C21 = get_data(t)
+    return TensOrtho{4, 2, T}((C11, C22, (C12 + C21) / 2, C66), frame(t))
 end
 Tensors.majorsymmetric(t::TensTI{4, T, 5}) where {T} = t
 # In the Walpole basis the major transpose swaps ℓ₃ and ℓ₄ and changes the sign

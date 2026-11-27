@@ -138,3 +138,24 @@ return `true` on ``\mathbb{I}``. Conversion up the chain is explicit:
 chosen axis, and [`iso_to_ortho`](@ref) on an orthotropic frame; the coefficients
 that result are computed on [Walpole basis](@ref th-walpole) and
 [Orthotropy](@ref th-orthotropy).
+
+## In two dimensions
+
+In the plane ``\mathbb{J} = \tfrac12\,\boldsymbol{1}\otimes\boldsymbol{1}`` and
+``\mathbb{K}::\mathbb{K} = 2``, so that the closest isotropic tensor is
+
+```math
+\mathrm{ISO}(\mathbb{T})
+=\bigl(\mathbb{T}::\mathbb{J}\bigr)\,\mathbb{J}
++\frac{\mathbb{T}::\mathbb{K}}{2}\,\mathbb{K}
+\qquad(d=2),
+```
+
+and an isotropic stiffness is ``\mathbb{C} = 2k\,\mathbb{J} + 2\mu\,\mathbb{K}``,
+with the in-plane bulk modulus ``k = \lambda + \mu``. The same tensor has two
+pairs ``(E, \nu)``: those of a material of space in plane strain, and those of
+the medium of the plane, ``E_2 = 4k\mu/(k + \mu)`` and
+``\nu_2 = (k - \mu)/(k + \mu)``. The chain of classes is
+``\text{ISO}\subset\text{square}\subset\text{ORTHO}``, with no transversely
+isotropic class. Both pairs, and the moduli of any dimension ``d``, are derived
+in [Tensors of the plane, of space and of any dimension](@ref th-dimensions).

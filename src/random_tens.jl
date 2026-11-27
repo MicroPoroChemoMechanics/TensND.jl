@@ -26,6 +26,23 @@ random_rotation(rng::AbstractRNG, ::Type{T} = Float64) where {T <: AbstractFloat
 random_rotation(::Type{T} = Float64) where {T <: AbstractFloat} = random_rotation(Random.default_rng(), T)
 
 """
+    random_rotation([rng], Val(d), [T = Float64]) -> SMatrix{d, d, T}
+
+A rotation drawn from the Haar measure of SO(d), in any dimension `d`: an
+orthogonal matrix drawn from the Haar measure of O(d), the last column of which
+is reversed when its determinant is `-1`. In dimension 2 it is the rotation of
+an angle uniform on the circle; `Val(3)` is the method above.
+"""
+random_rotation(rng::AbstractRNG, ::Val{3}, ::Type{T} = Float64) where {T <: AbstractFloat} = random_rotation(rng, T)
+function random_rotation(rng::AbstractRNG, ::Val{d}, ::Type{T} = Float64) where {d, T <: AbstractFloat}
+    Q = _haar_orthogonal(rng, T, Val(d))
+    # Reversing one column maps the Haar measure of O(d) restricted to the
+    # matrices of determinant -1 onto that of SO(d).
+    return Q * Diagonal(SVector{d, T}(ntuple(i -> i == d ? sign(det(Q)) : one(T), Val(d))))
+end
+random_rotation(dim::Val, ::Type{T} = Float64) where {T <: AbstractFloat} = random_rotation(Random.default_rng(), dim, T)
+
+"""
     random_axis([rng], [T = Float64]) -> NTuple{3, T}
 
 A unit vector drawn uniformly on the unit sphere: three independent standard
@@ -37,6 +54,16 @@ random_axis(rng::AbstractRNG, ::Type{T} = Float64) where {T <: AbstractFloat} =
 random_axis(::Type{T} = Float64) where {T <: AbstractFloat} = random_axis(Random.default_rng(), T)
 
 """
+    random_axis([rng], Val(d), [T = Float64]) -> NTuple{d, T}
+
+A unit vector drawn uniformly on the unit sphere of dimension `d`: `d`
+independent standard normal numbers, normalized.
+"""
+random_axis(rng::AbstractRNG, ::Val{d}, ::Type{T} = Float64) where {d, T <: AbstractFloat} =
+    Tuple(normalize(randn(rng, SVector{d, T})))
+random_axis(dim::Val, ::Type{T} = Float64) where {T <: AbstractFloat} = random_axis(Random.default_rng(), dim, T)
+
+"""
     random_basis([rng], [T = Float64]) -> RotatedBasis{3, T}
 
 The orthonormal basis of the columns of a [`random_rotation`](@ref): a frame
@@ -46,6 +73,16 @@ or cubic tensor.
 random_basis(rng::AbstractRNG, ::Type{T} = Float64) where {T <: AbstractFloat} =
     RotatedBasis(random_rotation(rng, T), Val(3), Val(:typed))
 random_basis(::Type{T} = Float64) where {T <: AbstractFloat} = random_basis(Random.default_rng(), T)
+
+"""
+    random_basis([rng], Val(d), [T = Float64]) -> RotatedBasis{d, T}
+
+The orthonormal basis of the columns of a [`random_rotation`](@ref) of
+dimension `d`: a frame of uniformly random orientation.
+"""
+random_basis(rng::AbstractRNG, ::Val{d}, ::Type{T} = Float64) where {d, T <: AbstractFloat} =
+    RotatedBasis(random_rotation(rng, Val(d), T), Val(d), Val(:typed))
+random_basis(dim::Val, ::Type{T} = Float64) where {T <: AbstractFloat} = random_basis(Random.default_rng(), dim, T)
 
 # ── The laws of the coefficients ─────────────────────────────────────────────
 
@@ -109,9 +146,9 @@ full for another shape or element type:
 | `TensISO{4, dim}`, `TensISO{2, dim}` | isotropic | none |
 | `TensTI{4}` (`N = 5`), `TensTI{4, T, N}` (`N = 5, 6, 8`) | transversely isotropic | `axis = random_axis(rng, T)`, or `frame` |
 | `TensTI{2}` (`N = 2`), `TensTI{2, T, N}` (`N = 2, 3`) | transversely isotropic | `axis = random_axis(rng, T)`, or `frame` |
-| `TensOrtho{4}` (`N = 9`), `TensOrtho{4, T, N}` (`N = 9, 12`) | orthotropic | `frame = random_basis(rng, T)` |
-| `TensOrtho{2}`, `TensOrtho{2, T}` | orthotropic | `frame = random_basis(rng, T)` |
-| `TensCubic`, `TensCubic{T}` | cubic | `frame = random_basis(rng, T)` |
+| `TensOrtho{4, 3}` (`N = 9`), `TensOrtho{4, 3, T, N}` (`N = 9, 12`) | orthotropic | `frame = random_basis(rng, T)` |
+| `TensOrtho{2, 3}`, `TensOrtho{2, 3, T}` | orthotropic | `frame = random_basis(rng, T)` |
+| `TensCubic`, `TensCubic{3, T}` | cubic | `frame = random_basis(rng, T)` |
 | `Tens{order, dim}`, `Tens{order, dim, T}` (`order = 2, 4`) | generic | none: its law is invariant |
 
 Passing `axis` or `frame` fixes the direction and leaves only the coefficients
@@ -195,25 +232,28 @@ end
 
 # Orthotropic: the 3×3 normal block and the three shear eigenvalues, 2C₄₄,
 # 2C₅₅, 2C₆₆ in the Kelvin–Mandel matrix.
-Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4}}; kwargs...) = rand(rng, TensOrtho{4, Float64, 9}; kwargs...)
-function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, T, 9}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
+# The dimension left out is 3, as the element type left out is `Float64`.
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{order}}; kwargs...) where {order} = rand(rng, TensOrtho{order, 3}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, 3}}; kwargs...) = rand(rng, TensOrtho{4, 3, Float64, 9}; kwargs...)
+function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, 3, T, 9}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
     B = _random_symmetric(rng, T, Val(3), definite)
     s = ntuple(_ -> _random_eigenvalue(rng, T, definite) / 2, Val(3))
     return TensOrtho{4}(B[1, 1], B[2, 2], B[3, 3], B[1, 2], B[1, 3], B[2, 3], s..., frame)
 end
-function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, T, 12}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
-    _refuse_definite(definite, "a TensOrtho{4} of 12 coefficients")
+function Random.rand(rng::AbstractRNG, ::Type{TensOrtho{4, 3, T, 12}}; frame = random_basis(rng, T), definite::Bool = false) where {T}
+    _refuse_definite(definite, "a TensOrtho{4, 3} of 12 coefficients")
     B = _random_general(rng, T, Val(3))
     s = ntuple(_ -> randn(rng, T) / 2, Val(3))
     return TensOrtho{4}(B[1, 1], B[2, 2], B[3, 3], B[1, 2], B[1, 3], B[2, 3], s..., B[2, 1], B[3, 1], B[3, 2], frame)
 end
-Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2}}; kwargs...) = rand(rng, TensOrtho{2, Float64}; kwargs...)
-Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2, T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2, 3}}; kwargs...) = rand(rng, TensOrtho{2, 3, Float64}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensOrtho{2, 3, T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
     TensOrtho{2}(ntuple(_ -> _random_eigenvalue(rng, T, definite), Val(3))..., frame)
 
 # Cubic: the three eigenvalues, on 𝕁, 𝔼 and 𝕋.
-Random.rand(rng::AbstractRNG, ::Type{TensCubic}; kwargs...) = rand(rng, TensCubic{Float64}; kwargs...)
-Random.rand(rng::AbstractRNG, ::Type{TensCubic{T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
+Random.rand(rng::AbstractRNG, ::Type{TensCubic}; kwargs...) = rand(rng, TensCubic{3}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensCubic{dim}}; kwargs...) where {dim} = rand(rng, TensCubic{dim, Float64}; kwargs...)
+Random.rand(rng::AbstractRNG, ::Type{TensCubic{3, T}}; frame = random_basis(rng, T), definite::Bool = false) where {T} =
     TensCubic(ntuple(_ -> _random_eigenvalue(rng, T, definite), Val(3))..., frame)
 
 # Generic: the whole Kelvin–Mandel matrix, or the whole array.
@@ -234,14 +274,23 @@ function _random_generic(rng, ::Val{4}, ::Val{dim}, ::Type{T}, ::Val{:minor}, de
 end
 function _random_generic(rng, ::Val{4}, ::Val{dim}, ::Type{T}, ::Val{:none}, definite) where {dim, T}
     _refuse_definite(definite, "a generic tensor of order 4 without symmetry")
-    return Tens(Tensor{4, dim}(randn(rng, T, dim, dim, dim, dim)))
+    return Tens(_generic_storage(randn(rng, T, dim, dim, dim, dim), Val(dim)))
 end
 _random_generic(rng, ::Val{2}, ::Val{dim}, ::Type{T}, ::Val{:symmetric}, definite) where {dim, T} =
-    Tens(SymmetricTensor{2, dim, T}(_random_symmetric(rng, T, Val(dim), definite)))
+    Tens(_symmetric_storage(_random_symmetric(rng, T, Val(dim), definite), Val(dim)))
 function _random_generic(rng, ::Val{2}, ::Val{dim}, ::Type{T}, ::Val{:none}, definite) where {dim, T}
     _refuse_definite(definite, "a generic tensor of order 2 without symmetry")
-    return Tens(Tensor{2, dim}(randn(rng, T, dim, dim)))
+    return Tens(_generic_storage(randn(rng, T, dim, dim), Val(dim)))
 end
+# What holds the components drawn: a tensor of Tensors.jl up to dimension 3,
+# the array itself beyond.
+_generic_storage(A, dim::Val) = _generic_storage(A, dim, _in_tensors_jl(dim))
+_generic_storage(A::Array{<:Any, order}, ::Val{dim}, ::Val{true}) where {order, dim} = Tensor{order, dim}(A)
+_generic_storage(A::Array, ::Val, ::Val{false}) = A
+_symmetric_storage(A, dim::Val) = _symmetric_storage(A, dim, _in_tensors_jl(dim))
+_symmetric_storage(A::SMatrix{dim, dim, T}, ::Val{dim}, ::Val{true}) where {dim, T} = SymmetricTensor{2, dim, T}(A)
+_symmetric_storage(A::SMatrix, ::Val, ::Val{false}) = Matrix(A)
+
 _random_generic(rng, ::Val{order}, ::Val, ::Type, ::Val{S}, definite) where {order, S} =
     throw(
     ArgumentError(
