@@ -46,8 +46,28 @@ end
 _thomsen_density(::Nothing) = _throw_no_density()
 _thomsen_density(ρ) = ρ
 
+# The stiffness written as a transversely isotropic one, which Thomsen's
+# parameters need: a TensTI as it is; an isotropic one about any axis (its ε, δ
+# and γ vanish), e₃ when none is given; any other when it belongs to the class,
+# about the axis given or, numbers only, about the axis found.
+_as_ti(t::TensTI{4}, ::Nothing) = t
+_as_ti(t::TensTI{4}, n) = isparallel(Tuple(n), axis(t)) ? t : _throw_not_ti(t, n)
+_as_ti(t::TensISO{4, 3}, n) = iso_to_ti(t, something(n, (0, 0, 1)))
+function _as_ti(t::AbstractTens{4, 3}, n)
+    ti = n === nothing ? project_exact(t, :TI) : project_exact(t, :TI, n)
+    return ti === nothing ? _throw_not_ti(t, n) : ti
+end
+@noinline _throw_not_ti(t, axis) = throw(
+    ArgumentError(
+        "Thomsen's parameters are those of a transversely isotropic medium, and this " *
+            "$(nameof(typeof(t))) is not one" * (axis === nothing ? "" : " about the axis $(Tuple(axis))") *
+            ". For any symmetry, use generalized_thomsen_parameters (Mensch and Rasolofosaon)"
+    )
+)
+
 """
     thomsen_parameters(t::TensTI{4}, ρ) → (V_P0, V_S0, ε, δ, γ)
+    thomsen_parameters(t::AbstractTens{4,3}, ρ; axis = nothing)
 
 Thomsen's parameters of the transversely isotropic stiffness `t` of a medium
 of density `ρ`, as a named tuple: the velocities of the P and S waves along
@@ -66,24 +86,36 @@ parameters are small for a weakly anisotropic medium
 ([Thomsen's parameters](@ref th-thomsen)). It is
 `ti_constants(t; form = :thomsen, density = ρ)` with names; the converse is
 `ti_from_constants(V_P0, V_S0, ε, δ, γ, axis; form = :thomsen, density = ρ)`.
+
+Any other stiffness is accepted when it is transversely isotropic: an
+isotropic one about any `axis` (``e_3`` by default), whose ``\\varepsilon``,
+``\\delta`` and ``\\gamma`` vanish; a tensor of another type about the `axis` given
+or, for numbers, about the axis found ([`project_exact`](@ref)). Otherwise the
+call is refused: the generalized parameters of
+[`generalized_thomsen_parameters`](@ref) hold for any symmetry.
 """
-thomsen_parameters(t::TensTI{4}, ρ) =
+thomsen_parameters(t::AbstractTens{4, 3}, ρ; axis = nothing) = _thomsen_parameters(_as_ti(t, axis), ρ)
+_thomsen_parameters(t::TensTI{4}, ρ) =
     NamedTuple{(:V_P0, :V_S0, :ε, :δ, :γ)}(_thomsen_of_components(_ti_components(t)..., ρ))
 
 """
     anellipticity(t::TensTI{4}) → η
+    anellipticity(t::AbstractTens{4,3}; axis = nothing)
 
 The anellipticity ``\\eta = (\\varepsilon - \\delta)/(1 + 2\\delta)`` of a
 transversely isotropic stiffness: zero when the slowness curve of the P wave
-is an ellipse. It does not depend on the density.
+is an ellipse. It does not depend on the density. Another stiffness is taken
+as [`thomsen_parameters`](@ref) takes it.
 """
-function anellipticity(t::TensTI{4})
+anellipticity(t::AbstractTens{4, 3}; axis = nothing) = _anellipticity(_as_ti(t, axis))
+function _anellipticity(t::TensTI{4})
     _, _, ε, δ, _ = _thomsen_of_components(_ti_components(t)..., one(eltype(t)))
     return (ε - δ) / (1 + 2 * δ)
 end
 
 """
     weak_wave_modes(t::TensTI{4}, ρ, n) → (qP = V, qSV = V, SH = V)
+    weak_wave_modes(t::AbstractTens{4,3}, ρ, n; axis = nothing)
 
 The phase velocities of the three modes along `n` to first order in Thomsen's
 parameters,
@@ -100,8 +132,10 @@ V_{SH} \\approx V_{S0}\\,(1 + \\gamma\\sin^2\\theta) ,
 
 ``\\theta`` being the angle between `n` and the axis. [`wave_modes`](@ref)
 gives the exact velocities, of which these are the first-order series.
+Another stiffness is taken as [`thomsen_parameters`](@ref) takes it.
 """
-function weak_wave_modes(t::TensTI{4}, ρ, n)
+weak_wave_modes(t::AbstractTens{4, 3}, ρ, n; axis = nothing) = _weak_wave_modes(_as_ti(t, axis), ρ, n)
+function _weak_wave_modes(t::TensTI{4}, ρ, n)
     V_P0, V_S0, ε, δ, γ = _thomsen_of_components(_ti_components(t)..., ρ)
     v, a = _extract_vec(n), axis(t)
     c² = (v[1] * a[1] + v[2] * a[2] + v[3] * a[3])^2 / (v[1]^2 + v[2]^2 + v[3]^2)
@@ -115,6 +149,7 @@ end
 
 """
     squared_moveout_velocities(t::TensTI{4}, ρ) → (qP = V², qSV = V², SH = V²)
+    squared_moveout_velocities(t::AbstractTens{4,3}, ρ; axis = nothing)
 
 The squares of the short-spread moveout velocities of a horizontal reflector
 in a medium of vertical axis, exact for any strength of the anisotropy:
@@ -126,9 +161,10 @@ its phase velocity ([Thomsen's parameters](@ref th-thomsen)). The squares are
 returned because the qSV one is negative in many rocks
 (``\\varepsilon - \\delta`` large and negative): the travel time of the
 reflected qSV wave then decreases with the offset, and no moveout velocity
-exists.
+exists. Another stiffness is taken as [`thomsen_parameters`](@ref) takes it.
 """
-function squared_moveout_velocities(t::TensTI{4}, ρ)
+squared_moveout_velocities(t::AbstractTens{4, 3}, ρ; axis = nothing) = _squared_moveout_velocities(_as_ti(t, axis), ρ)
+function _squared_moveout_velocities(t::TensTI{4}, ρ)
     V_P0, V_S0, ε, δ, γ = _thomsen_of_components(_ti_components(t)..., ρ)
     return (qP = V_P0^2 * (1 + 2 * δ), qSV = V_S0^2 + 2 * V_P0^2 * (ε - δ), SH = V_S0^2 * (1 + 2 * γ))
 end

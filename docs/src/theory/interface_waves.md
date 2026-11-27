@@ -5,6 +5,13 @@
 
     **Tutorials**: [Reflection and transmission at an interface](@ref tut-reflection)
 
+!!! note "Two-index components"
+    ``C_{11}``, ``C_{44}``, ``C_{66}``, … are the two-index (Voigt) components
+    ``C_{IJ}`` of the stiffness, ``I = 1, \dots, 6`` standing for the pairs 11,
+    22, 33, 23, 13, 12 (``C_{44} = C_{2323}``, ``C_{66} = C_{1212}``), not the
+    entries of the Kelvin–Mandel matrix, which carry factors ``\sqrt2`` and ``2``.
+    Both matrices are written in full in [Contrast with Voigt](@ref th-voigt).
+
 A plane wave that meets the plane separating two media gives rise to reflected
 and transmitted waves. This page derives which ones (the law of
 Snell-Descartes), how their amplitudes follow from the conditions on the

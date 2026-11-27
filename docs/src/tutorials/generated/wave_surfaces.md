@@ -11,6 +11,13 @@ EditURL = "../../../../scripts/25_wave_surfaces.jl"
 
     **Tutorials**: [Thomsen's parameters](@ref tut-thomsen) · [Generalized Thomsen parameters](@ref tut-generalized-thomsen) · [Reflection and transmission at an interface](@ref tut-reflection)
 
+!!! note "Two-index components"
+    ``C_{11}``, ``C_{44}``, ``C_{66}``, … are the two-index (Voigt) components
+    ``C_{IJ}`` of the stiffness, ``I = 1, \dots, 6`` standing for the pairs 11,
+    22, 33, 23, 13, 12 (``C_{44} = C_{2323}``, ``C_{66} = C_{1212}``), not the
+    entries of the Kelvin–Mandel matrix, which carry factors ``\sqrt2`` and ``2``.
+    Both matrices are written in full in [Contrast with Voigt](@ref th-voigt).
+
 In an anisotropic solid the velocity of a wave depends on its direction, and
 its energy does not travel along the normal to its fronts. Three surfaces
 describe this, one sheet per wave: the phase velocities, the slownesses and

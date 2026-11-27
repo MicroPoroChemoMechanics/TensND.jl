@@ -39,7 +39,7 @@ T_{ijkl} & K,L\le3\\
 These are [`mandel`](@ref) and its inverse [`from_mandel`](@ref); the index ordering is
 `_KM_COUPLES` in `src/tens_projection.jl`.
 
-## Role of the ``\sqrt2`` factors
+## Role of the √2 factors
 
 The factors are chosen so that the map is an **isometry** for the Frobenius
 scalar product of [Tensor algebra](@ref th-tensor-algebra). Every line below is
@@ -89,6 +89,52 @@ so that ``C_{44} = C_{2323}`` and ``S_{44} = 4S_{2323}``, and
 the Voigt matrix of a stiffness is the Voigt matrix of the compliance, not of
 the inverse read as a stiffness ([`voigt_stiffness`](@ref),
 [`voigt_compliance`](@ref)).
+
+In full, the pair ``I \leftrightarrow (ij)`` is ``1 \leftrightarrow 11``,
+``2 \leftrightarrow 22``, ``3 \leftrightarrow 33``, ``4 \leftrightarrow 23``,
+``5 \leftrightarrow 13``, ``6 \leftrightarrow 12``, and a transversely isotropic
+stiffness of axis ``\underline{e}_3`` has the two matrices
+
+```math
+\big[C_{IJ}\big] =
+\begin{pmatrix}
+C_{11} & C_{12} & C_{13} & 0 & 0 & 0\\
+C_{12} & C_{11} & C_{13} & 0 & 0 & 0\\
+C_{13} & C_{13} & C_{33} & 0 & 0 & 0\\
+0 & 0 & 0 & C_{44} & 0 & 0\\
+0 & 0 & 0 & 0 & C_{44} & 0\\
+0 & 0 & 0 & 0 & 0 & C_{66}
+\end{pmatrix},
+\qquad
+M =
+\begin{pmatrix}
+C_{11} & C_{12} & C_{13} & 0 & 0 & 0\\
+C_{12} & C_{11} & C_{13} & 0 & 0 & 0\\
+C_{13} & C_{13} & C_{33} & 0 & 0 & 0\\
+0 & 0 & 0 & 2C_{44} & 0 & 0\\
+0 & 0 & 0 & 0 & 2C_{44} & 0\\
+0 & 0 & 0 & 0 & 0 & 2C_{66}
+\end{pmatrix},
+```
+
+``C_{66} = (C_{11} - C_{12})/2``, ``C_{44} = C_{2323} = C_{1313}``. A component of a
+general stiffness coupling a normal and a shear pair is ``\sqrt2`` times larger
+in ``M`` (``M_{14} = \sqrt2\,C_{14}``). **Wherever this documentation writes a
+stiffness component with two indices, ``C_{11}``, ``C_{44}``, ``C_{66}``, …, it
+is the two-index (Voigt) component ``C_{IJ}`` of the left matrix**, the language
+of the literature on waves and anisotropy; the Kelvin–Mandel matrix is the one
+the library computes with. The two matrices of a transversely isotropic
+stiffness given by its components:
+
+```@example voigt_full
+using TensND
+C = ti_from_constants(10.0, 4.0, 3.0, 8.0, 2.5, [0, 0, 1]; form = :components)   # C₁₁, C₁₂, C₁₃, C₃₃, C₄₄
+voigt_stiffness(C)
+```
+
+```@example voigt_full
+Matrix(mandel(C))
+```
 
 The last line of the table is the decisive one for this library and is
 developed next.

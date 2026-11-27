@@ -5,6 +5,13 @@
 
     **Tutorials**: [Thomsen's parameters and weak anisotropy](@ref tut-thomsen)
 
+!!! note "Two-index components"
+    ``C_{11}``, ``C_{44}``, ``C_{66}``, … are the two-index (Voigt) components
+    ``C_{IJ}`` of the stiffness, ``I = 1, \dots, 6`` standing for the pairs 11,
+    22, 33, 23, 13, 12 (``C_{44} = C_{2323}``, ``C_{66} = C_{1212}``), not the
+    entries of the Kelvin–Mandel matrix, which carry factors ``\sqrt2`` and ``2``.
+    Both matrices are written in full in [Contrast with Voigt](@ref th-voigt).
+
 The five constants of a transversely isotropic stiffness do not tell at a
 glance how its waves differ from those of an isotropic medium.
 [thomsen1986](@citet) replaces them, with the density, by two velocities and

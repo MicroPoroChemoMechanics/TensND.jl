@@ -11,6 +11,13 @@ EditURL = "../../../../scripts/27_generalized_thomsen.jl"
 
     **Tutorials**: [Thomsen's parameters and weak anisotropy](@ref tut-thomsen) · [Stress-induced anisotropy](@ref tut-stress-anisotropy)
 
+!!! note "Two-index components"
+    ``C_{11}``, ``C_{44}``, ``C_{66}``, … are the two-index (Voigt) components
+    ``C_{IJ}`` of the stiffness, ``I = 1, \dots, 6`` standing for the pairs 11,
+    22, 33, 23, 13, 12 (``C_{44} = C_{2323}``, ``C_{66} = C_{1212}``), not the
+    entries of the Kelvin–Mandel matrix, which carry factors ``\sqrt2`` and ``2``.
+    Both matrices are written in full in [Contrast with Voigt](@ref th-voigt).
+
 Thomsen's three parameters describe a transversely isotropic medium. A rock
 measured in every direction may have no symmetry at all: its stiffness then
 has 21 constants. To first order in the deviation from isotropy, the
