@@ -1020,7 +1020,7 @@ end
     # exact derivatives are compared exactly
     Q = Array(Tensor{4, 3}(Tensors.symmetric(Tensor{4, 3}(rand(rng, -3:3, 3, 3, 3, 3) .// 2))))
     @test get_array(Tens(Tensor{4, 3}(ForwardDiff.Dual.(Q, Q)))) isa SymmetricTensor
-    Qa = copy(Q); Qa[1, 2, 1, 1] += 1 // 10^20
+    Qa = copy(Q); Qa[1, 2, 1, 1] += 1 // 1000
     @test get_array(Tens(Tensor{4, 3}(ForwardDiff.Dual.(Q, Qa)))) isa Tensor
     # a dual number without partials
     @test get_array(Tens(Tensor{4, 3}(ForwardDiff.Dual.(Array(S₀))))) isa SymmetricTensor
