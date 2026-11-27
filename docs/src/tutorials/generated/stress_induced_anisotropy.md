@@ -24,6 +24,7 @@ slopes of Eqs. (18)–(20) of [johnson1996](@citet), after
 ````@example stress_induced_anisotropy
 using TensND
 using LinearAlgebra
+using ForwardDiff
 using JSON
 using Printf
 using Plots
@@ -187,6 +188,119 @@ constants, a few tens of MPa for this granite (values in GPa):
 ````
 
 At 20 MPa the exact anisotropies already depart from them.
+
+## A wider table, with natural velocities
+
+[rasolofosaon1998](@citet) gathers in his Table 1 the constants of 23
+materials and rocks, with the P anisotropy ``A_p`` and the S birefringence
+``B_s`` per unit of uniaxial compression, counted positive when the velocity is
+higher along the stress. They are those of the natural velocities ``W``: the
+derivatives at zero stress of ``(W_{\parallel} - W_{\perp})/W_{\parallel}`` for the P
+waves and of ``(W_{S_1} - W_{S_2})/W_{S_1}`` for the S waves across the stress,
+which `prestressed_waves` gives directly:
+
+````@example stress_induced_anisotropy
+data98 = JSON.parsefile(joinpath(pkgdir(TensND), "data", "literature", "rasolofosaonOGST1998.json"))
+table98 = data98["tables"]["table_1"]
+nothing # hide
+
+Main.show_literature("rasolofosaonOGST1998") # hide
+````
+
+````@example stress_induced_anisotropy
+function natural_coefficients(K, G, l, m, n)
+    s = ThirdOrderIsotropic(K - 2G / 3, G, l, m, n)
+    E, ν = young_poisson(s.λ, s.μ)
+    W(σ, N) = prestressed_waves(s, 1.0, uniaxial_gradient(σ, E, ν), N).velocity
+    A(σ) = (W(σ, [0.0, 0.0, 1.0])[1] - W(σ, [1.0, 0.0, 0.0])[1]) / W(σ, [0.0, 0.0, 1.0])[1]
+    B(σ) = (w = W(σ, [1.0, 0.0, 0.0]); (w[2] - w[3]) / w[2])
+    return ForwardDiff.derivative(A, 0.0), ForwardDiff.derivative(B, 0.0)
+end
+@printf "%-22s %10s %10s %10s %10s\n" "material" "A_p" "table" "B_s" "table"
+for r in table98
+    A, B = natural_coefficients(r["K (GPa)"], r["mu (GPa)"], r["l (GPa)"], r["m (GPa)"], r["n (GPa)"])
+    @printf "%-22s %10.4g %10.4g %10.4g %10.4g\n" r["material"] A r["A_p (1/GPa)"] B r["B_s (1/GPa)"]
+end
+````
+
+The values recomputed from the constants of each row agree with the printed
+ones to the printed digits, except two: for Juvite the printed ``A_p`` is not
+that of the constants printed in its row (it would be with
+``m = 7.5\times10^6`` GPa instead of the printed ``9.3\times10^6``), and for
+Rischorrite the two have the same magnitude and opposite signs.
+
+The splitting compares the two S waves of one direction: it is the same with
+natural and true velocities. The P anisotropy compares two directions, and
+the two kinds of velocity differ by the stretch ``|\boldsymbol{F}\cdot\underline{N}|``:
+for the Barre granite the true one is ``-a_P`` of the table of Johnson and
+Rasolofosaon,
+
+````@example stress_induced_anisotropy
+-acoustoelastic_coefficients(barre).a_P
+````
+
+## A shale anisotropic at rest
+
+A shale is transversely isotropic at rest, and its stiffness changes with the
+stress through isotropic third-order constants ([Third-order elasticity](@ref th-third-order),
+section 5). [prioul2004](@citet) measure the five constants of a North Sea
+shale at several effective pressures and fit ``C_{111}``, ``C_{112}``, ``C_{123}``
+in two intervals of pressure, each about a reference state (GPa):
+
+````@example stress_induced_anisotropy
+data04 = JSON.parsefile(joinpath(pkgdir(TensND), "data", "literature", "prioulGEO2004.json"))
+stiffnesses, constants = data04["tables"]["table_1"], data04["tables"]["table_2"]
+nothing # hide
+
+Main.show_literature("prioulGEO2004") # hide
+````
+
+The stiffness at a reference pressure, from its five components (axis
+``\underline{e}_3``, ``C_{12} = C_{11} - 2C_{66}``), and its prediction at another
+effective pressure ``P``: the strain of the hydrostatic change
+``-(P - P_{\mathrm{ref}})\,\boldsymbol{1}`` (compression negative, MPa to GPa) through
+the compliance at the reference, then `strain_stiffening`:
+
+````@example stress_induced_anisotropy
+function measured(P)
+    r = only(filter(r -> r["Pc (MPa)"] - r["Pp (MPa)"] == P && r["Pp (MPa)"] == 0, stiffnesses))
+    C11, C33, C66, C44 = r["c11 (GPa)"], r["c33 (GPa)"], r["c66 (GPa)"], r["c44 (GPa)"]
+    return ti_from_constants(C11, C11 - 2C66, r["c13 (GPa)"], C33, C44, [0.0, 0.0, 1.0]; form = :components, role = :stiffness)
+end
+function predicted(ℂʳ, Pʳ, c, P)
+    s = third_order_from_constants(0.0, 0.0, c["c111 (GPa)"], c["c112 (GPa)"], c["c123 (GPa)"])
+    E = canonical_components(inv(ℂʳ) ⊡ Tens(-(P - Pʳ) / 1000 * Matrix(1.0I, 3, 3)))
+    return ℂʳ + strain_stiffening(s, Array(E))
+end
+components(ℂ) = (V = voigt_stiffness(ℂ); (C11 = V[1, 1], C33 = V[3, 3], C13 = V[1, 3], C66 = V[6, 6], C44 = V[4, 4]))
+nothing # hide
+````
+
+The two intervals, their reference states and the effective pressures of the
+table that fall in them (Pc − Pp, the confining minus the pore pressure):
+
+````@example stress_induced_anisotropy
+intervals = [(c = constants[1], Pʳ = 10.0, P = 5:1.0:30), (c = constants[2], Pʳ = 40.0, P = 30:2.0:100)]
+p = plot(; xlabel = "effective pressure (MPa)", ylabel = "stiffness (GPa)", legend = :outerright, size = (720, 400), left_margin = 4Plots.mm, bottom_margin = 4Plots.mm)
+for (j, (name, key)) in enumerate(((:C11, "c11 (GPa)"), (:C33, "c33 (GPa)"), (:C13, "c13 (GPa)"), (:C66, "c66 (GPa)"), (:C44, "c44 (GPa)")))
+    for (i, iv) in enumerate(intervals)
+        ℂʳ = measured(iv.Pʳ)
+        plot!(p, collect(iv.P), [components(predicted(ℂʳ, iv.Pʳ, iv.c, P))[name] for P in iv.P]; color = j, lw = 2, label = i == 1 ? string(name) : "")
+    end
+    points = [(r["Pc (MPa)"] - r["Pp (MPa)"], r[key]) for r in stiffnesses if r[key] !== nothing]
+    scatter!(p, first.(points), last.(points); color = j, label = "")
+end
+p
+````
+
+The lines are the predictions of each interval from its reference state, the
+points the measured components, those at a pore pressure of 20 MPa included.
+The component ``C_{13}`` is not used in the fit of the third-order constants;
+its prediction and the measures at the pressures of the first interval:
+
+````@example stress_induced_anisotropy
+[(P, components(predicted(measured(10.0), 10.0, constants[1], P)).C13, measured(P) |> components |> c -> c.C13) for P in (5.0, 20.0)]
+````
 
 ## The slopes and the coefficients with symbols
 

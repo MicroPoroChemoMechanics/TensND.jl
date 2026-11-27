@@ -172,6 +172,32 @@ toe_energy(c, F) = strain_energy(ThirdOrderIsotropic(c...), (transpose(F) * F - 
         end
     end
 
+    @testsection "strain stiffening and the constants of the two-index notation" begin
+        # the tangent is the isotropic stiffness plus the stiffening
+        E = (transpose(TOE_F) * TOE_F - I) / 2
+        @test tangent_stiffness(s, E) ≈ TensISO{3}(3λ + 2μ, 2μ) + strain_stiffening(s, E)
+        @test iszero(Array(canonical_components(strain_stiffening(s, zero(E)))))
+        # the components of Prioul et al. (2004), Eq. (1), for principal strains,
+        # with C₁₄₄ = (C₁₁₂ − C₁₂₃)/2 and C₁₅₅ = (C₁₁₁ − C₁₁₂)/4
+        c = third_order_constants(s)
+        C144, C155 = (c.C112 - c.C123) / 2, (c.C111 - c.C112) / 4
+        E₁, E₂, E₃ = 1.0e-3, -2.0e-3, 0.5e-3
+        V = voigt_stiffness(strain_stiffening(s, [E₁ 0 0; 0 E₂ 0; 0 0 E₃]))
+        @test V[1, 1] ≈ c.C111 * E₁ + c.C112 * (E₂ + E₃)
+        @test V[3, 3] ≈ c.C111 * E₃ + c.C112 * (E₁ + E₂)
+        @test V[1, 2] ≈ c.C112 * (E₁ + E₂) + c.C123 * E₃
+        @test V[1, 3] ≈ c.C112 * (E₁ + E₃) + c.C123 * E₂
+        @test V[4, 4] ≈ C144 * E₁ + C155 * (E₂ + E₃)
+        @test V[6, 6] ≈ C144 * E₃ + C155 * (E₁ + E₂)
+        # the converse of third_order_constants
+        t = third_order_from_constants(λ, μ, c.C111, c.C112, c.C123)
+        @test collect(Float64, (t.l, t.m, t.n)) ≈ collect(Float64, (s.l, s.m, s.n))
+        @inferred strain_stiffening(s, E)
+        @syms a b d
+        cs = third_order_constants(third_order_from_constants(1, 1, a, b, d))
+        @test iszero(simplify(cs.C111 - a)) && iszero(simplify(cs.C112 - b)) && iszero(simplify(cs.C123 - d))
+    end
+
     @testsection "symbols" begin
         @syms λs μs ls ms ns es
         ss = ThirdOrderIsotropic(λs, μs, ls, ms, ns)

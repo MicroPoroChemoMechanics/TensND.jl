@@ -105,8 +105,8 @@ describes an embedded surface rather than the whole space.
 | [Plane waves](plane_waves.md) | the Christoffel problem, slowness, group velocity and energy, the isotropic and transversely isotropic closed forms |
 | [Thomsen's parameters](thomsen.md) | ``V_{P0}``, ``V_{S0}``, ``\varepsilon``, ``\delta``, ``\gamma``: what each controls, the first-order velocities, the moveout velocity |
 | [Weak anisotropy of any symmetry](weak_anisotropy.md) | first-order perturbation of the Christoffel problem, the generalized parameters, shear-wave splitting |
-| [Waves at an interface](interface_waves.md) | Snell-Descartes, the six waves of a tangential slowness, reflection and transmission, linear slip, the energy balance, the characteristic roots of a plane stiffness |
-| [Third-order elasticity](third_order_elasticity.md) | Murnaghan's energy, the tensor seen by a small wave on a deformed solid, the effect of a pressure and of a uniaxial stress |
+| [Waves at an interface](interface_waves.md) | Snell-Descartes, the six waves of a tangential slowness, reflection and transmission, linear slip and free surface, the energy balance, the first-order coefficients of a weak contrast, the characteristic roots of a plane stiffness |
+| [Third-order elasticity](third_order_elasticity.md) | Murnaghan's energy, the tensor seen by a small wave on a deformed solid, the effect of a pressure and of a uniaxial stress, a rock anisotropic at rest |
 
 ### Coordinate systems
 

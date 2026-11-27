@@ -72,7 +72,11 @@ isotropic medium) share a plane of polarizations, of which any orthonormal pair
 solves the problem: the pair returned is the one whose energy fluxes add. Their
 individual amplitudes in [`reflection_transmission`](@ref) depend on that
 choice; the field and the energy they carry together do not.
-Numbers and dual numbers.
+
+Numbers and dual numbers. An isotropic stiffness with symbols (`Symbolics.Num`)
+gives the six waves in closed form, below the critical angles and for a
+nonzero tangential slowness: no root is compared there, the forward waves are
+those of positive normal slowness.
 """
 function interface_waves(ℂ::AbstractTens{4, 3}, ρ, ν, sₜ)
     C = canonical_components(ℂ)
@@ -84,6 +88,40 @@ function interface_waves(ℂ::AbstractTens{4, 3}, ρ, ν, sₜ)
     v = SVector{3, T}(_extract_vec(sₜ)...)
     s = v - (transpose(v) * n) * n
     return _interface_waves(C, convert(T, ρ), n, s)
+end
+
+# An isotropic medium with symbols: the six waves in closed form, the root
+# being chosen without comparison. Below the critical angles the normal
+# slownesses ξ_P = √(ρ/(λ+2μ) − p²) and ξ_S = √(ρ/μ − p²) are real, p = |sₜ|,
+# and the forward waves are those of +ξ; the polarizations are along the
+# slowness (P), in the plane of incidence normal to it (SV) and along ν × t
+# (SH), t = sₜ/p. Numbers keep the general route of `interface_waves`.
+interface_waves(ℂ::TensISO{4, 3}, ρ, ν, sₜ) =
+    _iso_interface_waves(Val(is_hard_numeric(promote_type(eltype(ℂ), typeof(ρ), map(typeof, _extract_vec(ν))..., map(typeof, _extract_vec(sₜ))...))), ℂ, ρ, ν, sₜ)
+_iso_interface_waves(::Val{true}, ℂ, ρ, ν, sₜ) = invoke(interface_waves, Tuple{AbstractTens{4, 3}, Any, Any, Any}, ℂ, ρ, ν, sₜ)
+function _iso_interface_waves(::Val{false}, ℂ, ρ, ν, sₜ)
+    α, β = get_data(ℂ)                              # 3k and 2μ
+    M, μ = (α + 2 * β) / 3, β / 2                   # λ + 2μ and μ
+    # The waves carry complex numbers, which need a real element type: the
+    # symbols of Symbolics are, those of SymPy are not.
+    M isa Real || throw(
+        ArgumentError("interface_waves takes the symbols of Symbolics (`Num`), whose complex numbers exist, not $(typeof(M))")
+    )
+    n = _unit_direction(ν, typeof(M))
+    v = SVector{3}(_extract_vec(sₜ)...)
+    s = v - (transpose(v) * n) * n
+    p = sqrt(transpose(s) * s)
+    t = s * inv(p)                                  # `s / p` is a symbolic array for symbols
+    ξP, ξS = sqrt(ρ / M - p^2), sqrt(ρ / μ - p^2)
+    _, R, Tm = _interface_blocks(canonical_components(ℂ), s, n)
+    c(x) = map(complex, x)
+    wave(ξ, U) = _interface_wave(complex(ξ), c(U), R, Tm, s, n, true)
+    waves(σ) = (
+        wave(σ * ξP, (s + σ * ξP * n) * sqrt(M / ρ)),
+        wave(σ * ξS, (σ * ξS * t - p * n) * sqrt(μ / ρ)),
+        wave(σ * ξS, cross(n, t)),
+    )
+    return waves(1), waves(-1)
 end
 
 # One wave from its normal slowness and its unit polarization.
@@ -218,10 +256,72 @@ function reflection_transmission(ℂ₁::AbstractTens{4, 3}, ρ₁, ℂ₂::Abst
     return (reflected = reflected, transmitted = transmitted, R = R, T = Tt, energy = energy)
 end
 
+"""
+    free_surface_reflection(ℂ::AbstractTens{4,3}, ρ, ν, incident::InterfaceWave) → (reflected, R, energy)
+
+The waves that the `incident` wave, one of the forward waves of the medium
+([`interface_waves`](@ref), on the side ``\\underline{\\nu}\\cdot\\underline{x} < 0``),
+excites at the free surface ``\\underline{\\nu}\\cdot\\underline{x} = 0``: the three
+`reflected` waves, their complex amplitudes `R` per unit incident amplitude
+(unit polarizations) and `energy`, the fractions of the incident energy flux
+they carry, which sum to one. The traction vanishes on the surface,
+
+```math
+\\underline{\\tau}^{\\mathrm{inc}} + \\sum_{m=1}^{3} R_m\\,\\underline{\\tau}_m^{\\mathrm{r}} = \\underline{0}
+```
+
+([Waves at an interface](@ref th-interface-waves)). Numbers and dual numbers.
+"""
+function free_surface_reflection(ℂ::AbstractTens{4, 3}, ρ, ν, incident::InterfaceWave)
+    _, reflected = interface_waves(ℂ, ρ, ν, real.(incident.slowness))
+    A = hcat(map(w -> w.traction, reflected)...)
+    R = SVector{3}(Matrix(A) \ Vector(-incident.traction))
+    energy = map((a, w) -> -abs2(a) * w.flux / incident.flux, R, SVector(reflected))
+    return (reflected = reflected, R = R, energy = energy)
+end
+
+"""
+    weak_contrast_reflection(ℂ, ρ, δℂ, δρ, ν, incident::InterfaceWave) → (reflected, R)
+
+The reflection coefficients, to first order in the contrast, at the welded
+interface between the medium ``(\\mathbb{C}, \\rho)`` of the `incident` wave and
+the medium ``(\\mathbb{C} + \\delta\\mathbb{C}, \\rho + \\delta\\rho)``: with the
+waves of the first medium only, ``i`` incident and ``n`` reflected,
+
+```math
+R_n = \\frac{\\langle\\underline{\\eta}_n, \\delta\\underline{\\eta}_i\\rangle}{\\langle\\underline{\\eta}_n, \\underline{\\eta}_n\\rangle},
+\\qquad
+\\langle\\underline{\\eta}_a, \\underline{\\eta}_b\\rangle = \\underline{U}_a\\cdot\\underline{\\tau}_b + \\underline{\\tau}_a\\cdot\\underline{U}_b ,
+```
+
+``\\delta\\underline{\\eta}_i`` being the change of the displacement and traction
+of the incident wave when its medium becomes the second one, written without
+its polarization change ([Waves at an interface](@ref th-weak-contrast)). Valid
+for any anisotropy, the incident wave a simple root. Numbers, dual numbers,
+and symbols where the waves are symbolic.
+"""
+function weak_contrast_reflection(ℂ::AbstractTens{4, 3}, ρ, δℂ::AbstractTens{4, 3}, δρ, ν, incident::InterfaceWave)
+    sₜ = real.(incident.slowness)
+    _, reflected = interface_waves(ℂ, ρ, ν, sₜ)
+    n = _unit_direction(ν, real(eltype(incident.slowness)))
+    s = sₜ - (transpose(sₜ) * n) * n
+    Q, R, Tm = _interface_blocks(canonical_components(ℂ), s, n)
+    δQ, δR, δT = _interface_blocks(canonical_components(δℂ), s, n)
+    ξᵢ, Uᵢ = incident.normal_slowness, incident.polarization
+    P′(ξ) = R + transpose(R) + 2 * ξ * Tm
+    δP = δQ - δρ * one(δQ) + ξᵢ * (δR + transpose(δR)) + ξᵢ^2 * δT
+    δξ = -(transpose(Uᵢ) * δP * Uᵢ) / (transpose(Uᵢ) * P′(ξᵢ) * Uᵢ)
+    coefficient(w) = (
+        transpose(w.polarization) * ((transpose(δR) + ξᵢ * δT + δξ * Tm) * Uᵢ) -
+            transpose(w.polarization) * ((δξ * P′(ξᵢ) + δP) * Uᵢ) / (ξᵢ - w.normal_slowness)
+    ) / (transpose(w.polarization) * P′(w.normal_slowness) * w.polarization)
+    return (reflected = reflected, R = map(coefficient, SVector(reflected)))
+end
+
 _slip_matrix(::Nothing, ::Type{T}) where {T} = nothing
 _slip_matrix(Z::AbstractMatrix, ::Type{T}) where {T} = SMatrix{3, 3, Complex{T}}(Z)
 # The jump is carried by the transmitted side: u₂ = u₁ + iωZ·τ₂.
 _slip_term(::Nothing, w, side) = zero(w.polarization)
 _slip_term(Z::SMatrix, w, side) = side == 1 ? im * (Z * w.traction) : zero(w.polarization)
 
-export InterfaceWave, interface_waves, reflection_transmission
+export InterfaceWave, interface_waves, reflection_transmission, free_surface_reflection, weak_contrast_reflection

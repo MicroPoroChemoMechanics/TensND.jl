@@ -45,6 +45,8 @@ shear_splitting
 InterfaceWave
 interface_waves
 reflection_transmission
+free_surface_reflection
+weak_contrast_reflection
 ```
 
 ## Characteristic roots of a stiffness of the plane
@@ -60,10 +62,12 @@ characteristic_roots
 ```@docs
 ThirdOrderIsotropic
 third_order_constants
+third_order_from_constants
 strain_energy
 cauchy_stress
 tangent_stiffness
 acoustoelastic_tensor
 prestressed_waves
 acoustoelastic_coefficients
+strain_stiffening
 ```

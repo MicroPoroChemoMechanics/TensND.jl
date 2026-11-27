@@ -39,6 +39,13 @@ data of the literature. Existing results are unchanged.
   (`slip = ωZ`). Dual numbers through the derivative of each root, the two
   coinciding shear waves of an isotropic medium included; their polarizations
   are chosen so that the energy fluxes add.
+- `free_surface_reflection`: the waves reflected at a free surface.
+- `weak_contrast_reflection`: the reflection coefficients to first order in
+  the contrast between two media, for any anisotropy, from the waves of the
+  first medium only (derived on the Theory page). An isotropic stiffness with
+  symbols (`Symbolics`) has its interface waves in closed form, so that these
+  coefficients are formulas: the classical linearized P-P coefficient is
+  recovered.
 - `characteristic_pair`, `characteristic_roots` and `engineering_compliances`
   for a stiffness of the plane: the characteristic roots of plane anisotropic
   elasticity (Lekhnitskii), the static limit of the interface problem. They
@@ -52,6 +59,11 @@ data of the literature. Existing results are unchanged.
   `third_order_constants` (two-index and Landau notations).
 - `acoustoelastic_tensor` and `prestressed_waves`: the tensor seen by a small
   wave on a deformed solid and its natural velocities;
+  `strain_stiffening`, the change of stiffness that a strain brings about
+  through the third-order constants, which added to the stiffness at rest of
+  an anisotropic rock is the model of Prioul, Bakulin and Bakulin;
+  `third_order_from_constants`, the solid from the constants of the two-index
+  notation;
   `acoustoelastic_coefficients`, the closed-form effect of a uniaxial or
   hydrostatic stress (Hughes and Kelly, as given by Johnson and
   Rasolofosaon) and the coefficients of the induced
@@ -85,7 +97,8 @@ data of the literature. Existing results are unchanged.
 - Tutorials: slowness and wave surfaces (interactive 3-D scenes), Thomsen's
   parameters on his table of rocks, the generalized parameters of two triclinic
   rocks, reflection and transmission, stress-induced anisotropy. Their data
-  (`thomsenGEO1986`, `menschGJI1997`, `johnsonJGR1996`) are in
+  (`thomsenGEO1986`, `menschGJI1997`, `johnsonJGR1996`,
+  `rasolofosaonOGST1998`, `prioulGEO2004`) are in
   `data/literature/`.
 
 ## v0.17.0 — the plane and any dimension

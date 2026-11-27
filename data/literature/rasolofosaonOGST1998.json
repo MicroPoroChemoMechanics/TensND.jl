@@ -1,0 +1,275 @@
+{
+ "schema": "tensnd-literature/1",
+ "source": {
+  "key": "rasolofosaon1998",
+  "doi": "10.2516/ogst:1998061",
+  "citation": "Rasolofosaon, P. (1998). Stress-induced seismic anisotropy revisited. Revue de l'Institut Français du Pétrole 53(5), 679-692.",
+  "location": "Table 1, p. 690"
+ },
+ "transcription": {
+  "from": "the PDF of the article, read on the image of page 690",
+  "checked_against_source": true,
+  "note": "Second-order bulk and shear moduli K and mu, Murnaghan's constants l, m, n, and the stress-induced P-wave anisotropy A_p and S-wave birefringence B_s per unit uniaxial stress, as printed (the column of the shear modulus is headed m in the print). The column 'data from' is the source the author quotes for each row. The density is not given, and the coefficients do not depend on it."
+ },
+ "quantities": {},
+ "tables": {
+  "table_1": [
+   {
+    "material": "Armco iron",
+    "data from": "Hughes and Kelly (1953)",
+    "K (GPa)": 164.0,
+    "mu (GPa)": 82.0,
+    "l (GPa)": -348,
+    "m (GPa)": -1030,
+    "n (GPa)": 1100,
+    "A_p (1/GPa)": 0.04,
+    "B_s (1/GPa)": -0.03
+   },
+   {
+    "material": "Polystyrene",
+    "data from": "Hughes and Kelly (1953)",
+    "K (GPa)": 3.8,
+    "mu (GPa)": 1.4,
+    "l (GPa)": -19,
+    "m (GPa)": -13,
+    "n (GPa)": -10,
+    "A_p (1/GPa)": 1.19,
+    "B_s (1/GPa)": 0.28
+   },
+   {
+    "material": "Pyrex glass",
+    "data from": "Hughes and Kelly (1953)",
+    "K (GPa)": 31.8,
+    "mu (GPa)": 27.5,
+    "l (GPa)": 14,
+    "m (GPa)": 92,
+    "n (GPa)": 420,
+    "A_p (1/GPa)": -0.07,
+    "B_s (1/GPa)": -0.09
+   },
+   {
+    "material": "Quartz",
+    "data from": "Rasolofosaon and Yin (1996)",
+    "K (GPa)": 38.0,
+    "mu (GPa)": 48.0,
+    "l (GPa)": -98,
+    "m (GPa)": -89,
+    "n (GPa)": -165,
+    "A_p (1/GPa)": 0.0029,
+    "B_s (1/GPa)": -0.0015
+   },
+   {
+    "material": "Calcite",
+    "data from": "Rasolofosaon and Yin (1996)",
+    "K (GPa)": 76.0,
+    "mu (GPa)": 37.0,
+    "l (GPa)": -77,
+    "m (GPa)": -136,
+    "n (GPa)": -141,
+    "A_p (1/GPa)": 0.012,
+    "B_s (1/GPa)": -0.0006
+   },
+   {
+    "material": "Barre",
+    "data from": "Johnson and Rasolofosaon (1996)",
+    "K (GPa)": 13.8,
+    "mu (GPa)": 18.2,
+    "l (GPa)": -3371,
+    "m (GPa)": -6742,
+    "n (GPa)": -6600,
+    "A_p (1/GPa)": 9.69,
+    "B_s (1/GPa)": 2.46
+   },
+   {
+    "material": "F32 dry",
+    "data from": "Johnson and Rasolofosaon (1996)",
+    "K (GPa)": 15.3,
+    "mu (GPa)": 11.7,
+    "l (GPa)": -97800,
+    "m (GPa)": -99400,
+    "n (GPa)": -84900,
+    "A_p (1/GPa)": 274.88,
+    "B_s (1/GPa)": 77.48
+   },
+   {
+    "material": "F32 cracked",
+    "data from": "Johnson and Rasolofosaon (1996)",
+    "K (GPa)": 7.8,
+    "mu (GPa)": 5.7,
+    "l (GPa)": -74000,
+    "m (GPa)": -64500,
+    "n (GPa)": -34900,
+    "A_p (1/GPa)": 734.67,
+    "B_s (1/GPa)": 134.18
+   },
+   {
+    "material": "F32 saturated",
+    "data from": "Johnson and Rasolofosaon (1996)",
+    "K (GPa)": 30.2,
+    "mu (GPa)": 17.5,
+    "l (GPa)": -59100,
+    "m (GPa)": -38200,
+    "n (GPa)": -27500,
+    "A_p (1/GPa)": 40.74,
+    "B_s (1/GPa)": 11.2
+   },
+   {
+    "material": "D82 dry",
+    "data from": "Johnson and Rasolofosaon (1996)",
+    "K (GPa)": 30.0,
+    "mu (GPa)": 21.3,
+    "l (GPa)": -40300,
+    "m (GPa)": -35400,
+    "n (GPa)": -20300,
+    "A_p (1/GPa)": 28.43,
+    "B_s (1/GPa)": 5.57
+   },
+   {
+    "material": "Pfalzian sandstone",
+    "data from": "Rasolofosaon and Yin (1996)",
+    "K (GPa)": 7.3,
+    "mu (GPa)": 6.3,
+    "l (GPa)": -2530,
+    "m (GPa)": -580,
+    "n (GPa)": 1140,
+    "A_p (1/GPa)": 5.75,
+    "B_s (1/GPa)": -3.67
+   },
+   {
+    "material": "Magnesian marble",
+    "data from": "Rasolofosaon and Yin (1996)",
+    "K (GPa)": 15.0,
+    "mu (GPa)": 14.0,
+    "l (GPa)": -25150,
+    "m (GPa)": -7090,
+    "n (GPa)": 13590,
+    "A_p (1/GPa)": 14.99,
+    "B_s (1/GPa)": -8.7
+   },
+   {
+    "material": "Colorado oil shale",
+    "data from": "Rasolofosaon and Yin (1996)",
+    "K (GPa)": 21.0,
+    "mu (GPa)": 18.0,
+    "l (GPa)": -66600,
+    "m (GPa)": 7230,
+    "n (GPa)": 24420,
+    "A_p (1/GPa)": -8.96,
+    "B_s (1/GPa)": -9.45
+   },
+   {
+    "material": "Lujavarite # 1",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 107.0,
+    "mu (GPa)": 32.0,
+    "l (GPa)": -510000,
+    "m (GPa)": 110000,
+    "n (GPa)": 79000,
+    "A_p (1/GPa)": -22.99,
+    "B_s (1/GPa)": -9.66
+   },
+   {
+    "material": "Pegmatite",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 58.5,
+    "mu (GPa)": 32.9,
+    "l (GPa)": -29500000,
+    "m (GPa)": -5000000,
+    "n (GPa)": -8100000,
+    "A_p (1/GPa)": 1484.6,
+    "B_s (1/GPa)": 935.4
+   },
+   {
+    "material": "Urtite # 1",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 71.2,
+    "mu (GPa)": 18.8,
+    "l (GPa)": -3250000,
+    "m (GPa)": 500000,
+    "n (GPa)": 5900000,
+    "A_p (1/GPa)": -276.3,
+    "B_s (1/GPa)": -2086.7
+   },
+   {
+    "material": "Juvite",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 86.6,
+    "mu (GPa)": 24.4,
+    "l (GPa)": -1800000,
+    "m (GPa)": 9300000,
+    "n (GPa)": 9300000,
+    "A_p (1/GPa)": -2580.1,
+    "B_s (1/GPa)": -1952.6
+   },
+   {
+    "material": "Apatite # 1",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 57.0,
+    "mu (GPa)": 29.8,
+    "l (GPa)": -286000,
+    "m (GPa)": 68000,
+    "n (GPa)": 31000,
+    "A_p (1/GPa)": -23.61,
+    "B_s (1/GPa)": -4.38
+   },
+   {
+    "material": "Lujavarite # 2",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 39.4,
+    "mu (GPa)": 22.9,
+    "l (GPa)": -20700000,
+    "m (GPa)": -3400000,
+    "n (GPa)": -5100000,
+    "A_p (1/GPa)": 2123.0,
+    "B_s (1/GPa)": 1215.6
+   },
+   {
+    "material": "Urtite # 2",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 64.1,
+    "mu (GPa)": 25.4,
+    "l (GPa)": -3510000,
+    "m (GPa)": 6000000,
+    "n (GPa)": -282000,
+    "A_p (1/GPa)": -2411.3,
+    "B_s (1/GPa)": 54.62
+   },
+   {
+    "material": "Rischorrite",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 57.1,
+    "mu (GPa)": 28.1,
+    "l (GPa)": -33600000,
+    "m (GPa)": 6000000,
+    "n (GPa)": -6400000,
+    "A_p (1/GPa)": 2257.9,
+    "B_s (1/GPa)": 1013.1
+   },
+   {
+    "material": "Ijolite",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 55.6,
+    "mu (GPa)": 27.8,
+    "l (GPa)": -3080000,
+    "m (GPa)": -330000,
+    "n (GPa)": -560000,
+    "A_p (1/GPa)": 128.08,
+    "B_s (1/GPa)": 90.56
+   },
+   {
+    "material": "Apatite # 2",
+    "data from": "Bakulin and Protosenya (1982)",
+    "K (GPa)": 60.4,
+    "mu (GPa)": 31.5,
+    "l (GPa)": 302000,
+    "m (GPa)": 51000,
+    "n (GPa)": 85000,
+    "A_p (1/GPa)": -15.83,
+    "B_s (1/GPa)": -10.72
+   }
+  ]
+ },
+ "notes": [
+  "A_p and B_s are the derivatives with respect to a compressive stress of (W_par - W_perp)/W_par for the P waves and of (W_S1 - W_S2)/W_S1 for the S waves across the stress, W being the natural velocities (a reference length over a travel time). Recomputed so from the constants printed in the same row, they agree with the printed values to the printed digits for 21 of the 23 rows. For Juvite the printed A_p (-2580.1) is not that of its printed constants (-3199); it would be with m = 7.5e6 GPa instead of the printed 9.3e6. For Rischorrite the printed A_p (2257.90) has the magnitude of the recomputed value and the opposite sign. The values are kept as printed."
+ ]
+}

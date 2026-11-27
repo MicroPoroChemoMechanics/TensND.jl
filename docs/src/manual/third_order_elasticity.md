@@ -154,6 +154,30 @@ true_P(σ) = norm(Fσ(σ) * N) * prestressed_waves(s, ρ₀, Fσ(σ), N).velocit
 ForwardDiff.derivative(σ -> ρ₀ * true_P(σ)^2, 0.0), c.P_parallel
 ```
 
+## A background anisotropic at rest
+
+[`strain_stiffening`](@ref) returns the change of stiffness that a strain brings
+about through the third-order constants, ``\partial^3W/\partial\boldsymbol{E}^3 : \boldsymbol{E}``.
+Added to the stiffness at rest of an anisotropic rock, it is the model of
+[prioul2004](@citet) ([Third-order elasticity](@ref th-third-order), section 5).
+[`third_order_from_constants`](@ref) builds the solid from the constants of the
+two-index notation, as they are usually published; ``\lambda`` and ``\mu`` play
+no part in the stiffening:
+
+```@example toe
+sₚ = third_order_from_constants(0.0, 0.0, -11300.0, -4800.0, 5800.0)       # GPa
+ℂ⁰ = ti_from_constants(36.5, 14.9, 15.7, 24.6, 5.9, [0.0, 0.0, 1.0]; form = :components, role = :stiffness)
+Eₕ = Array(canonical_components(inv(ℂ⁰) ⊡ Tens(-0.01 * Matrix(1.0I, 3, 3))))   # 10 MPa more of pressure
+round.(voigt_stiffness(ℂ⁰ + strain_stiffening(sₚ, Eₕ)); digits = 2)
+```
+
+The tangent of the isotropic solid is the isotropic stiffness of ``\lambda``,
+``\mu`` plus this stiffening:
+
+```@example toe
+tangent_stiffness(s, Matrix(E)) ≈ TensISO{3}(3λ + 2μ, 2μ) + strain_stiffening(s, Matrix(E))
+```
+
 ## With symbols
 
 The constants in the other notations, the energy, the stress, the tangent and

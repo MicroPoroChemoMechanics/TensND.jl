@@ -161,6 +161,17 @@ that the orientation of the polarizations fixes.
 [`reflection_transmission`](@ref) solves the six equations, welded or with
 `slip` ``= \omega\boldsymbol{Z}``.
 
+A **free surface** bounds the medium 1 by vacuum: there is no transmitted
+wave, and the traction vanishes,
+
+```math
+\underline{\tau}^{\mathrm{inc}} + \sum_{m=1}^{3} R_m\,\underline{\tau}_m^{\mathrm{r}} = \underline{0} ,
+```
+
+three equations for the three reflected amplitudes
+([`free_surface_reflection`](@ref)). At normal incidence on an isotropic
+medium the P wave is reflected whole.
+
 ## 4. Energy
 
 The mean energy flux of a field through the plane, towards
@@ -211,6 +222,65 @@ When two real roots coincide (the two S waves of an isotropic medium), the
 relation is not automatic: the two polarizations are then chosen in their
 common plane so that it holds.
 
+## [5. Weak contrast](@id th-weak-contrast)
+
+Let the medium 2 differ little from the medium 1:
+``\mathbb{C}_2 = \mathbb{C} + \delta\mathbb{C}`` and ``\rho_2 = \rho + \delta\rho``.
+At zero contrast the incident wave ``i`` crosses the interface unchanged:
+``R_m = 0`` and the transmitted amplitudes are those of ``i`` itself. To first
+order, write ``\underline{\eta} = (\underline{U}, \underline{\tau})`` for the state
+vector of a wave of unit amplitude, and ``\delta\underline{\eta}_i`` for the change of
+that of ``i`` when its medium becomes the medium 2 at the same tangential
+slowness. The welded conditions of section 3 become
+
+```math
+\sum_m R_m\,\underline{\eta}_m^{\mathrm{r}} - \sum_m t_m\,\underline{\eta}_m^{\mathrm{t}} = \delta\underline{\eta}_i ,
+```
+
+with ``t_m`` the first-order changes of the transmitted amplitudes and the
+waves on the left those of the medium 1. Take the product
+``\langle\underline{\eta}_a, \underline{\eta}_b\rangle = \underline{U}_a\cdot\underline{\tau}_b + \underline{\tau}_a\cdot\underline{U}_b``
+of section 4 with a reflected wave ``n``: it vanishes against every forward
+wave and against every other reflected wave, which leaves
+
+```math
+R_n = \frac{\langle\underline{\eta}_n, \delta\underline{\eta}_i\rangle}{\langle\underline{\eta}_n, \underline{\eta}_n\rangle},
+\qquad \langle\underline{\eta}_n, \underline{\eta}_n\rangle = \underline{U}_n\cdot\boldsymbol{P}'(\xi_n)\cdot\underline{U}_n ,
+\qquad \boldsymbol{P}'(\xi) = \boldsymbol{R} + \boldsymbol{R}^{\mathsf T} + 2\xi\,\boldsymbol{T} .
+```
+
+A change of normalization of ``\underline{U}_i`` adds a multiple of
+``\underline{\eta}_i`` to ``\delta\underline{\eta}_i``, on which ``\underline{\eta}_n``
+vanishes: the result does not depend on it. The change of polarization can be
+eliminated too. With ``\boldsymbol{P}(\xi) = \tilde{\boldsymbol{Q}} + \xi(\boldsymbol{R} + \boldsymbol{R}^{\mathsf T}) + \xi^2\boldsymbol{T}``,
+``\delta\underline{\tau}_i = (\delta\boldsymbol{R}^{\mathsf T} + \delta\xi\,\boldsymbol{T} + \xi_i\,\delta\boldsymbol{T})\cdot\underline{U}_i + (\boldsymbol{R}^{\mathsf T} + \xi_i\boldsymbol{T})\cdot\delta\underline{U}_i``
+and ``\underline{\tau}_n = (\boldsymbol{R}^{\mathsf T} + \xi_n\boldsymbol{T})\cdot\underline{U}_n``,
+the terms in ``\delta\underline{U}_i`` add up to
+``\underline{U}_n\cdot[\boldsymbol{R} + \boldsymbol{R}^{\mathsf T} + (\xi_i + \xi_n)\boldsymbol{T}]\cdot\delta\underline{U}_i``.
+Since ``\boldsymbol{P}`` is symmetric and ``\boldsymbol{P}(\xi_n)\cdot\underline{U}_n = \underline{0}``,
+this is ``\underline{U}_n\cdot[\boldsymbol{P}(\xi_i) - \boldsymbol{P}(\xi_n)]\cdot\delta\underline{U}_i/(\xi_i - \xi_n) = \underline{U}_n\cdot\boldsymbol{P}(\xi_i)\cdot\delta\underline{U}_i/(\xi_i - \xi_n)``,
+and the perturbed problem gives
+``\boldsymbol{P}(\xi_i)\cdot\delta\underline{U}_i = -[\delta\xi\,\boldsymbol{P}'(\xi_i) + \delta\boldsymbol{P}(\xi_i)]\cdot\underline{U}_i``. Hence
+
+```math
+\langle\underline{\eta}_n, \delta\underline{\eta}_i\rangle
+= \underline{U}_n\cdot(\delta\boldsymbol{R}^{\mathsf T} + \xi_i\,\delta\boldsymbol{T} + \delta\xi\,\boldsymbol{T})\cdot\underline{U}_i
+- \frac{\underline{U}_n\cdot[\delta\xi\,\boldsymbol{P}'(\xi_i) + \delta\boldsymbol{P}(\xi_i)]\cdot\underline{U}_i}{\xi_i - \xi_n} ,
+```
+
+```math
+\delta\boldsymbol{P}(\xi) = \delta\boldsymbol{Q} - \delta\rho\,\boldsymbol{1} + \xi\,(\delta\boldsymbol{R} + \delta\boldsymbol{R}^{\mathsf T}) + \xi^2\,\delta\boldsymbol{T},
+\qquad
+\delta\xi = -\frac{\underline{U}_i\cdot\delta\boldsymbol{P}(\xi_i)\cdot\underline{U}_i}{\underline{U}_i\cdot\boldsymbol{P}'(\xi_i)\cdot\underline{U}_i} ,
+```
+
+where ``\delta\boldsymbol{Q}``, ``\delta\boldsymbol{R}``, ``\delta\boldsymbol{T}`` are the
+blocks of ``\delta\mathbb{C}``. The coefficients are linear in the contrast and
+use the waves of the medium 1 only, for any anisotropy
+([`weak_contrast_reflection`](@ref)). For an isotropic medium below the
+critical angles these waves have closed forms, so that the first-order
+coefficients are formulas in the moduli, the density and the slowness.
+
 The displacement and the traction being continuous across a welded
 interface, so is the flux of the total field, and the same holds with a real
 symmetric ``\boldsymbol{Z}``, which stores energy without dissipating it. The
@@ -225,7 +295,7 @@ each wave (negative for a reflected one),
 each term being the fraction of the incident energy carried by one wave,
 zero for an evanescent one.
 
-## [5. Characteristic roots of a plane stiffness](@id th-characteristic-roots)
+## [6. Characteristic roots of a plane stiffness](@id th-characteristic-roots)
 
 Without inertia, the same construction solves plane anisotropic elasticity.
 A displacement of the plane

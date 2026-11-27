@@ -112,12 +112,56 @@ using ForwardDiff
 ForwardDiff.derivative(ϱ -> abs(reflection_transmission(ℂ₁, ρ₁, ℂ₂, ϱ, ν, incident).R[1]), ρ₂)
 ```
 
-Both functions take numbers and dual numbers only. The six normal slownesses
+### Free surface
+
+[`free_surface_reflection`](@ref) gives the three waves reflected at a free
+surface, where the traction vanishes, with their amplitudes and energies:
+
+```@example interface
+f = free_surface_reflection(ℂ₁, ρ₁, ν, incident)
+abs.(f.R), f.energy, sum(f.energy)
+```
+
+### Weak contrast
+
+[`weak_contrast_reflection`](@ref) gives the reflection coefficients to first
+order in the contrast ``(\delta\mathbb{C}, \delta\rho)`` between the medium of
+the incident wave and the other, from the waves of the first medium only
+([Waves at an interface](@ref th-weak-contrast)). Against the exact coefficients
+for a contrast of a few per cent:
+
+```@example interface
+δℂ, δρ = 0.03 * ℂ₁, 0.02 * ρ₁
+w = weak_contrast_reflection(ℂ₁, ρ₁, δℂ, δρ, ν, incident)
+abs(w.R[1]), abs(reflection_transmission(ℂ₁, ρ₁, ℂ₁ + δℂ, ρ₁ + δρ, ν, incident).R[1])
+```
+
+### Numbers, dual numbers, symbols
+
+The functions above take numbers and dual numbers. The six normal slownesses
 are the roots of a polynomial of degree six, which have no closed form in
 general: they are found numerically, then sorted and split into forward and
 backward waves by comparisons of their imaginary parts and of their energy
-fluxes, which symbols do not allow. Symbols are refused with an
-`ArgumentError`.
+fluxes, which symbols do not allow, and a symbolic stiffness is refused with
+an `ArgumentError`. An isotropic stiffness is the exception: its waves have
+closed forms, and with the symbols of `Symbolics` (below the critical angles,
+for a nonzero tangential slowness) `interface_waves` returns them, and
+`weak_contrast_reflection` the first-order coefficients as formulas. The
+coefficient of the P-P reflection on a contrast of density ``\delta\rho`` alone,
+the moduli unchanged:
+
+```@example interface
+using Symbolics
+Symbolics.@variables kₛ μₛ ρₛ pₛ δρₛ
+ℂₛ = TensISO{3}(3kₛ, 2μₛ)
+fₛ, _ = interface_waves(ℂₛ, ρₛ, ν, [pₛ, 0, 0])
+Rₛ = weak_contrast_reflection(ℂₛ, ρₛ, 0 * ℂₛ, δρₛ, ν, fₛ[1]).R[1]
+Symbolics.simplify(Symbolics.simplify_fractions(real(Rₛ)); expand = true)
+```
+
+The tutorial [Reflection and transmission at an interface](@ref tut-reflection)
+derives in this way the classical linearized coefficient of a contrast of the
+three properties.
 
 ## Characteristic roots of a stiffness of the plane
 

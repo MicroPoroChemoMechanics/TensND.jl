@@ -7,7 +7,7 @@
 #
 #  References, independent of the code under test: the canonical components
 #  rebuilt from the Kelvin-Mandel matrix in the material frame by explicit
-#  sums over the indices (OMEinsum), matrix algebra on these Kelvin-Mandel
+#  sums over the indices (`reference_contractions.jl`), matrix algebra on these Kelvin-Mandel
 #  matrices, the sub-matrices of the 6×6 Kelvin-Mandel matrix of a tensor of
 #  space (plane strain) and of its inverse (plane stress), the Kelvin-Mandel
 #  rotation of the plane written out, closed forms of the rotated entries,
@@ -44,7 +44,7 @@ plc_material_array(M) =
     [M[plc_index(i, j), plc_index(k, l)] / (PLC_W[plc_index(i, j)] * PLC_W[plc_index(k, l)]) for i in 1:2, j in 1:2, k in 1:2, l in 1:2]
 
 "Canonical components of the tensor of material Kelvin-Mandel matrix `M` on the frame of columns `R`."
-plc_array(M, R) = ein"ia,jb,kc,ld,abcd->ijkl"(R, R, R, R, plc_material_array(M))
+plc_array(M, R) = ref_rotate(R, plc_material_array(M))
 plc_array2(a, R) = R * Diagonal(collect(a)) * transpose(R)
 
 "Kelvin-Mandel matrix of an array of order 4 of the plane, by definition."
@@ -136,7 +136,7 @@ plc_inferred_blocks(t) = @inferred symmetry_blocks(t)
                 @test mandel_material(t) ≈ M
                 @test At ≈ permutedims(At, (2, 1, 3, 4)) && At ≈ permutedims(At, (1, 2, 4, 3))
                 # In another frame: the components of the reference brought into it.
-                @test Array(get_array(express(t, Basis(θ′)))) ≈ ein"ia,jb,kc,ld,ijkl->abcd"(R′, R′, R′, R′, A)
+                @test Array(get_array(express(t, Basis(θ′)))) ≈ ref_rotate_back(R′, A)
                 # In its own frame: the material components.
                 @test Array(get_array(express(t, ℬ))) ≈ plc_material_array(M)
             end
@@ -269,18 +269,18 @@ plc_inferred_blocks(t) = @inferred symmetry_blocks(t)
         c = plc_draw(rng)
         for t in (TensOrtho(c[1:4]..., ℬ), TensOrtho(c..., ℬ), cubic_from_constants(c[1], c[3], c[4], ℬ), iso_stiffness(Val(2), 3.0, 1.5))
             T4 = plc_arr(t)
-            @test plc_arr(t ⊡ a) ≈ ein"ijkl,kl->ij"(T4, Aa)
-            @test plc_arr(a ⊡ t) ≈ ein"ij,ijkl->kl"(Aa, T4)
+            @test plc_arr(t ⊡ a) ≈ ref_dc(T4, Aa)
+            @test plc_arr(a ⊡ t) ≈ ref_dc(Aa, T4)
         end
         # Tensor products: Σₘₙ aₘbₙ Pₘ⊗Pₙ. The self product of one argument is
         # major-symmetric, four constants; the product of two operands takes the
         # general shape, whatever they are.
         @test Tensors.otimes(a) isa TensOrtho{4, 2, Float64, 4}
-        @test plc_arr(Tensors.otimes(a)) ≈ ein"ij,kl->ijkl"(Aa, Aa)
+        @test plc_arr(Tensors.otimes(a)) ≈ ref_outer(Aa, Aa)
         @test a ⊗ a isa TensOrtho{4, 2, Float64, 5}
         @test a ⊗ b isa TensOrtho{4, 2, Float64, 5}
-        @test plc_arr(a ⊗ b) ≈ ein"ij,kl->ijkl"(Aa, Ab)
-        @test plc_arr(a ⊗ a) ≈ ein"ij,kl->ijkl"(Aa, Aa)
+        @test plc_arr(a ⊗ b) ≈ ref_outer(Aa, Ab)
+        @test plc_arr(a ⊗ a) ≈ ref_outer(Aa, Aa)
         # Frames a quarter turn apart describe the same rectangle: the sum stays
         # orthotropic, the coefficients of the second operand exchanged.
         a⊥ = TensOrtho{2}(0.7, -1.3, Basis(θ + π / 2))

@@ -7,7 +7,7 @@
 #  References, independent of the code under test:
 #  - the matrix maps the Kelvin-Mandel vector of a random symmetric ε onto that
 #    of `A : ε`, the double contraction written as an explicit index sum
-#    (OMEinsum), the vectors written from the weights 1 and √2 of the
+#    (`reference_contractions.jl`), the vectors written from the weights 1 and √2 of the
 #    definition, the minor-symmetric part built by averaging index permutations;
 #  - a tensor in a rotated basis is compared with its components rotated by
 #    explicit index sums;
@@ -46,7 +46,7 @@ end
 opm_sym(rng, d) = (e = randn(rng, d, d); e + transpose(e))
 
 "The canonical components of the tensor of components `A` in the basis of columns `R`."
-opm_rotate(A, R) = ein"ia,jb,kc,ld,abcd->ijkl"(R, R, R, R, A)
+opm_rotate(A, R) = ref_rotate(R, A)
 
 opm_arr(t) = Array(canonical_components(t))
 
@@ -55,7 +55,7 @@ function opm_maps(M, A, rng)
     d = size(A, 1)
     return all(1:3) do _
         ε = opm_sym(rng, d)
-        opm_vec(ein"ijkl,kl->ij"(A, ε)) ≈ M * opm_vec(ε)
+        opm_vec(ref_dc(A, ε)) ≈ M * opm_vec(ε)
     end
 end
 

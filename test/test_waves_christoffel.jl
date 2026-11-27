@@ -5,7 +5,7 @@
 #
 #  References, independent of the code under test:
 #  - the Christoffel equation (Γ/ρ − V² 𝟏)·U = 0, the acoustic tensor
-#    Γ = n·ℂ·n written as an explicit index sum (OMEinsum);
+#    Γ = n·ℂ·n written as an explicit index sum (`reference_contractions.jl`);
 #  - the group velocity as the gradient, with respect to the wave vector k, of
 #    the frequency k ↦ |k| V(k/|k|), homogeneous of degree one (ForwardDiff);
 #  - the closed forms along and normal to the axis of a transversely isotropic
@@ -36,7 +36,7 @@ const WCH_E3 = [0.0, 0.0, 1.0]
 wch_arr(t) = Array(canonical_components(t))
 
 "Γ(n) = n·ℂ·n of a canonical component array, by an explicit index sum."
-wch_gamma(A, n) = ein"k,kijl,l->ij"(collect(n), A, collect(n))
+wch_gamma(A, n) = ref_acoustic(collect(n), A, collect(n))
 
 "The smaller of |u − v| and |u + v|: the distance between two unit vectors up to their sign."
 wch_signless(u, v) = min(norm(u - v), norm(u + v))
@@ -250,7 +250,7 @@ wch_num(x::Real, s) = Float64(x)
 
         # The medium and the direction turned by R: velocities kept, vectors turned.
         R = Matrix(RotXYZ(0.4, -0.9, 1.3))
-        CR = Tens(ein"ia,jb,kc,ld,abcd->ijkl"(R, R, R, R, wch_arr(C)))
+        CR = Tens(ref_rotate(R, wch_arr(C)))
         for (C₀, CR₀, ρ₀) in ((C, CR, ρ), (wch_sandstone(), wch_sandstone(R * WCH_E3), WCH_RHO_SANDSTONE))
             w₀ = plane_waves(C₀, ρ₀, WCH_N)
             wR = plane_waves(CR₀, ρ₀, R * WCH_N)

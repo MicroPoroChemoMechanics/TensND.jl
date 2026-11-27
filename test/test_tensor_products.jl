@@ -6,12 +6,11 @@
 #  are single broadcasts, and all that can go wrong is how elements are placed:
 #  a wrong placement is a silent numerical error, not an exception.
 #
-#  Three independent references, because one is not enough:
+#  Two independent references:
 #
 #  1. the **definition** written out as explicit loops, which owes nothing to
 #     any implementation;
-#  2. the **einsum** form, an implementation independent of this package's;
-#  3. **algebraic identities** the products must satisfy whatever the code.
+#  2. **algebraic identities** the products must satisfy whatever the code.
 #
 #  And, deliberately, coverage over the *types the callers actually pass*.
 #  A regression once reached the documentation build — `transpose` of a
@@ -48,20 +47,6 @@ _ref_otimes(a, b) = _ref_placed(a, b, _ec_otimes(ndims(a), ndims(b))...)
 _ref_otimesu(a, b) = _ref_placed(a, b, _ec_otimesu(ndims(a), ndims(b))...)
 _ref_otimesl(a, b) = _ref_placed(a, b, _ec_otimesl(ndims(a), ndims(b))...)
 _ref_sotimes(a, b) = (_ref_otimes(a, b) .+ _ref_otimesu(a, b)) ./ 2
-
-# ── Reference 2: the einsum implementations that were replaced ───────────────
-
-function _einsum_placed(t1::AbstractArray{A}, t2::AbstractArray{B}, ec1, ec2) where {A, B}
-    ec3 = ntuple(i -> i, length(ec1) + length(ec2))
-    return einsum(
-        EinCode((ec1, ec2), ec3), (AbstractArray{A}(t1), AbstractArray{B}(t2))
-    )
-end
-
-_old_otimes(a, b) = _einsum_placed(a, b, _ec_otimes(ndims(a), ndims(b))...)
-_old_otimesu(a, b) = _einsum_placed(a, b, _ec_otimesu(ndims(a), ndims(b))...)
-_old_otimesl(a, b) = _einsum_placed(a, b, _ec_otimesl(ndims(a), ndims(b))...)
-_old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
 
 @testsection "Tensor products (otimes family)" begin
 
@@ -106,20 +91,6 @@ _old_sotimes(a, b) = (_old_otimes(a, b) + _old_otimesu(a, b)) / 2
             b = rand(s2...)
             @test all(otimes(a, b) .=== _ref_otimes(a, b))
             @test all(otimesu(a, b) .=== _ref_otimesu(a, b))
-        end
-    end
-
-    @testset "against the einsum implementation it replaced" begin
-        for (s1, s2) in (
-                ((3, 3), (3, 3)), ((2, 3), (3, 2)), ((3, 3), (3, 3, 3)),
-                ((3, 3, 3), (3, 3)), ((4, 4), (4, 4)),
-            )
-            a = rand(s1...)
-            b = rand(s2...)
-            @test all(otimes(a, b) .=== _old_otimes(a, b))
-            @test all(otimesu(a, b) .=== _old_otimesu(a, b))
-            @test all(otimesl(a, b) .=== _old_otimesl(a, b))
-            @test TensND.sotimes(a, b) ≈ _old_sotimes(a, b)
         end
     end
 
@@ -304,15 +275,13 @@ end
 #  Arbitrary orders, and variance.
 #
 #  TensND is an N-dimensional package: these products must work for any pair of
-#  orders, which is what the `einsum` calls provided generically. The broadcast
-#  that replaced them relies on a property that has to hold at every order —
-#  that both index lists are increasing, so neither operand's own axes need
-#  reordering — so that property is checked here rather than assumed.
+#  orders. The broadcast that computes them relies on a property that has to
+#  hold at every order, that both index lists are increasing, so that neither
+#  operand's own axes need reordering; that property is checked here rather
+#  than assumed.
 #
-#  The contraction paths (`contract`, `dcontract`, `dotdot`, `qcontract`) still
-#  go through `einsum` and were deliberately left alone; they are exercised too,
-#  so that a future attempt to give them the same treatment cannot land
-#  unnoticed.
+#  The contraction paths (`contract`, `dcontract`, `dotdot`, `qcontract`) are
+#  exercised too.
 # =============================================================================
 
 @testsection "Arbitrary orders and variance" begin

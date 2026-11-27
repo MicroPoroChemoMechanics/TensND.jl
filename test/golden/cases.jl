@@ -62,11 +62,16 @@ function golden_cases()
     push!(cases, "order2/rotated" => () -> _vals(express(S, _R)))
     # Elastic waves: the velocities, polarizations and group velocities of each
     # class along an oblique direction, the first-order and generalized
-    # parameters, an interface and a prestressed solid.
+    # parameters, an interface and a prestressed solid. Only what the problem
+    # defines is recorded: two waves of the same velocity (the shear waves of an
+    # isotropic medium) have polarizations that are any orthonormal pair of
+    # their plane, set by the eigensolver of the machine, so neither their
+    # polarizations nor their separate amplitudes enter the record.
     n = [0.3, -0.5, 0.8]
     for (name, t) in pairs(T)
         name === :gen_rot && continue
-        push!(cases, "waves/$name/plane_waves" => () -> (w = plane_waves(t, 2.5, n); vcat(_vals(w.velocity), _vals(abs.(w.polarization)), _vals(w.group))))
+        push!(cases, "waves/$name/plane_waves" => () -> (w = plane_waves(t, 2.5, n); vcat(_vals(w.velocity), _vals(w.group))))
+        name === :iso || push!(cases, "waves/$name/polarizations" => () -> _vals(abs.(plane_waves(t, 2.5, n).polarization)))
         push!(cases, "waves/$name/weak" => () -> (w = weak_plane_waves(t, 2.5, n); Float64[w.qP[1], w.qS1[1], w.qS2[1]]))
         push!(cases, "waves/$name/generalized" => () -> _vals(collect(values(generalized_thomsen_parameters(t)))))
     end
@@ -75,7 +80,8 @@ function golden_cases()
         cases, "waves/interface" => () -> begin
             f, _ = interface_waves(T.ortho, 2.5, _N, [0.05, 0.02, 0.0])
             r = reflection_transmission(T.ortho, 2.5, T.iso, 2.0, _N, f[1])
-            vcat(_vals(abs.(r.R)), _vals(abs.(r.T)), _vals(collect(r.energy[1])), _vals(collect(r.energy[2])))
+            # the medium 2 is isotropic: its two shear waves count together
+            vcat(_vals(abs.(r.R)), _vals(collect(r.energy[1])), Float64[abs(r.T[1]), r.energy[2][1], r.energy[2][2] + r.energy[2][3]])
         end
     )
     push!(

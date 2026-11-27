@@ -2,7 +2,7 @@ using TensND
 using Aqua
 using Test
 using TimerOutputs
-using LinearAlgebra, SymPyPythonCall, Tensors, OMEinsum, Rotations
+using LinearAlgebra, SymPyPythonCall, Tensors, Rotations
 using ForwardDiff
 using Random
 
@@ -22,6 +22,9 @@ macro testsection(str, block)
 end
 
 reset_timer!()
+
+# The index-by-index references of the tests of the algebra.
+include("reference_contractions.jl")
 
 """
     aqua_persistent_tasks(m::Module) -> Bool

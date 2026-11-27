@@ -365,3 +365,86 @@ end
     D = ForwardDiff.Dual{:wif}(2.45, 1.0)
     @inferred interface_waves(ℂ₁, D, ν, sₜ)
 end
+
+"""
+A P wave of horizontal slowness `p` meeting the free surface z = 0 of the
+isotropic medium `m` from below: amplitudes (R_P, R_S) of unit polarizations
+and their energy fractions, from the vanishing of the traction (rows τ_x, τ_z).
+"""
+function wif_free_surface(m, p)
+    λ, μ, ρ = wif_lame(m)
+    α, β = wif_vp(m), wif_vs(m)
+    ηP, ηS = sqrt(1 / α^2 - p^2), sqrt(1 / β^2 - p^2)
+    inc = ([p, 0, ηP], α * [p, 0, ηP])
+    rP = ([p, 0, -ηP], α * [p, 0, -ηP])
+    rS = ([p, 0, -ηS], β * [ηS, 0, p])
+    row(w) = (t = wif_iso_traction(λ, μ, WIF_NU, w[1], w[2]); [t[1], t[3]])
+    x = hcat(row(rP), row(rS)) \ (-row(inc))
+    return (amplitude = x, energy = (abs2(x[1]), abs2(x[2]) * β^2 * ηS / (α^2 * ηP)))
+end
+
+@testsection "Free surface" begin
+    ℂ, ρ = wif_stiffness(WIF_M1), WIF_M1.ρ
+    # normal incidence: the P wave comes back whole
+    r = free_surface_reflection(ℂ, ρ, WIF_NU, wif_forward(WIF_M1, WIF_NU, zeros(3))[1])
+    @test abs(r.R[1]) ≈ 1 rtol = 1.0e-12
+    @test sum(r.energy) ≈ 1 rtol = 1.0e-12
+    # oblique P on an isotropic medium, against the 2×2 system
+    for p in (0.05, 0.1, 0.15)
+        r = free_surface_reflection(ℂ, ρ, WIF_NU, wif_forward(WIF_M1, WIF_NU, [p, 0.0, 0.0])[1])
+        z = wif_free_surface(WIF_M1, p)
+        @test abs(r.R[1]) ≈ abs(z.amplitude[1]) rtol = 1.0e-11
+        @test r.energy[1] ≈ z.energy[1] rtol = 1.0e-11
+        @test r.energy[2] + r.energy[3] ≈ z.energy[2] rtol = 1.0e-11
+    end
+    # a transversely isotropic medium: the traction vanishes, the energy is kept
+    ℂ₁ = ti_from_constants(52.9, 15.7, 21.8, 47.8, 16.4, normalize([1.0, 2.0, 2.0]); form = :components, role = :stiffness)
+    for incident in first(interface_waves(ℂ₁, 2.45, WIF_NU, [0.12, 0.05, 0.0]))
+        incident.homogeneous || continue
+        r = free_surface_reflection(ℂ₁, 2.45, WIF_NU, incident)
+        @test norm(incident.traction + sum(r.R[m] * r.reflected[m].traction for m in 1:3)) ≤ 1.0e-12 * norm(incident.traction)
+        @test sum(r.energy) ≈ 1 rtol = 1.0e-12
+        # derivative of the balance with respect to the density
+        balance(ϱ) = (f = first(interface_waves(ℂ₁, ϱ, WIF_NU, [0.12, 0.05, 0.0])); sum(free_surface_reflection(ℂ₁, ϱ, WIF_NU, f[1]).energy))
+        @test abs(ForwardDiff.derivative(balance, 2.45)) ≤ 1.0e-12
+    end
+    @inferred free_surface_reflection(ℂ₁, 2.45, WIF_NU, first(interface_waves(ℂ₁, 2.45, WIF_NU, [0.12, 0.05, 0.0]))[1])
+end
+
+@testsection "Weak contrast" begin
+    # the first-order coefficients against the derivative of the exact ones,
+    # on the side of an anisotropic medium (simple reflected roots)
+    ℂ₁ = ti_from_constants(52.9, 15.7, 21.8, 47.8, 16.4, normalize([1.0, 2.0, 2.0]); form = :components, role = :stiffness)
+    ρ₁ = 2.45
+    δℂ = ti_from_constants(1.3, -0.4, 0.7, 2.1, 0.5, normalize([2.0, -1.0, 1.0]); form = :components, role = :stiffness)
+    δρ = 0.07
+    sₜ = [0.12, 0.05, 0.0]
+    forward = first(interface_waves(ℂ₁, ρ₁, WIF_NU, sₜ))
+    for incident in forward
+        incident.homogeneous || continue
+        w = weak_contrast_reflection(ℂ₁, ρ₁, δℂ, δρ, WIF_NU, incident)
+        exact(t) = reflection_transmission(ℂ₁, ρ₁, ℂ₁ + t * δℂ, ρ₁ + t * δρ, WIF_NU, incident).R
+        dR = ForwardDiff.derivative(t -> real.(exact(t)), 0.0) + im * ForwardDiff.derivative(t -> imag.(exact(t)), 0.0)
+        @test w.R ≈ dR rtol = 1.0e-8
+    end
+    @inferred weak_contrast_reflection(ℂ₁, ρ₁, δℂ, δρ, WIF_NU, forward[1])
+end
+
+@testsection "Isotropic medium with symbols" begin
+    Sy = TensND.Symbolics
+    TensND.Symbolics.@variables k μ ρ p δk δμ δρ
+    at = Dict(k => WIF_M1.k, μ => WIF_M1.μ, ρ => WIF_M1.ρ, p => 0.1, δk => 1.7, δμ => -0.6, δρ => 0.05)
+    number(x) = Float64(Sy.value(Sy.substitute(x, at; fold = Val(true))))
+    number(z::Complex) = complex(number(real(z)), number(imag(z)))
+    ℂₛ = TensISO{3}(3k, 2μ)
+    f, b = interface_waves(ℂₛ, ρ, WIF_NU, [p, 0, 0])
+    f₀, b₀ = interface_waves(wif_stiffness(WIF_M1), WIF_M1.ρ, WIF_NU, [0.1, 0.0, 0.0])
+    @test [number(w.normal_slowness) for w in f] ≈ [w.normal_slowness for w in f₀] rtol = 1.0e-12
+    @test [number(w.normal_slowness) for w in b] ≈ [w.normal_slowness for w in b₀] rtol = 1.0e-12
+    @test [number(w.flux) for w in f] ≈ [w.flux for w in f₀] rtol = 1.0e-12
+    # the first-order P-P coefficient, a formula, against the numbers
+    w = weak_contrast_reflection(ℂₛ, ρ, TensISO{3}(3δk, 2δμ), δρ, WIF_NU, f[1])
+    w₀ = weak_contrast_reflection(wif_stiffness(WIF_M1), WIF_M1.ρ, iso_stiffness(1.7, -0.6), 0.05, WIF_NU, f₀[1])
+    @test abs(number(w.R[1])) ≈ abs(w₀.R[1]) rtol = 1.0e-10
+    @test_throws ArgumentError interface_waves(Tens(Array(canonical_components(ℂₛ))), ρ, WIF_NU, [p, 0, 0])
+end

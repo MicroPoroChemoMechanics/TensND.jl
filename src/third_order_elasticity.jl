@@ -93,13 +93,15 @@ end
 # The Green-Lagrange strain of a deformation gradient: ½(Fᵀ·F − 𝟏).
 _strain(F::Tensor{2, 3}) = (tdot(F) - one(tdot(F))) / 2
 
-# ℂ = ∂S/∂E, the four terms of the docstring of `tangent_stiffness`.
-function _tangent(s::ThirdOrderIsotropic, E::SymmetricTensor{2, 3})
+# ℂ = ∂S/∂E: the isotropic stiffness of λ, μ and the term linear in E, the
+# sixth-order tensor ∂³W/∂E³ contracted with E (`strain_stiffening`).
+_tangent(s::ThirdOrderIsotropic, E::SymmetricTensor{2, 3}) =
+    s.λ * (one(E) ⊗ one(E)) + 2 * s.μ * otimesul(one(E), one(E)) + _stiffening(s, E)
+
+function _stiffening(s::ThirdOrderIsotropic, E::SymmetricTensor{2, 3})
     𝟏, I₁ = one(E), tr(E)
-    c₁ = s.λ + (2 * (s.l - s.m) + s.n) * I₁
-    c₂ = 2 * s.m - s.n
-    c₃ = 2 * s.μ + (2 * s.m - s.n) * I₁
-    return c₁ * (𝟏 ⊗ 𝟏) + c₂ * (𝟏 ⊗ E + E ⊗ 𝟏) + c₃ * otimesul(𝟏, 𝟏) + s.n * (otimesul(𝟏, E) + otimesul(E, 𝟏))
+    a = 2 * s.m - s.n
+    return (2 * (s.l - s.m) + s.n) * I₁ * (𝟏 ⊗ 𝟏) + a * (𝟏 ⊗ E + E ⊗ 𝟏) + a * I₁ * otimesul(𝟏, 𝟏) + s.n * (otimesul(𝟏, E) + otimesul(E, 𝟏))
 end
 
 # 𝔸 = 𝟏 ⊠ S + (F ⊠ 𝟏) : ℂ : (Fᵀ ⊠ 𝟏).
@@ -129,6 +131,41 @@ isotropic stiffness of `λ`, `μ` plus a term linear in `E`. It has the minor
 and major symmetries ([Third-order elasticity](@ref th-third-order)).
 """
 tangent_stiffness(s::ThirdOrderIsotropic, E::AbstractMatrix) = Tens(_tangent(s, SymmetricTensor{2, 3}(E)))
+
+"""
+    strain_stiffening(s::ThirdOrderIsotropic, E) → AbstractTens{4,3}
+
+The change of stiffness that the strain `E` (a symmetric 3×3 matrix of
+canonical components) brings about through the third-order constants of `s`,
+``\\partial^3 W/\\partial\\boldsymbol{E}^3 : \\boldsymbol{E}``:
+
+```math
+\\begin{aligned}
+\\Delta\\mathbb{C} &= (2l - 2m + n)\\operatorname{tr}\\boldsymbol{E}\\;\\boldsymbol{1}\\otimes\\boldsymbol{1}
+ + (2m - n)\\,(\\boldsymbol{1}\\otimes\\boldsymbol{E} + \\boldsymbol{E}\\otimes\\boldsymbol{1})\\\\
+&\\quad + (2m - n)\\operatorname{tr}\\boldsymbol{E}\\;\\boldsymbol{1}\\stackrel{s}{\\boxtimes}\\boldsymbol{1}
+ + n\\,(\\boldsymbol{1}\\stackrel{s}{\\boxtimes}\\boldsymbol{E} + \\boldsymbol{E}\\stackrel{s}{\\boxtimes}\\boldsymbol{1}) ,
+\\end{aligned}
+```
+
+that is ``\\Delta C_{11} = C_{111}E_{11} + C_{112}(E_{22} + E_{33})`` and its
+companions in the two-index notation for principal strains. It does not
+depend on `λ` and `μ`: added to the stiffness of an anisotropic background, it
+is the model of [prioul2004](@citet) for a rock whose anisotropy at rest is
+not isotropic while its nonlinearity is ([Third-order elasticity](@ref th-third-order)).
+"""
+strain_stiffening(s::ThirdOrderIsotropic, E::AbstractMatrix) = Tens(_stiffening(s, SymmetricTensor{2, 3}(E)))
+
+"""
+    third_order_from_constants(λ, μ, C₁₁₁, C₁₁₂, C₁₂₃) → ThirdOrderIsotropic
+
+The solid of Lamé's constants `λ`, `μ` and of the third-order constants given
+in the two-index notation: Murnaghan's ``l = C_{112}/2``,
+``m = (C_{111} - C_{112})/4`` and ``n = C_{123} - C_{112} + (C_{111} - C_{112})/2``,
+the converse of [`third_order_constants`](@ref).
+"""
+third_order_from_constants(λ, μ, C₁₁₁, C₁₁₂, C₁₂₃) =
+    ThirdOrderIsotropic(λ, μ, C₁₁₂ / 2, (C₁₁₁ - C₁₁₂) / 4, C₁₂₃ - C₁₁₂ + (C₁₁₁ - C₁₁₂) / 2)
 
 """
     acoustoelastic_tensor(s::ThirdOrderIsotropic, F) → AbstractTens{4,3}
@@ -240,4 +277,4 @@ function acoustoelastic_coefficients(s::ThirdOrderIsotropic)
     )
 end
 
-export ThirdOrderIsotropic, third_order_constants, strain_energy, tangent_stiffness, acoustoelastic_tensor, cauchy_stress, prestressed_waves, acoustoelastic_coefficients
+export ThirdOrderIsotropic, third_order_constants, third_order_from_constants, strain_stiffening, strain_energy, tangent_stiffness, acoustoelastic_tensor, cauchy_stress, prestressed_waves, acoustoelastic_coefficients

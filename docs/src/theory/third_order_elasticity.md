@@ -184,3 +184,34 @@ read on the slopes at ``\theta = 90^\circ``. In rocks, where the third-order
 constants are larger than the second-order ones by orders of magnitude
 (cracks closing under stress), ``a_P`` and ``b_S`` are large and negative: the
 velocities are highest along the compression.
+
+## 5. An anisotropic rock at rest
+
+The energy of section 1 is isotropic at both orders. A rock is often
+anisotropic at rest (a shale, a bedded sandstone) while its sensitivity to
+stress is well described by isotropic third-order constants.
+[prioul2004](@citet) write the stiffness of such a rock under the strain
+``\boldsymbol{E}`` (their Eq. (1)) as the stiffness at rest plus the term linear in
+the strain of the isotropic energy,
+
+```math
+\mathbb{C}(\boldsymbol{E}) \simeq \mathbb{C}^0 + \Delta\mathbb{C}(\boldsymbol{E}),
+\qquad
+\Delta\mathbb{C} = \frac{\partial^3 W}{\partial\boldsymbol{E}^3} : \boldsymbol{E} ,
+```
+
+which in the two-index notation and for principal strains reads
+``\Delta C_{11} = C_{111}E_{11} + C_{112}(E_{22} + E_{33})``,
+``\Delta C_{12} = C_{112}(E_{11} + E_{22}) + C_{123}E_{33}``,
+``\Delta C_{44} = C_{144}E_{11} + C_{155}(E_{22} + E_{33})`` and their circular
+permutations, with ``C_{144} = (C_{112} - C_{123})/2`` and
+``C_{155} = (C_{111} - C_{112})/4``. ``\Delta\mathbb{C}`` is the part of the tangent
+of section 1 that depends on the strain, and does not involve ``\lambda`` and
+``\mu`` ([`strain_stiffening`](@ref)). The relation takes ``\mathbb{C}^0``,
+whatever its symmetry, as the stiffness that the waves see at rest: it
+neglects the products of the anisotropy at rest by the strain, and the terms
+of the stress and of the rotation of section 2, which are of the order of the
+strain times the moduli at rest and much smaller than the third-order term in
+rocks. A strain of reference changes nothing to its form: the stiffness at a
+reference state replaces ``\mathbb{C}^0`` and the strain is counted from it.
+

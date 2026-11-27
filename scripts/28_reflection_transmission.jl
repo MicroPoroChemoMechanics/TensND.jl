@@ -234,9 +234,9 @@ ForwardDiff.gradient(x -> R_PP(x, deg2rad(20)), x₀)
 # ```
 #
 # whose derivatives at zero contrast are the three coefficients of the
-# contrasts. The formula is not derived here: the derivatives computed by
-# ForwardDiff on the exact coefficient check it. Both, made dimensionless by
-# ``(\rho, \alpha, \beta)``, against the angle of incidence:
+# contrasts. The derivatives computed by ForwardDiff on the exact coefficient
+# check it; both, made dimensionless by ``(\rho, \alpha, \beta)``, against the angle
+# of incidence:
 
 function linearized(θ)
     ρ, α, β = x₀
@@ -255,3 +255,49 @@ scatter!(rad2deg.(θd), reduce(hcat, by_formula)'; color = [1 2 3], label = "")
 # The markers are the formula; the largest difference between the two:
 
 maximum(maximum(abs, a - b) for (a, b) in zip(by_duals, by_formula))
+
+# The formula itself follows from the first-order coefficients of
+# [Waves at an interface](@ref th-weak-contrast), written with the waves of the
+# medium 1 only. For an isotropic medium these waves have closed forms, and
+# `weak_contrast_reflection` returns the coefficient as a formula when the
+# properties are symbols. With the velocities as unknowns,
+# ``k = \rho(\alpha^2 - 4\beta^2/3)`` and ``\mu = \rho\beta^2``, and their
+# differentials for the contrasts:
+
+using Symbolics
+Symbolics.@variables ρₛ αₛ βₛ pₛ δρ δα δβ
+kₛ, μₛ = ρₛ * (αₛ^2 - 4βₛ^2 / 3), ρₛ * βₛ^2
+δk = (αₛ^2 - 4βₛ^2 / 3) * δρ + ρₛ * (2αₛ * δα - 8βₛ * δβ / 3)
+δμ = βₛ^2 * δρ + 2ρₛ * βₛ * δβ
+ℂₛ = TensISO{3}(3kₛ, 2μₛ)
+incidentₛ = first(interface_waves(ℂₛ, ρₛ, ν, [pₛ, 0, 0]))[1]
+Rₛ = real(weak_contrast_reflection(ℂₛ, ρₛ, TensISO{3}(3δk, 2δμ), δρ, ν, incidentₛ).R[1])
+nothing # hide
+
+# Its coefficients of the three contrasts ``\delta\rho``, ``\delta\alpha``,
+# ``\delta\beta``:
+
+reduce(x) = Symbolics.simplify(Symbolics.simplify_fractions(x); expand = true)
+[reduce(Symbolics.derivative(Rₛ, x)) for x in (δρ, δα, δβ)]
+
+# Both the closed form and the formula take the polarization of a P wave along
+# its direction of propagation. With ``\cos^2\theta = 1 - p^2\alpha^2``, the
+# difference between the coefficient and the formula reduces to zero:
+
+formula = (1 - 4pₛ^2 * βₛ^2) / 2 * δρ / ρₛ + δα / (2αₛ * (1 - pₛ^2 * αₛ^2)) - 4pₛ^2 * βₛ^2 * δβ / βₛ
+reduce(Rₛ - formula)
+
+# ## A free surface
+#
+# Without a second medium the traction vanishes on the surface, and the
+# reflected waves carry all the energy (`free_surface_reflection`). The P-P and
+# P-S energies of a P wave against its angle of incidence:
+
+θf = deg2rad.(0:1:89)
+free = [free_surface_reflection(shale.ℂ, shale.ρ, ν, incident_P(shale, sin(θ) / shale.α)) for θ in θf]
+plot(
+    rad2deg.(θf), [r.energy[1] for r in free]; lw = 2, label = "reflected P", xlabel = "angle of incidence (°)",
+    ylabel = "energy fraction", legend = :right, size = (640, 380)
+)
+plot!(rad2deg.(θf), [r.energy[2] + r.energy[3] for r in free]; lw = 2, label = "reflected S")
+plot!(rad2deg.(θf), [sum(r.energy) for r in free]; lw = 2, ls = :dash, color = :black, label = "sum")
