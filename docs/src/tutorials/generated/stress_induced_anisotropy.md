@@ -17,8 +17,9 @@ governed by the third-order elastic constants, which in rocks are hundreds
 or thousands of times larger than the second-order ones
 [johnson1996](@cite). This tutorial computes, for the materials of their
 Table 1, the first-order coefficients of the anisotropy, then the velocities
-of Barre granite under a uniaxial compression, and checks one of the slopes
-of [hughes1953](@citet) with symbols.
+of Barre granite under a uniaxial compression, and checks with symbols the
+slopes of Eqs. (18)–(20) of [johnson1996](@citet), after
+[hughes1953](@citet), and the two coefficients of the anisotropy.
 
 ````@example stress_induced_anisotropy
 using TensND
@@ -82,7 +83,7 @@ splitting of the two S waves follow, to first order in ``\sigma``,
 
 ``S_1`` being polarized in the plane of the stress and of the propagation.
 `acoustoelastic_coefficients` gives ``a_P``, ``b_S`` and the slopes of
-[hughes1953](@citet). They are computed here from the constants of each row,
+Eqs. (18)–(20) of the article, after [hughes1953](@citet). They are computed here from the constants of each row,
 next to the values predicted in the table, in GPa⁻¹, with their relative
 gap:
 
@@ -187,7 +188,7 @@ constants, a few tens of MPa for this granite (values in GPa):
 
 At 20 MPa the exact anisotropies already depart from them.
 
-## A slope of Hughes and Kelly with symbols
+## The slopes and the coefficients with symbols
 
 The same functions take SymPy symbols. The true P modulus
 ``\rho_0 v^2`` along the stress is the component ``A_{3333}`` times
@@ -199,14 +200,38 @@ The same functions take SymPy symbols. The true P modulus
 λₛ, μₛ, lₛ, mₛ, nₛ, σₛ = symbols("λ μ l m n σ", real = true)
 sₛ = ThirdOrderIsotropic(λₛ, μₛ, lₛ, mₛ, nₛ)
 Fₛ = uniaxial_gradient(σₛ, young_poisson(λₛ, μₛ)...)
-A = acoustoelastic_tensor(sₛ, Fₛ)
-slope = tsimplify(tsubs(tdiff(A[3, 3, 3, 3] * Fₛ[3, 3]^2, σₛ), σₛ => 0))
+A = canonical_components(acoustoelastic_tensor(sₛ, Fₛ))
+rate(x) = tsimplify(tsubs(tdiff(x, σₛ), σₛ => 0))         # d/dσ at σ = 0
+slope = rate(A[3, 3, 3, 3] * Fₛ[3, 3]^2)
 ````
 
 and the difference with the closed form reduces to zero:
 
 ````@example stress_induced_anisotropy
 tsimplify(slope - acoustoelastic_coefficients(sₛ).P_parallel)
+````
+
+The two coefficients of the anisotropy, as `acoustoelastic_coefficients`
+writes them:
+
+````@example stress_induced_anisotropy
+cₛ = acoustoelastic_coefficients(sₛ)
+cₛ.a_P, cₛ.b_S
+````
+
+They follow from the waves normal to the stress, along ``\underline{e}_1``:
+the acoustic tensor ``\Gamma_{ik} = A_{i1k1}``, stretched by
+``|\boldsymbol{F}\cdot\underline{e}_1|^2 = F_{11}^2``, gives the slopes of the P
+wave and of the S waves polarized along the stress (``\underline{e}_3``) and
+normal to it (``\underline{e}_2``). At ``\theta = \pi/2`` the laws above read
+``a_P = (\dot M_{P\perp} - \dot M_{P\parallel})/(2(\lambda + 2\mu))`` and
+``b_S = (\dot M_{S\perp\perp} - \dot M_{S\perp\parallel})/(2\mu)``, a dot
+denoting the slope of a modulus ``\rho_0 v^2``; both differences reduce to
+zero:
+
+````@example stress_induced_anisotropy
+P_perp, S_perp_par, S_perp_perp = (rate(A[i, 1, i, 1] * Fₛ[1, 1]^2) for i in (1, 3, 2))
+tsimplify(cₛ.a_P - (P_perp - slope) / (2 * (λₛ + 2μₛ))), tsimplify(cₛ.b_S - (S_perp_perp - S_perp_par) / (2μₛ))
 ````
 
 ---

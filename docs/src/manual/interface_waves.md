@@ -95,7 +95,7 @@ The interface above is welded: displacement and traction are continuous. With
 `slip`, a ``3\times3`` matrix ``\omega\boldsymbol{Z}`` (angular frequency times
 the compliance of the interface, in the unit of a length per stress), the
 displacement jumps by ``\boldsymbol{Z}`` times the traction
-[schoenberg1980](@cite):
+[schoenberg1983, schoenberg1995](@cite):
 
 ```@example interface
 Z = Diagonal([2.0e-4, 2.0e-4, 1.0e-4])                  # tangential and normal compliances, km/GPa
@@ -112,8 +112,12 @@ using ForwardDiff
 ForwardDiff.derivative(ϱ -> abs(reflection_transmission(ℂ₁, ρ₁, ℂ₂, ϱ, ν, incident).R[1]), ρ₂)
 ```
 
-The roots are found numerically and sorted by comparisons: symbols are refused
-with an `ArgumentError`.
+Both functions take numbers and dual numbers only. The six normal slownesses
+are the roots of a polynomial of degree six, which have no closed form in
+general: they are found numerically, then sorted and split into forward and
+backward waves by comparisons of their imaginary parts and of their energy
+fluxes, which symbols do not allow. Symbols are refused with an
+`ArgumentError`.
 
 ## Characteristic roots of a stiffness of the plane
 
@@ -151,6 +155,35 @@ characteristic_pair(ℂₚ), characteristic_roots(ℂₚ)
 ```@example interface
 a₁₁, a₂₂, a₁₂, a₆₆, a₁₆, a₂₆ = a
 [a₁₁ * μ^4 - 2a₁₆ * μ^3 + (2a₁₂ + a₆₆) * μ^2 - 2a₂₆ * μ + a₂₂ for μ in characteristic_roots(ℂₚ)]
+```
+
+In the axes of an orthotropic medium ``a_{16} = a_{26} = 0``: the quartic is
+biquadratic, ``\mu_1^2\mu_2^2 = a_{22}/a_{11}`` and
+``p = -\sqrt{a_{22}/a_{11}}`` ([Characteristic roots](@ref th-characteristic-roots)).
+The closed form takes symbols (Symbolics here) for the four components
+``(C_{11}, C_{22}, C_{12}, C_{66})`` of the stiffness in its axes:
+
+```@example interface
+using Symbolics
+
+Symbolics.@variables c₁₁ c₂₂ c₁₂ c₆₆
+ℂₛ = TensOrtho(c₁₁, c₂₂, c₁₂, c₆₆, CanonicalBasis{2, Num}())
+aₛ = engineering_compliances(ℂₛ)
+simplify.(aₛ)
+```
+
+```@example interface
+sₛ, pₛ = characteristic_pair(ℂₛ)
+simplify(real(pₛ) + sqrt(aₛ[2] / aₛ[1])), imag(pₛ), simplify(aₛ[2] / aₛ[1])
+```
+
+The product is ``p = -\sqrt{C_{11}/C_{22}}``. The components of `ℂₚ`
+substituted in the symbolic pair give the numeric one:
+
+```@example interface
+at = Dict(zip((c₁₁, c₂₂, c₁₂, c₆₆), get_data(ℂₚ)))
+number(x) = Symbolics.value(substitute(x, at; fold = Val(true)))
+number(real(pₛ)) - real(characteristic_pair(ℂₚ)[2]), number(imag(sₛ)) - imag(characteristic_pair(ℂₚ)[1])
 ```
 
 The roots of an isotropic tensor merge at ``\mathrm{i}``, where they stop being

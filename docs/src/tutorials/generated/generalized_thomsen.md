@@ -25,6 +25,7 @@ using LinearAlgebra
 using JSON
 using Printf
 using Plots
+using SymPyPythonCall: symbols
 gr()
 nothing #hide
 ````
@@ -46,7 +47,7 @@ rocks = [
     (name = "Lavoux limestone", ℂ = stiffness_from_voigt(voigt("lavoux_stiffness")), ρ = density("lavoux_density")),
     (name = "Vosges sandstone", ℂ = stiffness_from_voigt(voigt("vosges_stiffness")), ρ = density("vosges_density")),
 ]
-voigt("vosges_stiffness")
+voigt("vosges_stiffness")                       ## the matrix of the sandstone, as printed
 
 Main.show_literature("menschGJI1997") # hide
 ````
@@ -66,6 +67,65 @@ velocities: ``\varepsilon_x``, ``\varepsilon_y``, ``\delta_x``,
 for r in rocks
     println(r.name, ": ", map(x -> round(x; digits = 4), generalized_thomsen_parameters(r.ℂ)))
 end
+````
+
+## The parameters and the P wave with symbols
+
+The parameters are ratios of the components ``C_{IJ}``, and they take
+symbols. A monoclinic stiffness whose mirror is the plane normal to
+``\underline{e}_3`` has thirteen components; of the parameters, ``\chi_z``,
+``\varepsilon_{16}`` and ``\varepsilon_{26}`` survive next to those of
+orthotropy:
+
+````@example generalized_thomsen
+C₁₁, C₁₂, C₁₃, C₁₆, C₂₂, C₂₃, C₂₆, C₃₃, C₃₆, C₄₄, C₄₅, C₅₅, C₆₆ = symbols("C_11 C_12 C_13 C_16 C_22 C_23 C_26 C_33 C_36 C_44 C_45 C_55 C_66", real = true)
+o = zero(C₁₁)
+monoclinic = stiffness_from_voigt(
+    [
+        C₁₁ C₁₂ C₁₃ o o C₁₆
+        C₁₂ C₂₂ C₂₃ o o C₂₆
+        C₁₃ C₂₃ C₃₃ o o C₃₆
+        o o o C₄₄ C₄₅ o
+        o o o C₄₅ C₅₅ o
+        C₁₆ C₂₆ C₃₆ o o C₆₆
+    ]
+)
+gₛ = map(tsimplify, generalized_thomsen_parameters(monoclinic))
+````
+
+To first order the modulus of the P wave along a unit ``\underline{n}`` is the
+quartic form of [Weak anisotropy of any symmetry](@ref th-weak-anisotropy),
+``\rho V_P^2 \simeq C_{33}\,[1 + q(\underline{n})]``, with
+
+```math
+\begin{aligned}
+q(\underline{n}) = {} & 2\varepsilon_y\,n_1^4 + 2\varepsilon_x\,n_2^4
+ + 2\delta_z\,n_1^2n_2^2 + 2\delta_y\,n_1^2n_3^2 + 2\delta_x\,n_2^2n_3^2\\
+&+ 4\bigl(\varepsilon_{15}\,n_1^3n_3 + \varepsilon_{16}\,n_1^3n_2 + \varepsilon_{24}\,n_2^3n_3 + \varepsilon_{26}\,n_2^3n_1 + \varepsilon_{34}\,n_3^3n_2 + \varepsilon_{35}\,n_3^3n_1\bigr)\\
+&+ 4\bigl(\chi_x\,n_1^2n_2n_3 + \chi_y\,n_1n_2^2n_3 + \chi_z\,n_1n_2n_3^2\bigr) .
+\end{aligned}
+```
+
+````@example generalized_thomsen
+function quartic(g, (n₁, n₂, n₃))
+    return 2 * (g.εy * n₁^4 + g.εx * n₂^4 + g.δz * n₁^2 * n₂^2 + g.δy * n₁^2 * n₃^2 + g.δx * n₂^2 * n₃^2) +
+        4 * (g.ε15 * n₁^3 * n₃ + g.ε16 * n₁^3 * n₂ + g.ε24 * n₂^3 * n₃ + g.ε26 * n₂^3 * n₁ + g.ε34 * n₃^3 * n₂ + g.ε35 * n₃^3 * n₁) +
+        4 * (g.χx * n₁^2 * n₂ * n₃ + g.χy * n₁ * n₂^2 * n₃ + g.χz * n₁ * n₂ * n₃^2)
+end
+nothing #hide
+````
+
+`weak_plane_waves` normalizes its direction: for ``\underline{n}`` of any
+length ``r``, ``\rho V_P^2\,r^4 = C_{33}\,[r^4 + q(\underline{n})]``, ``q`` being
+homogeneous of degree four. Along a direction of three symbolic components the
+difference reduces to zero:
+
+````@example generalized_thomsen
+n₁, n₂, n₃ = symbols("n_1 n_2 n_3", real = true)
+ρₛ = symbols("ρ", positive = true)
+ρV² = ρₛ * weak_plane_waves(monoclinic, ρₛ, [n₁, n₂, n₃]).qP[1]^2
+r² = n₁^2 + n₂^2 + n₃^2
+tsimplify(ρV² * r²^2 - C₃₃ * (r²^2 + quartic(gₛ, (n₁, n₂, n₃))))
 ````
 
 ## Exact and first-order velocities

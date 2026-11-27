@@ -25,6 +25,7 @@ using ForwardDiff
 using JSON
 using Printf
 using Plots
+using SymPyPythonCall: symbols
 gr()
 nothing #hide
 ````
@@ -154,6 +155,31 @@ plot(
     section((w, i) -> w.group[[1, 3], i], "wave surface", "km/s");
     layout = (1, 3), size = (980, 380), left_margin = 3Plots.mm, bottom_margin = 3Plots.mm,
 )
+````
+
+The slowness curve of the meridian is known in closed form. A slowness
+vector ``\underline{s} = (s_1, 0, s_3)`` lies on it when
+``\det(\boldsymbol{\Gamma}(\underline{s}) - \rho\boldsymbol{1}) = 0``, and
+[`christoffel_invariants`](@ref), which does not normalize its vector, gives
+this determinant as ``\rho^3(I_1 - I_2 + I_3 - 1)`` for the invariants of
+``\boldsymbol{\Gamma}(\underline{s})/\rho``. With the five components of a
+stiffness transversely isotropic about ``\underline{e}_3`` as symbols, it
+factors into the ellipse of SH times a quartic, the curves of qP and qSV:
+
+````@example wave_surfaces
+C₁₁, C₁₂, C₁₃, C₃₃, C₄₄, ρₛ = symbols("C_11 C_12 C_13 C_33 C_44 ρ", positive = true)
+s₁, s₃ = symbols("s_1 s_3", real = true)
+I₁, I₂, I₃ = christoffel_invariants(ti_from_constants(C₁₁, C₁₂, C₁₃, C₃₃, C₄₄, [0, 0, 1]), ρₛ, [s₁, 0, s₃])
+slowness_curves = tfactor(ρₛ^3 * (I₁ - I₂ + I₃ - 1))
+````
+
+The two factors, with ``C_{66} = (C_{11} - C_{12})/2``: the difference
+reduces to zero.
+
+````@example wave_surfaces
+SH = (C₁₁ - C₁₂) / 2 * s₁^2 + C₄₄ * s₃^2 - ρₛ
+qP_qSV = (C₁₁ * s₁^2 + C₄₄ * s₃^2 - ρₛ) * (C₄₄ * s₁^2 + C₃₃ * s₃^2 - ρₛ) - (C₁₃ + C₄₄)^2 * s₁^2 * s₃^2
+tsimplify(slowness_curves - SH * qP_qSV)
 ````
 
 ## Cusps of the qSV wave surface

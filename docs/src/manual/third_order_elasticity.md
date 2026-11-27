@@ -86,12 +86,15 @@ with
 A_{ijkl} = \frac{\partial^2W}{\partial F_{ij}\,\partial F_{kl}} = \delta_{ik}\,S_{jl} + F_{ip}\,F_{kq}\,\mathbb{C}_{pjql}(\boldsymbol{E}) .
 ```
 
-[`acoustoelastic_tensor`](@ref) returns it as a ``3\times3\times3\times3``
-array. It has the major symmetry, and under stress not the minor ones:
+[`acoustoelastic_tensor`](@ref) returns it as a tensor of order four
+(`AbstractTens{4,3}`), whose components in the canonical basis
+[`canonical_components`](@ref) reads. It has the major symmetry, and under
+stress not the minor ones:
 
 ```@example toe
 A = acoustoelastic_tensor(s, F)
-A ≈ permutedims(A, (3, 4, 1, 2)), A ≈ permutedims(A, (2, 1, 3, 4))
+Aᵢⱼₖₗ = Array(canonical_components(A))
+Aᵢⱼₖₗ ≈ permutedims(Aᵢⱼₖₗ, (3, 4, 1, 2)), Aᵢⱼₖₗ ≈ permutedims(Aᵢⱼₖₗ, (2, 1, 3, 4))
 ```
 
 ## Waves under a deformation
@@ -125,7 +128,7 @@ throws a `DomainError`, as `plane_waves` does.
 ## The first-order effect of a stress
 
 [`acoustoelastic_coefficients`](@ref) returns, in closed form
-[hughes1953](@cite), the derivatives of ``\rho_0v^2`` (``v`` the true velocity)
+([johnson1996](@citet), Eqs. (18)–(20), after [hughes1953](@citet)), the derivatives of ``\rho_0v^2`` (``v`` the true velocity)
 with respect to a compressive stress ``\sigma`` at ``\sigma = 0``: uniaxial
 along the propagation (`P_parallel`, `S_parallel`), uniaxial normal to it
 (`P_perpendicular`, and `S_perpendicular_parallel` or
@@ -151,12 +154,47 @@ true_P(σ) = norm(Fσ(σ) * N) * prestressed_waves(s, ρ₀, Fσ(σ), N).velocit
 ForwardDiff.derivative(σ -> ρ₀ * true_P(σ)^2, 0.0), c.P_parallel
 ```
 
-The coefficients are rational in the constants, so they take symbols:
+## With symbols
+
+The constants in the other notations, the energy, the stress, the tangent and
+the coefficients are polynomial or rational in the five constants, so they
+take symbols. The other notations first:
 
 ```@example toe
 using SymPyPythonCall
 
 λₛ, μₛ, lₛ, mₛ, nₛ = symbols("lambda mu l m n", real = true)
-cₛ = acoustoelastic_coefficients(ThirdOrderIsotropic(λₛ, μₛ, lₛ, mₛ, nₛ))
-simplify(cₛ.P_hydrostatic), cₛ.b_S
+sₛ = ThirdOrderIsotropic(λₛ, μₛ, lₛ, mₛ, nₛ)
+third_order_constants(sₛ)
+```
+
+Under a hydrostatic strain ``\boldsymbol{E} = e\,\boldsymbol{1}`` the tangent
+stays isotropic, of Lamé constants ``\lambda + (6l - 2m + n)\,e`` and
+``\mu + (3m - n/2)\,e``. The entries ``C_{12}`` and ``C_{44}`` of its two-index
+matrix, and their differences with these values:
+
+```@example toe
+e = symbols("e", real = true)
+Cₑ = simplify.(voigt_stiffness(tangent_stiffness(sₛ, [i == j ? e : zero(e) for i in 1:3, j in 1:3])))
+Cₑ[1, 2], Cₑ[4, 4]
+```
+
+```@example toe
+simplify(Cₑ[1, 2] - (λₛ + (6lₛ - 2mₛ + nₛ) * e)), simplify(Cₑ[4, 4] - (μₛ + (3mₛ - nₛ / 2) * e))
+```
+
+The coefficients of the first-order effect of a stress, among them ``a_P`` and
+``b_S``:
+
+```@example toe
+cₛ = acoustoelastic_coefficients(sₛ)
+simplify(cₛ.P_hydrostatic), cₛ.a_P, cₛ.b_S
+```
+
+The constants of `s` substituted in ``a_P`` and ``b_S`` give the numeric values
+above:
+
+```@example toe
+at = (λₛ => s.λ, μₛ => s.μ, lₛ => s.l, mₛ => s.m, nₛ => s.n)
+SymPyPythonCall.N(subs(cₛ.a_P, at...)) - c.a_P, SymPyPythonCall.N(subs(cₛ.b_S, at...)) - c.b_S                # N names the direction here
 ```

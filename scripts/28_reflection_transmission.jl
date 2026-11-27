@@ -51,7 +51,9 @@ nothing #hide
 # ``p = \sin\theta/\alpha_1``. [`interface_waves`](@ref) returns the six waves of
 # a medium for that ``p``, three going towards ``+\underline{\nu}`` and three
 # towards ``-\underline{\nu}``, each by increasing normal slowness ``|\xi|``; the
-# incident P wave is the first forward wave of the shale.
+# incident P wave is the first forward wave of the shale. The roots are found
+# numerically and sorted by comparisons, so that these functions take numbers
+# and dual numbers, not symbols.
 
 incident_P(m, p) = first(interface_waves(m.ℂ, m.ρ, ν, [p, 0.0, 0.0]))[1]
 θ = deg2rad(30)
@@ -172,7 +174,7 @@ maximum(c -> abs(sum(c.energy) - 1), results_vti)
 # ## An interface that slips
 #
 # A fracture or a weak layer is modeled by a linear slip interface
-# [schoenberg1980](@cite): the traction is continuous and the displacement
+# [schoenberg1983, schoenberg1995](@cite): the traction is continuous and the displacement
 # jumps by ``\boldsymbol{Z}`` times the traction, ``\boldsymbol{Z}`` the
 # compliance of the interface, here ``Z_N`` normal to it and ``Z_T`` along it.
 # The keyword `slip` takes ``\omega\boldsymbol{Z}``, so that the coefficients
@@ -187,7 +189,8 @@ nothing #hide
 
 # At normal incidence, between two identical media, only the slip reflects,
 # and ``|R| = (\kappa/2)/\sqrt{1 + (\kappa/2)^2}`` with
-# ``\kappa = \omega Z_N\rho\alpha`` [schoenberg1980](@cite). The modulus of the
+# ``\kappa = \omega Z_N\rho\alpha`` ([Waves at an interface](@ref th-interface-waves)).
+# The modulus of the
 # P-P coefficient against the frequency:
 
 κ(f) = 2π * f * Zₙ * sandstone.ρ * sandstone.α
@@ -221,8 +224,9 @@ end
 x₀ = [shale.ρ, shale.α, shale.β]
 ForwardDiff.gradient(x -> R_PP(x, deg2rad(20)), x₀)
 
-# The linearized formula of [aki2002](@citet), for the same convention of
-# sign, reads with ``p`` the horizontal slowness
+# For a weak contrast between two isotropic media, the coefficient is usually
+# written to first order in the relative contrasts of density and velocities,
+# with the same convention of sign and ``p`` the horizontal slowness
 #
 # ```math
 # R \approx \tfrac12\bigl(1 - 4p^2\beta^2\bigr)\frac{\Delta\rho}{\rho}
@@ -230,8 +234,9 @@ ForwardDiff.gradient(x -> R_PP(x, deg2rad(20)), x₀)
 # ```
 #
 # whose derivatives at zero contrast are the three coefficients of the
-# contrasts. Both, made dimensionless by ``(\rho, \alpha, \beta)``, against the
-# angle of incidence:
+# contrasts. The formula is not derived here: the derivatives computed by
+# ForwardDiff on the exact coefficient check it. Both, made dimensionless by
+# ``(\rho, \alpha, \beta)``, against the angle of incidence:
 
 function linearized(θ)
     ρ, α, β = x₀

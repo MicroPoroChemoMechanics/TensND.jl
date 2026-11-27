@@ -153,6 +153,13 @@ isotropic medium [thomsen1986](@cite) ([Thomsen's parameters](@ref th-thomsen)).
 p = thomsen_parameters(ℂ, ρ)
 ```
 
+On `ℂₛ`, the symbolic stiffness of the previous section, the definitions
+themselves come out:
+
+```@example waves
+map(simplify, thomsen_parameters(ℂₛ, ϱ))
+```
+
 They are also the form `:thomsen` of [`ti_constants`](@ref) and
 [`ti_from_constants`](@ref), with the density as a keyword; the converse gives
 the stiffness back:
@@ -167,10 +174,10 @@ ti_constants(ℂ; form = :thomsen, density = ρ) == values(p), ti_constants(ℂ�
 `ArgumentError`.
 
 The anellipticity ``\eta = (\varepsilon - \delta)/(1 + 2\delta)`` vanishes when
-the slowness curve of the P wave is an ellipse:
+the slowness curve of the P wave is an ellipse; for `ℂ` and for `ℂₛ`:
 
 ```@example waves
-anellipticity(ℂ)
+anellipticity(ℂ), simplify(anellipticity(ℂₛ))
 ```
 
 [`weak_wave_modes`](@ref) gives the velocities to first order in
@@ -180,6 +187,25 @@ anellipticity(ℂ)
 weak_wave_modes(ℂ, ρ, n), map(first, wave_modes(ℂ, ρ, n))
 ```
 
+With Thomsen's parameters as symbols, the stiffness of the form `:thomsen`
+gives back the first-order formulas of
+[Thomsen's parameters](@ref th-thomsen), at the angle ``\vartheta`` to the axis:
+
+```@example waves
+V_P0, V_S0 = symbols("V_P0 V_S0", positive = true)
+εₜ, δₜ, γₜ = symbols("epsilon delta gamma", real = true)
+ℂᵥ = ti_from_constants(V_P0, V_S0, εₜ, δₜ, γₜ, [0, 0, 1]; form = :thomsen, density = ϱ)
+wₜ = weak_wave_modes(ℂᵥ, ϱ, [sin(ϑ), 0, cos(ϑ)])
+```
+
+The parameters of ``\mathbb{C}`` and the angle ``\pi/4`` of ``\underline{n}``
+substituted in these formulas give the numeric result above:
+
+```@example waves
+at = (V_P0 => p.V_P0, V_S0 => p.V_S0, εₜ => p.ε, δₜ => p.δ, γₜ => p.γ, ϱ => ρ, ϑ => PI / 4)
+[N(subs(v, at...)) for v in wₜ] .- collect(weak_wave_modes(ℂ, ρ, n))
+```
+
 [`squared_moveout_velocities`](@ref) gives the squares of the short-spread
 moveout velocities of a horizontal reflector in a medium of vertical axis,
 exact for any strength of the anisotropy. The squares are returned because the
@@ -187,6 +213,12 @@ qSV one is negative in many rocks, where no moveout velocity exists:
 
 ```@example waves
 squared_moveout_velocities(ℂ, ρ)
+```
+
+In Thomsen's parameters:
+
+```@example waves
+map(simplify, squared_moveout_velocities(ℂᵥ, ϱ))
 ```
 
 ## Any symmetry
@@ -237,6 +269,28 @@ g = generalized_thomsen_parameters(ℂ)
 (g.εx, g.εy, p.ε), (g.γy, p.γ), (g.δx, g.δy, p.δ)
 ```
 
+For an orthotropic stiffness in its axes, given by its nine components
+``C_{IJ}``, the parameters are ratios of these components, and those that
+couple the axes vanish:
+
+```@example waves
+c₁₁, c₂₂, c₃₃, c₁₂, c₁₃, c₂₃, c₄₄, c₅₅, c₆₆ = symbols("C_11 C_22 C_33 C_12 C_13 C_23 C_44 C_55 C_66", positive = true)
+ℂₒ = TensOrtho(c₁₁, c₂₂, c₃₃, c₁₂, c₁₃, c₂₃, c₄₄, c₅₅, c₆₆, CanonicalBasis{3, Sym}())
+map(simplify, generalized_thomsen_parameters(ℂₒ))
+```
+
+In the plane ``(\underline{e}_1, \underline{e}_3)``, a plane of symmetry, the
+first-order modulus of the qP wave is
+``\rho V_P^2 \simeq \underline{n}\cdot\boldsymbol{\Gamma}(\underline{n})\cdot\underline{n} = C_{11}\sin^4\vartheta + C_{33}\cos^4\vartheta + (2C_{13} + 4C_{55})\sin^2\vartheta\cos^2\vartheta``.
+Both differences reduce to zero:
+
+```@example waves
+nₛ = [sin(ϑ), 0, cos(ϑ)]
+ρV² = ϱ * weak_plane_waves(ℂₒ, ϱ, nₛ).qP[1]^2
+nΓn = transpose(nₛ) * Array(canonical_components(acoustic_tensor(ℂₒ, nₛ))) * nₛ
+simplify(ρV² - nΓn), simplify(ρV² - (c₁₁ * sin(ϑ)^4 + c₃₃ * cos(ϑ)^4 + (2c₁₃ + 4c₅₅) * sin(ϑ)^2 * cos(ϑ)^2))
+```
+
 [`shear_splitting`](@ref) measures how far apart the two shear waves of a
 direction travel: the relative difference of their velocities, the
 polarization of the fast one, and the delay of the slow one per unit length of
@@ -262,8 +316,9 @@ ForwardDiff.derivative(r -> phase_velocities(ℂ, r, n)[1], ρ), -w.velocity[1] 
 ForwardDiff.derivative(c -> phase_velocities(ti_from_constants(c, 15.7, 21.8, 47.8, 16.4, [0.0, 0.0, 1.0]), ρ, n)[1], 52.9)
 ```
 
-`wave_modes`, `christoffel_invariants`, `weak_plane_waves` and
-`generalized_thomsen_parameters` also take symbols. `plane_waves` and
+`wave_modes`, `christoffel_invariants`, `thomsen_parameters`, `anellipticity`,
+`weak_wave_modes`, `squared_moveout_velocities`, `weak_plane_waves` and
+`generalized_thomsen_parameters` also take symbols, as the examples above show. `plane_waves` and
 `shear_splitting` sort the waves by their velocities, a comparison that symbols
 do not allow: they throw an `ArgumentError` on a symbolic stiffness.
 
