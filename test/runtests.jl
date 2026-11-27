@@ -118,6 +118,18 @@ include("test_plane_projection.jl")
 include("test_repatriated.jl")
 include("test_operator_matrix.jl")
 include("test_plane_space.jl")
+# Plane waves: the Christoffel problem, Thomsen's parameters, weak anisotropy
+# and shear-wave splitting.
+include("test_waves_christoffel.jl")
+include("test_waves_thomsen.jl")
+include("test_waves_weak_anisotropy.jl")
+# Two-index (Voigt) matrices, generalized Thomsen parameters, waves at a
+# plane interface.
+include("test_voigt_matrix.jl")
+include("test_waves_generalized.jl")
+include("test_waves_interface.jl")
+include("test_third_order_elasticity.jl")
+include("test_plane_characteristic.jl")
 include("test_coefficient_types.jl")
 # The twelve-constant orthotropic form, without major symmetry.
 include("test_ortho_general.jl")

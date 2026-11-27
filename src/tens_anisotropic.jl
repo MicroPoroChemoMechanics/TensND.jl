@@ -539,8 +539,9 @@ _ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₁₁, 
     _ti_from_hill((C₁₁₁₁ + C₁₁₂₂) / 2, C₁₁₃₃, (C₁₁₁₁ - C₁₁₂₂) / 2, C₃₃₃₃, C₂₃₂₃, C₃₃₁₁, axis)
 
 Base.@constprop :aggressive function ti_from_constants(
-        c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components, role::Symbol = :compliance
+        c₁, c₂, c₃, c₄, c₅, n; form::Symbol = :components, role::Symbol = :compliance, density = nothing
     )
+    form === :thomsen && return _ti_from_components(_components_of_thomsen(c₁, c₂, c₃, c₄, c₅, _thomsen_density(density))..., n)
     form === :components && return _ti_from_components(c₁, c₂, c₃, c₄, c₅, n)
     form === :hill && return _ti_from_hill(c₁, c₂, c₃, c₄, c₅, n)
     form === :walpole && return TensTI{4}(c₁, c₂, c₃, c₄, c₅, n)
@@ -577,7 +578,10 @@ not there; take `Tensors.majorsymmetric(t)` first if its symmetric part is meant
 """
 function ti_constants end
 
-Base.@constprop :aggressive function ti_constants(t::TensTI{4}; form::Symbol = :components, role::Symbol = :compliance)
+Base.@constprop :aggressive function ti_constants(
+        t::TensTI{4}; form::Symbol = :components, role::Symbol = :compliance, density = nothing
+    )
+    form === :thomsen && return _thomsen_of_components(_ti_components(t)..., _thomsen_density(density))
     form === :components && return _ti_components(t)
     form === :hill && return values(hill_moduli(t))
     form === :walpole && return walpole_coeffs(t, Val(5))
@@ -587,7 +591,7 @@ Base.@constprop :aggressive function ti_constants(t::TensTI{4}; form::Symbol = :
 end
 
 _unknown_ti_form(form) =
-    ArgumentError("unknown form `:$form` of the TI constants; use `:walpole`, `:components`, `:hill`, `:engineering` or `:hoenig`")
+    ArgumentError("unknown form `:$form` of the TI constants; use `:walpole`, `:components`, `:hill`, `:engineering`, `:hoenig` or `:thomsen`")
 
 function _ti_from_components(C₁₁₁₁, C₁₁₂₂, C₁₁₃₃, C₃₃₃₃, C₂₃₂₃, n)
     T = promote_type(

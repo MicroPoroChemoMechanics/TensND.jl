@@ -1,0 +1,197 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  waves_interface.jl — plane waves at a plane interface: the law of
+#  Snell-Descartes and the reflection and transmission coefficients.
+#
+#  A wave u = a U exp[iω(s·x − t)] has the slowness vector s. On a plane
+#  interface of unit normal ν, all the waves that an incident one excites
+#  share its tangential slowness s_t (the phases must match along the
+#  interface: Snell-Descartes). In each medium the normal slowness ξ of
+#  s = s_t + ξ ν solves the Christoffel problem
+#
+#       [Q + ξ (R + Rᵀ) + ξ² T − ρ 𝟏]·U = 0 ,
+#       Q = s_t·ℂ·s_t ,  R = s_t·ℂ·ν ,  T = ν·ℂ·ν ,
+#
+#  a quadratic eigenproblem with six roots, real or in conjugate pairs. A real
+#  root is a homogeneous wave, which carries energy along its group velocity;
+#  a complex one an evanescent wave, bound to the interface. Three of the six
+#  go (or decay) towards +ν, three towards −ν.
+#
+#  The traction on the interface is iω a τ with τ = (ν·ℂ·s)·U = (Rᵀ + ξ T)·U,
+#  and the mean energy flux through it ½ω²|a|² Re(τ·Ū). A welded interface
+#  keeps the displacement and the traction: six equations for the three
+#  reflected and the three transmitted amplitudes.
+#
+#  The roots are those of a 6×6 matrix, found numerically and sorted by
+#  comparisons: numbers, and dual numbers through the derivative of each
+#  simple root; not symbols.
+# ─────────────────────────────────────────────────────────────────────────────
+
+"""
+    InterfaceWave{T}
+
+One of the six plane waves of a medium for a given tangential slowness:
+`normal_slowness` (ξ, complex), `slowness` (``\\underline{s}_t + \\xi\\,\\underline{\\nu}``),
+`polarization` (unit, complex), `traction` (``\\underline{\\tau} = (\\underline{\\nu}\\cdot\\mathbb{C}\\cdot\\underline{s})\\cdot\\underline{U}``),
+`flux` (``\\operatorname{Re}(\\underline{\\tau}\\cdot\\overline{\\underline{U}})``, the mean
+energy flux through the interface per unit ``\\tfrac12\\omega^2|a|^2``) and
+`homogeneous` (true for a real ξ).
+"""
+struct InterfaceWave{T}
+    normal_slowness::Complex{T}
+    slowness::SVector{3, Complex{T}}
+    polarization::SVector{3, Complex{T}}
+    traction::SVector{3, Complex{T}}
+    flux::T
+    homogeneous::Bool
+end
+
+# Q, R, T of the header from canonical components.
+function _interface_blocks(C::AbstractArray{<:Any, 4}, sₜ, ν)
+    blk(a, b) = SMatrix{3, 3}(ntuple(q -> ((i, k) = (mod1(q, 3), cld(q, 3)); sum(a[j] * C[j, i, k, l] * b[l] for j in 1:3, l in 1:3)), Val(9)))
+    return blk(sₜ, sₜ), blk(sₜ, ν), blk(ν, ν)
+end
+
+"""
+    interface_waves(ℂ::AbstractTens{4,3}, ρ, ν, sₜ) → (forward, backward)
+
+The six plane waves of the medium of stiffness `ℂ` and density `ρ` whose
+slowness has the tangential part `sₜ` on the plane of unit normal `ν` (the
+part of `sₜ` along `ν` is removed): three `forward` waves, which carry energy
+or decay towards ``+\\underline{\\nu}``, and three `backward` ones, as tuples of
+[`InterfaceWave`](@ref) sorted by increasing normal slowness in absolute
+value (the fastest wave, quasi-longitudinal, first).
+
+A homogeneous wave (real normal slowness) is classed by the sign of the normal
+component of its energy flux; an evanescent one by the sign of the imaginary
+part of its normal slowness, positive when it decays towards
+``+\\underline{\\nu}``. The angle beyond which a wave turns evanescent is its
+critical angle ([Waves at an interface](@ref th-interface-waves)).
+Numbers and dual numbers.
+"""
+function interface_waves(ℂ::AbstractTens{4, 3}, ρ, ν, sₜ)
+    C = canonical_components(ℂ)
+    T = float_like(promote_type(eltype(C), typeof(ρ), eltype(_extract_vec(ν)), eltype(_extract_vec(sₜ))))
+    T <: _EigenType || throw(
+        ArgumentError("interface_waves sorts the six roots of the slowness problem by comparisons: it takes numbers and dual numbers, not $T")
+    )
+    n = _unit_direction(ν, T)
+    v = SVector{3, T}(_extract_vec(sₜ)...)
+    s = v - sum(v .* n) * n
+    return _interface_waves(C, convert(T, ρ), n, s)
+end
+
+# One wave from its normal slowness and its unit polarization.
+function _interface_wave(ξ::Complex{T}, U::SVector{3, Complex{T}}, R, Tm, sₜ, ν, homogeneous::Bool) where {T}
+    τ = (transpose(R) + ξ * Tm) * U
+    return InterfaceWave{T}(ξ, sₜ + ξ * ν, U, τ, real(sum(τ .* conj.(U))), homogeneous)
+end
+
+function _interface_waves(C, ρ::T, ν::SVector{3, T}, sₜ::SVector{3, T}) where {T <: AbstractFloat}
+    Q, R, Tm = _interface_blocks(C, sₜ, ν)
+    Q̃ = Q - ρ * one(Q)
+    Ti = inv(Tm)
+    # ξ U as the second block: [0 𝟏; −T⁻¹Q̃ −T⁻¹(R + Rᵀ)]
+    A = [zeros(T, 3, 3) Matrix{T}(I, 3, 3); -Matrix(Ti * Q̃) -Matrix(Ti * (R + transpose(R)))]
+    e = eigen(A)
+    scale = sqrt(ρ / maximum(abs, Tm))                       # a slowness of the medium
+    waves = map(1:6) do m
+        ξ = Complex{T}(e.values[m])
+        U = SVector{3, Complex{T}}(e.vectors[1, m], e.vectors[2, m], e.vectors[3, m])
+        homogeneous = abs(imag(ξ)) ≤ 1.0e-9 * scale
+        _interface_wave(homogeneous ? complex(real(ξ)) : ξ, U / sqrt(real(sum(abs2, U))), R, Tm, sₜ, ν, homogeneous)
+    end
+    isforward(w) = w.homogeneous ? w.flux > 0 : imag(w.normal_slowness) > 0
+    forward, backward = filter(isforward, waves), filter(!isforward, waves)
+    length(forward) == 3 || throw(
+        DomainError(length(forward), "the slowness problem did not split into three waves each way: the stiffness is not positive definite, or a wave grazes the interface")
+    )
+    byspeed(w) = (abs(real(w.normal_slowness)), abs(imag(w.normal_slowness)))
+    return Tuple(sort(forward; by = byspeed)), Tuple(sort(backward; by = byspeed))
+end
+
+# Dual numbers: the waves of the values, then the derivative of each root and
+# of its polarization from the pencil P(ξ) = Q̃ + ξ(R + Rᵀ) + ξ²T, which is
+# symmetric:  P·U̇ + ξ̇ P′·U = −Ṗ·U.  Multiplied on the left by U, whose
+# transpose P cancels, it gives  ξ̇ = −(U·Ṗ·U)/(U·P′·U) ; U̇ then solves the
+# system with Ū·U̇ = 0 (unit polarization). One nesting level at a time, as
+# `_sym_eigen` does, and with its convention for the roots that coincide (the
+# two shear waves of an isotropic medium): within their plane no polarization
+# is preferred, so U̇ is taken orthogonal to all of them, by least squares.
+function _interface_waves(C, ρ::D, ν::SVector{3, D}, sₜ::SVector{3, D}) where {D <: ForwardDiff.Dual}
+    val = ForwardDiff.value
+    forward₀, backward₀ = _interface_waves(val.(Array(C)), val(ρ), val.(ν), val.(sₜ))
+    Q, R, Tm = _interface_blocks(C, sₜ, ν)
+    Q̃ = Q - ρ * one(Q)
+    S = R + transpose(R)
+    tol = 1.0e-8 * sqrt(primal(ρ) / maximum(abs ∘ primal, Tm))            # against a slowness of the medium
+    all₀ = (forward₀..., backward₀...)
+    function lift(w)
+        group = filter(v -> abs(v.normal_slowness - w.normal_slowness) ≤ tol, all₀)
+        return _lift_interface_wave(w, map(v -> v.polarization, group), Q̃, S, R, Tm, sₜ, ν, D)
+    end
+    return map(lift, forward₀), map(lift, backward₀)
+end
+
+function _lift_interface_wave(w::InterfaceWave{V}, group, Q̃, S, R, Tm, sₜ, ν, ::Type{D}) where {V, D <: ForwardDiff.Dual}
+    val = ForwardDiff.value
+    ξ₀, U₀ = w.normal_slowness, w.polarization
+    P = val.(Q̃) + ξ₀ * val.(S) + ξ₀^2 * val.(Tm)
+    P′U = (val.(S) + 2 * ξ₀ * val.(Tm)) * U₀
+    A = vcat(Matrix(P), map(u -> adjoint(Vector(u)), group)...)
+    ẋ = ntuple(Val(ForwardDiff.npartials(D))) do k
+        ∂(M) = ForwardDiff.partials.(M, k)
+        ṖU = (∂(Q̃) + ξ₀ * ∂(S) + ξ₀^2 * ∂(Tm)) * U₀
+        ξ̇ = -sum(U₀ .* ṖU) / sum(U₀ .* P′U)
+        U̇ = A \ vcat(-Vector(ṖU + ξ̇ * P′U), zeros(Complex{V}, length(group)))
+        (U̇[1], U̇[2], U̇[3], ξ̇)
+    end
+    dual(z₀, ż) = complex(D(real(z₀), ForwardDiff.Partials(map(real, ż))), D(imag(z₀), ForwardDiff.Partials(map(imag, ż))))
+    U = SVector{3}(ntuple(a -> dual(U₀[a], map(x -> x[a], ẋ)), Val(3)))
+    ξ = dual(ξ₀, map(x -> x[4], ẋ))
+    return _interface_wave(w.homogeneous ? complex(real(ξ)) : ξ, U, R, Tm, sₜ, ν, w.homogeneous)
+end
+
+"""
+    reflection_transmission(ℂ₁, ρ₁, ℂ₂, ρ₂, ν, incident::InterfaceWave; slip = nothing)
+        → (reflected, transmitted, R, T, energy)
+
+The waves that the `incident` wave, one of the forward waves of the medium 1
+([`interface_waves`](@ref), on the side ``\\underline{\\nu}\\cdot\\underline{x} < 0``),
+excites at the plane interface with the medium 2: the three `reflected` waves
+of the medium 1 and the three `transmitted` waves of the medium 2, with their
+complex amplitudes `R` and `T` per unit incident amplitude (displacement
+amplitudes, unit polarizations) and `energy`, the fractions of the incident
+energy flux carried by each of the six waves (zero for an evanescent wave):
+they sum to one.
+
+The interface is welded, displacement and traction continuous. With `slip`, a
+3×3 matrix ``\\omega\\boldsymbol{Z}`` (angular frequency times a compliance of
+the interface), the displacement jumps by ``\\boldsymbol{Z}`` times the
+traction (linear slip); the traction stays continuous
+([Waves at an interface](@ref th-interface-waves)). Numbers and dual numbers.
+"""
+function reflection_transmission(ℂ₁::AbstractTens{4, 3}, ρ₁, ℂ₂::AbstractTens{4, 3}, ρ₂, ν, incident::InterfaceWave{T}; slip = nothing) where {T}
+    sₜ = real.(incident.slowness)
+    _, reflected = interface_waves(ℂ₁, ρ₁, ν, sₜ)
+    transmitted, _ = interface_waves(ℂ₂, ρ₂, ν, sₜ)
+    Z = _slip_matrix(slip, T)
+    # u₂ − u₁ = iωZ·τ and τ₂ = τ₁, with the common factor iω of the tractions kept in Z
+    col(w, side) = vcat(side * w.polarization - _slip_term(Z, w, side), side * w.traction)
+    A = hcat(map(w -> col(w, -1), reflected)..., map(w -> col(w, 1), transmitted)...)
+    b = vcat(incident.polarization, incident.traction)
+    x = Matrix(A) \ Vector(b)
+    R, Tt = SVector{3}(x[1:3]), SVector{3}(x[4:6])
+    energy = (
+        map((a, w) -> -abs2(a) * w.flux / incident.flux, R, SVector(reflected)),
+        map((a, w) -> abs2(a) * w.flux / incident.flux, Tt, SVector(transmitted)),
+    )
+    return (reflected = reflected, transmitted = transmitted, R = R, T = Tt, energy = energy)
+end
+
+_slip_matrix(::Nothing, ::Type{T}) where {T} = nothing
+_slip_matrix(Z::AbstractMatrix, ::Type{T}) where {T} = SMatrix{3, 3, Complex{T}}(Z)
+# The jump is carried by the transmitted side: u₂ = u₁ + iωZ·τ₂.
+_slip_term(::Nothing, w, side) = zero(w.polarization)
+_slip_term(Z::SMatrix, w, side) = side == 1 ? im * (Z * w.traction) : zero(w.polarization)
+
+export InterfaceWave, interface_waves, reflection_transmission
