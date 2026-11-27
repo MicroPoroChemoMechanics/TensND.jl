@@ -40,8 +40,8 @@ not depend on a reference medium. Numbers, dual numbers and symbols;
 function weak_plane_waves(ℂ::AbstractTens{4, 3}, ρ, n)
     C = canonical_components(ℂ)
     ℬ = frame_from_axis(n)
-    e = vecbasis(ℬ)
-    e₁, e₂, e₃ = SVector{3}(e[:, 1]), SVector{3}(e[:, 2]), SVector{3}(e[:, 3])   # e₃ along n
+    e = vecbasis(ℬ)                 # the dimension of ℬ is known at run time only: e is read entry by entry
+    e₁, e₂, e₃ = (SVector(e[1, k], e[2, k], e[3, k]) for k in 1:3)         # e₃ along n
     Γ = _christoffel(C, e₃)
     Γ₁₁, Γ₂₂, Γ₁₂ = _quadratic(Γ, e₁, e₁), _quadratic(Γ, e₂, e₂), _quadratic(Γ, e₁, e₂)
     r = sqrt((Γ₁₁ - Γ₂₂)^2 + 4 * Γ₁₂^2)
@@ -55,7 +55,7 @@ function weak_plane_waves(ℂ::AbstractTens{4, 3}, ρ, n)
 end
 
 # a·Γ·b without the conjugation of `dot`, which symbols do not take.
-_quadratic(Γ, a, b) = sum(a[i] * Γ[i, j] * b[j] for i in 1:3, j in 1:3)
+_quadratic(Γ, a, b) = transpose(a) * Γ * b
 
 """
     generalized_thomsen_parameters(ℂ::AbstractTens{4,3}) → NamedTuple

@@ -988,6 +988,24 @@ end
     @test p ≈ permutedims(p, (2, 1, 3, 4)) && p ≈ permutedims(p, (1, 2, 4, 3))
 end
 
+# A dual number compares by its value only: a tensor symmetric in value whose
+# derivative is not minor-symmetric must keep its full storage, or the
+# derivative is symmetrized. Reference: the derivative of x ↦ S₀ + x B, which
+# is B, at first and second order.
+@testsection "Storage of dual tensors symmetric in value only" begin
+    rng = Random.Xoshiro(20261128)
+    B = Tensor{4, 3}(randn(rng, 3, 3, 3, 3))
+    S₀ = Tensor{4, 3}(Tensors.symmetric(Tensor{4, 3}(randn(rng, 3, 3, 3, 3))))
+    f(x) = Array(canonical_components(Tens(S₀ + x * B)))
+    @test ForwardDiff.derivative(f, 0.0) ≈ Array(B)
+    g(x) = Array(canonical_components(Tens(S₀ + x^2 * B)))
+    @test ForwardDiff.derivative(y -> ForwardDiff.derivative(g, y), 0.0) ≈ 2 * Array(B)
+    # a dual tensor symmetric in value and derivatives keeps the symmetric storage
+    h(x) = Tens(S₀ + x * Tensor{4, 3}(Tensors.symmetric(B)))
+    @test get_array(h(ForwardDiff.Dual(0.0, 1.0))) isa SymmetricTensor
+    @test get_array(Tens(S₀ + ForwardDiff.Dual(0.0, 1.0) * B)) isa Tensor
+end
+
 @testsection "Walpole & Ortho tensors: minor-symmetry storage does not hinge on round-off" begin
     # Regression. `Tensors.issymmetric` compares components exactly, so the
     # choice between a 36-component `SymmetricTensor` and an 81-component

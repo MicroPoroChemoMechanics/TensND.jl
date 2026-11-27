@@ -66,6 +66,12 @@ component of its energy flux; an evanescent one by the sign of the imaginary
 part of its normal slowness, positive when it decays towards
 ``+\\underline{\\nu}``. The angle beyond which a wave turns evanescent is its
 critical angle ([Waves at an interface](@ref th-interface-waves)).
+
+Two homogeneous waves of the same normal slowness (the two shear waves of an
+isotropic medium) share a plane of polarizations, of which any orthonormal pair
+solves the problem: the pair returned is the one whose energy fluxes add. Their
+individual amplitudes in [`reflection_transmission`](@ref) depend on that
+choice; the field and the energy they carry together do not.
 Numbers and dual numbers.
 """
 function interface_waves(ℂ::AbstractTens{4, 3}, ρ, ν, sₜ)
@@ -76,14 +82,14 @@ function interface_waves(ℂ::AbstractTens{4, 3}, ρ, ν, sₜ)
     )
     n = _unit_direction(ν, T)
     v = SVector{3, T}(_extract_vec(sₜ)...)
-    s = v - sum(v .* n) * n
+    s = v - (transpose(v) * n) * n
     return _interface_waves(C, convert(T, ρ), n, s)
 end
 
 # One wave from its normal slowness and its unit polarization.
 function _interface_wave(ξ::Complex{T}, U::SVector{3, Complex{T}}, R, Tm, sₜ, ν, homogeneous::Bool) where {T}
     τ = (transpose(R) + ξ * Tm) * U
-    return InterfaceWave{T}(ξ, sₜ + ξ * ν, U, τ, real(sum(τ .* conj.(U))), homogeneous)
+    return InterfaceWave{T}(ξ, sₜ + ξ * ν, U, τ, real(transpose(τ) * conj.(U)), homogeneous)
 end
 
 function _interface_waves(C, ρ::T, ν::SVector{3, T}, sₜ::SVector{3, T}) where {T <: AbstractFloat}
@@ -112,7 +118,8 @@ function _interface_waves(C, ρ::T, ν::SVector{3, T}, sₜ::SVector{3, T}) wher
         DomainError(length(forward), "the slowness problem did not split into three waves each way: the stiffness is not positive definite, or a wave grazes the interface")
     )
     byspeed(w) = (abs(real(w.normal_slowness)), abs(imag(w.normal_slowness)))
-    return Tuple(sort(forward; by = byspeed)), Tuple(sort(backward; by = byspeed))
+    three(ws) = (v = sort(ws; by = byspeed); ntuple(i -> v[i], Val(3)))       # three each way, checked above
+    return three(forward), three(backward)
 end
 
 # Real roots that coincide (the two shear waves of an isotropic medium) share
@@ -164,7 +171,7 @@ function _lift_interface_wave(w::InterfaceWave{V}, group, Q̃, S, R, Tm, sₜ, �
     ẋ = ntuple(Val(ForwardDiff.npartials(D))) do k
         ∂(M) = ForwardDiff.partials.(M, k)
         ṖU = (∂(Q̃) + ξ₀ * ∂(S) + ξ₀^2 * ∂(Tm)) * U₀
-        ξ̇ = -sum(U₀ .* ṖU) / sum(U₀ .* P′U)
+        ξ̇ = -(transpose(U₀) * ṖU) / (transpose(U₀) * P′U)
         U̇ = A \ vcat(-Vector(ṖU + ξ̇ * P′U), zeros(Complex{V}, length(group)))
         (U̇[1], U̇[2], U̇[3], ξ̇)
     end

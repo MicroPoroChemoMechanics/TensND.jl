@@ -65,86 +65,92 @@ notation, and Landau's ``A = n``, ``B = m - n/2``, ``C = l - m + n/2``.
 third_order_constants(s::ThirdOrderIsotropic) =
     (C111 = 2 * s.l + 4 * s.m, C112 = 2 * s.l, C123 = 2 * s.l - 2 * s.m + s.n, A = s.n, B = s.m - s.n / 2, C = s.l - s.m + s.n / 2)
 
-_tr(E) = E[1, 1] + E[2, 2] + E[3, 3]
-_tr2(E) = sum(E[i, j] * E[j, i] for i in 1:3, j in 1:3)
-# x δ_ij, by selection: a Bool factor is not a number for every symbolic type.
-_δ(i, j, x) = i == j ? x : zero(x)
-
 """
     strain_energy(s::ThirdOrderIsotropic, E) → W
 
 The strain energy of `s` per unit reference volume for the Green–Lagrange
 strain `E`, a symmetric 3×3 matrix of canonical components.
 """
-function strain_energy(s::ThirdOrderIsotropic, E::AbstractMatrix)
-    I₁, I₂ = _tr(E), _tr2(E)
-    return s.λ * I₁^2 / 2 + s.μ * I₂ + (s.l - s.m) * I₁^3 / 3 + s.m * I₁ * I₂ + s.n * det(SMatrix{3, 3}(E))
+strain_energy(s::ThirdOrderIsotropic, E::AbstractMatrix) = _energy(s, SymmetricTensor{2, 3}(E))
+
+# The kernels work on the tensors of Tensors.jl, in the canonical basis, whose
+# types are known statically; the public functions take and return matrices or
+# `Tens`. With E symmetric, E·E is `tdot(E)` and tr(E²) is E ⊡ E.
+function _energy(s::ThirdOrderIsotropic, E::SymmetricTensor{2, 3})
+    I₁, I₂ = tr(E), E ⊡ E
+    return s.λ * I₁^2 / 2 + s.μ * I₂ + (s.l - s.m) * I₁^3 / 3 + s.m * I₁ * I₂ + s.n * det(E)
 end
 
-# S_jl = ∂W/∂E_jl and ℂ_pjql = ∂S_pj/∂E_ql for a symmetric E, entry by entry.
-function _second_piola(s::ThirdOrderIsotropic, E, j, l)
-    I₁, I₂ = _tr(E), _tr2(E)
-    E² = sum(E[j, a] * E[a, l] for a in 1:3)
-    cof = E² - I₁ * E[j, l] + _δ(j, l, (I₁^2 - I₂) / 2)
-    return _δ(j, l, s.λ * I₁ + (s.l - s.m) * I₁^2 + s.m * I₂) + 2 * (s.μ + s.m * I₁) * E[j, l] + s.n * cof
+# The derivative of det E, by Cayley-Hamilton.
+_cofactor(E::SymmetricTensor{2, 3}) = tdot(E) - tr(E) * E + (tr(E)^2 - E ⊡ E) / 2 * one(E)
+
+# S = ∂W/∂E.
+function _second_piola(s::ThirdOrderIsotropic, E::SymmetricTensor{2, 3})
+    I₁, I₂ = tr(E), E ⊡ E
+    return (s.λ * I₁ + (s.l - s.m) * I₁^2 + s.m * I₂) * one(E) + 2 * (s.μ + s.m * I₁) * E + s.n * _cofactor(E)
 end
 
-function _tangent(s::ThirdOrderIsotropic, E, p, j, q, l)
-    I₁ = _tr(E)
-    G = 2 * (s.μ + s.m * I₁) - s.n * I₁                               # factor of the symmetric identity
-    𝕀 = (_δ(p, q, _δ(j, l, G)) + _δ(p, l, _δ(j, q, G))) / 2
-    # derivative of E², symmetrized on (q, l); that of cof E follows
-    dE² = (_δ(p, q, E[l, j]) + _δ(p, l, E[q, j]) + _δ(j, l, E[p, q]) + _δ(j, q, E[p, l])) / 2
-    dcof = dE² - _δ(q, l, E[p, j]) + _δ(p, j, _δ(q, l, I₁) - E[q, l])
-    return _δ(p, j, _δ(q, l, s.λ + 2 * (s.l - s.m) * I₁)) + 2 * s.m * (_δ(p, j, E[q, l]) + _δ(q, l, E[p, j])) + 𝕀 + s.n * dcof
+# The Green-Lagrange strain of a deformation gradient: ½(Fᵀ·F − 𝟏).
+_strain(F::Tensor{2, 3}) = (tdot(F) - one(tdot(F))) / 2
+
+# ℂ = ∂S/∂E, the four terms of the docstring of `tangent_stiffness`.
+function _tangent(s::ThirdOrderIsotropic, E::SymmetricTensor{2, 3})
+    𝟏, I₁ = one(E), tr(E)
+    c₁ = s.λ + (2 * (s.l - s.m) + s.n) * I₁
+    c₂ = 2 * s.m - s.n
+    c₃ = 2 * s.μ + (2 * s.m - s.n) * I₁
+    return c₁ * (𝟏 ⊗ 𝟏) + c₂ * (𝟏 ⊗ E + E ⊗ 𝟏) + c₃ * otimesul(𝟏, 𝟏) + s.n * (otimesul(𝟏, E) + otimesul(E, 𝟏))
 end
 
-const _VOIGT_PAIRS = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
+# 𝔸 = 𝟏 ⊠ S + (F ⊠ 𝟏) : ℂ : (Fᵀ ⊠ 𝟏).
+function _acoustoelastic(s::ThirdOrderIsotropic, F::Tensor{2, 3})
+    E = _strain(F)
+    𝟏 = one(F)
+    return otimesu(𝟏, _second_piola(s, E)) + otimesu(F, 𝟏) ⊡ _tangent(s, E) ⊡ otimesu(transpose(F), 𝟏)
+end
 
 """
     tangent_stiffness(s::ThirdOrderIsotropic, E) → AbstractTens{4,3}
 
 The tangent ``\\mathbb{C}(\\boldsymbol{E}) = \\partial^2 W/\\partial\\boldsymbol{E}^2`` of
 the second Piola–Kirchhoff stress of `s` at the Green–Lagrange strain `E` (a
-symmetric 3×3 matrix of canonical components): the isotropic stiffness of
-`λ`, `μ` plus a term linear in `E`, the third-order tensor
-``\\partial^3 W/\\partial\\boldsymbol{E}^3`` contracted with `E`. It has the minor
-and major symmetries.
-"""
-function tangent_stiffness(s::ThirdOrderIsotropic, E::AbstractMatrix)
-    T = promote_type(typeof(s.λ), eltype(E))
-    M = SMatrix{6, 6, T}(
-        ntuple(Val(36)) do q
-            (p, j), (r, l) = _VOIGT_PAIRS[mod1(q, 6)], _VOIGT_PAIRS[cld(q, 6)]
-            _tangent(s, E, p, j, r, l)
-        end
-    )
-    return stiffness_from_voigt(M)
-end
-
-"""
-    acoustoelastic_tensor(s::ThirdOrderIsotropic, F) → Array{T,4}
-
-The tensor ``A_{ijkl} = \\partial^2W/\\partial F_{ij}\\partial F_{kl}`` that governs
-a small motion superposed on the static deformation of gradient `F` (a 3×3
-matrix of canonical components), in the reference coordinates:
+symmetric 3×3 matrix of canonical components):
 
 ```math
-A_{ijkl} = \\delta_{ik}\\,S_{jl} + F_{ip}\\,F_{kq}\\,\\mathbb{C}_{pjql}(\\boldsymbol{E}),
-\\qquad \\boldsymbol{E} = \\tfrac12(\\boldsymbol{F}^{\\mathsf T}\\boldsymbol{F} - \\boldsymbol{1}) ,
+\\mathbb{C} = c_1\\,\\boldsymbol{1}\\otimes\\boldsymbol{1}
+ + c_2\\,(\\boldsymbol{1}\\otimes\\boldsymbol{E} + \\boldsymbol{E}\\otimes\\boldsymbol{1})
+ + c_3\\,\\boldsymbol{1}\\stackrel{s}{\\boxtimes}\\boldsymbol{1}
+ + n\\,(\\boldsymbol{1}\\stackrel{s}{\\boxtimes}\\boldsymbol{E} + \\boldsymbol{E}\\stackrel{s}{\\boxtimes}\\boldsymbol{1}),
 ```
 
-with ``\\boldsymbol{S}`` the second Piola–Kirchhoff stress and ``\\mathbb{C}`` its
-tangent. It has the major symmetry and, under stress, not the minor ones. For
-``\\boldsymbol{F} = \\boldsymbol{1}`` it is the isotropic stiffness of `λ`, `μ`.
+with ``c_1 = \\lambda + (2l - 2m + n)\\operatorname{tr}\\boldsymbol{E}``,
+``c_2 = 2m - n`` and ``c_3 = 2\\mu + (2m - n)\\operatorname{tr}\\boldsymbol{E}``: the
+isotropic stiffness of `λ`, `μ` plus a term linear in `E`. It has the minor
+and major symmetries ([Third-order elasticity](@ref th-third-order)).
 """
-function acoustoelastic_tensor(s::ThirdOrderIsotropic, F::AbstractMatrix)
-    E = (transpose(F) * F - I) / 2
-    return [
-        _δ(i, k, _second_piola(s, E, j, l)) + sum(F[i, p] * F[k, q] * _tangent(s, E, p, j, q, l) for p in 1:3, q in 1:3)
-            for i in 1:3, j in 1:3, k in 1:3, l in 1:3
-    ]
-end
+tangent_stiffness(s::ThirdOrderIsotropic, E::AbstractMatrix) = Tens(_tangent(s, SymmetricTensor{2, 3}(E)))
+
+"""
+    acoustoelastic_tensor(s::ThirdOrderIsotropic, F) → AbstractTens{4,3}
+
+The tensor ``\\mathbb{A} = \\partial^2W/\\partial\\boldsymbol{F}^2`` that governs a small
+motion superposed on the static deformation of gradient `F` (a 3×3 matrix of
+canonical components), in the reference coordinates:
+
+```math
+\\mathbb{A} = \\boldsymbol{1}\\boxtimes\\boldsymbol{S}
+ + (\\boldsymbol{F}\\boxtimes\\boldsymbol{1}) : \\mathbb{C}(\\boldsymbol{E}) : (\\boldsymbol{F}^{\\mathsf T}\\boxtimes\\boldsymbol{1}),
+\\qquad
+A_{ijkl} = \\delta_{ik}\\,S_{jl} + F_{ip}\\,F_{kq}\\,\\mathbb{C}_{pjql} ,
+```
+
+with ``\\boldsymbol{E} = \\tfrac12(\\boldsymbol{F}^{\\mathsf T}\\cdot\\boldsymbol{F} - \\boldsymbol{1})``,
+``\\boldsymbol{S}`` the second Piola–Kirchhoff stress and ``\\mathbb{C}`` its
+tangent ([`tangent_stiffness`](@ref)). It has the major symmetry and, under
+stress, not the minor ones. For ``\\boldsymbol{F} = \\boldsymbol{1}`` it is the
+isotropic stiffness of `λ`, `μ`.
+"""
+acoustoelastic_tensor(s::ThirdOrderIsotropic, F::AbstractMatrix) = Tens(_acoustoelastic(s, Tensor{2, 3}(F)))
 
 """
     cauchy_stress(s::ThirdOrderIsotropic, F) → SMatrix{3,3}
@@ -153,11 +159,17 @@ The Cauchy stress ``\\boldsymbol{\\sigma} = \\boldsymbol{F}\\cdot\\boldsymbol{S}
 of `s` under the deformation gradient `F`.
 """
 function cauchy_stress(s::ThirdOrderIsotropic, F::AbstractMatrix)
-    E = (transpose(F) * F - I) / 2
-    S = SMatrix{3, 3}(ntuple(q -> _second_piola(s, E, mod1(q, 3), cld(q, 3)), Val(9)))
-    Fs = SMatrix{3, 3}(F)
-    return Fs * S * transpose(Fs) / det(Fs)
+    𝐅 = Tensor{2, 3}(F)
+    return SMatrix{3, 3}(𝐅 ⋅ _second_piola(s, _strain(𝐅)) ⋅ transpose(𝐅) / det(𝐅))
 end
+
+# The two contractions of a tensor of order 4 without the minor symmetries that
+# the waves need: (N·𝔸·N)_ik = N_j A_ijkl N_l, the acoustic tensor, and
+# (U·𝔸·U)_jl = U_i A_ijkl U_k, whose product with N is ρ₀W times the group
+# velocity. `dotdot` of Tensors.jl contracts the first and fourth indices,
+# which is the same only for a minor-symmetric tensor.
+_contract24(A::Tensor{4, 3}, n) = SMatrix{3, 3}(ntuple(q -> ((i, k) = (mod1(q, 3), cld(q, 3)); sum(n[j] * A[i, j, k, l] * n[l] for j in 1:3, l in 1:3)), Val(9)))
+_contract13(A::Tensor{4, 3}, u) = SMatrix{3, 3}(ntuple(q -> ((j, l) = (mod1(q, 3), cld(q, 3)); sum(u[i] * A[i, j, k, l] * u[k] for i in 1:3, k in 1:3)), Val(9)))
 
 """
     prestressed_waves(s::ThirdOrderIsotropic, ρ₀, F, N) → PlaneWaves
@@ -166,22 +178,21 @@ The three small plane waves of reference direction `N` in the solid `s`, of
 reference density `ρ₀`, under the static deformation of gradient `F`: natural
 velocities (a reference length over a travel time), sorted by decreasing
 value, and polarizations, the eigenpairs of
-``\\Gamma_{ik} = N_j A_{ijkl} N_l`` ([`acoustoelastic_tensor`](@ref)). The field
-`group` holds the natural group velocities. Numbers and dual numbers.
+``\\boldsymbol{\\Gamma} = \\underline{N}\\cdot\\mathbb{A}\\cdot\\underline{N}``
+([`acoustoelastic_tensor`](@ref)). The field `group` holds the natural group
+velocities ``g_j = U_i\\,A_{ijkl}\\,U_k\\,N_l/(\\rho_0 W)``. Numbers and dual
+numbers.
 """
 function prestressed_waves(s::ThirdOrderIsotropic, ρ₀, F::AbstractMatrix, N)
-    A = acoustoelastic_tensor(s, F)
+    A = _acoustoelastic(s, Tensor{2, 3}(F))
     T = float_like(promote_type(eltype(A), typeof(ρ₀), map(typeof, _direction_components(N))...))
     n = _unit_direction(N, T)
-    Γ = SMatrix{3, 3, T}(ntuple(q -> ((i, k) = (mod1(q, 3), cld(q, 3)); sum(n[j] * A[i, j, k, l] * n[l] for j in 1:3, l in 1:3)), Val(9)))
+    Γ = _contract24(A, n)
     λ, U = _eigen3(Γ / convert(T, ρ₀))
     primal(λ[1]) > 0 || _throw_unstable(λ[1])
     V = SVector{3, T}(sqrt(λ[3]), sqrt(λ[2]), sqrt(λ[1]))
     P = SMatrix{3, 3, T}(U[:, 3]..., U[:, 2]..., U[:, 1]...)
-    # g_j = A_ijkl U_i U_k N_l / (ρ₀ V)
-    g = map(SVector(1, 2, 3)) do w
-        SVector{3, T}(ntuple(j -> sum(A[i, j, k, l] * P[i, w] * P[k, w] * n[l] for i in 1:3, k in 1:3, l in 1:3) / (ρ₀ * V[w]), Val(3)))
-    end
+    g = map(m -> _contract13(A, P[:, m]) * n / (ρ₀ * V[m]), SVector(1, 2, 3))
     return PlaneWaves{T}(n, V, P, SMatrix{3, 3, T}(g[1]..., g[2]..., g[3]...))
 end
 
@@ -189,7 +200,8 @@ end
     acoustoelastic_coefficients(s::ThirdOrderIsotropic)
 
 The first-order effect of a stress on the velocities of `s`, in closed form
-(Hughes & Kelly): the derivatives of ``\\rho_0 v^2`` (reference density, true
+(Johnson & Rasolofosaon 1996, Eqs. (18)–(20), after Hughes & Kelly 1953):
+the derivatives of ``\\rho_0 v^2`` (reference density, true
 velocity ``v``, a length of the deformed solid over a travel time) with respect
 to a **compressive** stress ``\\sigma``, taken at ``\\sigma = 0``,
 

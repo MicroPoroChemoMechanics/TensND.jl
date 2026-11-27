@@ -221,3 +221,19 @@ end
         @test tsimplify(sum(x -> x^2, direction_from_angles(θ)) - 1) == 0
     end
 end
+
+# The parameters are those of the canonical components, whatever the basis the
+# stiffness is written in.
+@testsection "Generalized parameters: bases drawn at random, inference" begin
+    rng = Xoshiro(20261141)
+    ℂ = wgn_ti(WGN_SANDSTONE)
+    g₀ = generalized_thomsen_parameters(ℂ)
+    general = Tens(Array(canonical_components(ℂ)) .+ 0.3 .* Array(canonical_components(iso_stiffness(1.0, 0.7))))
+    h₀ = generalized_thomsen_parameters(general)
+    for _ in 1:3
+        @test collect(generalized_thomsen_parameters(express(general, random_basis(rng)))) ≈ collect(h₀) rtol = 1.0e-12
+    end
+    @inferred generalized_thomsen_parameters(ℂ)
+    @inferred generalized_thomsen_parameters(general)
+    @inferred direction_from_angles(0.3, 1.1)
+end

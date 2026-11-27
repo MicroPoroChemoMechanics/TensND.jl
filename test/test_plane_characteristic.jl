@@ -120,6 +120,14 @@ end
         @test_throws ArgumentError characteristic_pair(general)
     end
 
+    @testsection "inference" begin
+        @inferred characteristic_pair(pch_general())
+        @inferred characteristic_pair(pch_ortho())
+        @inferred characteristic_pair(pch_iso())
+        @inferred characteristic_roots(pch_general())
+        @inferred engineering_compliances(pch_general())
+    end
+
     @testsection "refusals" begin
         A = Array(canonical_components(pch_general()))
         A[1, 1, 2, 2] += 1.5

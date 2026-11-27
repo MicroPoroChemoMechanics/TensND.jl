@@ -309,3 +309,29 @@ wch_num(x::Real, s) = Float64(x)
         @test_throws ArgumentError plane_waves(iso_stiffness(k, μ), 1, (0, 0, 1))
     end
 end
+
+# The stiffness and the direction written in two bases drawn at random, each
+# of its own: the waves are those of the canonical components.
+@testsection "Plane waves: bases drawn at random, inference" begin
+    rng = Xoshiro(WCH_SEED + 11)
+    ℂ, ρ = wch_general(), 2.3
+    w₀ = plane_waves(ℂ, ρ, WCH_N)
+    for _ in 1:3
+        ℂᵦ = express(ℂ, random_basis(rng))
+        nᵦ = express(Tens(WCH_N), random_basis(rng))
+        w = plane_waves(ℂᵦ, ρ, nᵦ)
+        @test w.velocity ≈ w₀.velocity rtol = 1.0e-13
+        @test w.group ≈ w₀.group rtol = 1.0e-12
+        @test all(wch_signless(w.polarization[:, m], w₀.polarization[:, m]) ≤ 1.0e-12 for m in 1:3)
+        @test collect(christoffel_invariants(ℂᵦ, ρ, nᵦ)) ≈ collect(christoffel_invariants(ℂ, ρ, WCH_N)) rtol = 1.0e-12
+    end
+    t = wch_sandstone(normalize([1.0, 2.0, 2.0]))
+    nᵦ = express(Tens(WCH_N), random_basis(rng))
+    @test collect(map(first, wave_modes(t, 2.45, nᵦ))) ≈ collect(map(first, wave_modes(t, 2.45, WCH_N))) rtol = 1.0e-14
+    @inferred plane_waves(ℂ, ρ, WCH_N)
+    @inferred phase_velocities(ℂ, ρ, WCH_N)
+    @inferred christoffel_invariants(ℂ, ρ, WCH_N)
+    @inferred wave_modes(t, 2.45, WCH_N)
+    D = ForwardDiff.Dual{:wch}(ρ, 1.0)
+    @inferred plane_waves(ℂ, D, WCH_N)
+end

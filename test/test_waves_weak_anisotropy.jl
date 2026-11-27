@@ -157,3 +157,23 @@ end
         @test isapprox(ForwardDiff.derivative(ϱ -> S(ϱ).delay, ρ), s.delay / (2 * ρ); rtol = 1.0e-12)
     end
 end
+
+# The stiffness and the direction written in two bases drawn at random, each
+# of its own.
+@testsection "Weak anisotropy and splitting: bases drawn at random, inference" begin
+    rng = Xoshiro(WWA_SEED + 11)
+    ℂ = wwa_stiffness(0.05)
+    v₀ = wwa_velocities(weak_plane_waves(ℂ, WWA_RHO, WWA_N))
+    s₀ = shear_splitting(ℂ, WWA_RHO, WWA_N)
+    for _ in 1:3
+        ℂᵦ = express(ℂ, random_basis(rng))
+        nᵦ = express(Tens(WWA_N), random_basis(rng))
+        @test wwa_velocities(weak_plane_waves(ℂᵦ, WWA_RHO, nᵦ)) ≈ v₀ rtol = 1.0e-13
+        s = shear_splitting(ℂᵦ, WWA_RHO, nᵦ)
+        @test s.splitting ≈ s₀.splitting rtol = 1.0e-10
+        @test s.delay ≈ s₀.delay rtol = 1.0e-10
+        @test min(norm(s.fast - s₀.fast), norm(s.fast + s₀.fast)) ≤ 1.0e-10
+    end
+    @inferred weak_plane_waves(ℂ, WWA_RHO, WWA_N)
+    @inferred shear_splitting(ℂ, WWA_RHO, WWA_N)
+end

@@ -53,7 +53,8 @@ data of the literature. Existing results are unchanged.
 - `acoustoelastic_tensor` and `prestressed_waves`: the tensor seen by a small
   wave on a deformed solid and its natural velocities;
   `acoustoelastic_coefficients`, the closed-form effect of a uniaxial or
-  hydrostatic stress (Hughes and Kelly) and the coefficients of the induced
+  hydrostatic stress (Hughes and Kelly, as given by Johnson and
+  Rasolofosaon) and the coefficients of the induced
   anisotropy.
 
 ### Added: notations
@@ -63,6 +64,15 @@ data of the literature. Existing results are unchanged.
 - `direction_from_angles`, the unit vector of a colatitude and a longitude.
 - `ortho_from_constants`, `ortho_constants`: an orthotropic tensor of space or
   of the plane from its engineering constants, as a compliance or a stiffness.
+
+### Fixed
+
+- A tensor built from dual numbers that is minor-symmetric in value but not in
+  its derivatives was stored in symmetric form, and its derivatives were
+  symmetrized without a word: the derivative of a computation through such a
+  tensor at a symmetric point was wrong. The storage is now decided on the
+  value and on each partial, nested duals included. Results on numbers are
+  unchanged.
 
 ### Documentation
 

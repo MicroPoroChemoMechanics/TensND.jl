@@ -8,8 +8,9 @@
 #    ForwardDiff on the energy written as a function of F;
 #  - the third derivatives of the energy with respect to the strain, by nested
 #    ForwardDiff, for the constants C₁₁₁, C₁₁₂, C₁₂₃;
-#  - the formulas of Hughes & Kelly (1953), Phys. Rev. 92(5), for the true
-#    velocities under a hydrostatic pressure p, with K = λ + 2μ/3:
+#  - the formulas (20a), (20b) of Johnson & Rasolofosaon (1996), J. Geophys.
+#    Res. 101(B2), after Hughes & Kelly (1953), for the true velocities
+#    under a hydrostatic pressure p, with K = λ + 2μ/3:
 #        ρ₀ v_P² = λ + 2μ − p (6l + 4m + 7λ + 10μ)/(3K) ,
 #        ρ₀ v_S² = μ − p (3m − n/2 + 3λ + 6μ)/(3K) ,
 #    the true velocity being (1 + e) times the natural one for F = (1 + e)𝟏,
@@ -48,7 +49,9 @@ toe_energy(c, F) = strain_energy(ThirdOrderIsotropic(c...), (transpose(F) * F - 
     end
 
     @testsection "stress and tangent against the derivatives of the energy" begin
-        A = acoustoelastic_tensor(s, TOE_F)
+        # two concrete storages, decided by the symmetry of the components
+        𝔸 = @inferred TensND.TensCanonical{4, 3, Float64} acoustoelastic_tensor(s, TOE_F)
+        A = Array(canonical_components(𝔸))
         H = ForwardDiff.hessian(f -> toe_energy(TOE_CONSTANTS, reshape(f, 3, 3)), vec(TOE_F))
         @test reshape(A, 9, 9) ≈ H rtol = 1.0e-12
         @test A ≈ permutedims(A, (3, 4, 1, 2))
@@ -66,9 +69,9 @@ toe_energy(c, F) = strain_energy(ThirdOrderIsotropic(c...), (transpose(F) * F - 
         @test voigt_stiffness(@inferred(tangent_stiffness(s, E))) ≈ H₆ rtol = 1.0e-12
         Δ(X) = canonical_components(tangent_stiffness(s, X)) - canonical_components(tangent_stiffness(s, zero(X)))
         @test Δ(2.5 * E) ≈ 2.5 * Δ(E)
-        @test canonical_components(tangent_stiffness(s, zero(E))) ≈ get_array(TensISO{3}(3λ + 2μ, 2μ))
+        @test tangent_stiffness(s, zero(E)) ≈ TensISO{3}(3λ + 2μ, 2μ)
         ℂ = TensISO{3}(3λ + 2μ, 2μ)
-        @test acoustoelastic_tensor(s, TOE_I3) ≈ get_array(ℂ)
+        @test acoustoelastic_tensor(s, TOE_I3) ≈ ℂ
         @test iszero(cauchy_stress(s, TOE_I3))
     end
 
@@ -107,6 +110,10 @@ toe_energy(c, F) = strain_energy(ThirdOrderIsotropic(c...), (transpose(F) * F - 
             ω(κ) = norm(κ) * prestressed_waves(s, ρ₀, F₁, κ).velocity[k]
             @test ForwardDiff.gradient(ω, ν) ≈ w₁.group[:, k] rtol = 1.0e-9
         end
+        # the direction as a vector written in a basis drawn at random
+        Nᵦ = express(Tens(N), random_basis(Xoshiro(20261143)))
+        @test prestressed_waves(s, ρ₀, TOE_F, Nᵦ).velocity ≈ w.velocity rtol = 1.0e-13
+        @inferred prestressed_waves(s, ρ₀, TOE_F, N)
         # derivative of the fastest velocity with respect to l, by the Rayleigh quotient
         dV = ForwardDiff.derivative(x -> prestressed_waves(ThirdOrderIsotropic(λ, μ, x, m, n), ρ₀, TOE_F, N).velocity[1], l)
         dA = (acoustoelastic_tensor(ThirdOrderIsotropic(0.0, 0.0, 1.0, 0.0, 0.0), TOE_F))

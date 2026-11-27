@@ -129,7 +129,7 @@ incidence on two isotropic media, a P wave gives
 value, with the impedances ``Z_i = \rho_i V_{P,i}``.
 
 A thin compliant layer, a fracture or an imperfect bond is modeled by a
-**linear-slip** interface [schoenberg1980](@cite): the traction stays
+**linear-slip** interface [schoenberg1983, schoenberg1995](@cite): the traction stays
 continuous and the displacement jumps in proportion to it,
 
 ```math

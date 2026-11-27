@@ -116,7 +116,8 @@ polarized along ``\underline{e}_2`` has
 \end{gathered}
 ```
 
-the formulas of [hughes1953](@citet).
+the expressions (20a) and (20b) of [johnson1996](@citet), who refer them to
+[hughes1953](@citet).
 
 ## 4. Uniaxial stress and the anisotropy it induces
 

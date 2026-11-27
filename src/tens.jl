@@ -291,6 +291,19 @@ structured tensor written about a non-canonical axis: `mandel` of a `Dual`-value
     return maximum(abs, t - Tensor{order, dim}(Tensors.symmetric(t))) <= 16 * _approx_eps(T) * scale
 end
 
+# A dual number compares by its value only (`==`, `<=`), so the test above
+# would keep in symmetric form a tensor that is symmetric in value and not in
+# its derivatives (the tangent of a prestressed solid at the unstressed state),
+# and the derivatives would be symmetrized without a word. The value and each
+# partial are decided apart, nested duals by recursion.
+@inline function _store_symmetric(
+        t::Tensors.AbstractTensor{order, dim, T}
+    ) where {order, dim, T <: ForwardDiff.Dual}
+    part(f) = Tensor{order, dim}(map(f, Array(t)))
+    _store_symmetric(part(ForwardDiff.value)) || return false
+    return all(k -> _store_symmetric(part(x -> ForwardDiff.partials(x, k))), 1:ForwardDiff.npartials(T))
+end
+
 """
     _approx_eps(::Type{T}) -> AbstractFloat
 

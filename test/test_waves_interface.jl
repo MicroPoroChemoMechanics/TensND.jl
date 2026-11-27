@@ -331,3 +331,37 @@ wif_sin(s, ν) = norm(cross(s, ν)) / norm(s)
         @test abs(sum(ForwardDiff.derivative(energies, WIF_M2.μ))) ≤ 1.0e-12
     end
 end
+
+# The stiffnesses, the normal and the tangential slowness written in bases
+# drawn at random: the waves and the coefficients do not change.
+@testsection "Interface waves: bases drawn at random, inference" begin
+    rng = Xoshiro(20261142)
+    ℂ₁ = ti_from_constants(52.9, 15.7, 21.8, 47.8, 16.4, normalize([1.0, 2.0, 2.0]); form = :components, role = :stiffness)
+    ℂ₂ = wif_stiffness(WIF_M2)
+    ν, sₜ = WIF_NU, [0.12, 0.05, 0.0]
+    f₀, b₀ = interface_waves(ℂ₁, 2.45, ν, sₜ)
+    r₀ = reflection_transmission(ℂ₁, 2.45, ℂ₂, WIF_M2.ρ, ν, f₀[1])
+    for _ in 1:3
+        ℂ₁ᵦ, ℂ₂ᵦ = express(ℂ₁, random_basis(rng)), express(ℂ₂, random_basis(rng))
+        νᵦ, sᵦ = express(Tens(ν), random_basis(rng)), express(Tens(sₜ), random_basis(rng))
+        f, b = interface_waves(ℂ₁ᵦ, 2.45, νᵦ, sᵦ)
+        @test [w.normal_slowness for w in f] ≈ [w.normal_slowness for w in f₀] rtol = 1.0e-12
+        @test [w.normal_slowness for w in b] ≈ [w.normal_slowness for w in b₀] rtol = 1.0e-12
+        r = reflection_transmission(ℂ₁ᵦ, 2.45, ℂ₂ᵦ, WIF_M2.ρ, νᵦ, f[1])
+        # the reflected waves are distinct in the TI medium; the two transmitted
+        # shear waves of the isotropic one are defined together only
+        @test abs.(r.R) ≈ abs.(r₀.R) rtol = 1.0e-10
+        @test collect(r.energy[1]) ≈ collect(r₀.energy[1]) atol = 1.0e-12
+        @test abs(r.T[1]) ≈ abs(r₀.T[1]) rtol = 1.0e-10
+        @test r.energy[2][1] ≈ r₀.energy[2][1] rtol = 1.0e-10
+        @test r.energy[2][2] + r.energy[2][3] ≈ r₀.energy[2][2] + r₀.energy[2][3] rtol = 1.0e-10
+        field(q) = sum(q.T[m] * q.transmitted[m].polarization for m in 2:3)
+        phase(q) = q.T[1] * q.transmitted[1].polarization          # the P wave fixes the common phase
+        @test field(r) / (phase(r) ⋅ conj.(phase(r₀))) ≈ field(r₀) / (phase(r₀) ⋅ conj.(phase(r₀))) rtol = 1.0e-9
+    end
+    @inferred interface_waves(ℂ₁, 2.45, ν, sₜ)
+    @inferred reflection_transmission(ℂ₁, 2.45, ℂ₂, WIF_M2.ρ, ν, f₀[1])
+    @inferred reflection_transmission(ℂ₁, 2.45, ℂ₂, WIF_M2.ρ, ν, f₀[1]; slip = 0.1 * I(3))
+    D = ForwardDiff.Dual{:wif}(2.45, 1.0)
+    @inferred interface_waves(ℂ₁, D, ν, sₜ)
+end
