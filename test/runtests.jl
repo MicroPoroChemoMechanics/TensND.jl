@@ -130,6 +130,7 @@ include("test_waves_generalized.jl")
 include("test_waves_interface.jl")
 include("test_third_order_elasticity.jl")
 include("test_plane_characteristic.jl")
+include("test_ortho_constants.jl")
 include("test_coefficient_types.jl")
 # The twelve-constant orthotropic form, without major symmetry.
 include("test_ortho_general.jl")

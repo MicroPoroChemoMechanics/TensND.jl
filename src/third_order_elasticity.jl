@@ -99,6 +99,29 @@ function _tangent(s::ThirdOrderIsotropic, E, p, j, q, l)
     return _δ(p, j, _δ(q, l, s.λ + 2 * (s.l - s.m) * I₁)) + 2 * s.m * (_δ(p, j, E[q, l]) + _δ(q, l, E[p, j])) + 𝕀 + s.n * dcof
 end
 
+const _VOIGT_PAIRS = ((1, 1), (2, 2), (3, 3), (2, 3), (1, 3), (1, 2))
+
+"""
+    tangent_stiffness(s::ThirdOrderIsotropic, E) → AbstractTens{4,3}
+
+The tangent ``\\mathbb{C}(\\boldsymbol{E}) = \\partial^2 W/\\partial\\boldsymbol{E}^2`` of
+the second Piola–Kirchhoff stress of `s` at the Green–Lagrange strain `E` (a
+symmetric 3×3 matrix of canonical components): the isotropic stiffness of
+`λ`, `μ` plus a term linear in `E`, the third-order tensor
+``\\partial^3 W/\\partial\\boldsymbol{E}^3`` contracted with `E`. It has the minor
+and major symmetries.
+"""
+function tangent_stiffness(s::ThirdOrderIsotropic, E::AbstractMatrix)
+    T = promote_type(typeof(s.λ), eltype(E))
+    M = SMatrix{6, 6, T}(
+        ntuple(Val(36)) do q
+            (p, j), (r, l) = _VOIGT_PAIRS[mod1(q, 6)], _VOIGT_PAIRS[cld(q, 6)]
+            _tangent(s, E, p, j, r, l)
+        end
+    )
+    return stiffness_from_voigt(M)
+end
+
 """
     acoustoelastic_tensor(s::ThirdOrderIsotropic, F) → Array{T,4}
 
@@ -162,4 +185,47 @@ function prestressed_waves(s::ThirdOrderIsotropic, ρ₀, F::AbstractMatrix, N)
     return PlaneWaves{T}(n, V, P, SMatrix{3, 3, T}(g[1]..., g[2]..., g[3]...))
 end
 
-export ThirdOrderIsotropic, third_order_constants, strain_energy, acoustoelastic_tensor, cauchy_stress, prestressed_waves
+"""
+    acoustoelastic_coefficients(s::ThirdOrderIsotropic)
+
+The first-order effect of a stress on the velocities of `s`, in closed form
+(Hughes & Kelly): the derivatives of ``\\rho_0 v^2`` (reference density, true
+velocity ``v``, a length of the deformed solid over a travel time) with respect
+to a **compressive** stress ``\\sigma``, taken at ``\\sigma = 0``,
+
+- `P_parallel`, `S_parallel`: uniaxial stress along the direction of propagation;
+- `P_perpendicular`, `S_perpendicular_parallel`, `S_perpendicular_perpendicular`:
+  uniaxial stress normal to it, the shear wave being polarized along the
+  stress or normal to it;
+- `P_hydrostatic`, `S_hydrostatic`: pressure ``\\sigma``;
+
+and the two coefficients of the anisotropy that a uniaxial stress induces,
+at the angle ``\\theta`` between propagation and stress,
+
+```math
+\\frac{v_{P\\parallel} - v_P(\\theta)}{v_{P\\parallel}} \\simeq -\\sigma\\,a_P\\sin^2\\theta,
+\\qquad
+\\frac{v_{S_1}(\\theta) - v_{S_2}(\\theta)}{v_{S_1}(\\theta)} \\simeq -\\sigma\\,b_S\\sin^2\\theta ,
+```
+
+`a_P` and `b_S` (``S_1`` polarized in the plane of the stress and of the
+propagation, ``S_2`` normal to it). Derivation in
+[Third-order elasticity](@ref th-third-order). Numbers, dual numbers and symbols.
+"""
+function acoustoelastic_coefficients(s::ThirdOrderIsotropic)
+    λ, μ, l, m, n = s.λ, s.μ, s.l, s.m, s.n
+    K3 = 3 * λ + 2 * μ               # 3K; p: stress along the propagation, q: normal to it
+    Pp = -(2 * l + λ + (λ + μ) / μ * (4 * m + 4 * λ + 10 * μ)) / K3
+    Sp = -(m + λ * n / (4 * μ) + 4 * λ + 4 * μ) / K3
+    Pq = -(2 * l - 2 * λ / μ * (m + λ + 2 * μ)) / K3
+    Sqp = -(m + λ * n / (4 * μ) + λ + 2 * μ) / K3
+    Sqq = -(m - (λ + μ) / (2 * μ) * n - 2 * λ) / K3
+    return (
+        P_parallel = Pp, S_parallel = Sp, P_perpendicular = Pq,
+        S_perpendicular_parallel = Sqp, S_perpendicular_perpendicular = Sqq,
+        P_hydrostatic = Pp + 2 * Pq, S_hydrostatic = Sp + Sqp + Sqq,
+        a_P = (2 * λ + 5 * μ + 2 * m) / (2 * μ * (λ + 2 * μ)), b_S = (4 * μ + n) / (8 * μ^2),
+    )
+end
+
+export ThirdOrderIsotropic, third_order_constants, strain_energy, tangent_stiffness, acoustoelastic_tensor, cauchy_stress, prestressed_waves, acoustoelastic_coefficients
