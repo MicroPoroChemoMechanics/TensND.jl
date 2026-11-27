@@ -15,7 +15,8 @@
 #   **API**       -- the docstrings, by theme.
 #
 # Theory, Manual, Tutorials and API share the chapter names "Tensors and bases",
-# "Material symmetries", "Coordinate systems" and "Surfaces", in this order.
+# "Material symmetries", "Elastic waves", "Coordinate systems" and "Surfaces",
+# in this order.
 #
 # The Theory pages follow a reading path with two pillars: the algebra
 # (conventions, products, bases and variance, the storage convention, the
@@ -51,6 +52,13 @@ pages = [
             "theory/cubic.md",
             "theory/projection.md",
             "theory/tensor_distances.md",
+        ],
+        "Elastic waves" => [
+            "theory/plane_waves.md",
+            "theory/thomsen.md",
+            "theory/weak_anisotropy.md",
+            "theory/interface_waves.md",
+            "theory/third_order_elasticity.md",
         ],
         "Coordinate systems" => [
             "theory/curvilinear.md",
@@ -88,6 +96,11 @@ pages = [
             "manual/projection.md",
             "manual/tensor_distances.md",
         ],
+        "Elastic waves" => [
+            "manual/plane_waves.md",
+            "manual/interface_waves.md",
+            "manual/third_order_elasticity.md",
+        ],
         "Coordinate systems" => [
             "manual/coordinates_overview.md",
             "manual/coorsystems.md",
@@ -116,6 +129,13 @@ pages = [
             "tutorials/generated/projection.md",
             "tutorials/generated/closest_isotropic.md",
             "tutorials/generated/plane_classes.md",
+        ],
+        "Elastic waves" => [
+            "tutorials/generated/wave_surfaces.md",
+            "tutorials/generated/thomsen_parameters.md",
+            "tutorials/generated/generalized_thomsen.md",
+            "tutorials/generated/reflection_transmission.md",
+            "tutorials/generated/stress_induced_anisotropy.md",
         ],
         "Coordinate systems" => [
             "tutorials/generated/symbolic_operators.md",
@@ -159,6 +179,9 @@ pages = [
             "api/walpole.md",
             "api/cubic.md",
             "api/projection.md",
+        ],
+        "Elastic waves" => [
+            "api/waves.md",
         ],
         "Coordinate systems" => [
             "api/coorsystems.md",

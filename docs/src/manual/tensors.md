@@ -253,6 +253,69 @@ major-symmetric tensor:
 definiteness(ℂ₂), definiteness(TensISO{2}(3.0, -1.0)), major_asymmetry(𝔾₂)
 ```
 
+## The two-index (Voigt) matrix
+
+Papers and data sets give a stiffness ``\mathbb{C}`` or a compliance
+``\mathbb{S}`` as a ``6\times6`` matrix in the two-index notation: the pairs
+``11, 22, 33, 23, 13, 12`` are numbered ``1`` to ``6``, the stresses are plain
+and the shear strains are engineering ones,
+
+```math
+\sigma_I = C_{IJ}\,\varepsilon_J, \qquad \varepsilon_I = S_{IJ}\,\sigma_J,
+\qquad \varepsilon_4 = 2\varepsilon_{23},\ \varepsilon_5 = 2\varepsilon_{13},\ \varepsilon_6 = 2\varepsilon_{12} .
+```
+
+The stiffness matrix is then ``C_{IJ} = C_{ijkl}``, and the compliance matrix
+``S_{IJ} = S_{ijkl}`` times 1, 2 or 4 according to the number of shear pairs
+among ``I`` and ``J``. The two matrices are inverses of each other when the
+tensors are ([The two-index notation](@ref th-voigt)).
+[`voigt_stiffness`](@ref) and [`voigt_compliance`](@ref) read them, in the
+canonical basis:
+
+```@example voigt
+using TensND, LinearAlgebra
+
+ℂ = ti_from_constants(52.9, 15.7, 21.8, 47.8, 16.4, [0.0, 0.0, 1.0])
+C = voigt_stiffness(ℂ)
+```
+
+```@example voigt
+S = voigt_compliance(inv(ℂ))
+S ≈ inv(C)
+```
+
+The order of the pairs is that of the Kelvin–Mandel matrix of
+[`mandel`](@ref); only the weights differ, ``1``, ``\sqrt2`` and ``2`` there.
+Unlike the Kelvin–Mandel matrix, the two-index matrices are not the matrices of
+the tensors in an orthonormal basis, and the factors depend on the role, not on
+the tensor:
+
+```@example voigt
+(C[4, 4], mandel(ℂ)[4, 4]), (S[4, 4], mandel(inv(ℂ))[4, 4])
+```
+
+[`stiffness_from_voigt`](@ref) and [`compliance_from_voigt`](@ref) build the
+tensor back from a matrix in this notation, as a tensor of the canonical basis:
+
+```@example voigt
+mandel(stiffness_from_voigt(C)) ≈ mandel(ℂ), mandel(compliance_from_voigt(S)) ≈ mandel(inv(ℂ))
+```
+
+The Voigt vectors of [`voigt_stress`](@ref) and [`voigt_strain`](@ref) serve
+finite-element interfaces and order the shears ``12, 13, 23``: they are not
+these matrices.
+
+A direction of space given by its angle ``\theta`` to ``\underline{e}_3`` and its
+azimuth ``\phi`` about it is the unit vector of
+[`direction_from_angles`](@ref), ``(\sin\theta\cos\phi, \sin\theta\sin\phi, \cos\theta)``;
+in the plane, ``(\cos\theta, \sin\theta)``. [`angles`](@ref) reads the angles
+back:
+
+```@example voigt
+n = direction_from_angles(π / 3, π / 4)
+n, angles(Vector(n))
+```
+
 ## Symmetry predicates
 
 `issymmetric`, `isminorsymmetric` and `ismajorsymmetric` test the index

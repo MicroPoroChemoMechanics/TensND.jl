@@ -25,6 +25,8 @@ import './docstrings.css' // You could setup your own, or else a default will be
 import './overrides.css' // You could setup your own, or else a default will be copied.
 // Hovering an equation lists its symbols, with their meaning on the page.
 import { installSymbolHints } from './symbol-hints'
+// Draws the interactive 3D figures of the tutorials.
+import { drawPlotly } from './plotly-figures'
 
 // `v-exec-scripts` runs the <script> tags inside a `v-html`'d block: innerHTML never executes
 // scripts, so we re-create each one. `src` scripts are awaited so order holds (bundle before
@@ -129,6 +131,9 @@ export const Theme: ThemeConfig = {
   },
   enhanceApp({ app, router, siteData }) {
     enhanceAppWithTabs(app);
+    // Reachable from the inline scripts of the 3D figures, which are plain
+    // (non-module) scripts and so cannot import the bundle themselves.
+    if (typeof window !== "undefined") (window as any).tensndPlotly = drawPlotly
     if (typeof window !== "undefined") {
       installCitationHints(siteData.value.base)
       installSymbolHints()

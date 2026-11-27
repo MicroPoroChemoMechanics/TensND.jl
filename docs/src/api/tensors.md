@@ -44,6 +44,19 @@ definiteness
 major_asymmetry
 ```
 
+## The two-index (Voigt) matrix
+
+The ``6\times6`` matrices of a stiffness and of a compliance in the two-index
+notation, pairs in the order ``11, 22, 33, 23, 13, 12``; usage:
+[Tensors](@ref man-tensors).
+
+```@docs
+voigt_stiffness
+voigt_compliance
+stiffness_from_voigt
+compliance_from_voigt
+```
+
 ## Tensors.jl and the Voigt forms
 
 Components in the canonical basis, whatever basis a tensor is written in: the

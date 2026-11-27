@@ -58,7 +58,7 @@ Double contraction is an ordinary matrix product and inversion an ordinary
 matrix inverse. This is why every projection algorithm in this library is
 written in the ``6\times6`` picture.
 
-## Contrast with Voigt
+## [Contrast with Voigt](@id th-voigt)
 
 Voigt notation uses *engineering* shear strains: a factor ``2`` on the
 off-diagonal strain components and ``1`` on the stress ones. The consequences
@@ -72,7 +72,26 @@ matter:
 | ``\mathbb{A}^{-1}\to`` matrix inverse | yes | no |
 | rotation matrix ``Q`` | **orthogonal** | not orthogonal |
 
-The last line is the decisive one for this library and is developed next.
+The Voigt matrices remain the language of the experimental and seismic
+literature, where a stiffness is given by its *two-index components*
+``C_{IJ}``, in the same order of the pairs (11, 22, 33, 23, 13, 12). With the
+weights ``w = (1, 1, 1, \sqrt2, \sqrt2, \sqrt2)`` and ``M`` the Kelvin–Mandel
+matrix,
+
+```math
+C_{IJ} = \frac{M_{IJ}}{w_I\,w_J}\quad\text{for a stiffness},\qquad
+S_{IJ} = M_{IJ}\,w_I\,w_J\quad\text{for a compliance} ,
+```
+
+so that ``C_{44} = C_{2323}`` and ``S_{44} = 4S_{2323}``, and
+``\sigma_I = C_{IJ}\varepsilon_J``, ``\varepsilon_I = S_{IJ}\sigma_J`` with
+``\varepsilon_4 = 2\varepsilon_{23}``. The two weightings differ: the inverse of
+the Voigt matrix of a stiffness is the Voigt matrix of the compliance, not of
+the inverse read as a stiffness ([`voigt_stiffness`](@ref),
+[`voigt_compliance`](@ref)).
+
+The last line of the table is the decisive one for this library and is
+developed next.
 
 ## Rotation: an orthogonal congruence
 

@@ -258,6 +258,26 @@ wif_sin(s, ν) = norm(cross(s, ν)) / norm(s)
         end
     end
 
+    @testsection "coinciding shear waves in any frame" begin
+        # The two shear waves of an isotropic medium share their slowness: their
+        # polarizations must be chosen so that the fluxes add, whatever the frame.
+        rng = Xoshiro(20261134)
+        for trial in 1:4
+            Q = Matrix(rand(rng, RotMatrix{3}))
+            ν, t = Q * [0.0, 0.0, 1.0], Q * [cos(trial), sin(trial), 0.0]
+            forward = wif_forward(WIF_M1, ν, 0.12 * t)
+            @test abs(real(sum(forward[2].polarization .* forward[3].polarization))) ≤ 1.0e-12
+            @test forward[2].normal_slowness ≈ forward[3].normal_slowness
+            for incident in forward
+                r = wif_rt(WIF_M1, WIF_M2, ν, incident)
+                @test sum(r.energy[1]) + sum(r.energy[2]) ≈ 1 rtol = 1.0e-12
+            end
+            # derivative of the balance with respect to a modulus of the second medium
+            balance(μ) = (r = wif_rt(WIF_M1, (k = WIF_M2.k, μ = μ, ρ = WIF_M2.ρ), ν, forward[2]); sum(r.energy[1]) + sum(r.energy[2]))
+            @test abs(ForwardDiff.derivative(balance, WIF_M2.μ)) ≤ 1.0e-12
+        end
+    end
+
     @testsection "reciprocity of the P-P transmission" begin
         p = sin(deg2rad(25)) / wif_vp(WIF_M1)
         sₜ = [p, 0.0, 0.0]

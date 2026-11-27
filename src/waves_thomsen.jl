@@ -112,19 +112,23 @@ function weak_wave_modes(t::TensTI{4}, ρ, n)
 end
 
 """
-    moveout_velocities(t::TensTI{4}, ρ) → (qP = V, qSV = V, SH = V)
+    squared_moveout_velocities(t::TensTI{4}, ρ) → (qP = V², qSV = V², SH = V²)
 
-The short-spread moveout velocities of a horizontal reflector in a medium of
-vertical axis, exact for any strength of the anisotropy:
-``V_{P0}\\sqrt{1 + 2\\delta}``,
-``V_{S0}\\sqrt{1 + 2(V_{P0}/V_{S0})^2(\\varepsilon - \\delta)}`` and
-``V_{S0}\\sqrt{1 + 2\\gamma}``: the velocity of each mode along its axis times
-the square root of one plus the second derivative, at the axis, of the
-logarithm of its phase velocity.
+The squares of the short-spread moveout velocities of a horizontal reflector
+in a medium of vertical axis, exact for any strength of the anisotropy:
+``V_{P0}^2(1 + 2\\delta)``,
+``V_{S0}^2\\,[1 + 2(V_{P0}/V_{S0})^2(\\varepsilon - \\delta)]`` and
+``V_{S0}^2(1 + 2\\gamma)``, that is the squared velocity of each mode along its
+axis times one plus the second derivative, at the axis, of the logarithm of
+its phase velocity ([Thomsen's parameters](@ref th-thomsen)). The squares are
+returned because the qSV one is negative in many rocks
+(``\\varepsilon - \\delta`` large and negative): the travel time of the
+reflected qSV wave then decreases with the offset, and no moveout velocity
+exists.
 """
-function moveout_velocities(t::TensTI{4}, ρ)
+function squared_moveout_velocities(t::TensTI{4}, ρ)
     V_P0, V_S0, ε, δ, γ = _thomsen_of_components(_ti_components(t)..., ρ)
-    return (qP = V_P0 * sqrt(1 + 2 * δ), qSV = V_S0 * sqrt(1 + 2 * (V_P0 / V_S0)^2 * (ε - δ)), SH = V_S0 * sqrt(1 + 2 * γ))
+    return (qP = V_P0^2 * (1 + 2 * δ), qSV = V_S0^2 + 2 * V_P0^2 * (ε - δ), SH = V_S0^2 * (1 + 2 * γ))
 end
 
-export thomsen_parameters, anellipticity, weak_wave_modes, moveout_velocities
+export thomsen_parameters, anellipticity, weak_wave_modes, squared_moveout_velocities

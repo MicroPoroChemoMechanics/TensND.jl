@@ -1,0 +1,127 @@
+{
+ "schema": "tensnd-literature/1",
+ "source": {
+  "key": "johnson1996",
+  "doi": "10.1029/95JB02880",
+  "citation": "Johnson, P. A., Rasolofosaon, P. N. J. (1996). Nonlinear elasticity and stress-induced anisotropy in rock. Journal of Geophysical Research: Solid Earth 101(B2), 3113-3124.",
+  "location": "Table 1, p. 3118"
+ },
+ "transcription": {
+  "from": "the scanned PDF of the article (no text layer), read on the image of page 3118 rendered at 150 dpi and, for the table, at a higher zoom",
+  "checked_against_source": true,
+  "note": "Second-order bulk and shear moduli K and mu, Murnaghan's third-order constants l, m and n, the stress-induced S-wave birefringence coefficient b_S and P-wave anisotropy coefficient a_P (predicted from the constants and measured), and the nonlinear coefficient beta of equation (8), as printed. The stress is positive in compression. Empty cells of the table are null; the thousands separators of the print are dropped. The column 'data from' is the source the authors quote for each group of rows."
+ },
+ "quantities": {},
+ "tables": {
+  "table_1": [
+   {
+    "material": "Armco iron",
+    "data from": "Hughes and Kelly (1953)",
+    "rho (kg/m3)": null,
+    "K (GPa)": 164,
+    "mu (GPa)": 82,
+    "l (GPa)": -348,
+    "m (GPa)": -1030,
+    "n (GPa)": 1100,
+    "b_S predicted (1/GPa)": 0.027,
+    "b_S measured (1/GPa)": null,
+    "a_P predicted (1/GPa)": -0.032,
+    "a_P measured (1/GPa)": null,
+    "beta": -7.3
+   },
+   {
+    "material": "Pyrex",
+    "data from": "Hughes and Kelly (1953)",
+    "rho (kg/m3)": null,
+    "K (GPa)": 31.8,
+    "mu (GPa)": 27.5,
+    "l (GPa)": 14,
+    "m (GPa)": 92,
+    "n (GPa)": 420,
+    "b_S predicted (1/GPa)": 0.088,
+    "b_S measured (1/GPa)": null,
+    "a_P predicted (1/GPa)": 0.092,
+    "a_P measured (1/GPa)": null,
+    "beta": 4.4
+   },
+   {
+    "material": "Barre granite",
+    "data from": "Nur and Simmons (1969)",
+    "rho (kg/m3)": 2650,
+    "K (GPa)": 13.8,
+    "mu (GPa)": 18.2,
+    "l (GPa)": -3371,
+    "m (GPa)": -6742,
+    "n (GPa)": -6600,
+    "b_S predicted (1/GPa)": -2.47,
+    "b_S measured (1/GPa)": -2.47,
+    "a_P predicted (1/GPa)": -9.67,
+    "a_P measured (1/GPa)": -8.66,
+    "beta": -441
+   },
+   {
+    "material": "Dry F32 Fontainebleau sandstone",
+    "data from": "Zamora (1990)",
+    "rho (kg/m3)": 2414,
+    "K (GPa)": 15.3,
+    "mu (GPa)": 11.7,
+    "l (GPa)": -97800,
+    "m (GPa)": -99400,
+    "n (GPa)": -84900,
+    "b_S predicted (1/GPa)": -77.2,
+    "b_S measured (1/GPa)": -71.9,
+    "a_P predicted (1/GPa)": -274,
+    "a_P measured (1/GPa)": null,
+    "beta": -9600
+   },
+   {
+    "material": "Dry F32, thermally cracked",
+    "data from": "Zamora (1990)",
+    "rho (kg/m3)": 2414,
+    "K (GPa)": 7.8,
+    "mu (GPa)": 5.7,
+    "l (GPa)": -74000,
+    "m (GPa)": -64500,
+    "n (GPa)": -34900,
+    "b_S predicted (1/GPa)": -136,
+    "b_S measured (1/GPa)": -134,
+    "a_P predicted (1/GPa)": -740,
+    "a_P measured (1/GPa)": null,
+    "beta": -13200
+   },
+   {
+    "material": "Water-saturated F32, thermally cracked",
+    "data from": "Zamora (1990)",
+    "rho (kg/m3)": 2503,
+    "K (GPa)": 30.2,
+    "mu (GPa)": 17.5,
+    "l (GPa)": -59100,
+    "m (GPa)": -38200,
+    "n (GPa)": -27500,
+    "b_S predicted (1/GPa)": -9.4,
+    "b_S measured (1/GPa)": -9.3,
+    "a_P predicted (1/GPa)": -35.8,
+    "a_P measured (1/GPa)": null,
+    "beta": -2430
+   },
+   {
+    "material": "Dry D82 marble",
+    "data from": "Zamora (1990)",
+    "rho (kg/m3)": 2870,
+    "K (GPa)": 30,
+    "mu (GPa)": 21.3,
+    "l (GPa)": -40300,
+    "m (GPa)": -35400,
+    "n (GPa)": -20300,
+    "b_S predicted (1/GPa)": -5.5,
+    "b_S measured (1/GPa)": -5.5,
+    "a_P predicted (1/GPa)": -28.3,
+    "a_P measured (1/GPa)": null,
+    "beta": -1900
+   }
+  ]
+ },
+ "notes": [
+  "The predicted b_S and a_P of the water-saturated, thermally cracked F32 sandstone are not those that the closed forms of the article give with the K, mu, l, m and n printed in the same row; the other rows agree with them to within the rounding of the printed moduli. The values are kept as printed."
+ ]
+}

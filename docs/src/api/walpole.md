@@ -30,6 +30,8 @@ mandel_material
 ti_from_constants
 ti_constants
 hill_moduli
+ortho_from_constants
+ortho_constants
 iso_to_ortho
 walpole_to_ortho
 ```

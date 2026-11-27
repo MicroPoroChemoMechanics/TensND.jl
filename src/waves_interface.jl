@@ -94,11 +94,17 @@ function _interface_waves(C, ρ::T, ν::SVector{3, T}, sₜ::SVector{3, T}) wher
     A = [zeros(T, 3, 3) Matrix{T}(I, 3, 3); -Matrix(Ti * Q̃) -Matrix(Ti * (R + transpose(R)))]
     e = eigen(A)
     scale = sqrt(ρ / maximum(abs, Tm))                       # a slowness of the medium
+    tol = 1.0e-8 * scale
+    ξ = Complex{T}.(e.values)
+    hom = map(z -> abs(imag(z)) ≤ tol / 10, ξ)
+    U = [SVector{3, Complex{T}}(e.vectors[1, m], e.vectors[2, m], e.vectors[3, m]) for m in 1:6]
+    S = R + transpose(R)
+    for m in 1:6
+        group = [q for q in 1:6 if hom[m] && hom[q] && abs(ξ[q] - ξ[m]) ≤ tol]
+        (length(group) > 1 && first(group) == m) && _split_coinciding!(ξ, U, group, S, Tm)
+    end
     waves = map(1:6) do m
-        ξ = Complex{T}(e.values[m])
-        U = SVector{3, Complex{T}}(e.vectors[1, m], e.vectors[2, m], e.vectors[3, m])
-        homogeneous = abs(imag(ξ)) ≤ 1.0e-9 * scale
-        _interface_wave(homogeneous ? complex(real(ξ)) : ξ, U / sqrt(real(sum(abs2, U))), R, Tm, sₜ, ν, homogeneous)
+        _interface_wave(hom[m] ? complex(real(ξ[m])) : ξ[m], U[m] / sqrt(real(sum(abs2, U[m]))), R, Tm, sₜ, ν, hom[m])
     end
     isforward(w) = w.homogeneous ? w.flux > 0 : imag(w.normal_slowness) > 0
     forward, backward = filter(isforward, waves), filter(!isforward, waves)
@@ -107,6 +113,23 @@ function _interface_waves(C, ρ::T, ν::SVector{3, T}, sₜ::SVector{3, T}) wher
     )
     byspeed(w) = (abs(real(w.normal_slowness)), abs(imag(w.normal_slowness)))
     return Tuple(sort(forward; by = byspeed)), Tuple(sort(backward; by = byspeed))
+end
+
+# Real roots that coincide (the two shear waves of an isotropic medium) share
+# an eigenspace, of which any basis solves the problem. The energy fluxes of
+# two of its waves add only if τ_a·U_b + U_a·τ_b = U_a·P′·U_b vanishes, with
+# P′ = R + Rᵀ + 2ξT: the polarizations kept are the eigenvectors of P′
+# restricted to the eigenspace, orthonormal and orthogonal for the flux.
+function _split_coinciding!(ξ, U, group, S, Tm)
+    g = length(group)
+    ξ̄ = sum(real, view(ξ, group)) / g
+    V = svd(hcat((Vector(real.(U[q])) for q in group)..., (Vector(imag.(U[q])) for q in group)...)).U[:, 1:g]
+    W = V * eigen(Symmetric(transpose(V) * Matrix(S + 2 * ξ̄ * Tm) * V)).vectors
+    for (j, q) in enumerate(group)
+        ξ[q] = ξ̄
+        U[q] = SVector{3}(complex.(view(W, :, j)))
+    end
+    return nothing
 end
 
 # Dual numbers: the waves of the values, then the derivative of each root and

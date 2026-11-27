@@ -53,7 +53,7 @@ const WGN_LAVOUX_PARAMETERS = (
     ε15 = 0.0226, ε16 = -0.0189, ε24 = -0.0075, ε26 = 0.0415, ε34 = 0.0038, ε35 = -0.0151,
     γx = 0.0673, γy = -0.0339, γz = -0.0593,
 )
-const WGN_RHO = 2.7
+const WGN_RHO = 2.19                 # Lavoux limestone, g/cm³
 const WGN_SANDSTONE = (52.9, 15.7, 21.8, 47.8, 16.4)        # (C₁₁, C₁₂, C₁₃, C₃₃, C₄₄), GPa
 
 wgn_ti(c) = ti_from_constants(c..., [0.0, 0.0, 1.0]; form = :components, role = :stiffness)

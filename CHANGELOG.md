@@ -1,5 +1,83 @@
 # Changelog
 
+## v0.18.0 — elastic waves
+
+A stiffness and a density define the waves of a medium; TensND had the
+acoustic tensor and nothing that turned it into velocities. This release adds
+the plane waves of any stiffness, their description in the weakly anisotropic
+case, the waves at a plane interface and the effect of a stress on the
+velocities, with a Theory chapter, a Manual chapter and five tutorials built on
+data of the literature. Existing results are unchanged.
+
+### Added: plane waves
+
+- `plane_waves(ℂ, ρ, n)` solves the Christoffel problem for any stiffness:
+  phase velocities sorted qP, qS1, qS2, polarizations and group velocities
+  (`PlaneWaves`); `phase_velocities`, `slowness`, `christoffel_invariants`.
+  Numbers and dual numbers, the derivatives of the polarizations included.
+- `wave_modes` gives the closed forms of the isotropic and transversely
+  isotropic classes mode by mode, without any comparison, so that they hold for
+  symbols.
+
+### Added: Thomsen's parameters and weak anisotropy
+
+- `thomsen_parameters`, and the form `:thomsen` of `ti_from_constants` and
+  `ti_constants` with the keyword `density`; `anellipticity`;
+  `weak_wave_modes`, the first-order velocities; `squared_moveout_velocities`,
+  exact, returned as squares because the qSV one is negative in many rocks.
+- `weak_plane_waves`, the first-order velocities of a stiffness of any symmetry,
+  independent of a reference medium; `generalized_thomsen_parameters`, the
+  parameters of Mensch and Rasolofosaon; `shear_splitting`.
+
+### Added: interfaces
+
+- `interface_waves(ℂ, ρ, ν, sₜ)`: the six waves of a tangential slowness,
+  homogeneous or evanescent, sorted by the direction of their energy flux
+  (`InterfaceWave`).
+- `reflection_transmission`: amplitudes and energy fractions of the reflected
+  and transmitted waves at a welded interface or a linear-slip one
+  (`slip = ωZ`). Dual numbers through the derivative of each root, the two
+  coinciding shear waves of an isotropic medium included; their polarizations
+  are chosen so that the energy fluxes add.
+- `characteristic_pair`, `characteristic_roots` and `engineering_compliances`
+  for a stiffness of the plane: the characteristic roots of plane anisotropic
+  elasticity (Lekhnitskii), the static limit of the interface problem. They
+  come from MeanFieldHomogenization, where they served the elliptic hole in an
+  anisotropic plane.
+
+### Added: third-order elasticity
+
+- `ThirdOrderIsotropic(λ, μ, l, m, n)`, a solid isotropic at orders two and
+  three (Murnaghan): `strain_energy`, `cauchy_stress`, `tangent_stiffness`,
+  `third_order_constants` (two-index and Landau notations).
+- `acoustoelastic_tensor` and `prestressed_waves`: the tensor seen by a small
+  wave on a deformed solid and its natural velocities;
+  `acoustoelastic_coefficients`, the closed-form effect of a uniaxial or
+  hydrostatic stress (Hughes and Kelly) and the coefficients of the induced
+  anisotropy.
+
+### Added: notations
+
+- `voigt_stiffness`, `voigt_compliance`, `stiffness_from_voigt`,
+  `compliance_from_voigt`: the two-index matrices of the literature.
+- `direction_from_angles`, the unit vector of a colatitude and a longitude.
+- `ortho_from_constants`, `ortho_constants`: an orthotropic tensor of space or
+  of the plane from its engineering constants, as a compliance or a stiffness.
+
+### Documentation
+
+- Theory chapter *Elastic waves*: plane waves and group velocity, Thomsen's
+  parameters and the moveout velocity, weak anisotropy of any symmetry and
+  splitting, waves at an interface and the characteristic roots of a plane
+  stiffness, third-order elasticity.
+- Manual chapter *Elastic waves*; the two-index matrix in *Tensors*; the
+  orthotropic engineering constants in *Parametrizations*.
+- Tutorials: slowness and wave surfaces (interactive 3-D scenes), Thomsen's
+  parameters on his table of rocks, the generalized parameters of two triclinic
+  rocks, reflection and transmission, stress-induced anisotropy. Their data
+  (`thomsenGEO1986`, `menschGJI1997`, `johnsonJGR1996`) are in
+  `data/literature/`.
+
 ## v0.17.0 — the plane and any dimension
 
 TensND is written for tensors of any dimension, and most of it worked in

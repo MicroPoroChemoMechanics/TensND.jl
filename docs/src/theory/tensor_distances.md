@@ -202,3 +202,7 @@ every class and with symbols, the second is invariant under a wider group. The
 tutorial
 [The isotropic tensor closest to a measured stiffness](@ref tut-closest-isotropic)
 compares them on a measured tensor.
+
+A stiffness is also known through the waves it carries: the next chapter,
+starting with [Plane waves](@ref th-plane-waves), derives their velocities
+from it.

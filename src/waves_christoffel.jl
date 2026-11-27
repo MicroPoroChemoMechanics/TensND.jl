@@ -211,7 +211,9 @@ D = \\bigl[(C_{11} - C_{44})\\sin^2\\theta - (C_{33} - C_{44})\\cos^2\\theta\\bi
 
 SH is polarized along ``\\underline{a}\\times\\underline{n}``; qP and qSV in the
 plane of ``\\underline{a}`` and ``\\underline{n}``, given by their components
-`(along the transverse direction, along the axis)` in that plane
+`(along the transverse direction, along the axis)` in that plane, for a
+direction on the side of the axis, ``\\underline{n}\\cdot\\underline{a} \\geq 0``
+(the direction ``-\\underline{n}`` carries the same waves)
 ([Plane waves](@ref th-plane-waves)).
 """
 function wave_modes(ℂ::TensISO{4, 3}, ρ, n)

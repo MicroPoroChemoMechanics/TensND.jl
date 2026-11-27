@@ -57,6 +57,12 @@ const PUBLISHED_SCRIPTS = [
     "05_projection.jl" => "projection",
     "06_closest_isotropic.jl" => "closest_isotropic",
     "07_plane_classes.jl" => "plane_classes",
+    # ── Elastic waves ────────────────────────────────────────────────────────
+    "25_wave_surfaces.jl" => "wave_surfaces",
+    "26_thomsen_parameters.jl" => "thomsen_parameters",
+    "27_generalized_thomsen.jl" => "generalized_thomsen",
+    "28_reflection_transmission.jl" => "reflection_transmission",
+    "29_stress_induced_anisotropy.jl" => "stress_induced_anisotropy",
     # ── Differential calculus ────────────────────────────────────────────────
     "10_symbolic_operators.jl" => "symbolic_operators",
     "11_christoffel.jl" => "christoffel",

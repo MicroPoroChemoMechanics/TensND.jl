@@ -2,7 +2,7 @@
 #  test_waves_thomsen.jl — Thomsen's parameters of a transversely isotropic
 #  medium (`thomsen_parameters`, the form `:thomsen` of `ti_constants` and
 #  `ti_from_constants`, `anellipticity`) and the velocities of weak
-#  anisotropy (`weak_wave_modes`, `moveout_velocities`).
+#  anisotropy (`weak_wave_modes`, `squared_moveout_velocities`).
 #
 #  References, independent of the code under test:
 #  - the definitions of Thomsen (1986), Geophysics 51(10), written from the
@@ -198,18 +198,24 @@ end
     @testsection "moveout velocities" begin
         t = wth_ti(WTH_SANDSTONE)
         ρ = WTH_RHO_SANDSTONE
-        mo = moveout_velocities(t, ρ)
+        mo = squared_moveout_velocities(t, ρ)
         @test keys(mo) == (:qP, :qSV, :SH)
         for k in 1:3
             V(θ) = wth_velocity(t, ρ, k, θ)
             V″ = ForwardDiff.derivative(θ -> ForwardDiff.derivative(V, θ), 0.0)
             V₀ = V(0.0)
-            @test isapprox(sqrt(V₀^2 * (1 + V″ / V₀)), mo[k]; rtol = 1.0e-12)
+            @test isapprox(V₀^2 * (1 + V″ / V₀), mo[k]; rtol = 1.0e-12)
         end
         V_P0, V_S0, ε, δ, γ = wth_thomsen(WTH_SANDSTONE, ρ)
-        @test isapprox(mo.qP, V_P0 * sqrt(1 + 2 * δ); rtol = 1.0e-13)
-        @test isapprox(mo.qSV, V_S0 * sqrt(1 + 2 * (V_P0 / V_S0)^2 * (ε - δ)); rtol = 1.0e-13)
-        @test isapprox(mo.SH, V_S0 * sqrt(1 + 2 * γ); rtol = 1.0e-13)
-        @test all(isapprox.(values(mo), (5.065796126362031, 1.6196987040340953, 2.7553287888551297); rtol = 1.0e-12))
+        @test isapprox(mo.qP, V_P0^2 * (1 + 2 * δ); rtol = 1.0e-13)
+        @test isapprox(mo.qSV, V_S0^2 * (1 + 2 * (V_P0 / V_S0)^2 * (ε - δ)); rtol = 1.0e-13)
+        @test isapprox(mo.SH, V_S0^2 * (1 + 2 * γ); rtol = 1.0e-13)
+        @test all(isapprox.(sqrt.(values(mo)), (5.065796126362031, 1.6196987040340953, 2.7553287888551297); rtol = 1.0e-12))
+        # the clayshale: the qSV square is negative, and still the curvature of the exact velocity
+        t₂, ρ₂ = wth_ti(WTH_CLAYSHALE), WTH_RHO_CLAYSHALE
+        m₂ = squared_moveout_velocities(t₂, ρ₂)
+        V(θ) = wth_velocity(t₂, ρ₂, 2, θ)
+        @test m₂.qSV < 0
+        @test isapprox(V(0.0)^2 + V(0.0) * ForwardDiff.derivative(θ -> ForwardDiff.derivative(V, θ), 0.0), m₂.qSV; rtol = 1.0e-10)
     end
 end

@@ -31,6 +31,16 @@ Simplest first within each group.
 | [The isotropic tensor closest to a measured stiffness](generated/closest_isotropic.md) | a stiffness measured by ultrasound, and the isotropic tensors closest to it for the distances of the package |
 | [The symmetry classes of a plane section](generated/plane_classes.md) | the three plane sections of the same measured stiffness, their distance to the isotropic, square and orthotropic classes, and the frame found in closed form |
 
+## Elastic waves
+
+| Page | What it shows |
+| :--- | :--- |
+| [Slowness and wave surfaces](generated/wave_surfaces.md) | the three sheets of the slowness and wave surfaces of a transversely isotropic and of a triclinic rock, in sections and in 3-D |
+| [Thomsen's parameters and weak anisotropy](generated/thomsen_parameters.md) | Thomsen's table of rocks and crystals, the exact and first-order velocities, the series recovered with symbols, the moveout velocity |
+| [Weak anisotropy of any symmetry](generated/generalized_thomsen.md) | the generalized parameters of two triclinic rocks, the first-order velocities against the exact ones, shear-wave splitting |
+| [Reflection and transmission at an interface](generated/reflection_transmission.md) | Snell-Descartes, amplitudes and energies against the incidence, critical angles, a transversely isotropic side, a slip interface, the small-contrast limit |
+| [Stress-induced anisotropy](generated/stress_induced_anisotropy.md) | third-order constants of rocks and materials, the velocities of a granite under uniaxial compression |
+
 ## Coordinate systems
 
 | Page | What it shows |
