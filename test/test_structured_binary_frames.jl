@@ -120,3 +120,18 @@ end
     Sv = [Symbolics.value(Symbolics.substitute(x, values)) for x in Array(canonical_components(S))]
     @test _sb_close(Float64.(Sv), Array(canonical_components(N)))
 end
+
+# Complex components (a viscoelastic or a frequency-domain stiffness): the axis
+# is stored in the complex type, and the frames and cosines are built on its
+# real part. Against the generic route on the canonical components.
+@testset "complex TI tensors on orthogonal, opposite and other axes" begin
+    n = [0.0, 0.0, 1.0]
+    A = TensTI{4}(3.0 + 0.5im, 2.0 - 0.1im, 1.0 + 0.2im, 1.5 + 0.3im, 0.8 - 0.05im, n)
+    for m in ([1.0, 0.0, 0.0], [0.0, 0.0, -1.0], normalize([1.0, 2.0, 0.5]))
+        B = TensTI{4}(1.0 + 0.1im, 0.7 - 0.2im, 0.3 + 0.0im, 0.4 + 0.1im, 0.2 + 0.02im, m)
+        for op in (+, -)
+            @test Array(canonical_components(op(A, B))) ≈ Array(canonical_components(op(TensND.generic_tens(A), TensND.generic_tens(B)))) rtol = 1.0e-12
+        end
+    end
+    @test_throws ArgumentError TensND._real_axis((1.0 + 0.0im, 0.0 + 1.0e-3im, 0.0 + 0.0im))
+end
