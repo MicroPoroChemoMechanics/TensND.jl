@@ -1004,6 +1004,26 @@ end
     h(x) = Tens(S₀ + x * Tensor{4, 3}(Tensors.symmetric(B)))
     @test get_array(h(ForwardDiff.Dual(0.0, 1.0))) isa SymmetricTensor
     @test get_array(Tens(S₀ + ForwardDiff.Dual(0.0, 1.0) * B)) isa Tensor
+    # A derivative that vanishes in exact arithmetic but carries the round-off of
+    # the others (as another processor leaves it) does not decide the storage:
+    # its asymmetry is noise at the scale of the derivatives.
+    A = Array(Tensor{4, 3}(Tensors.symmetric(B)))
+    noise = zeros(3, 3, 3, 3)
+    noise[1, 2, 1, 1] = eps(maximum(abs, A))
+    duals = ForwardDiff.Dual.(Array(S₀), A, noise)
+    @test get_array(Tens(Tensor{4, 3}(duals))) isa SymmetricTensor
+    # nested duals: the same judgment at every order
+    nested = ForwardDiff.Dual.(ForwardDiff.Dual.(Array(S₀), A), ForwardDiff.Dual.(noise, A))
+    @test get_array(Tens(Tensor{4, 3}(nested))) isa SymmetricTensor
+    nested_asym = ForwardDiff.Dual.(ForwardDiff.Dual.(Array(S₀), A), ForwardDiff.Dual.(noise, Array(B)))
+    @test get_array(Tens(Tensor{4, 3}(nested_asym))) isa Tensor
+    # exact derivatives are compared exactly
+    Q = Array(Tensor{4, 3}(Tensors.symmetric(Tensor{4, 3}(rand(rng, -3:3, 3, 3, 3, 3) .// 2))))
+    @test get_array(Tens(Tensor{4, 3}(ForwardDiff.Dual.(Q, Q)))) isa SymmetricTensor
+    Qa = copy(Q); Qa[1, 2, 1, 1] += 1 // 10^20
+    @test get_array(Tens(Tensor{4, 3}(ForwardDiff.Dual.(Q, Qa)))) isa Tensor
+    # a dual number without partials
+    @test get_array(Tens(Tensor{4, 3}(ForwardDiff.Dual.(Array(S₀))))) isa SymmetricTensor
 end
 
 @testsection "Walpole & Ortho tensors: minor-symmetry storage does not hinge on round-off" begin

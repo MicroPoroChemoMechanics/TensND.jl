@@ -83,8 +83,10 @@ data of the literature. Existing results are unchanged.
   its derivatives was stored in symmetric form, and its derivatives were
   symmetrized without a word: the derivative of a computation through such a
   tensor at a symmetric point was wrong. The storage is now decided on the
-  value and on each partial, nested duals included. Results on numbers are
-  unchanged.
+  value, then on the derivatives judged together against the largest of them
+  (a derivative that vanishes in exact arithmetic carries the round-off of the
+  others, which differs from one processor to another), nested duals included.
+  Results on numbers are unchanged.
 
 ### Documentation
 

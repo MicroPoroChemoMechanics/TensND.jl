@@ -282,27 +282,48 @@ structured tensor written about a non-canonical axis: `mandel` of a `Dual`-value
 """
 @inline _store_symmetric(t::Tensors.AbstractTensor) = _issym(t)
 
-@inline function _store_symmetric(
-        t::Tensors.AbstractTensor{order, dim, T}
+@inline _store_symmetric(
+    t::Tensors.AbstractTensor{order, dim, T}
+) where {order, dim, T <: ApproxType} = _symmetric_within(t, maximum(abs, t))
+
+# Whether `t` is minor-symmetric up to the round-off of numbers of size `scale`;
+# exact element types are compared exactly.
+@inline _symmetric_within(t::Tensors.AbstractTensor, scale) = _issym(t)
+@inline function _symmetric_within(
+        t::Tensors.AbstractTensor{order, dim, T}, scale
     ) where {order, dim, T <: ApproxType}
     _issym(t) && return true
-    scale = maximum(abs, t)
-    iszero(scale) && return true
     return maximum(abs, t - Tensor{order, dim}(Tensors.symmetric(t))) <= 16 * _approx_eps(T) * scale
 end
 
 # A dual number compares by its value only (`==`, `<=`), so the test above
 # would keep in symmetric form a tensor that is symmetric in value and not in
 # its derivatives (the tangent of a prestressed solid at the unstressed state),
-# and the derivatives would be symmetrized without a word. The value and each
-# partial are decided apart, nested duals by recursion.
+# and the derivatives would be symmetrized without a word. The value and the
+# derivatives are decided apart, nested duals included. The derivatives are
+# judged together, against the largest of them: a derivative that vanishes in
+# exact arithmetic carries the round-off of the others, which another order of
+# the floating-point operations (another processor) makes nonzero.
 @inline function _store_symmetric(
         t::Tensors.AbstractTensor{order, dim, T}
     ) where {order, dim, T <: ForwardDiff.Dual}
-    part(f) = Tensor{order, dim}(map(f, Array(t)))
-    _store_symmetric(part(ForwardDiff.value)) || return false
-    return all(k -> _store_symmetric(part(x -> ForwardDiff.partials(x, k))), 1:ForwardDiff.npartials(T))
+    leaves = map(_dual_leaves, Array(t))
+    leaf(ℓ) = Tensor{order, dim}(map(x -> x[ℓ], leaves))
+    _store_symmetric(leaf(1)) || return false
+    derivatives = ntuple(ℓ -> leaf(ℓ + 1), Val(_dual_leaf_count(T) - 1))
+    isempty(derivatives) && return true
+    scale = maximum(d -> maximum(abs, d), derivatives)
+    return all(d -> _symmetric_within(d, scale), derivatives)
 end
+
+# The numbers a (nested) dual number carries, as a flat tuple: its primal value
+# first, then its derivatives of every order.
+@inline _dual_leaves(x) = (x,)
+@inline _dual_leaves(x::ForwardDiff.Dual) = (_dual_leaves(ForwardDiff.value(x))..., _dual_leaves_of(Tuple(ForwardDiff.partials(x)))...)
+@inline _dual_leaves_of(::Tuple{}) = ()
+@inline _dual_leaves_of(t::Tuple) = (_dual_leaves(first(t))..., _dual_leaves_of(Base.tail(t))...)
+_dual_leaf_count(::Type) = 1
+_dual_leaf_count(::Type{ForwardDiff.Dual{G, V, N}}) where {G, V, N} = (N + 1) * _dual_leaf_count(V)
 
 """
     _approx_eps(::Type{T}) -> AbstractFloat

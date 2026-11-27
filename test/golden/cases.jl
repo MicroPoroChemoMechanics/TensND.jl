@@ -100,6 +100,15 @@ function golden_cases()
     return cases
 end
 
+# Tolerance of a case, in ulps of its largest component, where it is not equal
+# to the bit (see `test_golden.jl`). The waves at an interface come from the
+# eigenvectors of a non-symmetric 6×6 matrix (LAPACK's `geev`) and from a 6×6
+# solve: their last bits follow the processor's kernels, and differ between
+# Linux and Windows by 2.6e-14 relative to a component (about 120 ulps of the
+# scale of the case). 1024 ulps keep a margin and still catch any change of
+# the algorithm.
+golden_ulps(name) = name == "waves/interface" ? 1024 : 8
+
 # The values of a case as hex strings, or the name of the exception it throws.
 function golden_record(f)
     v = try
