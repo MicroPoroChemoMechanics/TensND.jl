@@ -5,6 +5,13 @@
 
     **Tutorials**: [Slowness and wave surfaces](@ref tut-wave-surfaces)
 
+!!! note "Two-index components"
+    ``C_{11}``, ``C_{44}``, ``C_{66}``, … are the two-index (Voigt) components
+    ``C_{IJ}`` of the stiffness, ``I = 1, \dots, 6`` standing for the pairs 11,
+    22, 33, 23, 13, 12 (``C_{44} = C_{2323}``, ``C_{66} = C_{1212}``), not the
+    entries of the Kelvin–Mandel matrix, which carry factors ``\sqrt2`` and ``2``.
+    Both matrices are written in full in [Contrast with Voigt](@ref th-voigt).
+
 A homogeneous elastic medium carries, in each direction, three plane waves.
 (The Christoffel *problem* of this page, named after E. B. Christoffel as the
 [Christoffel symbols](@ref th-curvilinear) of a chart, has nothing else in
@@ -104,18 +111,49 @@ With a unit polarization, the Christoffel problem multiplied by
 ```
 
 A packet of waves of neighboring wave vectors travels at the *group velocity*
-``\underline{g} = \partial\omega/\partial\underline{k}``. In the derivative of
-the relation above, the variation of the polarization contributes
-``2\,\delta\underline{U}\cdot\boldsymbol{\Gamma}\cdot\underline{U} = 2\rho\omega^2\,\delta\underline{U}\cdot\underline{U}``,
-which vanishes because ``\underline{U}`` stays a unit vector. There remains,
-with the major symmetry,
-``2\rho\,\omega\,g_j = 2\,C_{ijkl}\,U_i\,U_k\,k_l``, that is
+``\underline{g} = \partial\omega/\partial\underline{k}``, the gradient of
+``\omega(\underline{k})``. In the dispersion relation both the wave vector and the
+polarization depend on ``\underline{k}``: ``\underline{U}(\underline{k})`` is the
+unit eigenvector of ``\boldsymbol{\Gamma}(\underline{k})`` of the mode followed,
+
+```math
+\boldsymbol{\Gamma}(\underline{k})\cdot\underline{U}(\underline{k}) = \rho\,\omega(\underline{k})^2\,\underline{U}(\underline{k}),
+\qquad
+\underline{U}\cdot\underline{U} = 1,
+\qquad
+\rho\,\omega^2 = C_{ijkl}\,U_i\,k_j\,U_k\,k_l .
+```
+
+The derivative of the last expression with respect to ``k_m`` has two kinds of
+terms, those where ``\underline{U}`` is differentiated and those where the
+``\underline{k}`` written in ``\boldsymbol{\Gamma}`` is:
+
+```math
+2\rho\,\omega\,\frac{\partial\omega}{\partial k_m}
+  = \underbrace{C_{ijkl}\Big(\frac{\partial U_i}{\partial k_m}\,k_j\,U_k\,k_l + U_i\,k_j\,\frac{\partial U_k}{\partial k_m}\,k_l\Big)}_{\text{polarization}}
+  + \underbrace{C_{ijkl}\,U_i\,U_k\,\big(\delta_{jm}\,k_l + k_j\,\delta_{lm}\big)}_{\text{wave vector in }\boldsymbol{\Gamma}} .
+```
+
+The two polarization terms are equal by the major symmetry, and their sum is
+``2\,(\partial\underline{U}/\partial k_m)\cdot\boldsymbol{\Gamma}(\underline{k})\cdot\underline{U}``.
+The eigenvalue equation replaces ``\boldsymbol{\Gamma}(\underline{k})\cdot\underline{U}``
+by ``\rho\omega^2\underline{U}``, and the sum becomes
+``2\rho\omega^2\,(\partial\underline{U}/\partial k_m)\cdot\underline{U} = \rho\omega^2\,\partial(\underline{U}\cdot\underline{U})/\partial k_m = 0``,
+the polarization staying a unit vector. The change of the wave vector inside
+``\boldsymbol{\Gamma}`` is thus all that remains: its two terms,
+``C_{imkl}U_iU_kk_l`` and ``C_{ijkm}U_ik_jU_k``, are equal by the major
+symmetry, and with ``\omega = kV`` and ``\underline{k} = k\,\underline{n}``
 
 ```math
 \underline{g} = \frac{(\underline{U}\cdot\mathbb{C}\cdot\underline{U})\cdot\underline{n}}{\rho V},
 \qquad
-g_j = \frac{C_{ijkl}\,U_i\,U_k\,n_l}{\rho V} .
+g_m = \frac{C_{imkl}\,U_i\,U_k\,n_l}{\rho V} .
 ```
+
+It is the first-order perturbation of an eigenvalue: the eigenvalue of a
+symmetric matrix that depends on a parameter changes as the matrix does along
+its unit eigenvector, ``\delta(\rho\omega^2) = \underline{U}\cdot\delta\boldsymbol{\Gamma}\cdot\underline{U}``,
+the change of the eigenvector contributing nothing at first order.
 
 Three consequences follow.
 

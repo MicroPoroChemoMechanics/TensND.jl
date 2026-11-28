@@ -1004,7 +1004,17 @@ end
 # generic route. On a symbolic axis only equal axes are recognized: the cosine
 # is `nothing`.
 @inline _axis_cosine(nA, nB) = is_hard_numeric(real(promote_type(eltype(nA), eltype(nB)))) ?
-    nA[1] * nB[1] + nA[2] * nB[2] + nA[3] * nB[3] : nothing
+    _real_cosine(_real_axis(nA), _real_axis(nB)) : nothing
+@inline _real_cosine(nA, nB) = nA[1] * nB[1] + nA[2] * nB[2] + nA[3] * nB[3]
+
+# An axis is a direction: a tensor of complex components (a viscoelastic or a
+# frequency-domain stiffness) stores it in its own complex type, with a zero
+# imaginary part, and the frames and the cosines are built on its real part.
+@inline _real_axis(n) = map(_real_axis_component, n)
+@inline _real_axis_component(x) = x
+@inline _real_axis_component(x::Complex) = iszero(imag(x)) ? real(x) : throw(
+        ArgumentError("the axis of a transversely isotropic tensor is a direction, with real components; got $x")
+    )
 
 # B written about n, parallel to its own axis: the terms odd in the axis (`c·w`
 # of `N = 3`, `ℓ₇`, `ℓ₈` of `N = 8`) change sign when n is opposite.
@@ -1019,7 +1029,7 @@ _odd_in_axis_flipped(d::NTuple) = d
 _has_orthogonal_ortho(::Union{TensTI{2, <:Any, 2}, TensTI{4, <:Any, 5}, TensTI{4, <:Any, 6}}) = true
 _has_orthogonal_ortho(::TensTI) = false
 @noinline function _orthogonal_ti_binary(op::F, A::TensTI, B::TensTI) where {F}
-    nA, nB = SVector(axis(A)), SVector(axis(B))
+    nA, nB = SVector(_real_axis(axis(A))), SVector(_real_axis(axis(B)))
     e₂ = normalize(nB - (transpose(nA) * nB) * nA)
     ℱ = RotatedBasis(hcat(nA, e₂, cross(nA, e₂)), Val(3), Val(:typed))
     return _same_frame_binary(op, walpole_to_ortho(A, ℱ, 1), walpole_to_ortho(B, ℱ, 2))

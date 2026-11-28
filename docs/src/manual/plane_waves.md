@@ -7,6 +7,13 @@
 
     **Tutorials**: [Slowness and wave surfaces](@ref tut-wave-surfaces) · [Thomsen's parameters](@ref tut-thomsen) · [Generalized Thomsen parameters](@ref tut-generalized-thomsen)
 
+!!! note "Two-index components"
+    ``C_{11}``, ``C_{44}``, ``C_{66}``, … are the two-index (Voigt) components
+    ``C_{IJ}`` of the stiffness, ``I = 1, \dots, 6`` standing for the pairs 11,
+    22, 33, 23, 13, 12 (``C_{44} = C_{2323}``, ``C_{66} = C_{1212}``), not the
+    entries of the Kelvin–Mandel matrix, which carry factors ``\sqrt2`` and ``2``.
+    Both matrices are written in full in [Contrast with Voigt](@ref th-voigt).
+
 A plane wave ``\underline{u} = \underline{U}\,f(\underline{n}\cdot\underline{x} - Vt)``
 of unit direction ``\underline{n}`` travels in a homogeneous medium of stiffness
 ``\mathbb{C}`` and mass density ``\rho`` when its phase velocity ``V`` and its

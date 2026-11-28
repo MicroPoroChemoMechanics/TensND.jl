@@ -1,5 +1,38 @@
 # Changelog
 
+## v0.18.1
+
+### Added
+
+- `thomsen_parameters`, `anellipticity`, `weak_wave_modes` and
+  `squared_moveout_velocities` take any stiffness that is transversely
+  isotropic, not only a `TensTI`: an isotropic one (about any axis, given by the
+  keyword `axis`; its ``ε``, ``δ``, ``γ`` vanish, symbols included) and a tensor
+  of another type that belongs to the class about the axis given or, for
+  numbers, found. A stiffness of another class is refused with a pointer to
+  `generalized_thomsen_parameters`, which holds for any symmetry.
+
+### Documentation
+
+- The two-index (Voigt) and Kelvin–Mandel matrices of a stiffness are written
+  in full, and every page of the waves that writes ``C_{11}``, ``C_{44}``, …
+  states that these are the two-index components and points there.
+- The group velocity is derived by differentiating the dispersion relation with
+  respect to the wave vector in full: the terms of the polarization vanish by
+  the eigenvalue equation and the norm of the polarization, those of the wave
+  vector inside the acoustic tensor give the velocity.
+
+### Fixed
+
+- The sum or difference of two transversely isotropic tensors of complex
+  components (a viscoelastic or a frequency-domain stiffness) whose axes are
+  orthogonal or opposite threw a `MethodError`: the frame of the result was
+  built in the complex type in which the axis is stored, and its angles were
+  sought by comparing complex numbers. The axis, a direction, is now read on its
+  real part, a nonzero imaginary part being refused. Results on real numbers are
+  unchanged to the bit. This is what a Mori-Tanaka estimate meets with two
+  families of complex moduli on orthogonal axes.
+
 ## v0.18.0 — elastic waves
 
 A stiffness and a density define the waves of a medium; TensND had the

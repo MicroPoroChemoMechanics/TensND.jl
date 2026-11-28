@@ -219,3 +219,37 @@ end
         @test isapprox(V₂(0.0)^2 + V₂(0.0) * ForwardDiff.derivative(θ -> ForwardDiff.derivative(V₂, θ), 0.0), m₂.qSV; rtol = 1.0e-10)
     end
 end
+
+# Any stiffness that is transversely isotropic: an isotropic one about any
+# axis, whose ε, δ, γ vanish and whose velocities are √((λ + 2μ)/ρ) and √(μ/ρ);
+# a generic tensor written from a TI one, about the axis given or found; and the
+# refusal of a stiffness of another class, or of an axis that is not the TI one.
+@testsection "Thomsen's parameters of any transversely isotropic stiffness" begin
+    λ, μ, ρ = 30.0, 20.0, 2.5
+    iso = TensISO{3}(3λ + 2μ, 2μ)
+    t = thomsen_parameters(iso, ρ)
+    @test t.V_P0 ≈ sqrt((λ + 2μ) / ρ) && t.V_S0 ≈ sqrt(μ / ρ)
+    @test abs(t.ε) < 1.0e-14 && abs(t.δ) < 1.0e-14 && abs(t.γ) < 1.0e-14
+    @test thomsen_parameters(iso, ρ; axis = normalize([1.0, 2.0, 3.0])).V_P0 ≈ t.V_P0
+    @test abs(anellipticity(iso)) < 1.0e-14
+    @test all(values(weak_wave_modes(iso, ρ, [0.3, 0.4, 0.5])) .≈ (t.V_P0, t.V_S0, t.V_S0))
+    @test all(values(squared_moveout_velocities(iso, ρ)) .≈ (t.V_P0^2, t.V_S0^2, t.V_S0^2))
+    # symbols: the parameters of an isotropic medium vanish identically
+    lam, mu, rho = symbols("lam mu rho", positive = true)
+    s = thomsen_parameters(TensISO{3}(3lam + 2mu, 2mu), rho)
+    @test all(iszero(simplify(x)) for x in (s.ε, s.δ, s.γ))
+    @test iszero(simplify(s.V_P0^2 - (lam + 2mu) / rho))
+    # a generic tensor of a TI stiffness about a tilted axis
+    n = normalize([0.3, -0.5, 0.8])
+    ti = wth_ti(WTH_SANDSTONE, n)
+    generic = Tens(Array(get_array(express(ti, CanonicalBasis{3, Float64}()))))
+    ref = thomsen_parameters(ti, WTH_RHO_SANDSTONE)
+    @test all(values(thomsen_parameters(generic, WTH_RHO_SANDSTONE; axis = n)) .≈ values(ref))
+    @test all(isapprox.(values(thomsen_parameters(generic, WTH_RHO_SANDSTONE)), values(ref); rtol = 1.0e-8))
+    @test anellipticity(generic; axis = n) ≈ anellipticity(ti)
+    @test thomsen_parameters(ti, WTH_RHO_SANDSTONE; axis = -n).ε ≈ ref.ε
+    # refusals
+    @test_throws ArgumentError thomsen_parameters(ti, WTH_RHO_SANDSTONE; axis = [1.0, 0.0, 0.0])
+    @test_throws ArgumentError thomsen_parameters(generic, WTH_RHO_SANDSTONE; axis = [1.0, 0.0, 0.0])
+    @test_throws ArgumentError thomsen_parameters(TensCubic(10.0, 4.0, 3.0, RotatedBasis(0.3, 0.2, 0.1)), 2.5)
+end

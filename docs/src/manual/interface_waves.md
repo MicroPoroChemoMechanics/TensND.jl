@@ -7,6 +7,13 @@
 
     **Tutorials**: [Reflection and transmission at an interface](@ref tut-reflection)
 
+!!! note "Two-index components"
+    ``C_{11}``, ``C_{44}``, ``C_{66}``, … are the two-index (Voigt) components
+    ``C_{IJ}`` of the stiffness, ``I = 1, \dots, 6`` standing for the pairs 11,
+    22, 33, 23, 13, 12 (``C_{44} = C_{2323}``, ``C_{66} = C_{1212}``), not the
+    entries of the Kelvin–Mandel matrix, which carry factors ``\sqrt2`` and ``2``.
+    Both matrices are written in full in [Contrast with Voigt](@ref th-voigt).
+
 A wave ``\underline{u} = a\,\underline{U}\exp[\mathrm{i}\omega(\underline{s}\cdot\underline{x} - t)]``
 meets a plane interface of unit normal ``\underline{\nu}``. All the waves it
 excites share the tangential part ``\underline{s}_t`` of its slowness
